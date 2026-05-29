@@ -1,0 +1,19 @@
+export type ProductStatus = 'Actif' | 'Inactif';
+export type ProductBrand = string;
+
+export type Product = {
+  apiId: number;
+  id: string;
+  name: string;
+  sku: string;
+  brand: ProductBrand;
+  supplier: string;
+  price: number;
+  cost: number;
+  stock: number;
+  reserved: number;
+  lowStockThreshold: number;
+  status: ProductStatus;
+};
+
+export type ProductDraft = Omit<Product, 'id' | 'apiId'>;

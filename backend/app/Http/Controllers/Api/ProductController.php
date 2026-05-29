@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreProductRequest;
+use App\Http\Requests\Api\UpdateProductRequest;
+use App\Models\OrderLine;
+use App\Models\Product;
+use App\Services\AuditLogger;
+use App\Services\StockService;
+use App\Support\ApiBrandContext;
+use App\Support\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class ProductController extends Controller
+{
+    public function __construct(
+        protected StockService $stockService
+    ) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        $search = $request->query('search');
+
+        $q = Product::query()->where('brand_id', $brandId)->orderByDesc('id');
+        if ($search) {
+            $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';
+            $q->where(function ($w) use ($s) {
+                $w->where('name', 'like', $s)->orWhere('sku', 'like', $s);
+            });
+        }
+
+        return ApiResponse::success($q->paginate($perPage), 'Products retrieved successfully.');
+    }
+
+    public function store(StoreProductRequest $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $data = $request->validated();
+        $data['brand_id'] = $brandId;
+        $data['cost'] = $data['cost'] ?? 0;
+        $data['status'] = $data['status'] ?? 'active';
+        $initial = (int) ($data['stock_quantity'] ?? 0);
+        unset($data['stock_quantity']);
+
+        $product = DB::transaction(function () use ($request, $data, $initial) {
+            $p = Product::query()->create(array_merge($data, [
+                'stock_quantity' => 0,
+                'reserved_quantity' => 0,
+            ]));
+            if ($initial > 0) {
+                $this->stockService->recordMovement($p->fresh(), 'in', $initial, $request->user(), [
+                    'reason' => 'initial_stock_on_create',
+                ]);
+            }
+
+            return $p->fresh();
+        });
+
+        AuditLogger::log($request, 'products.create', $product, null, $product->toArray());
+
+        return ApiResponse::success($product, 'Product created successfully.', 201);
+    }
+
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $product = Product::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        return ApiResponse::success($product, 'Product retrieved successfully.');
+    }
+
+    public function update(UpdateProductRequest $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $product = Product::query()->where('brand_id', $brandId)->findOrFail($id);
+        $before = $product->toArray();
+        $product->fill($request->validated());
+        $product->save();
+
+        AuditLogger::log($request, 'products.update', $product, $before, $product->fresh()->toArray());
+
+        return ApiResponse::success($product->fresh(), 'Product updated successfully.');
+    }
+
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $product = Product::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        if (OrderLine::query()->where('product_id', $product->id)->exists()) {
+            return ApiResponse::error('Cannot delete product referenced on order lines.', null, 422);
+        }
+
+        $before = $product->toArray();
+        $product->delete();
+        AuditLogger::log($request, 'products.delete', null, $before, null);
+
+        return ApiResponse::success(null, 'Product deleted successfully.');
+    }
+}

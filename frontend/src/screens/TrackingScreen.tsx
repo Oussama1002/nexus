@@ -1,0 +1,273 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { FilterBar } from '../components/ui/FilterBar';
+import { Modal } from '../components/ui/Modal';
+import { useAuth } from '../context/AuthContext';
+import * as api from '../lib/api';
+import { buildQuery } from '../lib/pagination';
+import type { Paginated } from '../lib/pagination';
+import { cn } from '../lib/utils';
+import {
+  auditActionLabelFr,
+  auditEntityFilterOptions,
+  auditEntitySummaryFr,
+  auditFieldLabelFr,
+  formatAuditFieldValue,
+  sortedAuditEntries,
+} from '../lib/auditDisplayFr';
+
+type AuditUser = { id: number; name: string; email: string };
+
+type AuditLogRow = {
+  id: number;
+  user_id: number | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | number | null;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
+  user?: AuditUser | null;
+};
+
+function hasAuditPayload(values: Record<string, unknown> | null | undefined): boolean {
+  return values !== null && values !== undefined && Object.keys(values).length > 0;
+}
+
+function AuditPayloadSection({
+  heading,
+  tone,
+  values,
+  emptyHint,
+}: {
+  heading: string;
+  tone: 'neutral' | 'success';
+  values: Record<string, unknown> | null | undefined;
+  emptyHint: string;
+}) {
+  const wrap =
+    tone === 'success'
+      ? 'border-emerald-200 bg-emerald-50/40'
+      : 'border-zinc-200 bg-zinc-50/90';
+
+  if (!hasAuditPayload(values ?? null)) {
+    return (
+      <div className={cn('rounded-xl border px-4 py-3 text-sm', wrap)}>
+        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{heading}</p>
+        <p className="mt-2 text-zinc-600">{emptyHint}</p>
+      </div>
+    );
+  }
+
+  const rows = sortedAuditEntries(values as Record<string, unknown>);
+  return (
+    <div className={cn('rounded-xl border overflow-hidden', wrap)}>
+      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-4 pt-3">{heading}</p>
+      <dl className="divide-y divide-zinc-100/90 px-4 pb-3 pt-2">
+        {rows.map(([key, val]) => (
+          <div key={key} className="grid grid-cols-1 sm:grid-cols-[minmax(10rem,32%)_1fr] gap-x-4 gap-y-1 py-2.5 text-sm first:pt-0">
+            <dt className="font-bold text-zinc-600">{auditFieldLabelFr(key)}</dt>
+            <dd className="text-zinc-900 break-words">{formatAuditFieldValue(key, val)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+export function TrackingScreen() {
+  const { hasPermission } = useAuth();
+  const [rows, setRows] = useState<AuditLogRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [q, setQ] = useState('');
+  const [action, setAction] = useState('');
+  const [entityType, setEntityType] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const [detail, setDetail] = useState<AuditLogRow | null>(null);
+
+  const canView = hasPermission('audit_logs.view');
+
+  const load = useCallback(async () => {
+    if (!canView) return;
+    setLoading(true);
+    setError(null);
+    const res = await api.get<Paginated<AuditLogRow>>(
+      `audit-logs${buildQuery({
+        per_page: 100,
+        action: action.trim() || undefined,
+        entity_type: entityType.trim() || undefined,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+      })}`,
+    );
+    if (res.ok && res.data) {
+      setRows(res.data.data);
+    } else {
+      setError(res.message);
+    }
+    setLoading(false);
+  }, [canView, action, entityType, dateFrom, dateTo]);
+
+  const entityFilterOpts = useMemo(() => auditEntityFilterOptions(), []);
+
+  const displayed = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return rows;
+    return rows.filter((r) => {
+      const actionFr = auditActionLabelFr(r.action).toLowerCase();
+      const entityFr = auditEntitySummaryFr(r.entity_type, r.entity_id).toLowerCase();
+      return (
+        actionFr.includes(s) ||
+        r.action.toLowerCase().includes(s) ||
+        `${r.user?.name ?? ''} ${r.user?.email ?? ''} ${entityFr}`.toLowerCase().includes(s)
+      );
+    });
+  }, [rows, q]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (!canView) {
+    return (
+      <div className="card p-8 text-center text-sm font-medium text-zinc-600">
+        Vous n’avez pas accès au journal d’audit. Contactez un administrateur si nécessaire.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Historique d’activité"
+        subtitle="Journal des opérations enregistrées par le serveur (connexions, créations, modifications). Ce qui se passe uniquement dans le navigateur n’apparaît pas ici."
+        right={
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="px-4 py-2 rounded-2xl border text-sm font-black inline-flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Rafraîchir
+          </button>
+        }
+      />
+
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <input
+          placeholder="Filtrer par libellé d’action…"
+          value={action}
+          onChange={(e) => setAction(e.target.value)}
+          className="px-4 py-3 rounded-xl border border-zinc-200 text-sm font-bold"
+          title="Recherche libre sur le code d’action enregistré côté serveur"
+        />
+        <select
+          value={entityType}
+          onChange={(e) => setEntityType(e.target.value)}
+          className="px-4 py-3 rounded-xl border border-zinc-200 text-sm font-bold bg-white"
+        >
+          {entityFilterOpts.map((o) => (
+            <option key={o.value || '__all'} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="px-4 py-3 rounded-xl border text-sm" />
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-4 py-3 rounded-xl border text-sm" />
+      </div>
+
+      <FilterBar query={q} onQueryChange={setQ} placeholder="Rechercher (action, utilisateur, type d’objet)…" />
+
+      <div className="card divide-y divide-zinc-100">
+        {displayed.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => setDetail(r)}
+            className={cn(
+              'w-full text-left px-5 py-4 hover:bg-zinc-50 transition-colors flex flex-col md:flex-row md:items-center md:justify-between gap-2',
+            )}
+          >
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                {new Date(r.created_at).toLocaleString('fr-FR')}
+              </p>
+              <p className="mt-1 text-sm font-black text-zinc-900">{auditActionLabelFr(r.action)}</p>
+              <p className="text-xs text-zinc-600 mt-1">
+                {r.user?.name ?? '—'} · {auditEntitySummaryFr(r.entity_type, r.entity_id)}
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-400">{r.ip_address}</span>
+          </button>
+        ))}
+        {displayed.length === 0 && !loading && (
+          <p className="p-8 text-center text-sm text-zinc-500">
+            Aucune entrée. Les journaux sont créés quand l’API enregistre une action (ex. connexion, commandes, utilisateurs). Réessayez après une action ou vérifiez les filtres ci‑dessus.
+          </p>
+        )}
+      </div>
+
+      <Modal
+        open={detail !== null}
+        title="Détail du journal"
+        subtitle={detail ? auditActionLabelFr(detail.action) : undefined}
+        onClose={() => setDetail(null)}
+      >
+        {detail && (
+          <div className="space-y-4 max-h-[min(75vh,560px)] overflow-y-auto pr-1">
+            <div className="rounded-xl border border-zinc-100 bg-white px-4 py-3 space-y-1.5 text-sm">
+              <p>
+                <span className="text-zinc-500">Date : </span>
+                <span className="font-bold text-zinc-900">{new Date(detail.created_at).toLocaleString('fr-FR')}</span>
+              </p>
+              <p>
+                <span className="text-zinc-500">Action : </span>
+                <span className="font-bold text-zinc-900">{auditActionLabelFr(detail.action)}</span>
+              </p>
+              <p>
+                <span className="text-zinc-500">Utilisateur : </span>
+                <span className="font-bold text-zinc-900">{detail.user?.name ?? '—'}</span>
+                {detail.user?.email ? (
+                  <span className="text-zinc-600 font-medium"> ({detail.user.email})</span>
+                ) : null}
+              </p>
+              <p>
+                <span className="text-zinc-500">Objet concerné : </span>
+                <span className="font-bold text-zinc-900">{auditEntitySummaryFr(detail.entity_type, detail.entity_id)}</span>
+              </p>
+              {detail.ip_address ? (
+                <p className="text-xs text-zinc-500">
+                  IP : <span className="font-mono">{detail.ip_address}</span>
+                </p>
+              ) : null}
+            </div>
+
+            <AuditPayloadSection
+              heading="État précédent"
+              tone="neutral"
+              values={detail.old_values}
+              emptyHint="Pas d’état avant — souvent une création ou une première trace pour cette action."
+            />
+            <AuditPayloadSection
+              heading="État enregistré"
+              tone="success"
+              values={detail.new_values}
+              emptyHint="Pas de données après — souvent une suppression ou les valeurs ne sont pas stockées pour cette action."
+            />
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}

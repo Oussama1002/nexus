@@ -1,0 +1,408 @@
+<?php
+
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AutomationRuleController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\BrandKnowledgeItemController;
+use App\Http\Controllers\Api\AdAccountController;
+use App\Http\Controllers\Api\AcademyLessonController;
+use App\Http\Controllers\Api\CampaignController;
+use App\Http\Controllers\Api\CampaignMetricController;
+use App\Http\Controllers\Api\ClientContractController;
+use App\Http\Controllers\Api\ClientPortalController;
+use App\Http\Controllers\Api\ClientInvoiceController;
+use App\Http\Controllers\Api\CollabProjectController;
+use App\Http\Controllers\Api\ConfirmatriceWorkspaceController;
+use App\Http\Controllers\Api\ChargeController;
+use App\Http\Controllers\Api\CmDailyTrackingController;
+use App\Http\Controllers\Api\ContentCalendarController;
+use App\Http\Controllers\Api\ContentProductionController;
+use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\DailyKpiController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DeliveryCompanyController;
+use App\Http\Controllers\Api\DeliveryDashboardController;
+use App\Http\Controllers\Api\DeliveryPaymentController;
+use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\FinanceSummaryController;
+use App\Http\Controllers\Api\InfluencerCollaborationController;
+use App\Http\Controllers\Api\InfluencerComplaintController;
+use App\Http\Controllers\Api\InfluencerController;
+use App\Http\Controllers\Api\InfluencerMessageController;
+use App\Http\Controllers\Api\InfluencerPerformanceController;
+use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\MetaAdsController;
+use App\Http\Controllers\Api\MediaBuyingController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\ProcurementDashboardController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\PurchaseOrderLineController;
+use App\Http\Controllers\Api\ShipmentController;
+use App\Http\Controllers\Api\ShipmentEventController;
+use App\Http\Controllers\Api\SocialAccountController;
+use App\Http\Controllers\Api\SocialDirectoryController;
+use App\Http\Controllers\Api\SocialPublicationController;
+use App\Http\Controllers\Api\SocialInfluenceDashboardController;
+use App\Http\Controllers\Api\StrategyController;
+use App\Http\Controllers\Api\StockMovementController;
+use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\SettingsCenterController;
+use App\Http\Controllers\Api\SystemSettingController;
+use App\Http\Controllers\Api\HrAttendanceController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WhatsAppWebhookController;
+use App\Support\ApiResponse;
+use Illuminate\Support\Facades\Route;
+
+Route::post('auth/login', [AuthController::class, 'login']);
+
+Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify']);
+Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('auth/logout', [AuthController::class, 'logout']);
+    Route::get('auth/me', [AuthController::class, 'me']);
+
+    Route::get('health', fn () => ApiResponse::success([
+        'status' => 'ok',
+        'service' => 'nexus-backend',
+    ], 'Service healthy.'));
+
+    Route::get('dashboard', [DashboardController::class, 'index'])
+        ->middleware('permission:dashboard.view');
+
+    Route::get('confirmatrice-workspace/summary', [ConfirmatriceWorkspaceController::class, 'summary']);
+
+    $registerCrud = function (string $path, string $controller, string $module): void {
+        Route::get($path, [$controller, 'index'])->middleware("permission:{$module}.view");
+        Route::post($path, [$controller, 'store'])->middleware("permission:{$module}.create");
+        Route::get("{$path}/{id}", [$controller, 'show'])->whereNumber('id')->middleware("permission:{$module}.view");
+        Route::put("{$path}/{id}", [$controller, 'update'])->whereNumber('id')->middleware("permission:{$module}.update");
+        Route::patch("{$path}/{id}", [$controller, 'update'])->whereNumber('id')->middleware("permission:{$module}.update");
+        Route::delete("{$path}/{id}", [$controller, 'destroy'])->whereNumber('id')->middleware("permission:{$module}.delete");
+    };
+
+    Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
+    Route::post('users', [UserController::class, 'store'])->middleware('permission:users.create');
+    Route::get('users/{id}', [UserController::class, 'show'])->whereNumber('id')->middleware('permission:users.view');
+    Route::put('users/{id}', [UserController::class, 'update'])->whereNumber('id')->middleware('permission:users.update');
+    Route::patch('users/{id}', [UserController::class, 'update'])->whereNumber('id')->middleware('permission:users.update');
+    Route::delete('users/{id}', [UserController::class, 'destroy'])->whereNumber('id')->middleware('permission:users.delete');
+    Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword'])->whereNumber('id')->middleware('permission:users.update');
+
+    Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
+    Route::get('roles/{id}', [RoleController::class, 'show'])->whereNumber('id')->middleware('permission:roles.view');
+    Route::patch('roles/{id}', [RoleController::class, 'update'])->whereNumber('id')->middleware('permission:roles.update');
+
+    Route::get('permissions', [PermissionController::class, 'index'])->middleware('permission:permissions.view');
+    Route::get('permissions/{id}', [PermissionController::class, 'show'])->whereNumber('id')->middleware('permission:permissions.view');
+
+    $registerCrud('brands', BrandController::class, 'brands');
+    $registerCrud('customers', CustomerController::class, 'customers');
+
+    Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('leads', [LeadController::class, 'store'])->middleware('permission:leads.create');
+    Route::get('leads/{id}', [LeadController::class, 'show'])->whereNumber('id')->middleware('permission:leads.view');
+    Route::put('leads/{id}', [LeadController::class, 'update'])->whereNumber('id')->middleware('permission:leads.update');
+    Route::patch('leads/{id}', [LeadController::class, 'update'])->whereNumber('id')->middleware('permission:leads.update');
+    Route::delete('leads/{id}', [LeadController::class, 'destroy'])->whereNumber('id')->middleware('permission:leads.delete');
+    Route::post('leads/{id}/assign', [LeadController::class, 'assign'])->whereNumber('id')->middleware('permission:leads.update');
+    Route::patch('leads/{id}/status', [LeadController::class, 'updateStatus'])->whereNumber('id')->middleware('permission:leads.update');
+    Route::post('leads/{id}/convert-to-order', [LeadController::class, 'convertToOrder'])->whereNumber('id')->middleware('permission:leads.update');
+
+    Route::get('conversations', [ConversationController::class, 'index'])->middleware('permission:conversations.view');
+    Route::post('conversations', [ConversationController::class, 'store'])->middleware('permission:conversations.create');
+    Route::get('conversations/{id}', [ConversationController::class, 'show'])->whereNumber('id')->middleware('permission:conversations.view');
+    Route::put('conversations/{id}', [ConversationController::class, 'update'])->whereNumber('id')->middleware('permission:conversations.update');
+    Route::patch('conversations/{id}', [ConversationController::class, 'update'])->whereNumber('id')->middleware('permission:conversations.update');
+    Route::delete('conversations/{id}', [ConversationController::class, 'destroy'])->whereNumber('id')->middleware('permission:conversations.delete');
+    Route::get('conversations/{id}/messages', [ConversationController::class, 'messages'])->whereNumber('id')->middleware('permission:conversations.view');
+    Route::post('conversations/{id}/messages', [ConversationController::class, 'storeMessage'])->whereNumber('id')->middleware('permission:conversations.create');
+
+    Route::get('orders', [OrderController::class, 'index'])->middleware('permission:orders.view');
+    Route::post('orders', [OrderController::class, 'store'])->middleware('permission:orders.create');
+    Route::get('orders/{id}', [OrderController::class, 'show'])->whereNumber('id')->middleware('permission:orders.view');
+    Route::put('orders/{id}', [OrderController::class, 'update'])->whereNumber('id')->middleware('permission:orders.update');
+    Route::patch('orders/{id}', [OrderController::class, 'update'])->whereNumber('id')->middleware('permission:orders.update');
+    Route::delete('orders/{id}', [OrderController::class, 'destroy'])->whereNumber('id')->middleware('permission:orders.delete');
+    Route::patch('orders/{id}/status', [OrderController::class, 'updateStatus'])->whereNumber('id')->middleware('permission:orders.update');
+
+    $registerCrud('products', ProductController::class, 'products');
+
+    Route::get('stock-movements', [StockMovementController::class, 'index'])->middleware('permission:stock.view');
+    Route::post('stock-movements', [StockMovementController::class, 'store'])->middleware('permission:stock.create');
+    Route::get('stock-movements/{id}', [StockMovementController::class, 'show'])->whereNumber('id')->middleware('permission:stock.view');
+
+    $registerCrud('suppliers', SupplierController::class, 'suppliers');
+    $registerCrud('knowledge-base', BrandKnowledgeItemController::class, 'knowledge_base');
+
+    Route::get('dashboards/procurement', [ProcurementDashboardController::class, 'summary'])->middleware('permission:purchase_orders.view');
+
+    Route::get('purchase-orders', [PurchaseOrderController::class, 'index'])->middleware('permission:purchase_orders.view');
+    Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])->middleware('permission:purchase_orders.create');
+    Route::post('purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receive'])->whereNumber('id')->middleware('permission:purchase_orders.receive');
+    Route::post('purchase-orders/{id}/send-supplier', [PurchaseOrderController::class, 'sendToSupplier'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::post('purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::get('purchase-orders/{id}', [PurchaseOrderController::class, 'show'])->whereNumber('id')->middleware('permission:purchase_orders.view');
+    Route::put('purchase-orders/{id}', [PurchaseOrderController::class, 'update'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::patch('purchase-orders/{id}', [PurchaseOrderController::class, 'update'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::delete('purchase-orders/{id}', [PurchaseOrderController::class, 'destroy'])->whereNumber('id')->middleware('permission:purchase_orders.delete');
+
+    Route::get('purchase-order-lines', [PurchaseOrderLineController::class, 'index'])->middleware('permission:purchase_orders.view');
+    Route::post('purchase-order-lines', [PurchaseOrderLineController::class, 'store'])->middleware('permission:purchase_orders.update');
+    Route::get('purchase-order-lines/{id}', [PurchaseOrderLineController::class, 'show'])->whereNumber('id')->middleware('permission:purchase_orders.view');
+    Route::put('purchase-order-lines/{id}', [PurchaseOrderLineController::class, 'update'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::patch('purchase-order-lines/{id}', [PurchaseOrderLineController::class, 'update'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::delete('purchase-order-lines/{id}', [PurchaseOrderLineController::class, 'destroy'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+
+    Route::get('shipments', [ShipmentController::class, 'index'])->middleware('permission:shipments.view');
+    Route::post('shipments', [ShipmentController::class, 'store'])->middleware('permission:shipments.create');
+    Route::patch('shipments/{id}/status', [ShipmentController::class, 'patchStatus'])->whereNumber('id')->middleware('permission:shipments.status');
+    Route::post('shipments/{id}/sync', [ShipmentController::class, 'sync'])->whereNumber('id')->middleware('permission:shipments.sync');
+    Route::post('shipments/{id}/cancel', [ShipmentController::class, 'cancel'])->whereNumber('id')->middleware('permission:shipments.update');
+    Route::get('shipments/{id}/label', [ShipmentController::class, 'label'])->whereNumber('id')->middleware('permission:shipments.label');
+    Route::get('shipments/{id}/events', [ShipmentEventController::class, 'indexForShipment'])->whereNumber('id')->middleware('permission:shipments.view');
+    Route::post('shipments/{id}/events', [ShipmentEventController::class, 'storeForShipment'])->whereNumber('id')->middleware('permission:shipments.create');
+    Route::get('shipments/{id}', [ShipmentController::class, 'show'])->whereNumber('id')->middleware('permission:shipments.view');
+    Route::put('shipments/{id}', [ShipmentController::class, 'update'])->whereNumber('id')->middleware('permission:shipments.update');
+    Route::patch('shipments/{id}', [ShipmentController::class, 'update'])->whereNumber('id')->middleware('permission:shipments.update');
+    Route::delete('shipments/{id}', [ShipmentController::class, 'destroy'])->whereNumber('id')->middleware('permission:shipments.delete');
+
+    Route::get('shipment-events', [ShipmentEventController::class, 'index'])->middleware('permission:shipments.view');
+    Route::post('shipment-events', [ShipmentEventController::class, 'store'])->middleware('permission:shipments.create');
+    Route::get('shipment-events/{id}', [ShipmentEventController::class, 'show'])->whereNumber('id')->middleware('permission:shipments.view');
+    Route::delete('shipment-events/{id}', [ShipmentEventController::class, 'destroy'])->whereNumber('id')->middleware('permission:shipments.delete');
+
+    $registerCrud('delivery-companies', DeliveryCompanyController::class, 'delivery_companies');
+
+    Route::get('delivery/dashboard', DeliveryDashboardController::class)->middleware('permission:delivery.dashboard');
+    Route::post('delivery/sendit/sync', [DeliveryDashboardController::class, 'syncSendit'])->middleware('permission:delivery.dashboard');
+
+    Route::get('delivery-payments', [DeliveryPaymentController::class, 'index'])->middleware('permission:delivery_payments.view');
+    Route::get('delivery-payments/cod-summary', [DeliveryPaymentController::class, 'codPendingSummary'])->middleware('permission:delivery_payments.view');
+    Route::post('delivery-payments', [DeliveryPaymentController::class, 'store'])->middleware('permission:delivery_payments.create');
+    Route::get('delivery-payments/{id}', [DeliveryPaymentController::class, 'show'])->whereNumber('id')->middleware('permission:delivery_payments.view');
+    Route::put('delivery-payments/{id}', [DeliveryPaymentController::class, 'update'])->whereNumber('id')->middleware('permission:delivery_payments.update');
+    Route::patch('delivery-payments/{id}', [DeliveryPaymentController::class, 'update'])->whereNumber('id')->middleware('permission:delivery_payments.update');
+    Route::post('delivery-payments/{id}/reconcile', [DeliveryPaymentController::class, 'reconcile'])->whereNumber('id')->middleware('permission:delivery_payments.reconcile');
+    Route::patch('delivery-payments/{id}/reconcile', [DeliveryPaymentController::class, 'reconcile'])->whereNumber('id')->middleware('permission:delivery_payments.reconcile');
+    Route::delete('delivery-payments/{id}', [DeliveryPaymentController::class, 'destroy'])->whereNumber('id')->middleware('permission:delivery_payments.delete');
+    Route::get('ad-accounts', [AdAccountController::class, 'index'])->middleware('permission:ad_accounts.view');
+    Route::post('ad-accounts', [AdAccountController::class, 'store'])->middleware('permission:ad_accounts.create');
+    Route::get('ad-accounts/{id}', [AdAccountController::class, 'show'])->whereNumber('id')->middleware('permission:ad_accounts.view');
+    Route::put('ad-accounts/{id}', [AdAccountController::class, 'update'])->whereNumber('id')->middleware('permission:ad_accounts.update');
+    Route::patch('ad-accounts/{id}', [AdAccountController::class, 'update'])->whereNumber('id')->middleware('permission:ad_accounts.update');
+    Route::delete('ad-accounts/{id}', [AdAccountController::class, 'destroy'])->whereNumber('id')->middleware('permission:ad_accounts.delete');
+
+    Route::prefix('meta')->group(function () {
+        Route::get('ad-accounts', [MetaAdsController::class, 'previewAdAccounts'])->middleware('permission:ad_accounts.view');
+        Route::post('sync/ad-accounts', [MetaAdsController::class, 'syncAdAccounts'])->middleware('permission:ad_accounts.update');
+        Route::post('sync/campaigns', [MetaAdsController::class, 'syncCampaigns'])->middleware('permission:campaigns.update');
+        Route::post('sync/insights', [MetaAdsController::class, 'syncInsights'])->middleware('permission:campaign_metrics.create');
+    });
+
+    Route::get('campaigns', [CampaignController::class, 'index'])->middleware('permission:campaigns.view');
+    Route::post('campaigns', [CampaignController::class, 'store'])->middleware('permission:campaigns.create');
+    Route::get('campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id')->middleware('permission:campaigns.view');
+    Route::put('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::patch('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::delete('campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id')->middleware('permission:campaigns.delete');
+
+    Route::get('campaign-metrics', [CampaignMetricController::class, 'index'])->middleware('permission:campaign_metrics.view');
+    Route::post('campaign-metrics', [CampaignMetricController::class, 'store'])->middleware('permission:campaign_metrics.create');
+    Route::get('campaign-metrics/{id}', [CampaignMetricController::class, 'show'])->whereNumber('id')->middleware('permission:campaign_metrics.view');
+    Route::put('campaign-metrics/{id}', [CampaignMetricController::class, 'update'])->whereNumber('id')->middleware('permission:campaign_metrics.update');
+    Route::patch('campaign-metrics/{id}', [CampaignMetricController::class, 'update'])->whereNumber('id')->middleware('permission:campaign_metrics.update');
+    Route::delete('campaign-metrics/{id}', [CampaignMetricController::class, 'destroy'])->whereNumber('id')->middleware('permission:campaign_metrics.delete');
+    Route::post('media-buying/{id}/repurpose', [MediaBuyingController::class, 'repurpose'])->whereNumber('id')->middleware('permission:campaigns.create');
+    Route::get('media-buying', [MediaBuyingController::class, 'index'])->middleware('permission:campaigns.view');
+    Route::post('media-buying', [MediaBuyingController::class, 'store'])->middleware('permission:campaigns.create');
+    Route::get('media-buying/{id}', [MediaBuyingController::class, 'show'])->whereNumber('id')->middleware('permission:campaigns.view');
+    Route::put('media-buying/{id}', [MediaBuyingController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::patch('media-buying/{id}', [MediaBuyingController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::delete('media-buying/{id}', [MediaBuyingController::class, 'destroy'])->whereNumber('id')->middleware('permission:campaigns.delete');
+    Route::get('collab-projects', [CollabProjectController::class, 'index'])->middleware('permission:collab_projects.view');
+    Route::post('collab-projects', [CollabProjectController::class, 'store'])->middleware('permission:collab_projects.create');
+    Route::get('collab-projects/{id}', [CollabProjectController::class, 'show'])->whereNumber('id')->middleware('permission:collab_projects.view');
+    Route::put('collab-projects/{id}', [CollabProjectController::class, 'update'])->whereNumber('id')->middleware('permission:collab_projects.update');
+    Route::patch('collab-projects/{id}', [CollabProjectController::class, 'update'])->whereNumber('id')->middleware('permission:collab_projects.update');
+    Route::delete('collab-projects/{id}', [CollabProjectController::class, 'destroy'])->whereNumber('id')->middleware('permission:collab_projects.delete');
+    Route::post('collab-projects/{id}/members', [CollabProjectController::class, 'addMember'])->whereNumber('id')->middleware('permission:collab_projects.update');
+    Route::delete('collab-projects/{id}/members/{memberId}', [CollabProjectController::class, 'removeMember'])->whereNumber('id')->whereNumber('memberId')->middleware('permission:collab_projects.update');
+    Route::get('directory/social-users', [SocialDirectoryController::class, 'users'])->middleware('permission:social_accounts.view');
+
+    Route::get('social-accounts', [SocialAccountController::class, 'index'])->middleware('permission:social_accounts.view');
+    Route::post('social-accounts', [SocialAccountController::class, 'store'])->middleware('permission:social_accounts.create');
+    Route::get('social-accounts/{id}', [SocialAccountController::class, 'show'])->whereNumber('id')->middleware('permission:social_accounts.view');
+    Route::put('social-accounts/{id}', [SocialAccountController::class, 'update'])->whereNumber('id')->middleware('permission:social_accounts.update');
+    Route::patch('social-accounts/{id}', [SocialAccountController::class, 'update'])->whereNumber('id')->middleware('permission:social_accounts.update');
+    Route::delete('social-accounts/{id}', [SocialAccountController::class, 'destroy'])->whereNumber('id')->middleware('permission:social_accounts.delete');
+
+    Route::get('social-publications', [SocialPublicationController::class, 'index'])->middleware('permission:social_publications.view');
+    Route::post('social-publications', [SocialPublicationController::class, 'store'])->middleware('permission:social_publications.create');
+    Route::get('social-publications/{id}', [SocialPublicationController::class, 'show'])->whereNumber('id')->middleware('permission:social_publications.view');
+    Route::put('social-publications/{id}', [SocialPublicationController::class, 'update'])->whereNumber('id')->middleware('permission:social_publications.update');
+    Route::patch('social-publications/{id}', [SocialPublicationController::class, 'update'])->whereNumber('id')->middleware('permission:social_publications.update');
+    Route::delete('social-publications/{id}', [SocialPublicationController::class, 'destroy'])->whereNumber('id')->middleware('permission:social_publications.delete');
+
+    Route::get('strategies', [StrategyController::class, 'index'])->middleware('permission:strategies.view');
+    Route::post('strategies', [StrategyController::class, 'store'])->middleware('permission:strategies.create');
+    Route::get('strategies/{id}', [StrategyController::class, 'show'])->whereNumber('id')->middleware('permission:strategies.view');
+    Route::put('strategies/{id}', [StrategyController::class, 'update'])->whereNumber('id')->middleware('permission:strategies.update');
+    Route::patch('strategies/{id}', [StrategyController::class, 'update'])->whereNumber('id')->middleware('permission:strategies.update');
+    Route::delete('strategies/{id}', [StrategyController::class, 'destroy'])->whereNumber('id')->middleware('permission:strategies.delete');
+    Route::post('strategies/{id}/approve', [StrategyController::class, 'approve'])->whereNumber('id')->middleware('permission:strategies.approve');
+
+    Route::get('content-calendar', [ContentCalendarController::class, 'index'])->middleware('permission:content_calendar.view');
+    Route::post('content-calendar', [ContentCalendarController::class, 'store'])->middleware('permission:content_calendar.create');
+    Route::get('content-calendar/{id}', [ContentCalendarController::class, 'show'])->whereNumber('id')->middleware('permission:content_calendar.view');
+    Route::put('content-calendar/{id}', [ContentCalendarController::class, 'update'])->whereNumber('id')->middleware('permission:content_calendar.update');
+    Route::patch('content-calendar/{id}', [ContentCalendarController::class, 'update'])->whereNumber('id')->middleware('permission:content_calendar.update');
+    Route::delete('content-calendar/{id}', [ContentCalendarController::class, 'destroy'])->whereNumber('id')->middleware('permission:content_calendar.delete');
+    Route::post('content-calendar/{id}/submit-review', [ContentCalendarController::class, 'submitForReview'])->whereNumber('id')->middleware('permission:content_calendar.update');
+    Route::post('content-calendar/{id}/approve', [ContentCalendarController::class, 'approveContent'])->whereNumber('id')->middleware('permission:content_calendar.approve');
+    Route::post('content-calendar/{id}/request-revision', [ContentCalendarController::class, 'requestRevision'])->whereNumber('id')->middleware('permission:content_calendar.approve');
+    Route::post('content-calendar/{id}/reject', [ContentCalendarController::class, 'rejectContent'])->whereNumber('id')->middleware('permission:content_calendar.approve');
+
+    Route::get('content-production', [ContentProductionController::class, 'index'])->middleware('permission:content_production.view');
+    Route::post('content-production', [ContentProductionController::class, 'store'])->middleware('permission:content_production.create');
+    Route::get('content-production/{id}', [ContentProductionController::class, 'show'])->whereNumber('id')->middleware('permission:content_production.view');
+    Route::put('content-production/{id}', [ContentProductionController::class, 'update'])->whereNumber('id')->middleware('permission:content_production.update');
+    Route::patch('content-production/{id}', [ContentProductionController::class, 'update'])->whereNumber('id')->middleware('permission:content_production.update');
+    Route::delete('content-production/{id}', [ContentProductionController::class, 'destroy'])->whereNumber('id')->middleware('permission:content_production.delete');
+
+    Route::get('cm-daily-tracking', [CmDailyTrackingController::class, 'index'])->middleware('permission:cm_tracking.view');
+    Route::post('cm-daily-tracking', [CmDailyTrackingController::class, 'store'])->middleware('permission:cm_tracking.create');
+    Route::get('cm-daily-tracking/{id}', [CmDailyTrackingController::class, 'show'])->whereNumber('id')->middleware('permission:cm_tracking.view');
+    Route::put('cm-daily-tracking/{id}', [CmDailyTrackingController::class, 'update'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+    Route::patch('cm-daily-tracking/{id}', [CmDailyTrackingController::class, 'update'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+    Route::delete('cm-daily-tracking/{id}', [CmDailyTrackingController::class, 'destroy'])->whereNumber('id')->middleware('permission:cm_tracking.delete');
+
+    Route::get('dashboards/social', [SocialInfluenceDashboardController::class, 'social'])->middleware('permission:social_accounts.view');
+    Route::get('dashboards/influence', [SocialInfluenceDashboardController::class, 'influence'])->middleware('permission:influence.view');
+
+    Route::get('influencers', [InfluencerController::class, 'index'])->middleware('permission:influence.view');
+    Route::post('influencers', [InfluencerController::class, 'store'])->middleware('permission:influence.create');
+    Route::get('influencers/{id}', [InfluencerController::class, 'show'])->whereNumber('id')->middleware('permission:influence.view');
+    Route::put('influencers/{id}', [InfluencerController::class, 'update'])->whereNumber('id')->middleware('permission:influence.update');
+    Route::patch('influencers/{id}', [InfluencerController::class, 'update'])->whereNumber('id')->middleware('permission:influence.update');
+    Route::delete('influencers/{id}', [InfluencerController::class, 'destroy'])->whereNumber('id')->middleware('permission:influence.delete');
+
+    Route::get('influencer-collaborations', [InfluencerCollaborationController::class, 'index'])->middleware('permission:influencer_collaborations.view');
+    Route::post('influencer-collaborations', [InfluencerCollaborationController::class, 'store'])->middleware('permission:influencer_collaborations.create');
+    Route::get('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_collaborations.view');
+    Route::put('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
+    Route::patch('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
+    Route::delete('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_collaborations.delete');
+
+    Route::get('influencer-performance', [InfluencerPerformanceController::class, 'index'])->middleware('permission:influencer_performance.view');
+    Route::post('influencer-performance', [InfluencerPerformanceController::class, 'store'])->middleware('permission:influencer_performance.create');
+    Route::get('influencer-performance/{id}', [InfluencerPerformanceController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_performance.view');
+    Route::put('influencer-performance/{id}', [InfluencerPerformanceController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_performance.update');
+    Route::patch('influencer-performance/{id}', [InfluencerPerformanceController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_performance.update');
+    Route::delete('influencer-performance/{id}', [InfluencerPerformanceController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_performance.delete');
+
+    Route::get('influencer-messages', [InfluencerMessageController::class, 'index'])->middleware('permission:influencer_messages.view');
+    Route::post('influencer-messages', [InfluencerMessageController::class, 'store'])->middleware('permission:influencer_messages.create');
+    Route::get('influencer-messages/{id}', [InfluencerMessageController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_messages.view');
+    Route::put('influencer-messages/{id}', [InfluencerMessageController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_messages.update');
+    Route::patch('influencer-messages/{id}', [InfluencerMessageController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_messages.update');
+    Route::delete('influencer-messages/{id}', [InfluencerMessageController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_messages.delete');
+
+    Route::get('influencer-complaints', [InfluencerComplaintController::class, 'index'])->middleware('permission:influencer_complaints.view');
+    Route::post('influencer-complaints', [InfluencerComplaintController::class, 'store'])->middleware('permission:influencer_complaints.create');
+    Route::get('influencer-complaints/{id}', [InfluencerComplaintController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_complaints.view');
+    Route::put('influencer-complaints/{id}', [InfluencerComplaintController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_complaints.update');
+    Route::patch('influencer-complaints/{id}', [InfluencerComplaintController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_complaints.update');
+    Route::delete('influencer-complaints/{id}', [InfluencerComplaintController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_complaints.delete');
+    $registerCrud('charges', ChargeController::class, 'finance');
+    Route::get('finance/contracts', [ClientContractController::class, 'index'])->middleware('permission:finance.view');
+    Route::post('finance/contracts', [ClientContractController::class, 'store'])->middleware('permission:finance.create');
+    Route::get('finance/contracts/{id}', [ClientContractController::class, 'show'])->whereNumber('id')->middleware('permission:finance.view');
+    Route::put('finance/contracts/{id}', [ClientContractController::class, 'update'])->whereNumber('id')->middleware('permission:finance.update');
+    Route::patch('finance/contracts/{id}', [ClientContractController::class, 'update'])->whereNumber('id')->middleware('permission:finance.update');
+    Route::delete('finance/contracts/{id}', [ClientContractController::class, 'destroy'])->whereNumber('id')->middleware('permission:finance.delete');
+
+    Route::get('finance/invoices', [ClientInvoiceController::class, 'index'])->middleware('permission:finance.view');
+    Route::post('finance/invoices', [ClientInvoiceController::class, 'store'])->middleware('permission:finance.create');
+    Route::post('finance/invoices/generate-monthly', [ClientInvoiceController::class, 'generateMonthly'])->middleware('permission:finance.create');
+    Route::get('finance/invoices/{id}', [ClientInvoiceController::class, 'show'])->whereNumber('id')->middleware('permission:finance.view');
+    Route::put('finance/invoices/{id}', [ClientInvoiceController::class, 'update'])->whereNumber('id')->middleware('permission:finance.update');
+    Route::patch('finance/invoices/{id}', [ClientInvoiceController::class, 'update'])->whereNumber('id')->middleware('permission:finance.update');
+    Route::delete('finance/invoices/{id}', [ClientInvoiceController::class, 'destroy'])->whereNumber('id')->middleware('permission:finance.delete');
+    Route::post('finance/invoices/{id}/approve', [ClientInvoiceController::class, 'approve'])->whereNumber('id')->middleware('permission:finance.update');
+    Route::post('finance/invoices/{id}/send', [ClientInvoiceController::class, 'send'])->whereNumber('id')->middleware('permission:finance.update');
+    Route::get('finance/summary', [FinanceSummaryController::class, 'summary'])->middleware('permission:finance.view');
+    Route::get('finance/charges-by-type', [FinanceSummaryController::class, 'chargesByType'])->middleware('permission:finance.view');
+    Route::get('finance/monthly', [FinanceSummaryController::class, 'monthly'])->middleware('permission:finance.view');
+
+    $registerCrud('hr', EmployeeController::class, 'hr');
+    Route::get('academy/lessons', [AcademyLessonController::class, 'index']);
+    Route::post('academy/lessons', [AcademyLessonController::class, 'store']);
+    Route::get('academy/lessons/{id}', [AcademyLessonController::class, 'show'])->whereNumber('id');
+    Route::put('academy/lessons/{id}', [AcademyLessonController::class, 'update'])->whereNumber('id');
+    Route::patch('academy/lessons/{id}', [AcademyLessonController::class, 'update'])->whereNumber('id');
+    Route::delete('academy/lessons/{id}', [AcademyLessonController::class, 'destroy'])->whereNumber('id');
+
+    Route::get('hr/attendance', [HrAttendanceController::class, 'index'])->middleware('permission:hr.view');
+    Route::post('hr/attendance/clock-in', [HrAttendanceController::class, 'clockIn']);
+    Route::post('hr/attendance/manager-mark', [HrAttendanceController::class, 'managerMark'])->middleware('permission:hr.update');
+    Route::patch('hr/attendance/{id}/justify', [HrAttendanceController::class, 'justify'])->whereNumber('id');
+    Route::get('hr/payroll-summary', [HrAttendanceController::class, 'payrollSummary'])->middleware('permission:hr.view');
+    Route::get('automations/runs', [AutomationRuleController::class, 'runs'])->middleware('permission:automations.view');
+    Route::post('automations/rules/{id}/test', [AutomationRuleController::class, 'test'])->whereNumber('id')->middleware('permission:automations.run');
+    Route::get('automations/rules', [AutomationRuleController::class, 'index'])->middleware('permission:automations.view');
+    Route::post('automations/rules', [AutomationRuleController::class, 'store'])->middleware('permission:automations.create');
+    Route::get('automations/rules/{id}', [AutomationRuleController::class, 'show'])->whereNumber('id')->middleware('permission:automations.view');
+    Route::put('automations/rules/{id}', [AutomationRuleController::class, 'update'])->whereNumber('id')->middleware('permission:automations.update');
+    Route::patch('automations/rules/{id}', [AutomationRuleController::class, 'update'])->whereNumber('id')->middleware('permission:automations.update');
+    Route::delete('automations/rules/{id}', [AutomationRuleController::class, 'destroy'])->whereNumber('id')->middleware('permission:automations.delete');
+    Route::get('client-portal/overview', [ClientPortalController::class, 'overview'])->middleware('permission:client_portal.view');
+    Route::get('client-portal/access', [ClientPortalController::class, 'listAccesses'])->middleware('permission:client_portal.manage');
+    Route::put('client-portal/access/{userId}', [ClientPortalController::class, 'updateAccess'])->whereNumber('userId')->middleware('permission:client_portal.manage');
+    Route::get('daily-kpis', [DailyKpiController::class, 'index'])->middleware('permission:reports.view');
+    Route::post('daily-kpis', [DailyKpiController::class, 'store'])->middleware('permission:reports.update');
+    Route::get('daily-kpis/{id}', [DailyKpiController::class, 'show'])->whereNumber('id')->middleware('permission:reports.view');
+    Route::put('daily-kpis/{id}', [DailyKpiController::class, 'update'])->whereNumber('id')->middleware('permission:reports.update');
+    Route::patch('daily-kpis/{id}', [DailyKpiController::class, 'update'])->whereNumber('id')->middleware('permission:reports.update');
+    Route::delete('daily-kpis/{id}', [DailyKpiController::class, 'destroy'])->whereNumber('id')->middleware('permission:reports.delete');
+
+    Route::prefix('reports')->group(function () {
+        Route::get('dashboard', [ReportController::class, 'dashboard'])->middleware('permission:reports.view');
+        Route::get('commercial', [ReportController::class, 'commercial'])->middleware('permission:reports.view');
+        Route::get('ads', [ReportController::class, 'ads'])->middleware('permission:reports.view');
+        Route::get('stock', [ReportController::class, 'stock'])->middleware('permission:reports.view');
+        Route::get('delivery', [ReportController::class, 'delivery'])->middleware('permission:reports.view');
+        Route::get('finance', [ReportController::class, 'finance'])->middleware('permission:reports.view');
+    });
+    Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.view');
+    Route::get('audit-logs/{id}', [AuditLogController::class, 'show'])->whereNumber('id')->middleware('permission:audit_logs.view');
+
+    Route::get('settings/center/audit-history', [SettingsCenterController::class, 'auditHistory'])->middleware('permission:settings.view');
+    Route::post('settings/center/test/smtp', [SettingsCenterController::class, 'testSmtp'])->middleware('permission:settings.update');
+    Route::post('settings/center/test/whatsapp', [SettingsCenterController::class, 'testWhatsapp'])->middleware('permission:settings.update');
+    Route::post('settings/center/test/meta', [SettingsCenterController::class, 'testMeta'])->middleware('permission:settings.update');
+    Route::post('settings/center/test/delivery', [SettingsCenterController::class, 'testDelivery'])->middleware('permission:settings.update');
+    Route::get('settings/center/{section}', [SettingsCenterController::class, 'show'])
+        ->middleware('permission:settings.view')
+        ->whereIn('section', ['general', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security']);
+    Route::put('settings/center/{section}', [SettingsCenterController::class, 'update'])
+        ->middleware('permission:settings.update')
+        ->whereIn('section', ['general', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security']);
+
+    foreach (['settings', 'system-settings'] as $settingsPath) {
+        Route::get($settingsPath, [SystemSettingController::class, 'index'])->middleware('permission:settings.view');
+        Route::post($settingsPath, [SystemSettingController::class, 'store'])->middleware('permission:settings.create');
+        Route::post("{$settingsPath}/sync-group", [SystemSettingController::class, 'syncGroup'])->middleware('permission:settings.update');
+        Route::get("{$settingsPath}/{id}", [SystemSettingController::class, 'show'])->whereNumber('id')->middleware('permission:settings.view');
+        Route::put("{$settingsPath}/{id}", [SystemSettingController::class, 'update'])->whereNumber('id')->middleware('permission:settings.update');
+        Route::patch("{$settingsPath}/{id}", [SystemSettingController::class, 'update'])->whereNumber('id')->middleware('permission:settings.update');
+        Route::delete("{$settingsPath}/{id}", [SystemSettingController::class, 'destroy'])->whereNumber('id')->middleware('permission:settings.delete');
+    }
+});
