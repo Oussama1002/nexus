@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('content_production', function (Blueprint $table) {
             $table->id();
             $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('content_calendar_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('content_calendar_id')->nullable()->constrained('content_calendar')->nullOnDelete();
             $table->foreignId('owner_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('title');
             $table->text('asset_path')->nullable();

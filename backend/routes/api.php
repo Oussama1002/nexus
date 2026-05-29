@@ -60,6 +60,11 @@ use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
 
+Route::get('health', fn () => ApiResponse::success([
+    'status' => 'ok',
+    'service' => 'nexus-backend',
+], 'Service healthy.'));
+
 Route::post('auth/login', [AuthController::class, 'login']);
 
 Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify']);
@@ -68,11 +73,6 @@ Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('auth/me', [AuthController::class, 'me']);
-
-    Route::get('health', fn () => ApiResponse::success([
-        'status' => 'ok',
-        'service' => 'nexus-backend',
-    ], 'Service healthy.'));
 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view');
