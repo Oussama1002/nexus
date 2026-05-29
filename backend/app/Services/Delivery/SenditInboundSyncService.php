@@ -2,7 +2,6 @@
 
 namespace App\Services\Delivery;
 
-use App\Models\DeliveryCompany;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\User;
@@ -14,6 +13,7 @@ class SenditInboundSyncService
 {
     public function __construct(
         protected ShipmentStatusMapper $mapper,
+        protected DeliveryCarrierResolver $carriers,
     ) {}
 
     /**
@@ -23,11 +23,7 @@ class SenditInboundSyncService
      */
     public function sync(int $brandId, User $actor, int $maxPages = 30, int $startPage = 1): array
     {
-        /** @var DeliveryCompany|null $company */
-        $company = DeliveryCompany::query()
-            ->where('code', 'sendit')
-            ->where('status', 'active')
-            ->first();
+        $company = $this->carriers->resolve('sendit', $brandId);
 
         if (! $company) {
             return [
@@ -37,6 +33,19 @@ class SenditInboundSyncService
                 'pages' => 0,
                 'total' => 0,
                 'errors' => ['Transporteur Sendit introuvable ou inactif.'],
+                'has_more' => false,
+                'next_page' => 1,
+            ];
+        }
+
+        if (trim((string) ($company->api_key_ref ?? '')) === '' || trim((string) ($company->api_key ?? '')) === '') {
+            return [
+                'imported' => 0,
+                'updated' => 0,
+                'events' => 0,
+                'pages' => 0,
+                'total' => 0,
+                'errors' => ['Clés API Sendit manquantes — configurez-les dans Paramètres → Livraison ou dans le fichier .env du serveur.'],
                 'has_more' => false,
                 'next_page' => 1,
             ];
