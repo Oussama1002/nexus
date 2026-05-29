@@ -554,7 +554,7 @@ export function EmployeesManagementScreen() {
         <Modal
           open={createOpen}
           title="Nouvel employé"
-          subtitle="Création via `POST /hr`."
+          subtitle="Renseignez les informations de l'employé pour la marque sélectionnée."
           onClose={() => setCreateOpen(false)}
           footer={
             <div className="flex gap-3">
