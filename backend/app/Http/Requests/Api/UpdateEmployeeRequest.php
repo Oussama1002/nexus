@@ -25,7 +25,7 @@ class UpdateEmployeeRequest extends FormRequest
             'full_name' => ['sometimes', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'department' => ['nullable', 'string', 'max:255'],
-            'role_title' => ['nullable', 'string', 'max:255'],
+            'role_title' => ['nullable', 'string', 'max:255', 'exists:roles,slug'],
             'joined_at' => ['nullable', 'date'],
             'salary' => ['nullable', 'numeric', 'min:0'],
             'status' => ['sometimes', Rule::in(['active', 'inactive', 'terminated'])],

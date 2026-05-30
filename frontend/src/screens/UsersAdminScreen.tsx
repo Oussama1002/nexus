@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { DataTable, type Column } from '../components/ui/DataTable';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
+import { organizationRoleLabel, roleIdsFromEmployeeSlug } from '../lib/organizationRoles';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
@@ -46,28 +47,6 @@ function suggestEmailFromName(fullName: string): string {
   if (parts.length === 0) return '';
   const local = parts.length === 1 ? parts[0] : `${parts[0]}.${parts[parts.length - 1]}`;
   return `${local.replace(/[^a-z0-9.]/g, '')}@nexus.local`;
-}
-
-function suggestRoleIds(roleTitle: string | null | undefined, roles: RoleOpt[]): number[] {
-  if (!roleTitle?.trim()) return [];
-  const t = roleTitle.toLowerCase();
-  const rules: { keys: string[]; slug: string }[] = [
-    { keys: ['confirmatrice', 'confirm'], slug: 'confirmatrice' },
-    { keys: ['stock', 'magasin', 'entrepôt'], slug: 'stock_manager' },
-    { keys: ['community', 'communauté', ' cm'], slug: 'community_manager' },
-    { keys: ['influence', 'influ'], slug: 'influence_manager' },
-    { keys: ['media', 'buyer', 'achat pub'], slug: 'media_buyer' },
-    { keys: ['smm', 'social media'], slug: 'smm' },
-    { keys: ['manager', 'chef', 'responsable'], slug: 'manager_operationnel' },
-    { keys: ['admin'], slug: 'admin' },
-  ];
-  for (const rule of rules) {
-    if (rule.keys.some((k) => t.includes(k))) {
-      const role = roles.find((r) => r.slug === rule.slug);
-      if (role) return [role.id];
-    }
-  }
-  return [];
 }
 
 function formatValidationErrors(errors: unknown): string {
@@ -192,7 +171,7 @@ export function UsersAdminScreen() {
       }
       const emp = employeeCandidates.find((e) => String(e.id) === employeeId);
       if (!emp) return { ...d, employeeId };
-      const roleIds = suggestRoleIds(emp.role_title, roles);
+      const roleIds = roleIdsFromEmployeeSlug(emp.role_title, roles);
       let brandIds: number[] = [];
       if (emp.all_brands) {
         brandIds = brands.map((b) => b.id);
@@ -341,13 +320,6 @@ export function UsersAdminScreen() {
     await loadUsers();
   };
 
-  const toggleRole = (draft: typeof createDraft, setDraft: typeof setCreateDraft, id: number) => {
-    setDraft((d) => ({
-      ...d,
-      roleIds: d.roleIds.includes(id) ? d.roleIds.filter((x) => x !== id) : [...d.roleIds, id],
-    }));
-  };
-
   const toggleBrand = (draft: typeof createDraft, setDraft: typeof setCreateDraft, id: number) => {
     setDraft((d) => ({
       ...d,
@@ -361,9 +333,11 @@ export function UsersAdminScreen() {
       { key: 'email', header: 'Email', cell: (u) => <span className="text-sm text-zinc-700">{u.email}</span> },
       {
         key: 'roles',
-        header: 'Rôles',
+        header: 'Fonction',
         cell: (u) => (
-          <span className="text-xs text-zinc-600">{u.roles.map((r) => r.slug).join(', ') || '—'}</span>
+          <span className="text-xs text-zinc-600">
+            {u.roles.map((r) => organizationRoleLabel(r.slug, r.name)).join(', ') || '—'}
+          </span>
         ),
       },
       { key: 'status', header: 'Statut', cell: (u) => <span className="text-xs font-black uppercase">{u.status}</span> },
@@ -486,7 +460,7 @@ export function UsersAdminScreen() {
                   {employeeCandidates.map((e) => (
                     <option key={e.id} value={e.id}>
                       {e.full_name}
-                      {e.role_title ? ` · ${e.role_title}` : ''}
+                      {e.role_title ? ` · ${organizationRoleLabel(e.role_title)}` : ''}
                       {e.brand?.name ? ` · ${e.brand.name}` : ''}
                     </option>
                   ))}
@@ -534,21 +508,25 @@ export function UsersAdminScreen() {
                 placeholder="8 caractères minimum"
               />
             </label>
-            <p className="text-xs font-semibold text-zinc-900">Rôles</p>
-            <div className="flex flex-wrap gap-2">
-              {roles.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => toggleRole(createDraft, setCreateDraft, r.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-black border ${
-                    createDraft.roleIds.includes(r.id) ? 'bg-primary-50 border-primary-300 text-primary-800' : 'border-zinc-200'
-                  }`}
-                >
-                  {r.slug}
-                </button>
-              ))}
-            </div>
+            <label className={USER_FIELD_LABEL}>
+              Fonction
+              <span className="ml-1 text-[10px] font-normal text-zinc-500">alignée sur l&apos;employé</span>
+              <select
+                value={createDraft.roleIds[0] ?? ''}
+                onChange={(e) => {
+                  const id = e.target.value ? Number(e.target.value) : null;
+                  setCreateDraft((d) => ({ ...d, roleIds: id ? [id] : [] }));
+                }}
+                className={USER_FIELD_INPUT}
+              >
+                <option value="">— Choisir une fonction —</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {organizationRoleLabel(r.slug, r.name)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <p className="text-xs font-semibold text-zinc-900">Marques</p>
             <div className="flex flex-wrap gap-2">
               {brands.map((b) => (
@@ -602,26 +580,24 @@ export function UsersAdminScreen() {
               onChange={(e) => setEditDraft((d) => ({ ...d, password: e.target.value }))}
               className="w-full px-4 py-3 rounded-xl border"
             />
-            <p className="text-[10px] font-black uppercase text-zinc-400">Rôles</p>
-            <div className="flex flex-wrap gap-2">
-              {roles.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() =>
-                    setEditDraft((d) => ({
-                      ...d,
-                      roleIds: d.roleIds.includes(r.id) ? d.roleIds.filter((x) => x !== r.id) : [...d.roleIds, r.id],
-                    }))
-                  }
-                  className={`px-3 py-1.5 rounded-full text-xs font-black border ${
-                    editDraft.roleIds.includes(r.id) ? 'bg-primary-50 border-primary-300 text-primary-800' : 'border-zinc-200'
-                  }`}
-                >
-                  {r.slug}
-                </button>
-              ))}
-            </div>
+            <label className="text-[10px] font-black uppercase text-zinc-400 block">
+              Fonction
+              <select
+                value={editDraft.roleIds[0] ?? ''}
+                onChange={(e) => {
+                  const id = e.target.value ? Number(e.target.value) : null;
+                  setEditDraft((d) => ({ ...d, roleIds: id ? [id] : [] }));
+                }}
+                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+              >
+                <option value="">— Choisir une fonction —</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {organizationRoleLabel(r.slug, r.name)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <p className="text-[10px] font-black uppercase text-zinc-400">Marques</p>
             <div className="flex flex-wrap gap-2">
               {brands.map((b) => (

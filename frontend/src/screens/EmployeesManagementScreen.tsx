@@ -12,6 +12,7 @@ import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 import { cn } from '../lib/utils';
+import { organizationRoleLabel, type OrganizationRoleOption } from '../lib/organizationRoles';
 
 type EmployeeRow = {
   id: number;
@@ -203,7 +204,7 @@ export function EmployeesManagementScreen() {
   const [payrollRows, setPayrollRows] = useState<PayrollRow[]>([]);
   const [payrollLoading, setPayrollLoading] = useState(false);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
-  const [roleTitleOptions, setRoleTitleOptions] = useState<string[]>([]);
+  const [organizationRoles, setOrganizationRoles] = useState<OrganizationRoleOption[]>([]);
 
   const canView = hasPermission('hr.view');
   const canCreate = hasPermission('hr.create');
@@ -269,21 +270,19 @@ export function EmployeesManagementScreen() {
     if (tab === 'payroll') void loadPayroll();
   }, [tab, loadPayroll]);
 
-  const loadHrLookups = useCallback(async (brandIdForRole: string) => {
-    const roleQ = brandIdForRole ? `?brand_id=${encodeURIComponent(brandIdForRole)}` : '';
+  const loadHrLookups = useCallback(async () => {
     const [deptRes, roleRes] = await Promise.all([
       api.get<{ values: string[] }>('hr/lookups/department'),
-      api.get<{ values: string[] }>(`hr/lookups/role_title${roleQ}`),
+      api.get<{ roles: OrganizationRoleOption[] }>('hr/lookups/role_title'),
     ]);
     if (deptRes.ok && deptRes.data) setDepartmentOptions(deptRes.data.values ?? []);
-    if (roleRes.ok && roleRes.data) setRoleTitleOptions(roleRes.data.values ?? []);
+    if (roleRes.ok && roleRes.data) setOrganizationRoles(roleRes.data.roles ?? []);
   }, []);
 
   useEffect(() => {
     if (!createOpen) return;
-    const roleBrand = draft.all_brands ? '' : draft.brand_ids[0] ? String(draft.brand_ids[0]) : '';
-    void loadHrLookups(roleBrand);
-  }, [createOpen, draft.all_brands, draft.brand_ids, loadHrLookups]);
+    void loadHrLookups();
+  }, [createOpen, loadHrLookups]);
 
   const openCreateEmployee = () => {
     setDraft({
@@ -321,7 +320,13 @@ export function EmployeesManagementScreen() {
           </span>
         ),
       },
-      { key: 'role', header: 'Rôle', cell: (e) => <span className="text-sm text-zinc-700">{e.role_title || '—'}</span> },
+      {
+        key: 'role',
+        header: 'Fonction',
+        cell: (e) => (
+          <span className="text-sm text-zinc-700">{organizationRoleLabel(e.role_title)}</span>
+        ),
+      },
       { key: 'dept', header: 'Département', cell: (e) => <span className="text-sm text-zinc-600">{e.department || '—'}</span> },
       {
         key: 'salary',
@@ -770,13 +775,22 @@ export function EmployeesManagementScreen() {
                 </div>
               )}
             </div>
-            <LookupComboField
-              label="Rôle (titre)"
-              hint="liste ou nouveau"
-              value={draft.role_title}
-              onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
-              options={roleTitleOptions}
-            />
+            <label className={EMPLOYEE_FIELD_LABEL}>
+              Fonction
+              <span className="ml-1 text-[10px] font-normal text-zinc-500">même liste que les utilisateurs</span>
+              <select
+                value={draft.role_title}
+                onChange={(e) => setDraft((d) => ({ ...d, role_title: e.target.value }))}
+                className={EMPLOYEE_FIELD_INPUT}
+              >
+                <option value="">— Choisir une fonction —</option>
+                {organizationRoles.map((r) => (
+                  <option key={r.slug} value={r.slug}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <LookupComboField
               label="Département"
               value={draft.department}
