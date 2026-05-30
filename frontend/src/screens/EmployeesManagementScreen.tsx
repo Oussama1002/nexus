@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { Plus, RefreshCw, UserPlus } from 'lucide-react';
+import { FileText, Plus, RefreshCw, UserPlus } from 'lucide-react';
+import { EmployeeFicheDrawer, type EmployeeDetail } from '../components/hr/EmployeeFicheDrawer';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
@@ -15,6 +16,7 @@ import { cn } from '../lib/utils';
 
 type EmployeeRow = {
   id: number;
+  employee_code?: string | null;
   full_name: string;
   role_title?: string | null;
   department?: string | null;
@@ -30,6 +32,30 @@ type EmployeeRow = {
 };
 
 const STATUS_OPTS = ['active', 'inactive', 'terminated'] as const;
+
+const STATUS_LABELS: Record<(typeof STATUS_OPTS)[number], string> = {
+  active: 'Actif',
+  inactive: 'Inactif',
+  terminated: 'Terminé',
+};
+
+function employeeToDraft(e: EmployeeRow | EmployeeDetail) {
+  const joined = e.joined_at ? String(e.joined_at).slice(0, 10) : new Date().toISOString().slice(0, 10);
+  return {
+    full_name: e.full_name,
+    role_title: e.role_title ?? '',
+    department: e.department ?? '',
+    phone: e.phone ?? '',
+    salary: e.salary_hidden ? '' : e.salary != null ? String(e.salary) : '',
+    joined_at: joined,
+    status: (STATUS_OPTS.includes(e.status as (typeof STATUS_OPTS)[number])
+      ? e.status
+      : 'active') as (typeof STATUS_OPTS)[number],
+    user_id: '',
+    all_brands: e.all_brands ?? false,
+    brand_ids: e.brands?.map((b) => b.id) ?? (e.brand?.id ? [e.brand.id] : []),
+  };
+}
 
 const EMPLOYEE_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
 const EMPLOYEE_FIELD_INPUT =
@@ -155,7 +181,9 @@ export function EmployeesManagementScreen() {
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const [ficheId, setFicheId] = useState<number | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [academyOpen, setAcademyOpen] = useState(false);
   const [draft, setDraft] = useState({
     full_name: '',
@@ -208,6 +236,7 @@ export function EmployeesManagementScreen() {
   const canView = hasPermission('hr.view');
   const canCreate = hasPermission('hr.create');
   const canUpdate = hasPermission('hr.update');
+  const canDelete = hasPermission('hr.delete');
   const canViewSalary = hasPermission('hr.view_salary');
 
   const load = useCallback(async () => {
@@ -279,11 +308,12 @@ export function EmployeesManagementScreen() {
   }, []);
 
   useEffect(() => {
-    if (!createOpen) return;
+    if (!formOpen) return;
     void loadHrLookups();
-  }, [createOpen, loadHrLookups]);
+  }, [formOpen, loadHrLookups]);
 
   const openCreateEmployee = () => {
+    setEditingId(null);
     setDraft({
       full_name: '',
       role_title: '',
@@ -300,12 +330,36 @@ export function EmployeesManagementScreen() {
           ? [Number(brands[0].id)]
           : [],
     });
-    setCreateOpen(true);
+    setFormOpen(true);
+  };
+
+  const openEditEmployee = (row: EmployeeRow | EmployeeDetail) => {
+    setEditingId(row.id);
+    setDraft(employeeToDraft(row));
+    setFormOpen(true);
+    setFicheId(null);
+  };
+
+  const loadEmployeeForEdit = async (id: number) => {
+    const res = await api.get<EmployeeRow>(`hr/${id}`);
+    if (res.ok && res.data) openEditEmployee(res.data);
+    else toast.error(res.message);
   };
 
   const columns = useMemo<Column<EmployeeRow>[]>(
     () => [
-      { key: 'name', header: 'Nom', cell: (e) => <span className="font-black text-zinc-900">{e.full_name}</span> },
+      {
+        key: 'name',
+        header: 'Nom',
+        cell: (e) => (
+          <button type="button" onClick={() => setFicheId(e.id)} className="text-left hover:text-primary-700">
+            <span className="font-black text-zinc-900">{e.full_name}</span>
+            {e.employee_code ? (
+              <span className="block text-[10px] font-bold text-zinc-400">{e.employee_code}</span>
+            ) : null}
+          </button>
+        ),
+      },
       {
         key: 'brand',
         header: 'Marque',
@@ -336,12 +390,27 @@ export function EmployeesManagementScreen() {
         header: 'Utilisateur',
         cell: (e) => <span className="text-xs text-zinc-600">{e.user?.email ?? '—'}</span>,
       },
+      {
+        key: 'actions',
+        header: '',
+        cell: (e) => (
+          <button
+            type="button"
+            onClick={() => setFicheId(e.id)}
+            className="px-3 py-1.5 rounded-xl border border-zinc-200 text-xs font-black text-zinc-700 hover:bg-zinc-50 inline-flex items-center gap-1.5"
+          >
+            <FileText className="w-3.5 h-3.5" /> Fiche
+          </button>
+        ),
+      },
     ],
     [],
   );
 
-  const submitCreate = async () => {
-    if (!canCreate) return;
+  const submitEmployeeForm = async () => {
+    const isEdit = editingId != null;
+    const savedId = editingId;
+    if (isEdit ? !canUpdate : !canCreate) return;
     if (!draft.full_name.trim()) {
       toast.error('Le nom complet est obligatoire.');
       return;
@@ -356,18 +425,21 @@ export function EmployeesManagementScreen() {
       department: draft.department.trim() || undefined,
       phone: draft.phone.trim() || undefined,
       joined_at: draft.joined_at || undefined,
-      status: 'active',
+      status: isEdit ? draft.status : 'active',
       salary: draft.salary === '' ? undefined : Number(draft.salary),
       all_brands: draft.all_brands,
       brand_ids: draft.all_brands ? undefined : draft.brand_ids,
     };
-    const res = await api.post<EmployeeRow>('hr', body);
+    const res = isEdit
+      ? await api.put<EmployeeRow>(`hr/${editingId}`, body)
+      : await api.post<EmployeeRow>('hr', body);
     if (!res.ok) {
       setError(res.message);
       toast.error(res.message);
       return;
     }
-    setCreateOpen(false);
+    setFormOpen(false);
+    setEditingId(null);
     setDraft({
       full_name: '',
       role_title: '',
@@ -380,8 +452,9 @@ export function EmployeesManagementScreen() {
       all_brands: false,
       brand_ids: [],
     });
-    toast.success('Employe cree.');
+    toast.success(isEdit ? 'Employé mis à jour.' : 'Employé créé.');
     await load();
+    if (isEdit && savedId != null && ficheId === savedId) setFicheId(savedId);
   };
 
   const submitAcademy = async () => {
@@ -573,6 +646,19 @@ export function EmployeesManagementScreen() {
             }
           />
           <DataTable rows={rows} columns={columns} emptyTitle="Aucun employé" emptyDescription="Créez un employé ou modifiez les filtres." />
+
+          <EmployeeFicheDrawer
+            employeeId={ficheId}
+            open={ficheId !== null}
+            onClose={() => setFicheId(null)}
+            canUpdate={canUpdate}
+            canDelete={canDelete}
+            onEdit={(emp) => void loadEmployeeForEdit(emp.id)}
+            onDeleted={() => {
+              setFicheId(null);
+              void load();
+            }}
+          />
         </>
       )}
 
@@ -687,23 +773,38 @@ export function EmployeesManagementScreen() {
         </>
       )}
 
-      {canCreate && (
+      {formOpen && (editingId ? canUpdate : canCreate) && (
         <Modal
-          open={createOpen}
-          title="Nouvel employé"
-          subtitle="Renseignez les informations de l'employé et les marques concernées."
-          onClose={() => setCreateOpen(false)}
+          open={formOpen}
+          panelClassName="max-w-2xl"
+          title={editingId ? 'Modifier employé' : 'Nouvel employé'}
+          subtitle={
+            editingId
+              ? 'Mettez à jour les informations de la fiche employé.'
+              : "Renseignez les informations de l'employé et les marques concernées."
+          }
+          onClose={() => {
+            setFormOpen(false);
+            setEditingId(null);
+          }}
           footer={
             <div className="flex gap-3">
-              <button type="button" onClick={() => setCreateOpen(false)} className="flex-1 py-3 rounded-xl border font-black text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormOpen(false);
+                  setEditingId(null);
+                }}
+                className="flex-1 py-3 rounded-xl border font-black text-sm"
+              >
                 Annuler
               </button>
               <button
                 type="button"
-                onClick={() => void submitCreate()}
+                onClick={() => void submitEmployeeForm()}
                 className="flex-1 py-3 rounded-xl bg-primary-600 text-white font-black text-sm"
               >
-                Créer
+                {editingId ? 'Enregistrer' : 'Créer'}
               </button>
             </div>
           }
@@ -809,10 +910,25 @@ export function EmployeesManagementScreen() {
                 className={EMPLOYEE_FIELD_INPUT}
               />
             </label>
+            {editingId ? (
+              <label className={EMPLOYEE_FIELD_LABEL}>
+                Statut
+                <select
+                  value={draft.status}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, status: e.target.value as (typeof STATUS_OPTS)[number] }))
+                  }
+                  className={EMPLOYEE_FIELD_INPUT}
+                >
+                  {STATUS_OPTS.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
           </div>
-          {!canUpdate && (
-            <p className="mt-4 text-xs text-zinc-500">La modification ultérieure nécessite `hr.update`.</p>
-          )}
         </Modal>
       )}
 
