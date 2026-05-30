@@ -13,15 +13,17 @@ class HrLookupService
     {
         $this->assertType($type);
 
+        $scopeBrandId = $type === HrLookupValue::TYPE_DEPARTMENT ? null : $brandId;
+
         $fromTable = HrLookupValue::query()
-            ->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
+            ->when($scopeBrandId, fn ($q) => $q->where('brand_id', $scopeBrandId))
             ->where('type', $type)
             ->orderBy('value')
             ->pluck('value')
             ->all();
 
         $fromEmployees = Employee::query()
-            ->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
+            ->when($scopeBrandId, fn ($q) => $q->where('brand_id', $scopeBrandId))
             ->whereNotNull($type === HrLookupValue::TYPE_DEPARTMENT ? 'department' : 'role_title')
             ->where($type === HrLookupValue::TYPE_DEPARTMENT ? 'department' : 'role_title', '!=', '')
             ->distinct()

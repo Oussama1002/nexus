@@ -27,7 +27,9 @@ type EmployeePick = {
   phone?: string | null;
   role_title?: string | null;
   department?: string | null;
+  all_brands?: boolean;
   brand?: { id: number; name: string } | null;
+  brands?: { id: number; name: string }[];
 };
 
 const USER_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
@@ -191,7 +193,14 @@ export function UsersAdminScreen() {
       const emp = employeeCandidates.find((e) => String(e.id) === employeeId);
       if (!emp) return { ...d, employeeId };
       const roleIds = suggestRoleIds(emp.role_title, roles);
-      const brandIds = emp.brand?.id ? [emp.brand.id] : d.brandIds;
+      let brandIds: number[] = [];
+      if (emp.all_brands) {
+        brandIds = brands.map((b) => b.id);
+      } else if (emp.brands?.length) {
+        brandIds = emp.brands.map((b) => b.id);
+      } else if (emp.brand?.id) {
+        brandIds = [emp.brand.id];
+      }
       return {
         ...d,
         employeeId,

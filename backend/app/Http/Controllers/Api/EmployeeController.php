@@ -46,7 +46,7 @@ class EmployeeController extends Controller
         $from = $request->query('date_from');
         $to = $request->query('date_to');
 
-        $q = Employee::query()->with(['user', 'brand'])->orderByDesc('id');
+        $q = Employee::query()->with(['user', 'brand', 'brands'])->orderByDesc('id');
         if ($status) {
             $q->where('status', $status);
         }
@@ -71,14 +71,8 @@ class EmployeeController extends Controller
 
         $paginator = $q->paginate($perPage);
         $mask = ! SalaryVisibility::canViewSalary($request);
-        $paginator->getCollection()->transform(function (Employee $e) use ($mask) {
-            $a = $e->toArray();
-            if ($mask) {
-                unset($a['salary']);
-                $a['salary_hidden'] = true;
-            }
-
-            return $a;
+        $paginator->getCollection()->transform(function (Employee $e) use ($request, $mask) {
+            return $this->transformEmployee($request, $e, $mask);
         });
 
         return ApiResponse::success($paginator, 'Employees retrieved successfully.');
@@ -93,9 +87,11 @@ class EmployeeController extends Controller
             $data['employee_code'] = 'EMP-'.strtoupper(bin2hex(random_bytes(3)));
         }
 
+        $brandIds = $this->applyBrandPayload($data);
         $row = Employee::query()->create($data);
+        $this->syncEmployeeBrands($row, $brandIds);
 
-        $this->hrLookups->remember($row->brand_id, HrLookupValue::TYPE_DEPARTMENT, $row->department);
+        $this->hrLookups->remember(null, HrLookupValue::TYPE_DEPARTMENT, $row->department);
         $this->hrLookups->remember($row->brand_id, HrLookupValue::TYPE_ROLE_TITLE, $row->role_title);
 
         AuditService::log($request, 'employees.create', $row, null, $row->toArray());
@@ -106,7 +102,7 @@ class EmployeeController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $this->requirePermission($request, 'hr.view');
-        $row = Employee::query()->with(['user', 'brand'])->findOrFail($id);
+        $row = Employee::query()->with(['user', 'brand', 'brands'])->findOrFail($id);
 
         return ApiResponse::success($this->transformEmployee($request, $row), 'Employee retrieved successfully.');
     }
@@ -117,11 +113,19 @@ class EmployeeController extends Controller
         $row = Employee::query()->findOrFail($id);
         $before = $row->toArray();
         $data = $request->validated();
+        $brandIds = null;
+        if (array_key_exists('all_brands', $data) || array_key_exists('brand_ids', $data) || array_key_exists('brand_id', $data)) {
+            $brandIds = $this->applyBrandPayload($data);
+        }
         $row->fill($data);
         $row->save();
 
+        if ($brandIds !== null) {
+            $this->syncEmployeeBrands($row, $brandIds);
+        }
+
         $fresh = $row->fresh();
-        $this->hrLookups->remember($fresh->brand_id, HrLookupValue::TYPE_DEPARTMENT, $fresh->department);
+        $this->hrLookups->remember(null, HrLookupValue::TYPE_DEPARTMENT, $fresh->department);
         $this->hrLookups->remember($fresh->brand_id, HrLookupValue::TYPE_ROLE_TITLE, $fresh->role_title);
 
         AuditService::log($request, 'employees.update', $row, $before, $fresh->toArray());
@@ -141,15 +145,51 @@ class EmployeeController extends Controller
         return ApiResponse::success(null, 'Employee deleted successfully.');
     }
 
-    private function transformEmployee(Request $request, Employee $e): array
+    private function transformEmployee(Request $request, Employee $e, ?bool $maskSalary = null): array
     {
-        $a = $e->load(['user', 'brand'])->toArray();
-        if (! SalaryVisibility::canViewSalary($request)) {
+        $a = $e->loadMissing(['user', 'brand', 'brands'])->toArray();
+        $mask = $maskSalary ?? ! SalaryVisibility::canViewSalary($request);
+        if ($mask) {
             unset($a['salary']);
             $a['salary_hidden'] = true;
         }
 
         return $a;
+    }
+
+    /** @return list<int> */
+    private function applyBrandPayload(array &$data): array
+    {
+        $allBrands = ! empty($data['all_brands']);
+        $brandIds = array_values(array_unique(array_map('intval', $data['brand_ids'] ?? [])));
+        unset($data['brand_ids']);
+
+        if (! $allBrands && $brandIds === [] && ! empty($data['brand_id'])) {
+            $brandIds = [(int) $data['brand_id']];
+        }
+
+        $data['all_brands'] = $allBrands;
+        if ($allBrands) {
+            $data['brand_id'] = null;
+
+            return [];
+        }
+
+        $data['brand_id'] = $brandIds[0] ?? null;
+
+        return $brandIds;
+    }
+
+    /** @param list<int> $brandIds */
+    private function syncEmployeeBrands(Employee $row, array $brandIds): void
+    {
+        if ($row->all_brands) {
+            $row->brands()->detach();
+
+            return;
+        }
+
+        $row->brands()->sync($brandIds);
     }
 
     private function requirePermission(Request $request, string $slug): void

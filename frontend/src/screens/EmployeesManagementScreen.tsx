@@ -23,8 +23,10 @@ type EmployeeRow = {
   salary_hidden?: boolean;
   joined_at?: string | null;
   status: string;
+  all_brands?: boolean;
   user?: { id: number; name: string; email: string } | null;
   brand?: { id: number; name: string } | null;
+  brands?: { id: number; name: string }[];
 };
 
 const STATUS_OPTS = ['active', 'inactive', 'terminated'] as const;
@@ -32,6 +34,61 @@ const STATUS_OPTS = ['active', 'inactive', 'terminated'] as const;
 const EMPLOYEE_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
 const EMPLOYEE_FIELD_INPUT =
   'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500';
+
+const DEPARTMENT_CUSTOM = '__custom__';
+
+function DepartmentSelectField({
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  disabled?: boolean;
+}) {
+  const isKnown = value !== '' && options.includes(value);
+  const selectValue = value === '' ? '' : isKnown ? value : DEPARTMENT_CUSTOM;
+  const showCustom = selectValue === DEPARTMENT_CUSTOM;
+
+  return (
+    <div>
+      <label className={EMPLOYEE_FIELD_LABEL}>
+        {label}
+        <select
+          disabled={disabled}
+          value={selectValue}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === DEPARTMENT_CUSTOM) onChange('');
+            else onChange(v);
+          }}
+          className={EMPLOYEE_FIELD_INPUT}
+        >
+          <option value="">— Choisir un département —</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+          <option value={DEPARTMENT_CUSTOM}>Autre (nouveau)…</option>
+        </select>
+      </label>
+      {showCustom ? (
+        <input
+          disabled={disabled}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Saisir le nouveau département"
+          className={cn(EMPLOYEE_FIELD_INPUT, 'mt-2')}
+        />
+      ) : null}
+    </div>
+  );
+}
 
 function LookupComboField({
   label,
@@ -129,7 +186,8 @@ export function EmployeesManagementScreen() {
     joined_at: new Date().toISOString().slice(0, 10),
     status: 'active' as (typeof STATUS_OPTS)[number],
     user_id: '' as string,
-    brand_id: '' as string,
+    all_brands: false,
+    brand_ids: [] as number[],
   });
   const [academyRows, setAcademyRows] = useState<AcademyLesson[]>([]);
   const [academySearch, setAcademySearch] = useState('');
@@ -231,11 +289,11 @@ export function EmployeesManagementScreen() {
     if (tab === 'payroll') void loadPayroll();
   }, [tab, loadPayroll]);
 
-  const loadHrLookups = useCallback(async (brandId: string) => {
-    const q = brandId ? `?brand_id=${encodeURIComponent(brandId)}` : '';
+  const loadHrLookups = useCallback(async (brandIdForRole: string) => {
+    const roleQ = brandIdForRole ? `?brand_id=${encodeURIComponent(brandIdForRole)}` : '';
     const [deptRes, roleRes] = await Promise.all([
-      api.get<{ values: string[] }>(`hr/lookups/department${q}`),
-      api.get<{ values: string[] }>(`hr/lookups/role_title${q}`),
+      api.get<{ values: string[] }>('hr/lookups/department'),
+      api.get<{ values: string[] }>(`hr/lookups/role_title${roleQ}`),
     ]);
     if (deptRes.ok && deptRes.data) setDepartmentOptions(deptRes.data.values ?? []);
     if (roleRes.ok && roleRes.data) setRoleTitleOptions(roleRes.data.values ?? []);
@@ -243,8 +301,9 @@ export function EmployeesManagementScreen() {
 
   useEffect(() => {
     if (!createOpen) return;
-    void loadHrLookups(draft.brand_id);
-  }, [createOpen, draft.brand_id, loadHrLookups]);
+    const roleBrand = draft.all_brands ? '' : draft.brand_ids[0] ? String(draft.brand_ids[0]) : '';
+    void loadHrLookups(roleBrand);
+  }, [createOpen, draft.all_brands, draft.brand_ids, loadHrLookups]);
 
   const openCreateEmployee = () => {
     setDraft({
@@ -256,7 +315,12 @@ export function EmployeesManagementScreen() {
       joined_at: new Date().toISOString().slice(0, 10),
       status: 'active',
       user_id: '',
-      brand_id: activeBrandId || (brands[0]?.id ?? ''),
+      all_brands: false,
+      brand_ids: activeBrandId
+        ? [Number(activeBrandId)]
+        : brands[0]
+          ? [Number(brands[0].id)]
+          : [],
     });
     setCreateOpen(true);
   };
@@ -264,6 +328,19 @@ export function EmployeesManagementScreen() {
   const columns = useMemo<Column<EmployeeRow>[]>(
     () => [
       { key: 'name', header: 'Nom', cell: (e) => <span className="font-black text-zinc-900">{e.full_name}</span> },
+      {
+        key: 'brand',
+        header: 'Marque',
+        cell: (e) => (
+          <span className="text-sm text-zinc-600">
+            {e.all_brands
+              ? 'Toutes les marques'
+              : e.brands?.length
+                ? e.brands.map((b) => b.name).join(', ')
+                : e.brand?.name ?? '—'}
+          </span>
+        ),
+      },
       { key: 'role', header: 'Rôle', cell: (e) => <span className="text-sm text-zinc-700">{e.role_title || '—'}</span> },
       { key: 'dept', header: 'Département', cell: (e) => <span className="text-sm text-zinc-600">{e.department || '—'}</span> },
       {
@@ -291,8 +368,8 @@ export function EmployeesManagementScreen() {
       toast.error('Le nom complet est obligatoire.');
       return;
     }
-    if (!draft.brand_id) {
-      toast.error('Sélectionnez une marque.');
+    if (!draft.all_brands && draft.brand_ids.length === 0) {
+      toast.error('Sélectionnez au moins une marque ou « Toutes les marques ».');
       return;
     }
     const body: Record<string, unknown> = {
@@ -303,7 +380,8 @@ export function EmployeesManagementScreen() {
       joined_at: draft.joined_at || undefined,
       status: 'active',
       salary: draft.salary === '' ? undefined : Number(draft.salary),
-      brand_id: Number(draft.brand_id),
+      all_brands: draft.all_brands,
+      brand_ids: draft.all_brands ? undefined : draft.brand_ids,
     };
     const res = await api.post<EmployeeRow>('hr', body);
     if (!res.ok) {
@@ -321,7 +399,8 @@ export function EmployeesManagementScreen() {
       joined_at: new Date().toISOString().slice(0, 10),
       status: 'active',
       user_id: '',
-      brand_id: '',
+      all_brands: false,
+      brand_ids: [],
     });
     toast.success('Employe cree.');
     await load();
@@ -634,7 +713,7 @@ export function EmployeesManagementScreen() {
         <Modal
           open={createOpen}
           title="Nouvel employé"
-          subtitle="Renseignez les informations de l'employé pour la marque sélectionnée."
+          subtitle="Renseignez les informations de l'employé et les marques concernées."
           onClose={() => setCreateOpen(false)}
           footer={
             <div className="flex gap-3">
@@ -660,25 +739,57 @@ export function EmployeesManagementScreen() {
                 className={EMPLOYEE_FIELD_INPUT}
               />
             </label>
-            <label className={EMPLOYEE_FIELD_LABEL}>
-              Marque
-              <select
-                required
-                value={draft.brand_id}
-                onChange={(e) => setDraft((d) => ({ ...d, brand_id: e.target.value }))}
-                className={EMPLOYEE_FIELD_INPUT}
-              >
-                {brands.length === 0 ? (
-                  <option value="">Aucune marque disponible</option>
-                ) : (
-                  brands.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
+            <div className={`${EMPLOYEE_FIELD_LABEL} md:col-span-2`}>
+              <span>Marque</span>
+              <label className="mt-2 flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={draft.all_brands}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      all_brands: e.target.checked,
+                      brand_ids: e.target.checked ? [] : d.brand_ids,
+                    }))
+                  }
+                  className="rounded border-zinc-300"
+                />
+                <span className="text-sm font-medium text-zinc-800">Toutes les marques</span>
+              </label>
+              {!draft.all_brands && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {brands.length === 0 ? (
+                    <p className="text-sm text-zinc-500">Aucune marque disponible</p>
+                  ) : (
+                    brands.map((b) => {
+                      const id = Number(b.id);
+                      const checked = draft.brand_ids.includes(id);
+                      return (
+                        <label
+                          key={b.id}
+                          className="flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 cursor-pointer hover:border-primary-400"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              setDraft((d) => ({
+                                ...d,
+                                brand_ids: checked
+                                  ? d.brand_ids.filter((x) => x !== id)
+                                  : [...d.brand_ids, id],
+                              }))
+                            }
+                            className="rounded border-zinc-300"
+                          />
+                          <span className="text-sm font-medium text-zinc-800">{b.name}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
             <LookupComboField
               label="Rôle (titre)"
               hint="liste ou nouveau"
@@ -686,9 +797,8 @@ export function EmployeesManagementScreen() {
               onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
               options={roleTitleOptions}
             />
-            <LookupComboField
+            <DepartmentSelectField
               label="Département"
-              hint="liste ou nouveau"
               value={draft.department}
               onChange={(v) => setDraft((d) => ({ ...d, department: v }))}
               options={departmentOptions}

@@ -12,6 +12,7 @@ class Employee extends Model
     protected $fillable = [
         'user_id',
         'brand_id',
+        'all_brands',
         'employee_code',
         'full_name',
         'phone',
@@ -24,6 +25,7 @@ class Employee extends Model
 
     protected $casts = [
         'joined_at' => 'date',
+        'all_brands' => 'boolean',
     ];
 
     public function user()
@@ -34,6 +36,11 @@ class Employee extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function brands()
+    {
+        return $this->belongsToMany(Brand::class, 'employee_brand');
     }
 
     public function attendanceRecords()
