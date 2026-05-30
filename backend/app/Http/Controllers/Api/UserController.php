@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ResetUserPasswordRequest;
 use App\Http\Requests\Api\StoreUserRequest;
 use App\Http\Requests\Api\UpdateUserRequest;
+use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditService;
@@ -50,9 +51,24 @@ class UserController extends Controller
         unset($data['role_ids'], $data['brand_ids']);
         $data['status'] = $data['status'] ?? 'active';
 
+        $employeeId = $data['employee_id'] ?? null;
+        unset($data['employee_id']);
+
         $user = User::query()->create($data);
         $user->roles()->sync($roleIds);
         $user->brands()->sync($brandIds);
+
+        if ($employeeId) {
+            $employee = Employee::query()
+                ->whereKey($employeeId)
+                ->whereNull('user_id')
+                ->first();
+            if (! $employee) {
+                abort(422, 'Employé introuvable ou déjà lié à un compte utilisateur.');
+            }
+            $employee->user_id = $user->id;
+            $employee->save();
+        }
 
         AuditService::log($request, 'users.create', $user, null, $user->fresh()->load(['roles', 'brands'])->toArray());
 

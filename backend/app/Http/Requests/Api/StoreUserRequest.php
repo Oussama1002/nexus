@@ -24,6 +24,7 @@ class StoreUserRequest extends FormRequest
             'role_ids.*' => ['integer', 'exists:roles,id'],
             'brand_ids' => ['nullable', 'array'],
             'brand_ids.*' => ['integer', 'exists:brands,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
         ];
     }
 }

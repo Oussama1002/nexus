@@ -21,6 +21,53 @@ type UserRow = {
   brands: BrandOpt[];
 };
 
+type EmployeePick = {
+  id: number;
+  full_name: string;
+  phone?: string | null;
+  role_title?: string | null;
+  department?: string | null;
+  brand?: { id: number; name: string } | null;
+};
+
+const USER_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
+const USER_FIELD_INPUT =
+  'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500';
+
+function suggestEmailFromName(fullName: string): string {
+  const parts = fullName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return '';
+  const local = parts.length === 1 ? parts[0] : `${parts[0]}.${parts[parts.length - 1]}`;
+  return `${local.replace(/[^a-z0-9.]/g, '')}@nexus.local`;
+}
+
+function suggestRoleIds(roleTitle: string | null | undefined, roles: RoleOpt[]): number[] {
+  if (!roleTitle?.trim()) return [];
+  const t = roleTitle.toLowerCase();
+  const rules: { keys: string[]; slug: string }[] = [
+    { keys: ['confirmatrice', 'confirm'], slug: 'confirmatrice' },
+    { keys: ['stock', 'magasin', 'entrepôt'], slug: 'stock_manager' },
+    { keys: ['community', 'communauté', ' cm'], slug: 'community_manager' },
+    { keys: ['influence', 'influ'], slug: 'influence_manager' },
+    { keys: ['media', 'buyer', 'achat pub'], slug: 'media_buyer' },
+    { keys: ['smm', 'social media'], slug: 'smm' },
+    { keys: ['manager', 'chef', 'responsable'], slug: 'manager_operationnel' },
+    { keys: ['admin'], slug: 'admin' },
+  ];
+  for (const rule of rules) {
+    if (rule.keys.some((k) => t.includes(k))) {
+      const role = roles.find((r) => r.slug === rule.slug);
+      if (role) return [role.id];
+    }
+  }
+  return [];
+}
+
 function formatValidationErrors(errors: unknown): string {
   if (!errors || typeof errors !== 'object') return '';
   const lines: string[] = [];
@@ -57,7 +104,11 @@ export function UsersAdminScreen() {
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [newPwd, setNewPwd] = useState('');
 
+  const [employeeCandidates, setEmployeeCandidates] = useState<EmployeePick[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+
   const [createDraft, setCreateDraft] = useState({
+    employeeId: '' as string,
     name: '',
     email: '',
     phone: '',
@@ -110,6 +161,64 @@ export function UsersAdminScreen() {
     void loadUsers();
   }, [canView, loadRefs, loadUsers]);
 
+  const loadEmployeeCandidates = useCallback(async () => {
+    if (!hasPermission('hr.view')) {
+      setEmployeeCandidates([]);
+      return;
+    }
+    setEmployeesLoading(true);
+    const res = await api.get<Paginated<EmployeePick>>(
+      `hr${buildQuery({ per_page: 200, without_user: 1, status: 'active' })}`,
+    );
+    setEmployeesLoading(false);
+    if (res.ok && res.data) {
+      setEmployeeCandidates(res.data.data);
+    } else {
+      setEmployeeCandidates([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!createOpen) return;
+    void loadEmployeeCandidates();
+  }, [createOpen, loadEmployeeCandidates]);
+
+  const applyEmployeeToCreate = (employeeId: string) => {
+    setCreateDraft((d) => {
+      if (!employeeId) {
+        return { ...d, employeeId: '', name: '', email: '', phone: '', roleIds: [], brandIds: [] };
+      }
+      const emp = employeeCandidates.find((e) => String(e.id) === employeeId);
+      if (!emp) return { ...d, employeeId };
+      const roleIds = suggestRoleIds(emp.role_title, roles);
+      const brandIds = emp.brand?.id ? [emp.brand.id] : d.brandIds;
+      return {
+        ...d,
+        employeeId,
+        name: emp.full_name,
+        email: d.email.trim() ? d.email : suggestEmailFromName(emp.full_name),
+        phone: emp.phone ?? '',
+        roleIds: roleIds.length ? roleIds : d.roleIds,
+        brandIds: brandIds.length ? brandIds : d.brandIds,
+        status: 'active',
+      };
+    });
+  };
+
+  const openCreateUser = () => {
+    setCreateDraft({
+      employeeId: '',
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      status: 'active',
+      roleIds: [],
+      brandIds: [],
+    });
+    setCreateOpen(true);
+  };
+
   const openEdit = (u: UserRow) => {
     setSelected(u);
     setEditDraft({
@@ -154,6 +263,7 @@ export function UsersAdminScreen() {
       status: createDraft.status,
       role_ids: createDraft.roleIds,
       brand_ids: createDraft.brandIds,
+      employee_id: createDraft.employeeId ? Number(createDraft.employeeId) : undefined,
     });
     if (!res.ok) {
       setError(apiErrorMessage(res.message, res.errors));
@@ -161,6 +271,7 @@ export function UsersAdminScreen() {
     }
     setCreateOpen(false);
     setCreateDraft({
+      employeeId: '',
       name: '',
       email: '',
       phone: '',
@@ -317,7 +428,7 @@ export function UsersAdminScreen() {
             {canCreate && (
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={openCreateUser}
                 className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
               >
                 <UserPlus className="w-4 h-4" /> Nouvel utilisateur
@@ -339,6 +450,7 @@ export function UsersAdminScreen() {
         <Modal
           open={createOpen}
           title="Créer utilisateur"
+          subtitle="Importez les informations depuis un employé sans compte, puis complétez l’e-mail et le mot de passe."
           onClose={() => setCreateOpen(false)}
           footer={
             <div className="flex gap-3">
@@ -351,33 +463,69 @@ export function UsersAdminScreen() {
             </div>
           }
         >
-          <div className="space-y-3">
-            <input
-              placeholder="Nom"
-              value={createDraft.name}
-              onChange={(e) => setCreateDraft((d) => ({ ...d, name: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border"
-            />
-            <input
-              placeholder="Email"
-              value={createDraft.email}
-              onChange={(e) => setCreateDraft((d) => ({ ...d, email: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border"
-            />
-            <input
-              placeholder="Téléphone"
-              value={createDraft.phone}
-              onChange={(e) => setCreateDraft((d) => ({ ...d, phone: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border"
-            />
-            <input
-              type="password"
-              placeholder="Mot de passe"
-              value={createDraft.password}
-              onChange={(e) => setCreateDraft((d) => ({ ...d, password: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border"
-            />
-            <p className="text-[10px] font-black uppercase text-zinc-400">Rôles</p>
+          <div className="space-y-4">
+            {hasPermission('hr.view') ? (
+              <label className={USER_FIELD_LABEL}>
+                Employé source
+                <select
+                  value={createDraft.employeeId}
+                  onChange={(e) => applyEmployeeToCreate(e.target.value)}
+                  className={USER_FIELD_INPUT}
+                  disabled={employeesLoading}
+                >
+                  <option value="">— Saisie manuelle —</option>
+                  {employeeCandidates.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.full_name}
+                      {e.role_title ? ` · ${e.role_title}` : ''}
+                      {e.brand?.name ? ` · ${e.brand.name}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {employeesLoading ? (
+                  <p className="mt-1 text-xs text-zinc-500">Chargement des employés…</p>
+                ) : employeeCandidates.length === 0 ? (
+                  <p className="mt-1 text-xs text-zinc-500">Aucun employé actif sans compte utilisateur.</p>
+                ) : null}
+              </label>
+            ) : null}
+            <label className={USER_FIELD_LABEL}>
+              Nom
+              <input
+                value={createDraft.name}
+                onChange={(e) => setCreateDraft((d) => ({ ...d, name: e.target.value }))}
+                className={USER_FIELD_INPUT}
+              />
+            </label>
+            <label className={USER_FIELD_LABEL}>
+              Email
+              <input
+                type="email"
+                value={createDraft.email}
+                onChange={(e) => setCreateDraft((d) => ({ ...d, email: e.target.value }))}
+                className={USER_FIELD_INPUT}
+                placeholder="ex. prenom.nom@nexus.local"
+              />
+            </label>
+            <label className={USER_FIELD_LABEL}>
+              Téléphone
+              <input
+                value={createDraft.phone}
+                onChange={(e) => setCreateDraft((d) => ({ ...d, phone: e.target.value }))}
+                className={USER_FIELD_INPUT}
+              />
+            </label>
+            <label className={USER_FIELD_LABEL}>
+              Mot de passe
+              <input
+                type="password"
+                value={createDraft.password}
+                onChange={(e) => setCreateDraft((d) => ({ ...d, password: e.target.value }))}
+                className={USER_FIELD_INPUT}
+                placeholder="8 caractères minimum"
+              />
+            </label>
+            <p className="text-xs font-semibold text-zinc-900">Rôles</p>
             <div className="flex flex-wrap gap-2">
               {roles.map((r) => (
                 <button
@@ -392,7 +540,7 @@ export function UsersAdminScreen() {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] font-black uppercase text-zinc-400">Marques</p>
+            <p className="text-xs font-semibold text-zinc-900">Marques</p>
             <div className="flex flex-wrap gap-2">
               {brands.map((b) => (
                 <button

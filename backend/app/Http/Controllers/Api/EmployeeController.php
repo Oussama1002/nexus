@@ -65,6 +65,9 @@ class EmployeeController extends Controller
         if ($to) {
             $q->whereDate('joined_at', '<=', $to);
         }
+        if ($request->boolean('without_user')) {
+            $q->whereNull('user_id');
+        }
 
         $paginator = $q->paginate($perPage);
         $mask = ! SalaryVisibility::canViewSalary($request);
