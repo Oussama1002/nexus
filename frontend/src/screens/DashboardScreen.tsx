@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Megaphone, TrendingUp, Users, Package, Truck } from 'lucide-react';
+import { DashboardNotificationsSection } from '../components/dashboard/DashboardNotificationsSection';
+import type { DashboardNotification } from '../components/dashboard/DashboardNotificationsSection';
 import { PageHeader } from '../components/ui/PageHeader';
 import { cn, formatCurrency } from '../lib/utils';
 import { StatusChip } from '../components/ui/StatusChip';
@@ -118,6 +120,7 @@ export function DashboardScreen() {
         counts: res.data.counts,
         orders_by_status: res.data.orders_by_status ?? {},
         shipments_by_status: res.data.shipments_by_status ?? {},
+        notifications: res.data.notifications ?? { items: [], summary: { total: 0, danger: 0, warning: 0 } },
       });
     } else {
       setPayload(null);
@@ -165,6 +168,8 @@ export function DashboardScreen() {
           {error}
         </div>
       )}
+
+      <DashboardNotificationsSection data={payload?.notifications ?? null} loading={loading} />
 
       {loading && !c ? (
         <p className="text-sm font-bold text-zinc-500">Chargement des indicateurs…</p>

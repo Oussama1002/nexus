@@ -9,12 +9,17 @@ use App\Models\Lead;
 use App\Models\Order;
 use App\Models\OrderLine;
 use App\Models\Shipment;
+use App\Services\DashboardNotificationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        protected DashboardNotificationService $notifications,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $from = $request->query('date_from');
@@ -58,6 +63,7 @@ class DashboardController extends Controller
                 ->selectRaw('status, count(*) as aggregate')
                 ->groupBy('status')
                 ->pluck('aggregate', 'status'),
+            'notifications' => $this->notifications->forUser($request->user()),
         ], 'Dashboard summary retrieved successfully.');
     }
 }
