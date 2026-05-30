@@ -40,6 +40,9 @@ class SettingsCenterRules
                 'workflow.defaultLeadStatus' => $s,
                 'workflow.defaultOrderStatus' => $s,
                 'workflow.leadSlaHours' => 'nullable|numeric|min:0|max:8760',
+                'navigation' => 'nullable|array',
+                'navigation.items' => 'nullable|array',
+                'navigation.items.*' => 'boolean',
             ],
             'integrations' => [
                 'email' => 'nullable|array',

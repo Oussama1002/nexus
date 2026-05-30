@@ -37,6 +37,10 @@ export type GeneralModel = {
     defaultOrderStatus: string;
     leadSlaHours: string;
   };
+  navigation: {
+    /** Sidebar item key → visible (false = hidden). Omitted keys default to visible. */
+    items: Record<string, boolean>;
+  };
 };
 
 export type IntegrationsModel = {

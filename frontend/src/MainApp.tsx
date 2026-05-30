@@ -7,39 +7,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as api from './lib/api';
 import { buildQuery } from './lib/pagination';
 import type { Paginated } from './lib/pagination';
-import {
-  BarChart3,
-  Barcode,
-  Bot,
-  Target,
-  BookOpenCheck,
-  BookOpen,
-  Briefcase,
-  ChevronDown,
-  Home,
-  Layers,
-  LogOut,
-  Menu,
-  Megaphone,
-  MessageSquare,
-  Package,
-  PieChart,
-  Settings,
-  Share2,
-  Sparkles,
-  Store,
-  Tag,
-  Truck,
-  Users,
-  Contact,
-  ShieldUser,
-  UsersRound,
-} from 'lucide-react';
+import { ChevronDown, Layers, LogOut, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { User, View } from './types';
 import { useAuth } from './context/AuthContext';
 import { useBrand } from './context/BrandContext';
+import { buildSidebarNavGroups } from './lib/buildSidebarNavGroups';
 import { canAccessView } from './lib/navPermissions';
+import { useSidebarNavVisibility } from './hooks/useSidebarNavVisibility';
 import { initGlobalActions, registerAction } from './lib/actions';
 import { trackSession } from './lib/session';
 import { AppShell } from './components/shell/AppShell';
@@ -177,6 +152,7 @@ export function MainApp() {
   );
 
   const canAccess = useCallback((v: View) => canAccessView(v, permCtx), [permCtx]);
+  const sidebarVisibility = useSidebarNavVisibility(activeBrandId);
 
   const actionCtx = useMemo(() => ({ userId: currentUser.id, view: activeView }), [activeView, currentUser.id]);
 
@@ -195,133 +171,17 @@ export function MainApp() {
     trackSession({ name: 'nav.view', ts: Date.now(), meta: { view: activeView, userId: currentUser.id, role: currentUser.role } });
   }, [activeView, currentUser.id, currentUser.role]);
 
-  /** Must run before any conditional return — same hook order logged in or out. */
-  const commerceNavItems = useMemo(() => {
-    const raw: { id: View; label: string; icon: typeof Home }[] = [
-      { id: 'dashboard', label: 'Dashboard', icon: Home },
-      { id: 'ordersNew', label: 'Nouvelle commande', icon: Package },
-      { id: 'orders', label: 'Commandes', icon: Package },
-      { id: 'whatsapp', label: 'Conversations', icon: MessageSquare },
-      { id: 'academy', label: 'Brandna academy', icon: BookOpenCheck },
-      { id: 'clientPortal', label: 'Espace client', icon: ShieldUser },
-      { id: 'collabProjects', label: 'Projets collectifs', icon: UsersRound },
-      { id: 'mediaBuying', label: 'Media Buying', icon: Target },
-      { id: 'automations', label: 'Automatisations', icon: Bot },
-      {
-        id: 'confirmatrice',
-        label: currentUser.role === 'confirmatrice' ? 'Votre espace' : 'Espace Confirmatrice',
-        icon: MessageSquare,
-      },
-      { id: 'leads', label: 'Gestion Leads', icon: Users },
-      { id: 'customers', label: 'Clients', icon: Contact },
-      { id: 'knowledgeBase', label: 'Base marque', icon: BookOpen },
-      { id: 'brands', label: 'Mes Brands', icon: Store },
-    ];
-    let filtered = raw.filter((it) => canAccess(it.id));
-    if (currentUser.role === 'confirmatrice') {
-      const yours = filtered.find((i) => i.id === 'confirmatrice');
-      const rest = filtered.filter((i) => i.id !== 'confirmatrice');
-      filtered = yours ? [yours, ...rest] : filtered;
-    }
-    return filtered.map((it) => ({
-      ...it,
-      active: activeView === it.id,
-      onClick: () => navigate(pathForView(it.id)),
-    }));
-  }, [currentUser.role, activeView, canAccess, navigate]);
-
-  const socialNavItems = useMemo(
+  const navGroups = useMemo(
     () =>
-      [
-        { id: 'socialMedia' as const, label: 'Réseaux & contenu', icon: Share2 },
-      ]
-        .filter((it) => canAccess(it.id))
-        .map((it) => ({
-          ...it,
-          active: activeView === it.id,
-          onClick: () => navigate(pathForView(it.id)),
-        })),
-    [activeView, canAccess, navigate],
+      buildSidebarNavGroups({
+        activeView,
+        navigate,
+        canAccess,
+        userRole: currentUser.role,
+        visibility: sidebarVisibility,
+      }),
+    [activeView, navigate, canAccess, currentUser.role, sidebarVisibility],
   );
-
-  const navGroups = [
-    {
-      id: 'commerce',
-      label: 'Commerce',
-      items: commerceNavItems,
-    },
-    {
-      id: 'social',
-      label: 'Social & contenu',
-      items: socialNavItems,
-    },
-    {
-      id: 'operations',
-      label: 'Opérations',
-      items: [
-        { id: 'ads', label: 'Campagnes Ads', icon: Megaphone, active: activeView === 'ads', onClick: () => navigate(pathForView('ads')) },
-        { id: 'products', label: 'Produits', icon: Barcode, active: activeView === 'products', onClick: () => navigate(pathForView('products')) },
-        { id: 'stock', label: 'Stocks', icon: Package, active: activeView === 'stock', onClick: () => navigate(pathForView('stock')) },
-        {
-          id: 'delivery-kpi',
-          label: 'Livraison KPI',
-          icon: BarChart3,
-          active: activeView === 'delivery' || activeView === 'deliveryDashboard',
-          onClick: () => {
-            if (canAccess('deliveryDashboard')) navigate(pathForView('deliveryDashboard'));
-            else navigate(pathForView('delivery'));
-          },
-        },
-        { id: 'trackingParcels', label: 'Suivi colis', icon: Truck, active: activeView === 'trackingParcels', onClick: () => navigate(pathForView('trackingParcels')) },
-        { id: 'suppliers', label: 'Fournisseurs', icon: Tag, active: activeView === 'suppliers', onClick: () => navigate(pathForView('suppliers')) },
-        {
-          id: 'purchaseOrders',
-          label: 'Commandes fournisseurs',
-          icon: Package,
-          active: activeView === 'purchaseOrders',
-          onClick: () => navigate(pathForView('purchaseOrders')),
-        },
-      ],
-    },
-    {
-      id: 'influence',
-      label: 'Influence',
-      items: [
-        {
-          id: 'influenceHub',
-          label: 'Studio Influence',
-          icon: Sparkles,
-          active: activeView === 'influenceHub',
-          onClick: () => navigate(pathForView('influenceHub')),
-        },
-      ],
-    },
-    {
-      id: 'management',
-      label: 'Management',
-      items: [
-        { id: 'reporting', label: 'Reportings', icon: PieChart, active: activeView === 'reporting', onClick: () => navigate(pathForView('reporting')) },
-        { id: 'hr', label: 'Espace RH', icon: Briefcase, active: activeView === 'hr', onClick: () => navigate(pathForView('hr')) },
-        { id: 'finance', label: 'Finance', icon: PieChart, active: activeView === 'finance', onClick: () => navigate(pathForView('finance')) },
-        { id: 'usersAdmin', label: 'Utilisateurs', icon: Users, active: activeView === 'usersAdmin', onClick: () => navigate(pathForView('usersAdmin')) },
-        {
-          id: 'settings',
-          label: 'Paramètres',
-          icon: Settings,
-          active: activeView === 'settings',
-          onClick: () => navigate(pathForView('settings', 'center')),
-        },
-        { id: 'tracking', label: 'Historique', icon: BarChart3, active: activeView === 'tracking', onClick: () => navigate(pathForView('tracking')) },
-      ],
-    },
-  ]
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((it) =>
-        it.id === 'delivery-kpi' ? canAccess('delivery') || canAccess('deliveryDashboard') : canAccess(it.id as View),
-      ),
-    }))
-    .filter((g) => g.items.length > 0);
   const brandIdByName = (name: string) => brands.find((b) => b.name === name)?.id;
 
   const persistOrderDraftAndGoNew = (draft: Record<string, unknown>) => {

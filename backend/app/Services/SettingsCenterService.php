@@ -103,7 +103,39 @@ class SettingsCenterService
                 'defaultOrderStatus' => $this->getRaw($brandId, 'workflow_default_order_status') ?? '',
                 'leadSlaHours' => $this->getRaw($brandId, 'workflow_lead_sla_hours') ?? '',
             ],
+            'navigation' => [
+                'items' => $this->decodeSidebarNavVisibility($brandId),
+            ],
         ];
+    }
+
+    /** @return array<string, bool> */
+    private function decodeSidebarNavVisibility(int $brandId): array
+    {
+        $raw = $this->getRaw($brandId, 'sidebar_nav_visibility');
+        if ($raw === null || trim((string) $raw) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode((string) $raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($decoded as $key => $visible) {
+            if (! is_string($key)) {
+                continue;
+            }
+            $items[$key] = filter_var($visible, FILTER_VALIDATE_BOOL);
+        }
+
+        return $items;
     }
 
     /** @param  array<string, mixed>  $p */
@@ -133,6 +165,21 @@ class SettingsCenterService
             $this->upsert($brandId, 'general', 'workflow_default_lead_status', $w['defaultLeadStatus'] ?? '');
             $this->upsert($brandId, 'general', 'workflow_default_order_status', $w['defaultOrderStatus'] ?? '');
             $this->upsert($brandId, 'general', 'workflow_lead_sla_hours', $w['leadSlaHours'] ?? '');
+            $nav = $p['navigation'] ?? [];
+            $navItems = is_array($nav['items'] ?? null) ? $nav['items'] : [];
+            $normalized = [];
+            foreach ($navItems as $key => $visible) {
+                if (! is_string($key)) {
+                    continue;
+                }
+                $normalized[$key] = filter_var($visible, FILTER_VALIDATE_BOOL);
+            }
+            $this->upsert(
+                $brandId,
+                'general',
+                'sidebar_nav_visibility',
+                json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)
+            );
         });
     }
 

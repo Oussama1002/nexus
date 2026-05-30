@@ -28,6 +28,7 @@ import type {
   SettingsCenterSection,
   WhatsappModel,
 } from '../lib/settingsCenterApi';
+import { mergeSidebarVisibility, notifySidebarNavUpdated } from '../lib/sidebarNavCatalog';
 import { cn } from '../lib/utils';
 
 type SettingsAuditApiRow = {
@@ -97,7 +98,14 @@ export function SettingsScreen() {
         setModel(null);
         return;
       }
-      const data = res.data;
+      let data = res.data;
+      if (section === 'general' && data && 'navigation' in data) {
+        const g = data as GeneralModel;
+        data = {
+          ...g,
+          navigation: { items: mergeSidebarVisibility(g.navigation?.items) },
+        } as SectionModel;
+      }
       setModel(data);
       setBaseline(JSON.stringify(data));
     })();
@@ -125,7 +133,15 @@ export function SettingsScreen() {
       return;
     }
     toast.success('Modifications enregistrées.');
-    const data = res.data ?? model;
+    let data = res.data ?? model;
+    if (section === 'general' && data && 'navigation' in data) {
+      const g = data as GeneralModel;
+      data = {
+        ...g,
+        navigation: { items: mergeSidebarVisibility(g.navigation?.items) },
+      } as SectionModel;
+      notifySidebarNavUpdated();
+    }
     setModel(data);
     setBaseline(JSON.stringify(data));
   }

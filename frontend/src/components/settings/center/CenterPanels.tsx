@@ -8,6 +8,7 @@ import type {
   SecurityModel,
   WhatsappModel,
 } from '../../../lib/settingsCenterApi';
+import { SIDEBAR_NAV_CATALOG, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
 import { ConnectionTestButton, SectionCard, SecretField, TextField, ToggleRow } from './SettingsUi';
 
 export function GeneralPanel({
@@ -20,6 +21,7 @@ export function GeneralPanel({
   disabled: boolean;
 }) {
   const p = (patch: Partial<GeneralModel>) => onChange({ ...value, ...patch });
+  const navItems = mergeSidebarVisibility(value.navigation?.items);
   return (
     <div className="space-y-8">
       <SectionCard title="Entreprise" description="Informations légales et de contact visibles côté métier.">
@@ -57,6 +59,73 @@ export function GeneralPanel({
           <TextField label="Statut lead par défaut" value={value.workflow.defaultLeadStatus} onChange={(v) => p({ workflow: { ...value.workflow, defaultLeadStatus: v } })} disabled={disabled} />
           <TextField label="Statut commande par défaut" value={value.workflow.defaultOrderStatus} onChange={(v) => p({ workflow: { ...value.workflow, defaultOrderStatus: v } })} disabled={disabled} />
           <TextField label="SLA lead (heures)" value={value.workflow.leadSlaHours} onChange={(v) => p({ workflow: { ...value.workflow, leadSlaHours: v } })} disabled={disabled} />
+        </div>
+      </SectionCard>
+      <SectionCard
+        title="Menu latéral"
+        description="Choisissez les entrées visibles dans la barre latérale pour cette marque. Les droits utilisateur s’appliquent toujours : masquer un module ne donne pas d’accès supplémentaire."
+        actions={
+          !disabled ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="text-xs font-bold uppercase tracking-wide text-primary-700 hover:underline"
+                onClick={() =>
+                  p({
+                    navigation: {
+                      items: mergeSidebarVisibility(
+                        Object.fromEntries(SIDEBAR_NAV_CATALOG.map((e) => [e.key, true])),
+                      ),
+                    },
+                  })
+                }
+              >
+                Tout afficher
+              </button>
+              <button
+                type="button"
+                className="text-xs font-bold uppercase tracking-wide text-zinc-500 hover:underline"
+                onClick={() =>
+                  p({
+                    navigation: {
+                      items: mergeSidebarVisibility(
+                        Object.fromEntries(SIDEBAR_NAV_CATALOG.map((e) => [e.key, false])),
+                      ),
+                    },
+                  })
+                }
+              >
+                Tout masquer
+              </button>
+            </div>
+          ) : undefined
+        }
+      >
+        <div className="space-y-6">
+          {Object.entries(
+            SIDEBAR_NAV_CATALOG.reduce<Record<string, (typeof SIDEBAR_NAV_CATALOG)[number][]>>((acc, entry) => {
+              (acc[entry.groupLabel] ??= []).push(entry);
+              return acc;
+            }, {}),
+          ).map(([groupLabel, entries]) => (
+            <div key={groupLabel}>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-1">{groupLabel}</p>
+              <div className="space-y-1">
+                {entries.map((entry) => (
+                  <ToggleRow
+                    key={entry.key}
+                    label={entry.label}
+                    checked={navItems[entry.key] !== false}
+                    onChange={(checked) => {
+                      const items = { ...navItems, [entry.key]: checked };
+                      p({ navigation: { items } });
+                    }}
+                    disabled={disabled}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </SectionCard>
     </div>
