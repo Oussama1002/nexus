@@ -6,6 +6,7 @@ import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { organizationRoleLabel, roleIdsFromEmployeeSlug } from '../lib/organizationRoles';
 import * as api from '../lib/api';
+import { cn } from '../lib/utils';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 
@@ -434,6 +435,7 @@ export function UsersAdminScreen() {
           open={createOpen}
           title="Créer utilisateur"
           subtitle="Importez les informations depuis un employé sans compte, puis complétez l’e-mail et le mot de passe."
+          panelClassName="max-w-2xl"
           onClose={() => setCreateOpen(false)}
           footer={
             <div className="flex gap-3">
@@ -446,9 +448,9 @@ export function UsersAdminScreen() {
             </div>
           }
         >
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {hasPermission('hr.view') ? (
-              <label className={USER_FIELD_LABEL}>
+              <label className={cn(USER_FIELD_LABEL, 'sm:col-span-2')}>
                 Employé source
                 <select
                   value={createDraft.employeeId}
@@ -527,20 +529,22 @@ export function UsersAdminScreen() {
                 ))}
               </select>
             </label>
-            <p className="text-xs font-semibold text-zinc-900">Marques</p>
-            <div className="flex flex-wrap gap-2">
-              {brands.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => toggleBrand(createDraft, setCreateDraft, b.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-black border ${
-                    createDraft.brandIds.includes(b.id) ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'border-zinc-200'
-                  }`}
-                >
-                  {b.name}
-                </button>
-              ))}
+            <div className="sm:col-span-2">
+              <p className="text-xs font-semibold text-zinc-900">Marques</p>
+              <div className="mt-2 flex flex-wrap gap-2 max-h-28 overflow-y-auto overscroll-contain pr-1">
+                {brands.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => toggleBrand(createDraft, setCreateDraft, b.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-black border ${
+                      createDraft.brandIds.includes(b.id) ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'border-zinc-200'
+                    }`}
+                  >
+                    {b.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </Modal>
