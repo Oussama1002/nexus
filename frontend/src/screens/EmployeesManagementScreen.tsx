@@ -35,62 +35,6 @@ const EMPLOYEE_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
 const EMPLOYEE_FIELD_INPUT =
   'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500';
 
-function DepartmentField({
-  label,
-  value,
-  onChange,
-  options,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-  disabled?: boolean;
-}) {
-  const listId = useId();
-  const selectValue = value !== '' && options.includes(value) ? value : '';
-
-  return (
-    <div>
-      <span className={EMPLOYEE_FIELD_LABEL}>{label}</span>
-      {options.length > 0 ? (
-        <select
-          disabled={disabled}
-          value={selectValue}
-          onChange={(e) => {
-            if (e.target.value) onChange(e.target.value);
-          }}
-          className={cn(EMPLOYEE_FIELD_INPUT, 'mt-1.5')}
-        >
-          <option value="">— Choisir un département enregistré —</option>
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      ) : null}
-      <label className={cn(EMPLOYEE_FIELD_LABEL, options.length > 0 ? 'mt-3 block' : 'mt-1.5 block')}>
-        <span className="text-[10px] font-normal text-zinc-500">Saisie libre</span>
-        <input
-          list={listId}
-          disabled={disabled}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Choisir dans la liste ou taper un département…"
-          className={EMPLOYEE_FIELD_INPUT}
-        />
-        <datalist id={listId}>
-          {options.map((opt) => (
-            <option key={opt} value={opt} />
-          ))}
-        </datalist>
-      </label>
-    </div>
-  );
-}
-
 function LookupComboField({
   label,
   hint,
@@ -107,23 +51,58 @@ function LookupComboField({
   disabled?: boolean;
 }) {
   const listId = useId();
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+
+  const filteredOptions = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    const matches = options.filter((opt) => (q === '' ? true : opt.toLowerCase().includes(q)));
+    return matches.slice(0, 12);
+  }, [options, value]);
+
+  const showSuggestions = suggestionsOpen && !disabled && filteredOptions.length > 0;
+
   return (
-    <label className={EMPLOYEE_FIELD_LABEL}>
+    <label className={cn(EMPLOYEE_FIELD_LABEL, 'relative')}>
       {label}
       {hint ? <span className="ml-1 text-[10px] font-normal text-zinc-500">{hint}</span> : null}
       <input
         list={listId}
         value={value}
         disabled={disabled}
+        autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setSuggestionsOpen(true)}
+        onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
         className={EMPLOYEE_FIELD_INPUT}
-        placeholder="Choisir ou saisir…"
+        placeholder="Saisir ou choisir dans la liste…"
       />
       <datalist id={listId}>
         {options.map((opt) => (
           <option key={opt} value={opt} />
         ))}
       </datalist>
+      {showSuggestions ? (
+        <ul
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
+        >
+          {filteredOptions.map((opt) => (
+            <li key={opt} role="option">
+              <button
+                type="button"
+                className="w-full px-4 py-2.5 text-left text-sm font-medium text-zinc-800 hover:bg-primary-50"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(opt);
+                  setSuggestionsOpen(false);
+                }}
+              >
+                {opt}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </label>
   );
 }
@@ -798,7 +777,7 @@ export function EmployeesManagementScreen() {
               onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
               options={roleTitleOptions}
             />
-            <DepartmentField
+            <LookupComboField
               label="Département"
               value={draft.department}
               onChange={(v) => setDraft((d) => ({ ...d, department: v }))}
