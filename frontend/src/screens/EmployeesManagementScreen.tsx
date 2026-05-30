@@ -35,9 +35,7 @@ const EMPLOYEE_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
 const EMPLOYEE_FIELD_INPUT =
   'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500';
 
-const DEPARTMENT_CUSTOM = '__custom__';
-
-function DepartmentSelectField({
+function DepartmentField({
   label,
   value,
   onChange,
@@ -50,42 +48,45 @@ function DepartmentSelectField({
   options: string[];
   disabled?: boolean;
 }) {
-  const isKnown = value !== '' && options.includes(value);
-  const selectValue = value === '' ? '' : isKnown ? value : DEPARTMENT_CUSTOM;
-  const showCustom = selectValue === DEPARTMENT_CUSTOM;
+  const listId = useId();
+  const selectValue = value !== '' && options.includes(value) ? value : '';
 
   return (
     <div>
-      <label className={EMPLOYEE_FIELD_LABEL}>
-        {label}
+      <span className={EMPLOYEE_FIELD_LABEL}>{label}</span>
+      {options.length > 0 ? (
         <select
           disabled={disabled}
           value={selectValue}
           onChange={(e) => {
-            const v = e.target.value;
-            if (v === DEPARTMENT_CUSTOM) onChange('');
-            else onChange(v);
+            if (e.target.value) onChange(e.target.value);
           }}
-          className={EMPLOYEE_FIELD_INPUT}
+          className={cn(EMPLOYEE_FIELD_INPUT, 'mt-1.5')}
         >
-          <option value="">— Choisir un département —</option>
+          <option value="">— Choisir un département enregistré —</option>
           {options.map((opt) => (
             <option key={opt} value={opt}>
               {opt}
             </option>
           ))}
-          <option value={DEPARTMENT_CUSTOM}>Autre (nouveau)…</option>
         </select>
-      </label>
-      {showCustom ? (
+      ) : null}
+      <label className={cn(EMPLOYEE_FIELD_LABEL, options.length > 0 ? 'mt-3 block' : 'mt-1.5 block')}>
+        <span className="text-[10px] font-normal text-zinc-500">Saisie libre</span>
         <input
+          list={listId}
           disabled={disabled}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Saisir le nouveau département"
-          className={cn(EMPLOYEE_FIELD_INPUT, 'mt-2')}
+          placeholder="Choisir dans la liste ou taper un département…"
+          className={EMPLOYEE_FIELD_INPUT}
         />
-      ) : null}
+        <datalist id={listId}>
+          {options.map((opt) => (
+            <option key={opt} value={opt} />
+          ))}
+        </datalist>
+      </label>
     </div>
   );
 }
@@ -797,7 +798,7 @@ export function EmployeesManagementScreen() {
               onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
               options={roleTitleOptions}
             />
-            <DepartmentSelectField
+            <DepartmentField
               label="Département"
               value={draft.department}
               onChange={(v) => setDraft((d) => ({ ...d, department: v }))}
