@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreEmployeeRequest;
 use App\Http\Requests\Api\UpdateEmployeeRequest;
 use App\Models\Employee;
+use App\Models\HrLookupValue;
 use App\Services\AuditService;
+use App\Services\HrLookupService;
 use App\Support\ApiResponse;
 use App\Support\SalaryVisibility;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +17,25 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class EmployeeController extends Controller
 {
+    public function __construct(
+        protected HrLookupService $hrLookups,
+    ) {}
+
+    public function lookups(Request $request, string $type): JsonResponse
+    {
+        $this->requirePermission($request, 'hr.view');
+        if (! in_array($type, [HrLookupValue::TYPE_DEPARTMENT, HrLookupValue::TYPE_ROLE_TITLE], true)) {
+            return ApiResponse::error('Type de liste invalide.', null, 422);
+        }
+
+        $brandId = $request->query('brand_id');
+        $brandId = $brandId !== null && $brandId !== '' ? (int) $brandId : null;
+
+        return ApiResponse::success([
+            'values' => $this->hrLookups->values($type, $brandId),
+        ], 'HR lookup values retrieved successfully.');
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->requirePermission($request, 'hr.view');
@@ -71,6 +92,9 @@ class EmployeeController extends Controller
 
         $row = Employee::query()->create($data);
 
+        $this->hrLookups->remember($row->brand_id, HrLookupValue::TYPE_DEPARTMENT, $row->department);
+        $this->hrLookups->remember($row->brand_id, HrLookupValue::TYPE_ROLE_TITLE, $row->role_title);
+
         AuditService::log($request, 'employees.create', $row, null, $row->toArray());
 
         return ApiResponse::success($this->transformEmployee($request, $row->fresh()), 'Employee created successfully.', 201);
@@ -93,7 +117,11 @@ class EmployeeController extends Controller
         $row->fill($data);
         $row->save();
 
-        AuditService::log($request, 'employees.update', $row, $before, $row->fresh()->toArray());
+        $fresh = $row->fresh();
+        $this->hrLookups->remember($fresh->brand_id, HrLookupValue::TYPE_DEPARTMENT, $fresh->department);
+        $this->hrLookups->remember($fresh->brand_id, HrLookupValue::TYPE_ROLE_TITLE, $fresh->role_title);
+
+        AuditService::log($request, 'employees.update', $row, $before, $fresh->toArray());
 
         return ApiResponse::success($this->transformEmployee($request, $row->fresh()), 'Employee updated successfully.');
     }

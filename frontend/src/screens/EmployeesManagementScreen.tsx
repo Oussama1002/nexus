@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Plus, RefreshCw, UserPlus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
@@ -28,6 +28,47 @@ type EmployeeRow = {
 };
 
 const STATUS_OPTS = ['active', 'inactive', 'terminated'] as const;
+
+const EMPLOYEE_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
+const EMPLOYEE_FIELD_INPUT =
+  'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500';
+
+function LookupComboField({
+  label,
+  hint,
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  disabled?: boolean;
+}) {
+  const listId = useId();
+  return (
+    <label className={EMPLOYEE_FIELD_LABEL}>
+      {label}
+      {hint ? <span className="ml-1 text-[10px] font-normal text-zinc-500">{hint}</span> : null}
+      <input
+        list={listId}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className={EMPLOYEE_FIELD_INPUT}
+        placeholder="Choisir ou saisir…"
+      />
+      <datalist id={listId}>
+        {options.map((opt) => (
+          <option key={opt} value={opt} />
+        ))}
+      </datalist>
+    </label>
+  );
+}
 const LESSON_CATEGORIES = ['sales', 'product', 'process', 'faq', 'general'] as const;
 const ATTENDANCE_STATUS = ['present', 'late', 'absent'] as const;
 
@@ -67,7 +108,7 @@ type PayrollRow = {
 
 export function EmployeesManagementScreen() {
   const { hasPermission } = useAuth();
-  const { brands } = useBrand();
+  const { brands, activeBrandId } = useBrand();
   const toast = useToast();
   const [tab, setTab] = useState<'employees' | 'academy' | 'attendance' | 'payroll'>('employees');
 
@@ -123,6 +164,8 @@ export function EmployeesManagementScreen() {
   const [payrollMonth, setPayrollMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [payrollRows, setPayrollRows] = useState<PayrollRow[]>([]);
   const [payrollLoading, setPayrollLoading] = useState(false);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [roleTitleOptions, setRoleTitleOptions] = useState<string[]>([]);
 
   const canView = hasPermission('hr.view');
   const canCreate = hasPermission('hr.create');
@@ -188,6 +231,36 @@ export function EmployeesManagementScreen() {
     if (tab === 'payroll') void loadPayroll();
   }, [tab, loadPayroll]);
 
+  const loadHrLookups = useCallback(async (brandId: string) => {
+    const q = brandId ? `?brand_id=${encodeURIComponent(brandId)}` : '';
+    const [deptRes, roleRes] = await Promise.all([
+      api.get<{ values: string[] }>(`hr/lookups/department${q}`),
+      api.get<{ values: string[] }>(`hr/lookups/role_title${q}`),
+    ]);
+    if (deptRes.ok && deptRes.data) setDepartmentOptions(deptRes.data.values ?? []);
+    if (roleRes.ok && roleRes.data) setRoleTitleOptions(roleRes.data.values ?? []);
+  }, []);
+
+  useEffect(() => {
+    if (!createOpen) return;
+    void loadHrLookups(draft.brand_id);
+  }, [createOpen, draft.brand_id, loadHrLookups]);
+
+  const openCreateEmployee = () => {
+    setDraft({
+      full_name: '',
+      role_title: '',
+      department: '',
+      phone: '',
+      salary: '',
+      joined_at: new Date().toISOString().slice(0, 10),
+      status: 'active',
+      user_id: '',
+      brand_id: activeBrandId || (brands[0]?.id ?? ''),
+    });
+    setCreateOpen(true);
+  };
+
   const columns = useMemo<Column<EmployeeRow>[]>(
     () => [
       { key: 'name', header: 'Nom', cell: (e) => <span className="font-black text-zinc-900">{e.full_name}</span> },
@@ -214,16 +287,23 @@ export function EmployeesManagementScreen() {
 
   const submitCreate = async () => {
     if (!canCreate) return;
+    if (!draft.full_name.trim()) {
+      toast.error('Le nom complet est obligatoire.');
+      return;
+    }
+    if (!draft.brand_id) {
+      toast.error('Sélectionnez une marque.');
+      return;
+    }
     const body: Record<string, unknown> = {
-      full_name: draft.full_name,
-      role_title: draft.role_title || undefined,
-      department: draft.department || undefined,
-      phone: draft.phone || undefined,
+      full_name: draft.full_name.trim(),
+      role_title: draft.role_title.trim() || undefined,
+      department: draft.department.trim() || undefined,
+      phone: draft.phone.trim() || undefined,
       joined_at: draft.joined_at || undefined,
-      status: draft.status,
+      status: 'active',
       salary: draft.salary === '' ? undefined : Number(draft.salary),
-      user_id: draft.user_id === '' ? undefined : Number(draft.user_id),
-      brand_id: draft.brand_id === '' ? undefined : Number(draft.brand_id),
+      brand_id: Number(draft.brand_id),
     };
     const res = await api.post<EmployeeRow>('hr', body);
     if (!res.ok) {
@@ -356,7 +436,7 @@ export function EmployeesManagementScreen() {
             {canCreate && tab === 'employees' && (
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={openCreateEmployee}
                 className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
               >
                 <UserPlus className="w-4 h-4" /> Ajouter
@@ -572,93 +652,75 @@ export function EmployeesManagementScreen() {
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="text-[10px] font-black uppercase text-zinc-400 md:col-span-2">
+            <label className={`${EMPLOYEE_FIELD_LABEL} md:col-span-2`}>
               Nom complet
               <input
                 value={draft.full_name}
                 onChange={(e) => setDraft((d) => ({ ...d, full_name: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200"
+                className={EMPLOYEE_FIELD_INPUT}
               />
             </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
-              Rôle (titre)
-              <input
-                value={draft.role_title}
-                onChange={(e) => setDraft((d) => ({ ...d, role_title: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200"
-              />
+            <label className={EMPLOYEE_FIELD_LABEL}>
+              Marque
+              <select
+                required
+                value={draft.brand_id}
+                onChange={(e) => setDraft((d) => ({ ...d, brand_id: e.target.value }))}
+                className={EMPLOYEE_FIELD_INPUT}
+              >
+                {brands.length === 0 ? (
+                  <option value="">Aucune marque disponible</option>
+                ) : (
+                  brands.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))
+                )}
+              </select>
             </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
-              Département
-              <input
-                value={draft.department}
-                onChange={(e) => setDraft((d) => ({ ...d, department: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200"
-              />
-            </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
+            <LookupComboField
+              label="Rôle (titre)"
+              hint="liste ou nouveau"
+              value={draft.role_title}
+              onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
+              options={roleTitleOptions}
+            />
+            <LookupComboField
+              label="Département"
+              hint="liste ou nouveau"
+              value={draft.department}
+              onChange={(v) => setDraft((d) => ({ ...d, department: v }))}
+              options={departmentOptions}
+            />
+            <label className={EMPLOYEE_FIELD_LABEL}>
               Téléphone
               <input
                 value={draft.phone}
                 onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200"
+                className={EMPLOYEE_FIELD_INPUT}
               />
             </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
-              Salaire
-              <input
-                type="number"
-                value={draft.salary}
-                onChange={(e) => setDraft((d) => ({ ...d, salary: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200"
-              />
-            </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
-              Entrée
+            {canViewSalary ? (
+              <label className={EMPLOYEE_FIELD_LABEL}>
+                Salaire
+                <input
+                  type="number"
+                  min={0}
+                  value={draft.salary}
+                  onChange={(e) => setDraft((d) => ({ ...d, salary: e.target.value }))}
+                  className={EMPLOYEE_FIELD_INPUT}
+                />
+              </label>
+            ) : null}
+            <label className={EMPLOYEE_FIELD_LABEL}>
+              Date d&apos;entrée
               <input
                 type="date"
                 value={draft.joined_at}
                 onChange={(e) => setDraft((d) => ({ ...d, joined_at: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200"
+                className={EMPLOYEE_FIELD_INPUT}
               />
-            </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
-              Statut
-              <select
-                value={draft.status}
-                onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as (typeof STATUS_OPTS)[number] }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
-              >
-                {STATUS_OPTS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
-              ID utilisateur (optionnel)
-              <input
-                value={draft.user_id}
-                onChange={(e) => setDraft((d) => ({ ...d, user_id: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200"
-                placeholder="ex: 2"
-              />
-            </label>
-            <label className="text-[10px] font-black uppercase text-zinc-400">
-              Marque
-              <select
-                value={draft.brand_id}
-                onChange={(e) => setDraft((d) => ({ ...d, brand_id: e.target.value }))}
-                className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
-              >
-                <option value="">—</option>
-                {brands.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
             </label>
           </div>
           {!canUpdate && (

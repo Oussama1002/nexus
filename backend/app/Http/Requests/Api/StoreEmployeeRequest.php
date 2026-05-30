@@ -16,7 +16,7 @@ class StoreEmployeeRequest extends FormRequest
     {
         return [
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
+            'brand_id' => ['required', 'integer', 'exists:brands,id'],
             'employee_code' => ['nullable', 'string', 'max:50', 'unique:employees,employee_code'],
             'full_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],

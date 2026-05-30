@@ -342,6 +342,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('finance/charges-by-type', [FinanceSummaryController::class, 'chargesByType'])->middleware('permission:finance.view');
     Route::get('finance/monthly', [FinanceSummaryController::class, 'monthly'])->middleware('permission:finance.view');
 
+    Route::get('hr/lookups/{type}', [EmployeeController::class, 'lookups'])
+        ->whereIn('type', ['department', 'role_title'])
+        ->middleware('permission:hr.view');
     $registerCrud('hr', EmployeeController::class, 'hr');
     Route::get('academy/lessons', [AcademyLessonController::class, 'index']);
     Route::post('academy/lessons', [AcademyLessonController::class, 'store']);
