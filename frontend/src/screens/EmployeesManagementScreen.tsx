@@ -12,7 +12,6 @@ import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 import { cn } from '../lib/utils';
-import { organizationRoleLabel, type OrganizationRoleOption } from '../lib/organizationRoles';
 
 type EmployeeRow = {
   id: number;
@@ -273,10 +272,10 @@ export function EmployeesManagementScreen() {
   const loadHrLookups = useCallback(async () => {
     const [deptRes, roleRes] = await Promise.all([
       api.get<{ values: string[] }>('hr/lookups/department'),
-      api.get<{ roles: OrganizationRoleOption[] }>('hr/lookups/role_title'),
+      api.get<{ values: string[] }>('hr/lookups/role_title'),
     ]);
     if (deptRes.ok && deptRes.data) setDepartmentOptions(deptRes.data.values ?? []);
-    if (roleRes.ok && roleRes.data) setOrganizationRoles(roleRes.data.roles ?? []);
+    if (roleRes.ok && roleRes.data) setRoleTitleOptions(roleRes.data.values ?? []);
   }, []);
 
   useEffect(() => {
@@ -320,13 +319,7 @@ export function EmployeesManagementScreen() {
           </span>
         ),
       },
-      {
-        key: 'role',
-        header: 'Fonction',
-        cell: (e) => (
-          <span className="text-sm text-zinc-700">{organizationRoleLabel(e.role_title)}</span>
-        ),
-      },
+      { key: 'role', header: 'Fonction', cell: (e) => <span className="text-sm text-zinc-700">{e.role_title || '—'}</span> },
       { key: 'dept', header: 'Département', cell: (e) => <span className="text-sm text-zinc-600">{e.department || '—'}</span> },
       {
         key: 'salary',
@@ -775,22 +768,12 @@ export function EmployeesManagementScreen() {
                 </div>
               )}
             </div>
-            <label className={EMPLOYEE_FIELD_LABEL}>
-              Fonction
-              <span className="ml-1 text-[10px] font-normal text-zinc-500">même liste que les utilisateurs</span>
-              <select
-                value={draft.role_title}
-                onChange={(e) => setDraft((d) => ({ ...d, role_title: e.target.value }))}
-                className={EMPLOYEE_FIELD_INPUT}
-              >
-                <option value="">— Choisir une fonction —</option>
-                {organizationRoles.map((r) => (
-                  <option key={r.slug} value={r.slug}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <LookupComboField
+              label="Fonction"
+              value={draft.role_title}
+              onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
+              options={roleTitleOptions}
+            />
             <LookupComboField
               label="Département"
               value={draft.department}

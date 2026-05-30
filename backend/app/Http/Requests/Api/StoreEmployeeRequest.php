@@ -25,7 +25,7 @@ class StoreEmployeeRequest extends FormRequest
             'full_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'department' => ['nullable', 'string', 'max:255'],
-            'role_title' => ['nullable', 'string', 'max:255', 'exists:roles,slug'],
+            'role_title' => ['nullable', 'string', 'max:255'],
             'joined_at' => ['nullable', 'date'],
             'salary' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in(['active', 'inactive', 'terminated'])],

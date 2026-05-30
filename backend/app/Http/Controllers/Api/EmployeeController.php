@@ -25,26 +25,27 @@ class EmployeeController extends Controller
     public function lookups(Request $request, string $type): JsonResponse
     {
         $this->requirePermission($request, 'hr.view');
-        if ($type === HrLookupValue::TYPE_ROLE_TITLE) {
-            $roles = Role::query()->orderBy('name')->get(['slug', 'name']);
-
-            return ApiResponse::success([
-                'roles' => $roles->map(fn (Role $r) => [
-                    'slug' => $r->slug,
-                    'label' => $r->name,
-                ])->values()->all(),
-            ], 'Organization roles retrieved successfully.');
-        }
-
-        if ($type !== HrLookupValue::TYPE_DEPARTMENT) {
+        if (! in_array($type, [HrLookupValue::TYPE_DEPARTMENT, HrLookupValue::TYPE_ROLE_TITLE], true)) {
             return ApiResponse::error('Type de liste invalide.', null, 422);
         }
 
         $brandId = $request->query('brand_id');
         $brandId = $brandId !== null && $brandId !== '' ? (int) $brandId : null;
 
+        $values = $this->hrLookups->values($type, $brandId);
+        if ($type === HrLookupValue::TYPE_ROLE_TITLE) {
+            $roleLabels = Role::query()->orderBy('name')->pluck('name')->all();
+            $values = collect([...$values, ...$roleLabels])
+                ->map(fn ($v) => trim((string) $v))
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+        }
+
         return ApiResponse::success([
-            'values' => $this->hrLookups->values($type, $brandId),
+            'values' => $values,
         ], 'HR lookup values retrieved successfully.');
     }
 
@@ -104,6 +105,7 @@ class EmployeeController extends Controller
         $this->syncEmployeeBrands($row, $brandIds);
 
         $this->hrLookups->remember(null, HrLookupValue::TYPE_DEPARTMENT, $row->department);
+        $this->hrLookups->remember(null, HrLookupValue::TYPE_ROLE_TITLE, $row->role_title);
 
         AuditService::log($request, 'employees.create', $row, null, $row->toArray());
 
@@ -137,6 +139,7 @@ class EmployeeController extends Controller
 
         $fresh = $row->fresh();
         $this->hrLookups->remember(null, HrLookupValue::TYPE_DEPARTMENT, $fresh->department);
+        $this->hrLookups->remember(null, HrLookupValue::TYPE_ROLE_TITLE, $fresh->role_title);
 
         AuditService::log($request, 'employees.update', $row, $before, $fresh->toArray());
 
