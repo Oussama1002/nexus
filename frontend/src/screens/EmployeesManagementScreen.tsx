@@ -203,7 +203,7 @@ export function EmployeesManagementScreen() {
   const [payrollRows, setPayrollRows] = useState<PayrollRow[]>([]);
   const [payrollLoading, setPayrollLoading] = useState(false);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
-  const [organizationRoles, setOrganizationRoles] = useState<OrganizationRoleOption[]>([]);
+  const [roleTitleOptions, setRoleTitleOptions] = useState<string[]>([]);
 
   const canView = hasPermission('hr.view');
   const canCreate = hasPermission('hr.create');
