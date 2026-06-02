@@ -497,7 +497,6 @@ export function FinanceScreen() {
     <div className="space-y-6">
       <PageHeader
         title="Finance"
-        subtitle="Synthèse API — charges, agrégats et séries mensuelles."
         right={
           <div className="flex gap-2">
             <div className="flex rounded-xl border border-zinc-200 overflow-hidden">
