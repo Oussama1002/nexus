@@ -134,6 +134,24 @@ class SettingsCenterController extends Controller
         return ApiResponse::success(['ok' => true], $r['message']);
     }
 
+    public function uploadLogo(Request $request): JsonResponse
+    {
+        $this->requireUpdate($request);
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $request->validate([
+            'logo' => ['required', 'file', 'max:2048', 'mimes:jpg,jpeg,png,gif,webp,svg'],
+        ]);
+
+        try {
+            $logoUrl = $this->settingsCenter->storeCompanyLogo($brandId, $request->file('logo'));
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        return ApiResponse::success(['logoUrl' => $logoUrl], 'Logo enregistré.');
+    }
+
     private function requireView(Request $request): void
     {
         if (! $request->user()?->hasPermissionSlug('settings.view')) {

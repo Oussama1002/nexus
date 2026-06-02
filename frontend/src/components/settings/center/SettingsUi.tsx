@@ -1,6 +1,19 @@
-import React, { useId, useState } from 'react';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import React, { useId, useRef, useState } from 'react';
+import { Eye, EyeOff, Loader2, Upload } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import * as api from '../../../lib/api';
+
+function resolvePublicAssetUrl(url: string): string {
+  const s = url.trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith('/')) {
+    const raw = import.meta.env.VITE_API_BASE_URL as string | undefined;
+    const origin = (raw ?? 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
+    return `${origin}${s}`;
+  }
+  return s;
+}
 
 const inputCls =
   'w-full px-4 py-3 rounded-xl border border-zinc-200/90 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow';
@@ -90,6 +103,95 @@ export function TextField({
       ) : (
         <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className={inputCls} />
       )}
+    </div>
+  );
+}
+
+export function LogoUploadField({
+  label,
+  value,
+  onChange,
+  disabled,
+  onUploaded,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  onUploaded?: (logoUrl: string) => void;
+}) {
+  const id = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const preview = resolvePublicAssetUrl(value);
+
+  const uploadFile = async (file: File) => {
+    setError(null);
+    setUploading(true);
+    const form = new FormData();
+    form.append('logo', file);
+    const res = await api.post<{ logoUrl: string }>('settings/center/upload/logo', form);
+    setUploading(false);
+    if (!res.ok || !res.data?.logoUrl) {
+      setError(res.message);
+      return;
+    }
+    onChange(res.data.logoUrl);
+    onUploaded?.(res.data.logoUrl);
+  };
+
+  return (
+    <div className="space-y-2 md:col-span-2">
+      <label htmlFor={id} className="text-sm font-semibold text-zinc-800">
+        {label}
+      </label>
+      <div className="flex flex-wrap items-start gap-4">
+        {preview ? (
+          <div className="shrink-0 rounded-xl border border-zinc-200 bg-white p-2">
+            <img src={preview} alt="Logo" className="h-16 w-auto max-w-[200px] object-contain" />
+          </div>
+        ) : (
+          <div className="h-20 w-28 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 flex items-center justify-center text-xs font-bold text-zinc-400">
+            Aucun logo
+          </div>
+        )}
+        <div className="flex flex-col gap-2 min-w-[12rem]">
+          <input
+            ref={inputRef}
+            id={id}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+            disabled={disabled || uploading}
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void uploadFile(file);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            disabled={disabled || uploading}
+            onClick={() => inputRef.current?.click()}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {uploading ? 'Envoi…' : value ? 'Remplacer le logo' : 'Choisir une image'}
+          </button>
+          {value && !disabled ? (
+            <button
+              type="button"
+              className="text-xs font-bold text-rose-700 hover:underline text-left"
+              onClick={() => onChange('')}
+            >
+              Retirer le logo
+            </button>
+          ) : null}
+          <p className="text-xs text-zinc-500 font-medium">JPG, PNG, GIF, WebP ou SVG — max. 2 Mo</p>
+          {error ? <p className="text-xs font-bold text-rose-700">{error}</p> : null}
+        </div>
+      </div>
     </div>
   );
 }

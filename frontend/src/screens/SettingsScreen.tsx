@@ -242,7 +242,21 @@ export function SettingsScreen() {
           ) : (
             <>
               {section === 'general' && (
-                <GeneralPanel value={model as GeneralModel} onChange={setModel} disabled={!canUpdate} />
+                <GeneralPanel
+                  value={model as GeneralModel}
+                  onChange={setModel}
+                  disabled={!canUpdate}
+                  onLogoUploaded={(logoUrl) => {
+                    setModel((prev) => {
+                      if (!prev) return prev;
+                      const g = prev as GeneralModel;
+                      const next = { ...g, company: { ...g.company, logoUrl } };
+                      setBaseline(JSON.stringify(next));
+                      return next;
+                    });
+                    toast.success('Logo enregistré.');
+                  }}
+                />
               )}
               {section === 'integrations' && (
                 <IntegrationsPanel

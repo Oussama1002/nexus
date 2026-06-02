@@ -392,6 +392,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('settings/center/test/whatsapp', [SettingsCenterController::class, 'testWhatsapp'])->middleware('permission:settings.update');
     Route::post('settings/center/test/meta', [SettingsCenterController::class, 'testMeta'])->middleware('permission:settings.update');
     Route::post('settings/center/test/delivery', [SettingsCenterController::class, 'testDelivery'])->middleware('permission:settings.update');
+    Route::post('settings/center/upload/logo', [SettingsCenterController::class, 'uploadLogo'])->middleware('permission:settings.update');
     Route::get('settings/center/{section}', [SettingsCenterController::class, 'show'])
         ->middleware('permission:settings.view')
         ->whereIn('section', ['general', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security']);

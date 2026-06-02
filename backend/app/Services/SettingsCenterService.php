@@ -580,4 +580,26 @@ class SettingsCenterService
             ]
         );
     }
+
+    /**
+     * @throws \InvalidArgumentException
+     */
+    public function storeCompanyLogo(int $brandId, \Illuminate\Http\UploadedFile $file): string
+    {
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'png');
+        if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'], true)) {
+            throw new \InvalidArgumentException('Format non supporté (JPG, PNG, GIF, WebP ou SVG).');
+        }
+
+        $dir = "brand-logos/{$brandId}";
+        $filename = 'logo.'.$ext;
+
+        \Illuminate\Support\Facades\Storage::disk('public')->deleteDirectory($dir);
+        $path = $file->storeAs($dir, $filename, 'public');
+
+        $url = \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        $this->upsert($brandId, 'general', 'company_logo_url', $url);
+
+        return $url;
+    }
 }

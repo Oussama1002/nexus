@@ -21,6 +21,11 @@ const urlOk = (v: string) => {
   return s === '' || /^https?:\/\/.+/i.test(s);
 };
 
+const logoOk = (v: string) => {
+  const s = v.trim();
+  return s === '' || /^https?:\/\/.+/i.test(s) || s.startsWith('/storage/');
+};
+
 const emailOk = (v: string) => {
   const s = v.trim();
   if (s === '') return true;
@@ -53,7 +58,7 @@ export function validateSettingsSection(section: SettingsCenterSection, model: S
       const m = model as GeneralModel;
       if (!m.company?.name?.trim()) err.push('Le nom de l’entreprise est obligatoire.');
       if (!emailOk(m.company?.email ?? '')) err.push('E-mail entreprise invalide.');
-      if (!urlOk(m.company?.logoUrl ?? '')) err.push('URL du logo invalide (vide ou http/https).');
+      if (!logoOk(m.company?.logoUrl ?? '')) err.push('Logo invalide.');
       if (!urlOk(m.company?.website ?? '')) err.push('Site web invalide (vide ou http/https).');
       if (!numOk(m.workflow?.leadSlaHours ?? '', 0, 8760)) err.push('SLA lead : nombre entre 0 et 8760.');
       break;

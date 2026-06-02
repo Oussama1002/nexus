@@ -9,16 +9,18 @@ import type {
   WhatsappModel,
 } from '../../../lib/settingsCenterApi';
 import { SIDEBAR_NAV_CATALOG, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
-import { ConnectionTestButton, SectionCard, SecretField, TextField, ToggleRow } from './SettingsUi';
+import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TextField, ToggleRow } from './SettingsUi';
 
 export function GeneralPanel({
   value,
   onChange,
   disabled,
+  onLogoUploaded,
 }: {
   value: GeneralModel;
   onChange: (v: GeneralModel) => void;
   disabled: boolean;
+  onLogoUploaded?: (logoUrl: string) => void;
 }) {
   const p = (patch: Partial<GeneralModel>) => onChange({ ...value, ...patch });
   const navItems = mergeSidebarVisibility(value.navigation?.items);
@@ -27,7 +29,13 @@ export function GeneralPanel({
       <SectionCard title="Entreprise" description="Informations légales et de contact visibles côté métier.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <TextField label="Nom entreprise" value={value.company.name} onChange={(v) => p({ company: { ...value.company, name: v } })} disabled={disabled} />
-          <TextField label="Logo (URL)" hint="Image HTTPS" value={value.company.logoUrl} onChange={(v) => p({ company: { ...value.company, logoUrl: v } })} disabled={disabled} />
+          <LogoUploadField
+            label="Logo"
+            value={value.company.logoUrl}
+            onChange={(v) => p({ company: { ...value.company, logoUrl: v } })}
+            disabled={disabled}
+            onUploaded={onLogoUploaded}
+          />
           <TextField label="Téléphone" value={value.company.phone} onChange={(v) => p({ company: { ...value.company, phone: v } })} disabled={disabled} />
           <TextField label="E-mail" value={value.company.email} onChange={(v) => p({ company: { ...value.company, email: v } })} disabled={disabled} />
           <div className="md:col-span-2">

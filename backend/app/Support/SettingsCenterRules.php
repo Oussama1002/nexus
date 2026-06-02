@@ -19,7 +19,7 @@ class SettingsCenterRules
             'general' => [
                 'company' => 'required|array',
                 'company.name' => 'required|string|max:255',
-                'company.logoUrl' => $urlEmptyOrHttp,
+                'company.logoUrl' => ['nullable', 'string', 'max:2048'],
                 'company.phone' => 'nullable|string|max:40',
                 'company.email' => $email,
                 'company.address' => $s,
