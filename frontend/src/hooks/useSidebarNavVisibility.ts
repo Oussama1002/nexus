@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as api from '../lib/api';
-import type { GeneralModel } from '../lib/settingsCenterApi';
 import { SIDEBAR_NAV_UPDATED_EVENT, mergeSidebarVisibility } from '../lib/sidebarNavCatalog';
+
+/** Shape returned by the lightweight sidebar-nav-visibility endpoint. */
+type SidebarNavVisibilityResponse = { items: Record<string, boolean> };
 
 export function useSidebarNavVisibility(activeBrandId: number | null) {
   const [visibility, setVisibility] = useState<Record<string, boolean> | null>(null);
@@ -11,9 +13,11 @@ export function useSidebarNavVisibility(activeBrandId: number | null) {
       setVisibility(null);
       return;
     }
-    const res = await api.get<GeneralModel>(`settings/center/${encodeURIComponent('general')}`);
-    if (res.ok && res.data?.navigation?.items) {
-      setVisibility(mergeSidebarVisibility(res.data.navigation.items));
+    // Use the lightweight endpoint that does NOT require settings.view permission,
+    // so every authenticated user respects the admin's sidebar configuration.
+    const res = await api.get<SidebarNavVisibilityResponse>('settings/sidebar-nav-visibility');
+    if (res.ok && res.data?.items) {
+      setVisibility(mergeSidebarVisibility(res.data.items));
     } else {
       setVisibility(mergeSidebarVisibility(undefined));
     }

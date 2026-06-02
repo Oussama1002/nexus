@@ -388,6 +388,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.view');
     Route::get('audit-logs/{id}', [AuditLogController::class, 'show'])->whereNumber('id')->middleware('permission:audit_logs.view');
 
+    // Lightweight endpoint: sidebar-nav visibility for ALL authenticated users (no settings.view required).
+    Route::get('settings/sidebar-nav-visibility', [SettingsCenterController::class, 'sidebarNavVisibility']);
+
     Route::get('settings/center/audit-history', [SettingsCenterController::class, 'auditHistory'])->middleware('permission:settings.view');
     Route::post('settings/center/test/smtp', [SettingsCenterController::class, 'testSmtp'])->middleware('permission:settings.update');
     Route::post('settings/center/test/whatsapp', [SettingsCenterController::class, 'testWhatsapp'])->middleware('permission:settings.update');

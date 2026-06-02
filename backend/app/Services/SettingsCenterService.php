@@ -109,6 +109,16 @@ class SettingsCenterService
         ];
     }
 
+    /**
+     * Public accessor for sidebar-nav visibility (used by the lightweight endpoint).
+     *
+     * @return array<string, bool>
+     */
+    public function getSidebarNavVisibility(int $brandId): array
+    {
+        return $this->decodeSidebarNavVisibility($brandId);
+    }
+
     /** @return array<string, bool> */
     private function decodeSidebarNavVisibility(int $brandId): array
     {

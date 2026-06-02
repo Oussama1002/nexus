@@ -58,6 +58,20 @@ class SettingsCenterController extends Controller
         return ApiResponse::success($this->settingsCenter->get($section, $brandId), 'Enregistré.');
     }
 
+    /**
+     * Lightweight endpoint — returns only sidebar-nav visibility for the active brand.
+     * Accessible to ANY authenticated user (no settings.view required).
+     */
+    public function sidebarNavVisibility(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        return ApiResponse::success(
+            ['items' => $this->settingsCenter->getSidebarNavVisibility($brandId)],
+            'OK',
+        );
+    }
+
     public function auditHistory(Request $request): JsonResponse
     {
         $this->requireView($request);
