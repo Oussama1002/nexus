@@ -8,6 +8,7 @@ import { StatusChip } from '../components/ui/StatusChip';
 import { formatCurrency } from '../lib/utils';
 import type { ChargeApi, ChargeDraftApi, ChargeTypeApi } from '../domain/finance';
 import { CHARGE_TYPE_LABELS } from '../domain/finance';
+import { INVOICE_STATUS_LABELS, statusLabelFr } from '../lib/statusLabelsFr';
 import { trackSession } from '../lib/session';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
@@ -309,7 +310,7 @@ export function FinanceScreen() {
         header: 'Statut',
         cell: (i) => (
           <StatusChip tone={i.status === 'paid' ? 'success' : i.status === 'sent' ? 'info' : i.status === 'approved' ? 'warning' : 'neutral'}>
-            {i.status}
+            {statusLabelFr(i.status, INVOICE_STATUS_LABELS)}
           </StatusChip>
         ),
       },

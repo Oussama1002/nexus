@@ -13,6 +13,12 @@ import { isPaginator, type LaravelPaginator } from '../../lib/apiTypes';
 import { flattenFieldErrors } from '../../lib/formErrors';
 import type { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import {
+  CM_TRACKING_STATUS_LABELS,
+  CONTENT_CALENDAR_STATUS_LABELS,
+  PRODUCTION_STATUS_LABELS,
+  STRATEGY_STATUS_LABELS,
+} from '../../lib/statusLabelsFr';
 
 type Toast = ReturnType<typeof useToast>;
 
@@ -665,7 +671,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
             <select className={selClass} value={stForm.status} onChange={(e) => setStForm({ ...stForm, status: e.target.value })}>
               {['draft', 'review', 'approved', 'archived'].map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {STRATEGY_STATUS_LABELS[s] ?? s}
                 </option>
               ))}
             </select>
@@ -762,7 +768,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
                 )
                 .map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {CONTENT_CALENDAR_STATUS_LABELS[s] ?? s}
                   </option>
                 ))}
             </select>
@@ -828,7 +834,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
                 )
                 .map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {PRODUCTION_STATUS_LABELS[s] ?? s}
                   </option>
                 ))}
             </select>
@@ -880,7 +886,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
                 .filter((s) => canApproveCm || !['validated', 'rejected'].includes(s) || s === cmForm.status)
                 .map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {CM_TRACKING_STATUS_LABELS[s] ?? s}
                   </option>
                 ))}
             </select>
