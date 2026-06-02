@@ -12,6 +12,7 @@ class ClientInvoice extends Model
     protected $fillable = [
         'brand_id',
         'customer_id',
+        'order_id',
         'contract_id',
         'created_by',
         'approval_user_id',
@@ -54,6 +55,11 @@ class ClientInvoice extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function contract()

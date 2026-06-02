@@ -92,6 +92,11 @@ class Order extends Model
         return $this->hasMany(OrderEvent::class);
     }
 
+    public function clientInvoice()
+    {
+        return $this->hasOne(ClientInvoice::class);
+    }
+
     public static function generateUniqueOrderNumber(): string
     {
         for ($i = 0; $i < 12; $i++) {

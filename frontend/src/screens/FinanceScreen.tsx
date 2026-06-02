@@ -72,6 +72,8 @@ type ClientInvoice = {
   email_last_error?: string | null;
   customer?: { id: number; full_name: string; email?: string | null } | null;
   brand?: { id: number; name: string } | null;
+  order?: { id: number; order_number: string } | null;
+  meta?: { order_number?: string; source?: string } | null;
 };
 
 type ClientContract = {
@@ -274,12 +276,18 @@ export function FinanceScreen() {
       {
         key: 'num',
         header: 'Facture',
-        cell: (i) => (
-          <div>
-            <p className="text-sm font-black text-zinc-900">{i.invoice_number}</p>
-            <p className="text-[11px] text-zinc-500 font-medium">{i.brand?.name ?? 'Global'}</p>
-          </div>
-        ),
+        cell: (i) => {
+          const orderRef = i.order?.order_number ?? i.meta?.order_number;
+          return (
+            <div>
+              <p className="text-sm font-black text-zinc-900">{i.invoice_number}</p>
+              <p className="text-[11px] text-zinc-500 font-medium">{i.brand?.name ?? 'Global'}</p>
+              {orderRef ? (
+                <p className="text-[10px] font-bold text-primary-700 mt-0.5">Commande {orderRef}</p>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         key: 'customer',

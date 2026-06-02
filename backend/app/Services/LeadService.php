@@ -13,6 +13,9 @@ use RuntimeException;
 
 class LeadService
 {
+    public function __construct(
+        protected ClientInvoiceService $clientInvoices,
+    ) {}
     public function recordEvent(Lead $lead, string $eventType, ?User $actor, ?string $description = null, ?array $payload = null): LeadEvent
     {
         return LeadEvent::query()->create([
@@ -95,7 +98,11 @@ class LeadService
                 'order_number' => $order->order_number,
             ]);
 
-            return $order->fresh(['lines']);
+            $order = $order->fresh(['lines', 'customer']);
+
+            $this->clientInvoices->createFromOrder($order, $user->id);
+
+            return $order;
         });
     }
 }

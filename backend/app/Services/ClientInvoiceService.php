@@ -13,6 +13,69 @@ use RuntimeException;
 
 class ClientInvoiceService
 {
+    /**
+     * Create a draft client invoice when a new order is recorded (one invoice per order).
+     */
+    public function createFromOrder(Order $order, ?int $actorUserId = null): ?ClientInvoice
+    {
+        $order->loadMissing(['customer', 'lines']);
+
+        if (ClientInvoice::query()->where('order_id', $order->id)->exists()) {
+            return ClientInvoice::query()->where('order_id', $order->id)->first();
+        }
+
+        $customerId = $order->customer_id;
+        if (! $customerId && $order->lead_id) {
+            $customerId = \App\Models\Lead::query()->whereKey($order->lead_id)->value('customer_id');
+        }
+
+        if (! $customerId) {
+            return null;
+        }
+
+        $issueDate = $order->created_at?->toDateString() ?? now()->toDateString();
+        $subtotal = round((float) $order->subtotal, 2);
+        $discount = round((float) $order->discount, 2);
+        $shipping = round((float) $order->shipping_fee, 2);
+        $tax = 0.0;
+        $total = round((float) $order->total, 2);
+        if ($total <= 0) {
+            $total = round($subtotal - $discount + $shipping + $tax, 2);
+        }
+
+        $lineSummary = $order->lines
+            ->map(fn ($l) => sprintf('%s × %d', $l->product_name, $l->quantity))
+            ->take(8)
+            ->implode(', ');
+
+        return ClientInvoice::query()->create([
+            'brand_id' => $order->brand_id,
+            'customer_id' => $customerId,
+            'order_id' => $order->id,
+            'created_by' => $actorUserId,
+            'invoice_number' => $this->generateInvoiceNumber(),
+            'billing_period_start' => $issueDate,
+            'billing_period_end' => $issueDate,
+            'issue_date' => $issueDate,
+            'due_date' => now()->parse($issueDate)->addDays(15)->toDateString(),
+            'currency' => 'MAD',
+            'subtotal' => $subtotal + $shipping,
+            'discount' => $discount,
+            'tax_amount' => $tax,
+            'total' => $total,
+            'status' => 'draft',
+            'recipient_email' => $order->customer?->email,
+            'notes' => 'Facture générée automatiquement pour la commande '.$order->order_number.'.',
+            'meta' => [
+                'generated_automatically' => true,
+                'source' => 'order_created',
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'order_lines_summary' => $lineSummary,
+            ],
+        ]);
+    }
+
     public function generateInvoiceNumber(): string
     {
         for ($i = 0; $i < 20; $i++) {

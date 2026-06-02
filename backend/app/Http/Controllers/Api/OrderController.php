@@ -13,6 +13,7 @@ use App\Models\OrderLine;
 use App\Models\Product;
 use App\Services\AuditLogger;
 use App\Services\AutomationEngineService;
+use App\Services\ClientInvoiceService;
 use App\Services\OrderStateService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
@@ -25,7 +26,8 @@ class OrderController extends Controller
 {
     public function __construct(
         protected OrderStateService $orderStateService,
-        protected AutomationEngineService $automationEngine
+        protected AutomationEngineService $automationEngine,
+        protected ClientInvoiceService $clientInvoices,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -101,7 +103,14 @@ class OrderController extends Controller
 
         AuditLogger::log($request, 'orders.create', $order, null, $order->toArray());
 
-        return ApiResponse::success($order, 'Order created successfully.', 201);
+        $invoice = $this->clientInvoices->createFromOrder($order, $request->user()?->id);
+
+        $payload = $order->toArray();
+        if ($invoice) {
+            $payload['client_invoice'] = $invoice->only(['id', 'invoice_number', 'status', 'total']);
+        }
+
+        return ApiResponse::success($payload, 'Order created successfully.', 201);
     }
 
     public function show(Request $request, string $id): JsonResponse

@@ -32,7 +32,7 @@ class ClientInvoiceController extends Controller
         $search = $request->query('search');
 
         $q = ClientInvoice::query()
-            ->with(['brand', 'customer', 'contract', 'creator', 'approver'])
+            ->with(['brand', 'customer', 'contract', 'creator', 'approver', 'order:id,order_number'])
             ->orderByDesc('id');
 
         if ($brandId !== null && $brandId !== '') {
