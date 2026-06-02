@@ -7,15 +7,50 @@ use App\Http\Requests\Api\StoreStrategyRequest;
 use App\Http\Requests\Api\UpdateStrategyRequest;
 use App\Models\Strategy;
 use App\Services\AuditLogger;
+use App\Services\StrategyDocumentService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use App\Support\UserRoleHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class StrategyController extends Controller
 {
+    public function __construct(
+        protected StrategyDocumentService $documents,
+    ) {}
+
+    public function uploadDocument(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user?->hasPermissionSlug('strategies.create') && ! $user?->hasPermissionSlug('strategies.update')) {
+            throw new AccessDeniedHttpException('Forbidden.');
+        }
+
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $request->validate([
+            'document' => ['required', 'file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp'],
+            'strategy_id' => ['nullable', 'integer'],
+        ]);
+
+        $strategyId = $request->filled('strategy_id') ? (int) $request->input('strategy_id') : null;
+        if ($strategyId && ! Strategy::query()->where('brand_id', $brandId)->whereKey($strategyId)->exists()) {
+            return ApiResponse::error('Stratégie introuvable.', null, 404);
+        }
+
+        try {
+            $path = $this->documents->store($brandId, $request->file('document'), $strategyId);
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        return ApiResponse::success(['document_path' => $path], 'Document enregistré.');
+    }
+
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
@@ -126,5 +161,31 @@ class StrategyController extends Controller
         AuditLogger::log($request, 'strategies.approve', $row, $before, $row->fresh()->toArray());
 
         return ApiResponse::success($row->fresh(), 'Strategy approved.');
+    }
+
+    public function uploadDocument(Request $request): JsonResponse
+    {
+        if (! $request->user()?->hasPermissionSlug('strategies.create')
+            && ! $request->user()?->hasPermissionSlug('strategies.update')) {
+            throw new AccessDeniedHttpException('Forbidden.');
+        }
+
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $request->validate([
+            'document' => [
+                'required',
+                'file',
+                'max:10240',
+                'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp',
+            ],
+        ]);
+
+        $file = $request->file('document');
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'pdf');
+        $filename = 'strategy-'.now()->format('YmdHis').'-'.Str::lower(Str::random(8)).'.'.$ext;
+        $path = $file->storeAs("strategy-documents/{$brandId}", $filename, 'public');
+        $url = Storage::disk('public')->url($path);
+
+        return ApiResponse::success(['document_path' => $url], 'Document téléversé.');
     }
 }

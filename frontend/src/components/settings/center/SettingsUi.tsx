@@ -1,19 +1,8 @@
 import React, { useId, useRef, useState } from 'react';
 import { Eye, EyeOff, Loader2, Upload } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { isImageAssetUrl, resolvePublicAssetUrl } from '../../../lib/publicAssetUrl';
 import * as api from '../../../lib/api';
-
-function resolvePublicAssetUrl(url: string): string {
-  const s = url.trim();
-  if (!s) return '';
-  if (/^https?:\/\//i.test(s)) return s;
-  if (s.startsWith('/')) {
-    const raw = import.meta.env.VITE_API_BASE_URL as string | undefined;
-    const origin = (raw ?? 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
-    return `${origin}${s}`;
-  }
-  return s;
-}
 
 const inputCls =
   'w-full px-4 py-3 rounded-xl border border-zinc-200/90 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow';

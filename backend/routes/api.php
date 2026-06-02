@@ -252,6 +252,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('social-publications/{id}', [SocialPublicationController::class, 'destroy'])->whereNumber('id')->middleware('permission:social_publications.delete');
 
     Route::get('strategies', [StrategyController::class, 'index'])->middleware('permission:strategies.view');
+    Route::post('strategies/upload-document', [StrategyController::class, 'uploadDocument']);
     Route::post('strategies', [StrategyController::class, 'store'])->middleware('permission:strategies.create');
     Route::get('strategies/{id}', [StrategyController::class, 'show'])->whereNumber('id')->middleware('permission:strategies.view');
     Route::put('strategies/{id}', [StrategyController::class, 'update'])->whereNumber('id')->middleware('permission:strategies.update');

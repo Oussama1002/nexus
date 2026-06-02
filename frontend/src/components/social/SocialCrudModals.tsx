@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { Modal } from '../ui/Modal';
+import { DocumentUploadField } from '../ui/DocumentUploadField';
 import * as api from '../../lib/api';
 import { isPaginator, type LaravelPaginator } from '../../lib/apiTypes';
 import { flattenFieldErrors } from '../../lib/formErrors';
@@ -669,9 +670,13 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
               ))}
             </select>
           </Field>
-          <Field label="Document (URL / chemin)">
-            <input className={selClass} value={stForm.document_path} onChange={(e) => setStForm({ ...stForm, document_path: e.target.value })} />
-          </Field>
+          <DocumentUploadField
+            label="Document"
+            value={stForm.document_path}
+            onChange={(v) => setStForm({ ...stForm, document_path: v })}
+            uploadPath="strategies/upload-document"
+            extraFormFields={stId ? { strategy_id: String(stId) } : undefined}
+          />
           <button type="button" onClick={() => void saveStrategy()} className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black">
             Enregistrer
           </button>
