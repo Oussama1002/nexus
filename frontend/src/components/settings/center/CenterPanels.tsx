@@ -139,7 +139,7 @@ export function GeneralPanel({
       <SectionCard title="Produits" description="Catégories et types de produit disponibles dans le formulaire de création / modification produit.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <TagListField
-            label="Catégories"
+            label="Catégories produit"
             hint="ex. Cosmétique, Alimentaire…"
             value={value.products?.categories ?? []}
             onChange={(v) => p({ products: { ...value.products, categories: v, types: value.products?.types ?? [] } })}
@@ -155,6 +155,16 @@ export function GeneralPanel({
             placeholder="Ajouter un type…"
           />
         </div>
+      </SectionCard>
+      <SectionCard title="Fournisseurs" description="Catégories de fournisseur disponibles dans le formulaire fournisseur.">
+        <TagListField
+          label="Catégories fournisseur"
+          hint="ex. Textile, Emballage, Transport…"
+          value={value.suppliers?.categories ?? []}
+          onChange={(v) => p({ suppliers: { categories: v } })}
+          disabled={disabled}
+          placeholder="Ajouter une catégorie…"
+        />
       </SectionCard>
     </div>
   );

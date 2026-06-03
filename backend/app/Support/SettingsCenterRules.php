@@ -48,6 +48,9 @@ class SettingsCenterRules
                 'products.categories.*' => 'string|max:255',
                 'products.types' => 'nullable|array',
                 'products.types.*' => 'string|max:255',
+                'suppliers' => 'nullable|array',
+                'suppliers.categories' => 'nullable|array',
+                'suppliers.categories.*' => 'string|max:255',
             ],
             'integrations' => [
                 'email' => 'nullable|array',

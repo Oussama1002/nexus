@@ -45,6 +45,9 @@ export type GeneralModel = {
     categories: string[];
     types: string[];
   };
+  suppliers: {
+    categories: string[];
+  };
 };
 
 export type IntegrationsModel = {

@@ -86,6 +86,38 @@ class SettingsCenterController extends Controller
         );
     }
 
+    /**
+     * Lightweight endpoint — returns supplier categories for the active brand.
+     * Accessible to ANY authenticated user (no settings.view required).
+     */
+    public function supplierCategories(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        return ApiResponse::success(
+            ['categories' => $this->settingsCenter->getSupplierCategories($brandId)],
+            'OK',
+        );
+    }
+
+    /**
+     * Quick-add a single value to a known JSON list setting.
+     * Used by the inline "Ajouter" buttons in forms.
+     */
+    public function quickAddListItem(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $data = $request->validate([
+            'list' => 'required|string|in:product_categories,product_types,supplier_categories',
+            'value' => 'required|string|max:255',
+        ]);
+
+        $this->settingsCenter->appendToJsonList($brandId, 'general', $data['list'], $data['value']);
+
+        return ApiResponse::success(null, 'Ajouté.');
+    }
+
     public function auditHistory(Request $request): JsonResponse
     {
         $this->requireView($request);

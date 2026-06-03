@@ -110,6 +110,9 @@ class SettingsCenterService
                 'categories' => $this->decodeJsonList($brandId, 'product_categories'),
                 'types' => $this->decodeJsonList($brandId, 'product_types'),
             ],
+            'suppliers' => [
+                'categories' => $this->decodeJsonList($brandId, 'supplier_categories'),
+            ],
         ];
     }
 
@@ -134,6 +137,22 @@ class SettingsCenterService
             'categories' => $this->decodeJsonList($brandId, 'product_categories'),
             'types' => $this->decodeJsonList($brandId, 'product_types'),
         ];
+    }
+
+    /** @return string[] */
+    public function getSupplierCategories(int $brandId): array
+    {
+        return $this->decodeJsonList($brandId, 'supplier_categories');
+    }
+
+    /** Append a single value to a JSON list setting (used by quick-add endpoints). */
+    public function appendToJsonList(int $brandId, string $group, string $key, string $value): void
+    {
+        $list = $this->decodeJsonList($brandId, $key);
+        if (! in_array($value, $list, true)) {
+            $list[] = $value;
+            $this->upsert($brandId, $group, $key, json_encode($list, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+        }
     }
 
     /** @return string[] */
@@ -234,6 +253,10 @@ class SettingsCenterService
             $types = is_array($prod['types'] ?? null) ? array_values(array_filter($prod['types'], 'is_string')) : [];
             $this->upsert($brandId, 'general', 'product_categories', json_encode($cats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
             $this->upsert($brandId, 'general', 'product_types', json_encode($types, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            // Supplier categories
+            $sup = $p['suppliers'] ?? [];
+            $supCats = is_array($sup['categories'] ?? null) ? array_values(array_filter($sup['categories'], 'is_string')) : [];
+            $this->upsert($brandId, 'general', 'supplier_categories', json_encode($supCats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
         });
     }
 

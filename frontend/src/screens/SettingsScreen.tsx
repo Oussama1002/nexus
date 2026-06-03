@@ -105,6 +105,7 @@ export function SettingsScreen() {
           ...g,
           navigation: { items: mergeSidebarVisibility(g.navigation?.items) },
           products: { categories: g.products?.categories ?? [], types: g.products?.types ?? [] },
+          suppliers: { categories: g.suppliers?.categories ?? [] },
         } as SectionModel;
       }
       setModel(data);

@@ -391,6 +391,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Lightweight endpoint: sidebar-nav visibility for ALL authenticated users (no settings.view required).
     Route::get('settings/sidebar-nav-visibility', [SettingsCenterController::class, 'sidebarNavVisibility']);
     Route::get('settings/product-options', [SettingsCenterController::class, 'productOptions']);
+    Route::get('settings/supplier-categories', [SettingsCenterController::class, 'supplierCategories']);
+    Route::post('settings/quick-add-list-item', [SettingsCenterController::class, 'quickAddListItem']);
 
     Route::get('settings/center/audit-history', [SettingsCenterController::class, 'auditHistory'])->middleware('permission:settings.view');
     Route::post('settings/center/test/smtp', [SettingsCenterController::class, 'testSmtp'])->middleware('permission:settings.update');

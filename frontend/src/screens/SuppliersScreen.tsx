@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
@@ -250,6 +250,40 @@ export function SuppliersScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Supplier categories from settings
+  const [supplierCategories, setSupplierCategories] = useState<string[]>([]);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  const newCatRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!activeBrandId) return;
+    void api.get<{ categories: string[] }>('settings/supplier-categories').then((res) => {
+      if (res.ok && res.data) setSupplierCategories(res.data.categories);
+    });
+  }, [activeBrandId]);
+
+  const handleAddCategory = useCallback(async () => {
+    const val = newCategory.trim();
+    if (!val) return;
+    if (supplierCategories.includes(val)) {
+      setDraft((d) => ({ ...d, category: val }));
+      setAddingCategory(false);
+      setNewCategory('');
+      return;
+    }
+    const res = await api.post('settings/quick-add-list-item', { list: 'supplier_categories', value: val });
+    if (res.ok) {
+      setSupplierCategories((prev) => [...prev, val]);
+      setDraft((d) => ({ ...d, category: val }));
+      toast.success(`Catégorie « ${val} » ajoutée.`);
+    } else {
+      toast.error(res.message);
+    }
+    setAddingCategory(false);
+    setNewCategory('');
+  }, [newCategory, supplierCategories, toast]);
 
   const load = useCallback(async () => {
     if (!activeBrandId) return;
@@ -520,7 +554,59 @@ export function SuppliersScreen() {
               </div>
               <div>
                 <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Catégorie</label>
-                <input value={draft.category} onChange={(e) => patch({ category: e.target.value })} className={inputCls} placeholder="ex. Textile, Emballage…" />
+                {!addingCategory ? (
+                  <div className="flex gap-2">
+                    <select
+                      value={draft.category}
+                      onChange={(e) => patch({ category: e.target.value })}
+                      className={inputCls + ' flex-1'}
+                    >
+                      <option value="">— Choisir —</option>
+                      {supplierCategories.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                      {draft.category && !supplierCategories.includes(draft.category) && (
+                        <option value={draft.category}>{draft.category}</option>
+                      )}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { setAddingCategory(true); setTimeout(() => newCatRef.current?.focus(), 50); }}
+                      className="shrink-0 px-3 py-2 rounded-xl bg-primary-50 border border-primary-200 text-xs font-black text-primary-700 hover:bg-primary-100 transition-colors"
+                      title="Ajouter une nouvelle catégorie"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      ref={newCatRef}
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAddCategory(); } if (e.key === 'Escape') { setAddingCategory(false); setNewCategory(''); } }}
+                      className={inputCls + ' flex-1'}
+                      placeholder="Nouvelle catégorie…"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleAddCategory()}
+                      className="shrink-0 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-black text-emerald-700 hover:bg-emerald-100 transition-colors"
+                    >
+                      OK
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setAddingCategory(false); setNewCategory(''); }}
+                      className="shrink-0 px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-xs font-black text-zinc-500 hover:bg-zinc-100 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                {!addingCategory && supplierCategories.length === 0 && (
+                  <p className="text-[11px] text-amber-600 font-medium mt-1">Aucune catégorie configurée. Cliquez sur + pour en ajouter ou rendez-vous dans Paramètres &gt; Général.</p>
+                )}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Statut</label>
