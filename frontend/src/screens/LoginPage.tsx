@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext';
 export function LoginPage() {
   const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@nexus.local');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,7 +40,7 @@ export function LoginPage() {
           </div>
 
           <h1 className="text-3xl font-bold text-zinc-900 mb-2">Bon retour.</h1>
-          <p className="text-zinc-500 mb-8 font-medium">Connectez-vous à l’API Nexus (Laravel + Sanctum).</p>
+          <p className="text-zinc-500 mb-8 font-medium">Connectez-vous à votre espace de gestion.</p>
 
           <form className="space-y-5" onSubmit={onSubmit}>
             <div>
@@ -51,7 +51,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all placeholder:text-zinc-400"
-                placeholder="admin@nexus.local"
+                placeholder="email@exemple.com"
                 required
               />
             </div>
@@ -86,8 +86,7 @@ export function LoginPage() {
 
           <div className="mt-12 pt-8 border-t border-zinc-100">
             <p className="text-zinc-500 text-sm">
-              Compte démo : <span className="font-mono text-zinc-700">admin@nexus.local</span> /{' '}
-              <span className="font-mono text-zinc-700">password</span>
+              Nexus Omni CRM — Gestion centralisée de votre activité.
             </p>
           </div>
         </div>
@@ -98,11 +97,11 @@ export function LoginPage() {
         <div className="absolute inset-0 flex items-center justify-center px-12">
           <div className="max-w-lg text-white space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-xs font-medium tracking-wide uppercase">
-              API connectée
+              Plateforme sécurisée
             </div>
-            <h2 className="text-5xl font-bold leading-tight">Frontend + backend Nexus.</h2>
+            <h2 className="text-5xl font-bold leading-tight">Votre CRM tout‑en‑un.</h2>
             <p className="text-primary-100 text-lg leading-relaxed font-light">
-              Authentification Bearer, rôles et marques synchronisés depuis Laravel.
+              Gérez vos commandes, stocks, marketing et équipes depuis un seul espace.
             </p>
           </div>
         </div>
