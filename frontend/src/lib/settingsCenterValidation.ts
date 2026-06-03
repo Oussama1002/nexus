@@ -63,6 +63,9 @@ export function validateSettingsSection(section: SettingsCenterSection, model: S
       if (!numOk(m.workflow?.leadSlaHours ?? '', 0, 8760)) err.push('SLA lead : nombre entre 0 et 8760.');
       break;
     }
+    case 'catalogue':
+      // No specific validation needed — arrays of strings
+      break;
     case 'integrations': {
       const m = model as IntegrationsModel;
       if (!intOk(m.email?.smtpPort ?? '', 1, 65535)) err.push('Port SMTP : entier entre 1 et 65535.');

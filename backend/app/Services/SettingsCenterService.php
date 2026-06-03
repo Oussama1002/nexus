@@ -19,6 +19,7 @@ class SettingsCenterService
     {
         return match ($section) {
             'general' => $this->getGeneral($brandId),
+            'catalogue' => $this->getCatalogue($brandId),
             'integrations' => $this->getIntegrations($brandId),
             'delivery' => $this->getDelivery($brandId),
             'whatsapp' => $this->getWhatsapp($brandId),
@@ -34,6 +35,7 @@ class SettingsCenterService
     {
         match ($section) {
             'general' => $this->saveGeneral($brandId, $payload),
+            'catalogue' => $this->saveCatalogue($brandId, $payload),
             'integrations' => $this->saveIntegrations($brandId, $payload, $isAdmin),
             'delivery' => $this->saveDelivery($brandId, $payload, $isAdmin),
             'whatsapp' => $this->saveWhatsapp($brandId, $payload, $isAdmin),
@@ -106,13 +108,6 @@ class SettingsCenterService
             'navigation' => [
                 'items' => $this->decodeSidebarNavVisibility($brandId),
             ],
-            'products' => [
-                'categories' => $this->decodeJsonList($brandId, 'product_categories'),
-                'types' => $this->decodeJsonList($brandId, 'product_types'),
-            ],
-            'suppliers' => [
-                'categories' => $this->decodeJsonList($brandId, 'supplier_categories'),
-            ],
         ];
     }
 
@@ -124,6 +119,29 @@ class SettingsCenterService
     public function getSidebarNavVisibility(int $brandId): array
     {
         return $this->decodeSidebarNavVisibility($brandId);
+    }
+
+    /** @return array<string, mixed> */
+    private function getCatalogue(int $brandId): array
+    {
+        return [
+            'productCategories' => $this->decodeJsonList($brandId, 'product_categories'),
+            'productTypes' => $this->decodeJsonList($brandId, 'product_types'),
+            'supplierCategories' => $this->decodeJsonList($brandId, 'supplier_categories'),
+        ];
+    }
+
+    /** @param  array<string, mixed>  $p */
+    private function saveCatalogue(int $brandId, array $p): void
+    {
+        DB::transaction(function () use ($brandId, $p) {
+            $cats = is_array($p['productCategories'] ?? null) ? array_values(array_filter($p['productCategories'], 'is_string')) : [];
+            $types = is_array($p['productTypes'] ?? null) ? array_values(array_filter($p['productTypes'], 'is_string')) : [];
+            $supCats = is_array($p['supplierCategories'] ?? null) ? array_values(array_filter($p['supplierCategories'], 'is_string')) : [];
+            $this->upsert($brandId, 'catalogue', 'product_categories', json_encode($cats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            $this->upsert($brandId, 'catalogue', 'product_types', json_encode($types, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            $this->upsert($brandId, 'catalogue', 'supplier_categories', json_encode($supCats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+        });
     }
 
     /**
@@ -247,16 +265,6 @@ class SettingsCenterService
                 'sidebar_nav_visibility',
                 json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)
             );
-            // Product categories & types
-            $prod = $p['products'] ?? [];
-            $cats = is_array($prod['categories'] ?? null) ? array_values(array_filter($prod['categories'], 'is_string')) : [];
-            $types = is_array($prod['types'] ?? null) ? array_values(array_filter($prod['types'], 'is_string')) : [];
-            $this->upsert($brandId, 'general', 'product_categories', json_encode($cats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
-            $this->upsert($brandId, 'general', 'product_types', json_encode($types, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
-            // Supplier categories
-            $sup = $p['suppliers'] ?? [];
-            $supCats = is_array($sup['categories'] ?? null) ? array_values(array_filter($sup['categories'], 'is_string')) : [];
-            $this->upsert($brandId, 'general', 'supplier_categories', json_encode($supCats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
         });
     }
 

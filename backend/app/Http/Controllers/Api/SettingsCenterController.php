@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class SettingsCenterController extends Controller
 {
-    private const SECTIONS = ['general', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security'];
+    private const SECTIONS = ['general', 'catalogue', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security'];
 
     public function __construct(
         private SettingsCenterService $settingsCenter,

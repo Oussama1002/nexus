@@ -2,6 +2,7 @@
 
 export type SettingsCenterSection =
   | 'general'
+  | 'catalogue'
   | 'integrations'
   | 'delivery'
   | 'whatsapp'
@@ -41,13 +42,12 @@ export type GeneralModel = {
     /** Sidebar item key → visible (false = hidden). Omitted keys default to visible. */
     items: Record<string, boolean>;
   };
-  products: {
-    categories: string[];
-    types: string[];
-  };
-  suppliers: {
-    categories: string[];
-  };
+};
+
+export type CatalogueModel = {
+  productCategories: string[];
+  productTypes: string[];
+  supplierCategories: string[];
 };
 
 export type IntegrationsModel = {
@@ -196,6 +196,7 @@ export type SecurityModel = {
 
 export type SectionModel =
   | GeneralModel
+  | CatalogueModel
   | IntegrationsModel
   | DeliveryModel
   | WhatsappModel

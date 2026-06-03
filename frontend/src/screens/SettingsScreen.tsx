@@ -3,6 +3,7 @@ import { History, Loader2, RotateCcw, Save } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Modal } from '../components/ui/Modal';
 import {
+  CataloguePanel,
   DeliveryPanel,
   FinancePanel,
   GeneralPanel,
@@ -18,6 +19,7 @@ import * as api from '../lib/api';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { validateSettingsSection } from '../lib/settingsCenterValidation';
 import type {
+  CatalogueModel,
   DeliveryModel,
   FinanceModel,
   GeneralModel,
@@ -40,6 +42,7 @@ type SettingsAuditApiRow = {
 
 const SECTION_LABEL_FR: Record<SettingsCenterSection, string> = {
   general: 'Général',
+  catalogue: 'Catalogue',
   integrations: 'Intégrations',
   delivery: 'Livraison',
   whatsapp: 'WhatsApp',
@@ -50,6 +53,7 @@ const SECTION_LABEL_FR: Record<SettingsCenterSection, string> = {
 
 const NAV: { id: SettingsCenterSection; label: string; description: string }[] = [
   { id: 'general', label: 'Général', description: 'Entreprise, système, marque, workflows' },
+  { id: 'catalogue', label: 'Catalogue', description: 'Catégories produits, types, fournisseurs' },
   { id: 'integrations', label: 'Intégrations', description: 'E-mail, SMS, fichiers, webhooks' },
   { id: 'delivery', label: 'Livraison', description: 'Transporteurs, règles, COD' },
   { id: 'whatsapp', label: 'WhatsApp', description: 'API, automatisation, modèles' },
@@ -104,8 +108,14 @@ export function SettingsScreen() {
         data = {
           ...g,
           navigation: { items: mergeSidebarVisibility(g.navigation?.items) },
-          products: { categories: g.products?.categories ?? [], types: g.products?.types ?? [] },
-          suppliers: { categories: g.suppliers?.categories ?? [] },
+        } as SectionModel;
+      }
+      if (section === 'catalogue' && data) {
+        const c = data as CatalogueModel;
+        data = {
+          productCategories: c.productCategories ?? [],
+          productTypes: c.productTypes ?? [],
+          supplierCategories: c.supplierCategories ?? [],
         } as SectionModel;
       }
       setModel(data);
@@ -258,6 +268,13 @@ export function SettingsScreen() {
                     });
                     toast.success('Logo enregistré.');
                   }}
+                />
+              )}
+              {section === 'catalogue' && (
+                <CataloguePanel
+                  value={model as CatalogueModel}
+                  onChange={setModel}
+                  disabled={!canUpdate}
                 />
               )}
               {section === 'integrations' && (

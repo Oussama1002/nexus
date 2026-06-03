@@ -1,5 +1,6 @@
 import React from 'react';
 import type {
+  CatalogueModel,
   DeliveryModel,
   FinanceModel,
   GeneralModel,
@@ -136,32 +137,48 @@ export function GeneralPanel({
           ))}
         </div>
       </SectionCard>
-      <SectionCard title="Produits" description="Catégories et types de produit disponibles dans le formulaire de création / modification produit.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <TagListField
-            label="Catégories produit"
-            hint="ex. Cosmétique, Alimentaire…"
-            value={value.products?.categories ?? []}
-            onChange={(v) => p({ products: { ...value.products, categories: v, types: value.products?.types ?? [] } })}
-            disabled={disabled}
-            placeholder="Ajouter une catégorie…"
-          />
-          <TagListField
-            label="Types de produit"
-            hint="ex. Crème, Sérum, Complément…"
-            value={value.products?.types ?? []}
-            onChange={(v) => p({ products: { ...value.products, types: v, categories: value.products?.categories ?? [] } })}
-            disabled={disabled}
-            placeholder="Ajouter un type…"
-          />
-        </div>
-      </SectionCard>
-      <SectionCard title="Fournisseurs" description="Catégories de fournisseur disponibles dans le formulaire fournisseur.">
+    </div>
+  );
+}
+
+export function CataloguePanel({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: CatalogueModel;
+  onChange: (v: CatalogueModel) => void;
+  disabled: boolean;
+}) {
+  const p = (patch: Partial<CatalogueModel>) => onChange({ ...value, ...patch });
+  return (
+    <div className="space-y-8">
+      <SectionCard title="Catégories produit" description="Liste des catégories proposées dans le formulaire produit. L'utilisateur peut aussi saisir une nouvelle valeur directement.">
         <TagListField
-          label="Catégories fournisseur"
-          hint="ex. Textile, Emballage, Transport…"
-          value={value.suppliers?.categories ?? []}
-          onChange={(v) => p({ suppliers: { categories: v } })}
+          label="Catégories"
+          hint="ex. Cosmétique, Alimentaire, Textile…"
+          value={value.productCategories ?? []}
+          onChange={(v) => p({ productCategories: v })}
+          disabled={disabled}
+          placeholder="Ajouter une catégorie…"
+        />
+      </SectionCard>
+      <SectionCard title="Types de produit" description="Types proposés dans le formulaire produit (crème, sérum, complément, etc.).">
+        <TagListField
+          label="Types"
+          hint="ex. Crème, Sérum, Complément…"
+          value={value.productTypes ?? []}
+          onChange={(v) => p({ productTypes: v })}
+          disabled={disabled}
+          placeholder="Ajouter un type…"
+        />
+      </SectionCard>
+      <SectionCard title="Catégories fournisseur" description="Catégories proposées dans le formulaire fournisseur.">
+        <TagListField
+          label="Catégories"
+          hint="ex. Emballage, Transport, Matière première…"
+          value={value.supplierCategories ?? []}
+          onChange={(v) => p({ supplierCategories: v })}
           disabled={disabled}
           placeholder="Ajouter une catégorie…"
         />
