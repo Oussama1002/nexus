@@ -11,6 +11,7 @@ export function AppShell({
   topbarLeft,
   topbarBrandPill,
   topbarRight,
+  onSearchClick,
   children,
 }: {
   sidebarOpen: boolean;
@@ -20,13 +21,14 @@ export function AppShell({
   topbarLeft?: React.ReactNode;
   topbarBrandPill?: React.ReactNode;
   topbarRight?: React.ReactNode;
+  onSearchClick?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-screen bg-zinc-50 overflow-hidden">
       <SidebarNav open={sidebarOpen} header={sidebarHeader} footer={sidebarFooter} groups={navGroups} />
       <main className={cn('flex-1 flex flex-col min-w-0 max-h-screen overflow-hidden')}>
-        <Topbar left={topbarLeft} brandPill={topbarBrandPill} right={topbarRight} />
+        <Topbar left={topbarLeft} brandPill={topbarBrandPill} onSearchClick={onSearchClick} right={topbarRight} />
         <div className="flex-1 overflow-y-auto px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 scrollbar-hide">
           <div className="max-w-[1600px] mx-auto w-full">{children}</div>
         </div>

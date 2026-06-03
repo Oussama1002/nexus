@@ -33,6 +33,7 @@ export const VIEW_PATH: Record<Exclude<View, 'login' | 'settings'>, string> = {
   finance: '/finance',
   usersAdmin: '/utilisateurs',
   tracking: '/historique',
+  profile: '/profil',
 };
 
 export type SettingsMode = 'center' | 'advanced';

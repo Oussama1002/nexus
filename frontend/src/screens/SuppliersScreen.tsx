@@ -699,28 +699,7 @@ export function SuppliersScreen() {
           </section>
 
           <section>
-            <SectionTitle n={4}>Qualité &amp; suivi</SectionTitle>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Note interne (score 0–10)</label>
-                <input value={draft.quality_score} onChange={(e) => patch({ quality_score: e.target.value })} className={inputCls} inputMode="decimal" placeholder="ex. 8.5" />
-              </div>
-              <label className="flex items-center gap-3 md:col-span-2 cursor-pointer rounded-xl border border-zinc-100 bg-zinc-50/80 px-4 py-3">
-                <input type="checkbox" checked={draft.frequent_delays} onChange={(e) => patch({ frequent_delays: e.target.checked })} className="h-4 w-4 rounded border-zinc-300" />
-                <span className="text-sm font-bold text-zinc-800">Retards fréquents</span>
-              </label>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Réclamations / incidents</label>
-                <textarea value={draft.complaints_notes} onChange={(e) => patch({ complaints_notes: e.target.value })} rows={3} className={`${inputCls} resize-y`} />
-              </div>
-              <div className="md:col-span-2 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-4 py-3 text-xs font-medium text-zinc-500">
-                Nombre de commandes et dernière commande sont calculés automatiquement à partir des bons de commande liés.
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <SectionTitle n={5}>Documents &amp; références</SectionTitle>
+            <SectionTitle n={4}>Documents &amp; références</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black uppercase text-zinc-500 mb-1">ICE</label>
@@ -754,7 +733,7 @@ export function SuppliersScreen() {
           </section>
 
           <section>
-            <SectionTitle n={6}>Notes internes</SectionTitle>
+            <SectionTitle n={5}>Notes internes</SectionTitle>
             <textarea value={draft.note} onChange={(e) => patch({ note: e.target.value })} rows={4} className={`${inputCls} resize-y`} placeholder="Commentaires libres, historique relationnel…" />
           </section>
         </div>

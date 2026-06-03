@@ -252,6 +252,7 @@ export function LeadsScreen({
     if (createOpen) {
       setNewLead(emptyLeadForm());
       setCreateErr([]);
+      setQ(''); // Clear search filter to avoid confusion with phone input
     }
   }, [createOpen, emptyLeadForm]);
 

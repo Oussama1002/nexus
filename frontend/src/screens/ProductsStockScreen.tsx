@@ -68,6 +68,16 @@ function toneForProductStatus(s: Product['status']): Parameters<typeof StatusChi
 
 const MOVEMENT_TYPES = ['in', 'out', 'reservation', 'release', 'adjustment', 'damaged', 'returned'] as const;
 
+const MOVEMENT_TYPE_FR: Record<string, string> = {
+  in: 'Entrée',
+  out: 'Sortie',
+  reservation: 'Réservation',
+  release: 'Libération',
+  adjustment: 'Ajustement',
+  damaged: 'Endommagé',
+  returned: 'Retour',
+};
+
 export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock' }) {
   const { activeBrandId, activeBrand, brands } = useBrand();
   const { hasPermission } = useAuth();
@@ -365,27 +375,27 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           >
             {MOVEMENT_TYPES.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {MOVEMENT_TYPE_FR[t] ?? t}
               </option>
             ))}
           </select>
           {movForm.movement_type === 'adjustment' ? (
             <input
-              placeholder="signed_delta"
+              placeholder="Delta signé"
               value={movForm.signed_delta}
               onChange={(e) => setMovForm((m) => ({ ...m, signed_delta: e.target.value }))}
               className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm"
             />
           ) : (
             <input
-              placeholder="qty"
+              placeholder="Quantité"
               value={movForm.quantity}
               onChange={(e) => setMovForm((m) => ({ ...m, quantity: e.target.value }))}
               className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm"
             />
           )}
           <input
-            placeholder="raison"
+            placeholder="Raison"
             value={movForm.reason}
             onChange={(e) => setMovForm((m) => ({ ...m, reason: e.target.value }))}
             className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm md:col-span-2"
@@ -422,7 +432,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
               {
                 key: 'type',
                 header: 'Type',
-                cell: (m: ApiMovementRow) => <StatusChip tone="neutral">{m.movement_type}</StatusChip>,
+                cell: (m: ApiMovementRow) => <StatusChip tone="neutral">{MOVEMENT_TYPE_FR[m.movement_type] ?? m.movement_type}</StatusChip>,
               },
               { key: 'q', header: 'Qté', cell: (m: ApiMovementRow) => <span className="font-black">{m.quantity ?? '—'}</span> },
               { key: 'r', header: 'Raison', cell: (m: ApiMovementRow) => <span className="text-sm text-zinc-600">{m.reason ?? '—'}</span> },

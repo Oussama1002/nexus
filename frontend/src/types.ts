@@ -29,7 +29,8 @@ export type View =
   | 'tracking'
   | 'usersAdmin'
   | 'socialMedia'
-  | 'influenceHub';
+  | 'influenceHub'
+  | 'profile';
 
 export interface User {
   id: string;

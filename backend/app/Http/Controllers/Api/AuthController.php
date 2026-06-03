@@ -65,6 +65,36 @@ class AuthController extends Controller
         return ApiResponse::success($this->userPayload($user), 'User retrieved successfully.');
     }
 
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $user->update($data);
+
+        return ApiResponse::success($this->userPayload($user->fresh()->loadMissing(['roles.permissions', 'brands'])), 'Profil mis à jour.');
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            return ApiResponse::error('Le mot de passe actuel est incorrect.', null, 422);
+        }
+
+        $user->update(['password' => Hash::make($data['password'])]);
+
+        return ApiResponse::success(null, 'Mot de passe modifié.');
+    }
+
     /**
      * @return array<string, mixed>
      */

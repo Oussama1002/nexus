@@ -104,6 +104,7 @@ export function canAccessView(
   view: View,
   ctx: { isAdmin: boolean; permissionSlugs: Set<string>; roleSlugs: string[] },
 ): boolean {
+  if (view === 'profile') return true;
   if (ctx.isAdmin) return true;
   if (ctx.roleSlugs.includes('client_brand_owner')) {
     if (view !== 'clientPortal') return false;

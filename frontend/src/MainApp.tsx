@@ -49,6 +49,8 @@ import { AutomationsScreen } from './screens/AutomationsScreen';
 import { MediaBuyingScreen } from './screens/MediaBuyingScreen';
 import { ClientPortalScreen } from './screens/ClientPortalScreen';
 import { CollabProjectsScreen } from './screens/CollabProjectsScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { SearchModal } from './components/shell/SearchModal';
 import { parseAppPath, pathForView } from './lib/appPaths';
 
 const ORDER_DRAFT_KEY = 'nexus.orderDraft';
@@ -101,6 +103,7 @@ export function MainApp() {
   /** Admin: which confirmatrice workspace is shown in "Espace Confirmatrice". */
   const [selectedConfirmatriceUserId, setSelectedConfirmatriceUserId] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const [directoryUsers, setDirectoryUsers] = useState<User[]>([]);
   const [directoryLoaded, setDirectoryLoaded] = useState(false);
@@ -162,6 +165,18 @@ export function MainApp() {
   }, [currentUser.id, currentUser.role]);
 
   useEffect(() => initGlobalActions(() => actionCtx), [actionCtx]);
+
+  // Ctrl+K to open search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   useEffect(() => {
     trackSession({ name: 'session.start', ts: Date.now(), meta: { userId: currentUser.id, role: currentUser.role } });
@@ -319,6 +334,8 @@ export function MainApp() {
         return <SocialMediaWorkspaceScreen />;
       case 'influenceHub':
         return <InfluenceWorkspaceScreen />;
+      case 'profile':
+        return <ProfileScreen />;
       case 'settings':
         return (
           <div className="space-y-6">
@@ -359,6 +376,7 @@ export function MainApp() {
   };
 
   return (
+    <>
     <AppShell
         sidebarOpen={sidebarOpen}
         navGroups={navGroups}
@@ -432,8 +450,13 @@ export function MainApp() {
             </div>
           )
         }
+        onSearchClick={() => setSearchOpen(true)}
         topbarRight={
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(pathForView('profile'))}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-zinc-900 leading-none">{currentUser.name}</p>
               <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1">
@@ -446,11 +469,13 @@ export function MainApp() {
             >
               {(currentUser.name || '?').slice(0, 2).toUpperCase()}
             </div>
-          </div>
+          </button>
         }
       >
         {renderContent()}
       </AppShell>
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} canAccess={canAccess} />
+    </>
   );
 }
 
