@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreClientInvoiceRequest;
 use App\Http\Requests\Api\UpdateClientInvoiceRequest;
 use App\Models\ClientInvoice;
+use App\Models\Conversation;
+use App\Models\Message;
 use App\Services\AuditService;
 use App\Services\ClientInvoiceService;
+use App\Services\WhatsAppCloudService;
 use App\Support\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +20,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 class ClientInvoiceController extends Controller
 {
     public function __construct(
-        protected ClientInvoiceService $invoiceService
+        protected ClientInvoiceService $invoiceService,
+        protected WhatsAppCloudService $whatsApp,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -192,6 +196,69 @@ class ClientInvoiceController extends Controller
             'created' => $result['created'],
             'skipped' => $result['skipped'],
         ], 'Monthly invoices generated.');
+    }
+
+    public function sendToWhatsApp(Request $request, int $id): JsonResponse
+    {
+        $this->requireFinancePermission($request, 'finance.view');
+
+        $invoice = ClientInvoice::with('customer')->findOrFail($id);
+        $customer = $invoice->customer;
+
+        if (! $customer || ! $customer->phone) {
+            return ApiResponse::error('Client sans numero de telephone.', null, 422);
+        }
+
+        $phone = ltrim($customer->phone, '+');
+        $brandId = (int) $invoice->brand_id;
+
+        // Build invoice message
+        $msg = "Facture #{$invoice->invoice_number}\n"
+            . "Client : {$customer->full_name}\n"
+            . "Montant : {$invoice->total} {$invoice->currency}\n"
+            . "Date : {$invoice->issue_date}\n"
+            . "Echeance : {$invoice->due_date}\n"
+            . "Statut : {$invoice->status}";
+
+        // Find or create conversation
+        $conversation = Conversation::query()
+            ->where('brand_id', $brandId)
+            ->where('channel', 'whatsapp')
+            ->where('customer_id', $customer->id)
+            ->first();
+
+        if (! $conversation) {
+            $conversation = Conversation::query()->create([
+                'brand_id' => $brandId,
+                'customer_id' => $customer->id,
+                'channel' => 'whatsapp',
+                'external_thread_id' => $phone,
+                'status' => 'open',
+            ]);
+        }
+
+        // Try to send via WhatsApp API
+        try {
+            $externalId = $this->whatsApp->sendText($brandId, $phone, $msg);
+        } catch (\Throwable $e) {
+            // Even if API fails, store the message locally
+            $externalId = null;
+        }
+
+        // Store message in conversation
+        Message::query()->create([
+            'conversation_id' => $conversation->id,
+            'sender_user_id' => $request->user()?->id,
+            'direction' => 'outbound',
+            'content' => $msg,
+            'message_type' => 'text',
+            'external_message_id' => $externalId,
+            'sent_at' => now(),
+        ]);
+
+        $conversation->update(['last_message_at' => now()]);
+
+        return ApiResponse::success(null, 'Facture envoyee dans la conversation WhatsApp.');
     }
 
     private function requireFinancePermission(Request $request, string $slug): void

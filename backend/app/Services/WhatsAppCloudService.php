@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Conversation;
 use App\Models\Customer;
+use App\Models\Lead;
 use App\Models\Message;
 use App\Models\SystemSetting;
 use Illuminate\Support\Carbon;
@@ -168,13 +169,28 @@ class WhatsAppCloudService
             return $customer;
         }
 
-        return Customer::query()->create([
+        $customer = Customer::query()->create([
             'brand_id' => $brandId,
             'full_name' => $profileName ?: ('WhatsApp ' . $waId),
             'phone' => $phone,
             'client_source' => 'whatsapp',
             'status' => 'active',
         ]);
+
+        // Auto-create lead from WhatsApp conversation
+        try {
+            Lead::query()->create([
+                'brand_id' => $brandId,
+                'customer_id' => $customer->id,
+                'source' => 'WhatsApp',
+                'status' => 'new',
+                'notes' => 'Lead auto-cree depuis une conversation WhatsApp.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('whatsapp.auto_lead_failed', ['customer_id' => $customer->id, 'error' => $e->getMessage()]);
+        }
+
+        return $customer;
     }
 
     private function findOrCreateConversation(int $brandId, Customer $customer, string $waId): Conversation

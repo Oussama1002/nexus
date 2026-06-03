@@ -342,6 +342,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('finance/invoices/{id}', [ClientInvoiceController::class, 'destroy'])->whereNumber('id')->middleware('permission:finance.delete');
     Route::post('finance/invoices/{id}/approve', [ClientInvoiceController::class, 'approve'])->whereNumber('id')->middleware('permission:finance.update');
     Route::post('finance/invoices/{id}/send', [ClientInvoiceController::class, 'send'])->whereNumber('id')->middleware('permission:finance.update');
+    Route::post('finance/invoices/{id}/send-whatsapp', [ClientInvoiceController::class, 'sendToWhatsApp'])->whereNumber('id')->middleware('permission:finance.view');
     Route::get('finance/summary', [FinanceSummaryController::class, 'summary'])->middleware('permission:finance.view');
     Route::get('finance/charges-by-type', [FinanceSummaryController::class, 'chargesByType'])->middleware('permission:finance.view');
     Route::get('finance/monthly', [FinanceSummaryController::class, 'monthly'])->middleware('permission:finance.view');

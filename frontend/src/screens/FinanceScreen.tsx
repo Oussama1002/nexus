@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Mail, Plus, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Mail, MessageSquare, Plus, RefreshCw } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
@@ -343,6 +343,15 @@ export function FinanceScreen() {
                 <Mail className="w-3.5 h-3.5" /> Envoyer
               </button>
             ) : null}
+            {(i.status === 'approved' || i.status === 'sent') && hasPermission('finance.view') ? (
+              <button
+                type="button"
+                onClick={() => void sendInvoiceWhatsApp(i.id)}
+                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-black inline-flex items-center gap-1"
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
+              </button>
+            ) : null}
           </div>
         ),
       },
@@ -474,7 +483,17 @@ export function FinanceScreen() {
       toast.error(res.message);
       return;
     }
-    toast.success('Facture envoyée par email.');
+    toast.success('Facture envoyee par email.');
+    await loadAll();
+  };
+
+  const sendInvoiceWhatsApp = async (invoiceId: number) => {
+    const res = await api.post(`finance/invoices/${invoiceId}/send-whatsapp`);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success('Facture envoyee dans la conversation WhatsApp.');
     await loadAll();
   };
 
