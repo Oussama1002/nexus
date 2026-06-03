@@ -9,7 +9,7 @@ import type {
   WhatsappModel,
 } from '../../../lib/settingsCenterApi';
 import { SIDEBAR_NAV_CATALOG, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
-import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TextField, ToggleRow } from './SettingsUi';
+import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TagListField, TextField, ToggleRow } from './SettingsUi';
 
 export function GeneralPanel({
   value,
@@ -134,6 +134,26 @@ export function GeneralPanel({
               </div>
             </div>
           ))}
+        </div>
+      </SectionCard>
+      <SectionCard title="Produits" description="Catégories et types de produit disponibles dans le formulaire de création / modification produit.">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <TagListField
+            label="Catégories"
+            hint="ex. Cosmétique, Alimentaire…"
+            value={value.products?.categories ?? []}
+            onChange={(v) => p({ products: { ...value.products, categories: v, types: value.products?.types ?? [] } })}
+            disabled={disabled}
+            placeholder="Ajouter une catégorie…"
+          />
+          <TagListField
+            label="Types de produit"
+            hint="ex. Crème, Sérum, Complément…"
+            value={value.products?.types ?? []}
+            onChange={(v) => p({ products: { ...value.products, types: v, categories: value.products?.categories ?? [] } })}
+            disabled={disabled}
+            placeholder="Ajouter un type…"
+          />
         </div>
       </SectionCard>
     </div>

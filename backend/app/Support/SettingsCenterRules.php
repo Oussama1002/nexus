@@ -43,6 +43,11 @@ class SettingsCenterRules
                 'navigation' => 'nullable|array',
                 'navigation.items' => 'nullable|array',
                 'navigation.items.*' => 'boolean',
+                'products' => 'nullable|array',
+                'products.categories' => 'nullable|array',
+                'products.categories.*' => 'string|max:255',
+                'products.types' => 'nullable|array',
+                'products.types.*' => 'string|max:255',
             ],
             'integrations' => [
                 'email' => 'nullable|array',

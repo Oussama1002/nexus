@@ -41,6 +41,10 @@ export type GeneralModel = {
     /** Sidebar item key → visible (false = hidden). Omitted keys default to visible. */
     items: Record<string, boolean>;
   };
+  products: {
+    categories: string[];
+    types: string[];
+  };
 };
 
 export type IntegrationsModel = {

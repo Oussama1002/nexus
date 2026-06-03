@@ -1,5 +1,5 @@
-import React, { useId, useRef, useState } from 'react';
-import { Eye, EyeOff, Loader2, Upload } from 'lucide-react';
+import React, { useId, useRef, useState, useCallback } from 'react';
+import { Eye, EyeOff, Loader2, Upload, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { isImageAssetUrl, resolvePublicAssetUrl } from '../../../lib/publicAssetUrl';
 import * as api from '../../../lib/api';
@@ -276,5 +276,107 @@ export function ToggleRow({
         {description && <p className="text-xs text-zinc-500 mt-0.5 font-medium">{description}</p>}
       </div>
     </label>
+  );
+}
+
+export function TagListField({
+  label,
+  hint,
+  value,
+  onChange,
+  disabled,
+  placeholder,
+}: {
+  label: string;
+  hint?: string;
+  value: string[];
+  onChange: (v: string[]) => void;
+  disabled?: boolean;
+  placeholder?: string;
+}) {
+  const id = useId();
+  const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const add = useCallback(() => {
+    const trimmed = input.trim();
+    if (!trimmed || value.includes(trimmed)) {
+      setInput('');
+      return;
+    }
+    onChange([...value, trimmed]);
+    setInput('');
+  }, [input, value, onChange]);
+
+  const remove = useCallback(
+    (idx: number) => {
+      onChange(value.filter((_, i) => i !== idx));
+    },
+    [value, onChange],
+  );
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between gap-3 items-baseline">
+        <label htmlFor={id} className="text-sm font-semibold text-zinc-800">
+          {label}
+        </label>
+        {hint && <span className="text-xs text-zinc-400 font-medium">{hint}</span>}
+      </div>
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-xl border border-zinc-200/90 bg-white min-h-[46px] transition-shadow focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent',
+          disabled && 'opacity-50 cursor-not-allowed bg-zinc-50',
+        )}
+        onClick={() => inputRef.current?.focus()}
+      >
+        {value.map((tag, idx) => (
+          <span
+            key={`${tag}-${idx}`}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-50 border border-primary-200 text-xs font-bold text-primary-700"
+          >
+            {tag}
+            {!disabled && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove(idx);
+                }}
+                className="hover:text-rose-600 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </span>
+        ))}
+        {!disabled && (
+          <input
+            ref={inputRef}
+            id={id}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                add();
+              }
+              if (e.key === 'Backspace' && input === '' && value.length > 0) {
+                remove(value.length - 1);
+              }
+            }}
+            onBlur={() => {
+              if (input.trim()) add();
+            }}
+            placeholder={value.length === 0 ? placeholder : ''}
+            className="flex-1 min-w-[120px] bg-transparent text-sm font-medium text-zinc-900 placeholder:text-zinc-400 outline-none"
+          />
+        )}
+      </div>
+      {!disabled && (
+        <p className="text-[11px] text-zinc-400 font-medium">Tapez puis appuyez sur Entrée pour ajouter.</p>
+      )}
+    </div>
   );
 }

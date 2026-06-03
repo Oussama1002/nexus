@@ -106,6 +106,10 @@ class SettingsCenterService
             'navigation' => [
                 'items' => $this->decodeSidebarNavVisibility($brandId),
             ],
+            'products' => [
+                'categories' => $this->decodeJsonList($brandId, 'product_categories'),
+                'types' => $this->decodeJsonList($brandId, 'product_types'),
+            ],
         ];
     }
 
@@ -117,6 +121,40 @@ class SettingsCenterService
     public function getSidebarNavVisibility(int $brandId): array
     {
         return $this->decodeSidebarNavVisibility($brandId);
+    }
+
+    /**
+     * Public accessor for product categories & types (used by the lightweight endpoint).
+     *
+     * @return array{categories: string[], types: string[]}
+     */
+    public function getProductOptions(int $brandId): array
+    {
+        return [
+            'categories' => $this->decodeJsonList($brandId, 'product_categories'),
+            'types' => $this->decodeJsonList($brandId, 'product_types'),
+        ];
+    }
+
+    /** @return string[] */
+    private function decodeJsonList(int $brandId, string $key): array
+    {
+        $raw = $this->getRaw($brandId, $key);
+        if ($raw === null || trim((string) $raw) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode((string) $raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter($decoded, 'is_string'));
     }
 
     /** @return array<string, bool> */
@@ -190,6 +228,12 @@ class SettingsCenterService
                 'sidebar_nav_visibility',
                 json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)
             );
+            // Product categories & types
+            $prod = $p['products'] ?? [];
+            $cats = is_array($prod['categories'] ?? null) ? array_values(array_filter($prod['categories'], 'is_string')) : [];
+            $types = is_array($prod['types'] ?? null) ? array_values(array_filter($prod['types'], 'is_string')) : [];
+            $this->upsert($brandId, 'general', 'product_categories', json_encode($cats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            $this->upsert($brandId, 'general', 'product_types', json_encode($types, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
         });
     }
 

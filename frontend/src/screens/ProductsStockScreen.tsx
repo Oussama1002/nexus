@@ -101,6 +101,16 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     status: 'Actif',
   });
 
+  // Product categories & types from settings
+  const [productOptions, setProductOptions] = useState<{ categories: string[]; types: string[] }>({ categories: [], types: [] });
+
+  useEffect(() => {
+    if (!activeBrandId) return;
+    void api.get<{ categories: string[]; types: string[] }>('settings/product-options').then((res) => {
+      if (res.ok && res.data) setProductOptions(res.data);
+    });
+  }, [activeBrandId]);
+
   const [movForm, setMovForm] = useState({
     product_id: '',
     movement_type: 'in' as (typeof MOVEMENT_TYPES)[number],
@@ -592,11 +602,19 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie *</label>
-            <input value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="ex. Cosmétique, Alimentaire…" />
+            <select value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
+              <option value="">— Choisir une catégorie —</option>
+              {productOptions.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {productOptions.categories.length === 0 && <p className="text-[11px] text-amber-600 font-medium">Aucune catégorie configurée. Ajoutez-en dans Paramètres &gt; Général &gt; Produits.</p>}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit *</label>
-            <input value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="ex. Crème, Sérum…" />
+            <select value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
+              <option value="">— Choisir un type —</option>
+              {productOptions.types.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {productOptions.types.length === 0 && <p className="text-[11px] text-amber-600 font-medium">Aucun type configuré. Ajoutez-en dans Paramètres &gt; Général &gt; Produits.</p>}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock initial</label>
@@ -651,11 +669,19 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</label>
-            <input value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+            <select value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
+              <option value="">— Choisir —</option>
+              {productOptions.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              {draft.category && !productOptions.categories.includes(draft.category) && <option value={draft.category}>{draft.category}</option>}
+            </select>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit</label>
-            <input value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+            <select value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
+              <option value="">— Choisir —</option>
+              {productOptions.types.map((t) => <option key={t} value={t}>{t}</option>)}
+              {draft.productType && !productOptions.types.includes(draft.productType) && <option value={draft.productType}>{draft.productType}</option>}
+            </select>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût d'achat</label>

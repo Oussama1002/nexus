@@ -72,6 +72,20 @@ class SettingsCenterController extends Controller
         );
     }
 
+    /**
+     * Lightweight endpoint — returns product categories & types for the active brand.
+     * Accessible to ANY authenticated user (no settings.view required).
+     */
+    public function productOptions(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        return ApiResponse::success(
+            $this->settingsCenter->getProductOptions($brandId),
+            'OK',
+        );
+    }
+
     public function auditHistory(Request $request): JsonResponse
     {
         $this->requireView($request);
