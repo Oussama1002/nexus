@@ -36,6 +36,104 @@ function hasAuditPayload(values: Record<string, unknown> | null | undefined): bo
   return values !== null && values !== undefined && Object.keys(values).length > 0;
 }
 
+function AuditDiffSection({
+  oldValues,
+  newValues,
+}: {
+  oldValues: Record<string, unknown> | null | undefined;
+  newValues: Record<string, unknown> | null | undefined;
+}) {
+  const hasOld = hasAuditPayload(oldValues ?? null);
+  const hasNew = hasAuditPayload(newValues ?? null);
+
+  // Creation: no old values — show only new values
+  if (!hasOld && hasNew) {
+    return (
+      <AuditPayloadSection
+        heading="Données créées"
+        tone="success"
+        values={newValues}
+        emptyHint=""
+      />
+    );
+  }
+
+  // Deletion: no new values — show only old values
+  if (hasOld && !hasNew) {
+    return (
+      <AuditPayloadSection
+        heading="Données supprimées"
+        tone="neutral"
+        values={oldValues}
+        emptyHint=""
+      />
+    );
+  }
+
+  // Neither side has data
+  if (!hasOld && !hasNew) {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50/90 px-4 py-3 text-sm text-zinc-600">
+        Aucune donnée avant/après enregistrée pour cette action.
+      </div>
+    );
+  }
+
+  // Both sides exist — compute diff (only changed fields)
+  const old = oldValues as Record<string, unknown>;
+  const nw = newValues as Record<string, unknown>;
+  const allKeys = new Set([...Object.keys(old), ...Object.keys(nw)]);
+  const changed: { key: string; before: unknown; after: unknown }[] = [];
+
+  for (const key of allKeys) {
+    const before = old[key];
+    const after = nw[key];
+    if (JSON.stringify(before) !== JSON.stringify(after)) {
+      changed.push({ key, before, after });
+    }
+  }
+
+  if (changed.length === 0) {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50/90 px-4 py-3 text-sm text-zinc-600">
+        Aucun champ modifié détecté.
+      </div>
+    );
+  }
+
+  // Sort using the same helper
+  const sorted = changed.sort((a, b) => {
+    const la = auditFieldLabelFr(a.key);
+    const lb = auditFieldLabelFr(b.key);
+    return la.localeCompare(lb, 'fr');
+  });
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-4 pt-3">
+        Modifications ({sorted.length} champ{sorted.length > 1 ? 's' : ''})
+      </p>
+      <dl className="divide-y divide-zinc-100 px-4 pb-3 pt-2">
+        {sorted.map(({ key, before, after }) => (
+          <div key={key} className="py-3 first:pt-1">
+            <dt className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-1.5">{auditFieldLabelFr(key)}</dt>
+            <div className="flex flex-col gap-1 text-sm">
+              <div className="flex items-start gap-2">
+                <span className="shrink-0 mt-0.5 inline-block w-5 h-5 rounded-md bg-rose-100 text-rose-600 text-[10px] font-black flex items-center justify-center">−</span>
+                <span className="text-zinc-500 line-through break-words">{formatAuditFieldValue(key, before)}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="shrink-0 mt-0.5 inline-block w-5 h-5 rounded-md bg-emerald-100 text-emerald-600 text-[10px] font-black flex items-center justify-center">+</span>
+                <span className="text-zinc-900 font-bold break-words">{formatAuditFieldValue(key, after)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 function AuditPayloadSection({
   heading,
   tone,
@@ -253,17 +351,9 @@ export function TrackingScreen() {
               ) : null}
             </div>
 
-            <AuditPayloadSection
-              heading="État précédent"
-              tone="neutral"
-              values={detail.old_values}
-              emptyHint="Pas d’état avant — souvent une création ou une première trace pour cette action."
-            />
-            <AuditPayloadSection
-              heading="État enregistré"
-              tone="success"
-              values={detail.new_values}
-              emptyHint="Pas de données après — souvent une suppression ou les valeurs ne sont pas stockées pour cette action."
+            <AuditDiffSection
+              oldValues={detail.old_values}
+              newValues={detail.new_values}
             />
           </div>
         )}
