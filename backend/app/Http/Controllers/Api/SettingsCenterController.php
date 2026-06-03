@@ -113,7 +113,7 @@ class SettingsCenterController extends Controller
             'value' => 'required|string|max:255',
         ]);
 
-        $this->settingsCenter->appendToJsonList($brandId, 'general', $data['list'], $data['value']);
+        $this->settingsCenter->appendToJsonList($brandId, 'catalogue', $data['list'], $data['value']);
 
         return ApiResponse::success(null, 'Ajouté.');
     }
