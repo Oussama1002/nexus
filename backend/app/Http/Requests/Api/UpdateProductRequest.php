@@ -24,6 +24,8 @@ class UpdateProductRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'sku' => ['sometimes', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($id)],
             'description' => ['nullable', 'string'],
+            'category' => ['sometimes', 'string', 'max:255'],
+            'product_type' => ['sometimes', 'string', 'max:255'],
             'price' => ['sometimes', 'numeric', 'min:0'],
             'cost' => ['nullable', 'numeric', 'min:0'],
             'stock_quantity' => ['prohibited'],

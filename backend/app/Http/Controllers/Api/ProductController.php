@@ -48,6 +48,11 @@ class ProductController extends Controller
         $initial = (int) ($data['stock_quantity'] ?? 0);
         unset($data['stock_quantity']);
 
+        // Auto-generate SKU when not provided.
+        if (empty($data['sku'])) {
+            $data['sku'] = $this->generateSku($brandId);
+        }
+
         $product = DB::transaction(function () use ($request, $data, $initial) {
             $p = Product::query()->create(array_merge($data, [
                 'stock_quantity' => 0,
@@ -102,5 +107,24 @@ class ProductController extends Controller
         AuditLogger::log($request, 'products.delete', null, $before, null);
 
         return ApiResponse::success(null, 'Product deleted successfully.');
+    }
+
+    /**
+     * Generate a unique SKU: PRD-{brandId}-{sequence}.
+     */
+    private function generateSku(int $brandId): string
+    {
+        $last = Product::query()
+            ->where('brand_id', $brandId)
+            ->where('sku', 'like', "PRD-{$brandId}-%")
+            ->orderByDesc('id')
+            ->value('sku');
+
+        $seq = 1;
+        if ($last && preg_match('/PRD-\d+-(\d+)$/', $last, $m)) {
+            $seq = ((int) $m[1]) + 1;
+        }
+
+        return sprintf('PRD-%d-%04d', $brandId, $seq);
     }
 }

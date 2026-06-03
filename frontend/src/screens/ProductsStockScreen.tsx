@@ -22,6 +22,8 @@ type ApiProductRow = {
   brand_id: number;
   name: string;
   sku: string;
+  category: string | null;
+  product_type: string | null;
   price: string;
   cost: string;
   stock_quantity: number;
@@ -48,6 +50,8 @@ function mapProduct(p: ApiProductRow, brandName: string): Product {
     name: p.name,
     sku: p.sku,
     brand: brandName,
+    category: p.category ?? '',
+    productType: p.product_type ?? '',
     supplier: '—',
     price: Number(p.price),
     cost: Number(p.cost),
@@ -86,6 +90,8 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     name: '',
     sku: '',
     brand: '',
+    category: '',
+    productType: '',
     supplier: '—',
     price: 0,
     cost: 0,
@@ -218,13 +224,14 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
   async function saveProduct() {
     setSaving(true);
     setFormErr([]);
-    const body = {
+    const body: Record<string, unknown> = {
       name: draft.name.trim(),
-      sku: draft.sku.trim(),
+      category: draft.category.trim(),
+      product_type: draft.productType.trim(),
       price: draft.price,
       cost: draft.cost,
       low_stock_threshold: draft.lowStockThreshold,
-      status: draft.status === 'Actif' ? 'active' : 'inactive',
+      status: 'active',
       stock_quantity: draft.stock,
     };
     const res = await api.post('products', body);
@@ -248,6 +255,8 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     const res = await api.put(`products/${selected.apiId}`, {
       name: draft.name.trim(),
       sku: draft.sku.trim(),
+      category: draft.category.trim(),
+      product_type: draft.productType.trim(),
       price: draft.price,
       cost: draft.cost,
       low_stock_threshold: draft.lowStockThreshold,
@@ -410,6 +419,8 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                   name: '',
                   sku: '',
                   brand: activeBrand.name,
+                  category: '',
+                  productType: '',
                   supplier: '—',
                   price: 0,
                   cost: 0,
@@ -497,6 +508,8 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                   name: selected.name,
                   sku: selected.sku,
                   brand: selected.brand,
+                  category: selected.category,
+                  productType: selected.productType,
                   supplier: selected.supplier,
                   price: selected.price,
                   cost: selected.cost,
@@ -540,7 +553,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       <Modal
         open={createOpen}
         title="Ajouter un produit"
-        subtitle="Stock initial crée un mouvement `in` côté serveur."
+        subtitle="Le SKU est généré automatiquement. Le statut est actif par défaut."
         onClose={() => setCreateOpen(false)}
         footer={
           <div className="flex gap-3">
@@ -570,35 +583,36 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </div>
           )}
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom</label>
-            <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom *</label>
+            <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nom du produit" />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Marque *</label>
+            <input value={draft.brand} disabled className="w-full px-4 py-3 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-500 font-bold outline-none cursor-not-allowed" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">SKU</label>
-            <input value={draft.sku} onChange={(e) => setDraft((d) => ({ ...d, sku: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie *</label>
+            <input value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="ex. Cosmétique, Alimentaire…" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit *</label>
+            <input value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="ex. Crème, Sérum…" />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock initial</label>
-            <input type="number" value={draft.stock} onChange={(e) => setDraft((d) => ({ ...d, stock: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+            <input type="number" value={draft.stock} onChange={(e) => setDraft((d) => ({ ...d, stock: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="0" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût</label>
-            <input type="number" value={draft.cost} onChange={(e) => setDraft((d) => ({ ...d, cost: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût d'achat</label>
+            <input type="number" value={draft.cost} onChange={(e) => setDraft((d) => ({ ...d, cost: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="0.00" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix</label>
-            <input type="number" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix de vente *</label>
+            <input type="number" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="0.00" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Seuil</label>
-            <input type="number" value={draft.lowStockThreshold} onChange={(e) => setDraft((d) => ({ ...d, lowStockThreshold: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</label>
-            <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as ProductDraft['status'] }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-black text-zinc-700 outline-none">
-              <option>Actif</option>
-              <option>Inactif</option>
-            </select>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Seuil d'alerte</label>
+            <input type="number" value={draft.lowStockThreshold} onChange={(e) => setDraft((d) => ({ ...d, lowStockThreshold: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="10" />
           </div>
         </div>
       </Modal>
@@ -636,18 +650,26 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             <input value={draft.sku} onChange={(e) => setDraft((d) => ({ ...d, sku: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</label>
+            <input value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit</label>
+            <input value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût d'achat</label>
             <input type="number" value={draft.cost} onChange={(e) => setDraft((d) => ({ ...d, cost: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix de vente</label>
             <input type="number" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Seuil</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Seuil d'alerte</label>
             <input type="number" value={draft.lowStockThreshold} onChange={(e) => setDraft((d) => ({ ...d, lowStockThreshold: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</label>
             <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as ProductDraft['status'] }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-black text-zinc-700 outline-none">
               <option>Actif</option>

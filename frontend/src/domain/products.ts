@@ -7,6 +7,8 @@ export type Product = {
   name: string;
   sku: string;
   brand: ProductBrand;
+  category: string;
+  productType: string;
   supplier: string;
   price: number;
   cost: number;
