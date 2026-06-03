@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Filter, Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
@@ -103,12 +103,6 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
 
   // Product categories & types from settings
   const [productOptions, setProductOptions] = useState<{ categories: string[]; types: string[] }>({ categories: [], types: [] });
-  const [addingCat, setAddingCat] = useState(false);
-  const [newCat, setNewCat] = useState('');
-  const newCatRef = useRef<HTMLInputElement>(null);
-  const [addingType, setAddingType] = useState(false);
-  const [newType, setNewType] = useState('');
-  const newTypeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!activeBrandId) return;
@@ -116,18 +110,6 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       if (res.ok && res.data) setProductOptions(res.data);
     });
   }, [activeBrandId]);
-
-  const quickAdd = useCallback(async (list: 'product_categories' | 'product_types', value: string) => {
-    const res = await api.post('settings/quick-add-list-item', { list, value });
-    if (res.ok) {
-      setProductOptions((prev) =>
-        list === 'product_categories'
-          ? { ...prev, categories: prev.categories.includes(value) ? prev.categories : [...prev.categories, value] }
-          : { ...prev, types: prev.types.includes(value) ? prev.types : [...prev.types, value] },
-      );
-    }
-    return res.ok;
-  }, []);
 
   const [movForm, setMovForm] = useState({
     product_id: '',
@@ -272,6 +254,17 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       return;
     }
     toast.success('Produit créé.');
+    // Auto-save new category/type to settings if not already there
+    const cat = draft.category.trim();
+    const typ = draft.productType.trim();
+    if (cat && !productOptions.categories.includes(cat)) {
+      void api.post('settings/quick-add-list-item', { list: 'product_categories', value: cat });
+      setProductOptions((p) => ({ ...p, categories: [...p.categories, cat] }));
+    }
+    if (typ && !productOptions.types.includes(typ)) {
+      void api.post('settings/quick-add-list-item', { list: 'product_types', value: typ });
+      setProductOptions((p) => ({ ...p, types: [...p.types, typ] }));
+    }
     setCreateOpen(false);
     await loadProducts();
   }
@@ -299,6 +292,16 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       return;
     }
     toast.success('Produit mis à jour.');
+    const cat = draft.category.trim();
+    const typ = draft.productType.trim();
+    if (cat && !productOptions.categories.includes(cat)) {
+      void api.post('settings/quick-add-list-item', { list: 'product_categories', value: cat });
+      setProductOptions((p) => ({ ...p, categories: [...p.categories, cat] }));
+    }
+    if (typ && !productOptions.types.includes(typ)) {
+      void api.post('settings/quick-add-list-item', { list: 'product_types', value: typ });
+      setProductOptions((p) => ({ ...p, types: [...p.types, typ] }));
+    }
     setEditOpen(false);
     setSelectedId(null);
     await loadProducts();
@@ -620,41 +623,29 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie *</label>
-            {!addingCat ? (
-              <div className="flex gap-2">
-                <select value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full flex-1 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
-                  <option value="">— Choisir —</option>
-                  {productOptions.categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <button type="button" onClick={() => { setAddingCat(true); setTimeout(() => newCatRef.current?.focus(), 50); }} className="shrink-0 px-3 py-2 rounded-xl bg-primary-50 border border-primary-200 text-xs font-black text-primary-700 hover:bg-primary-100 transition-colors" title="Ajouter une catégorie"><Plus className="w-4 h-4" /></button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input ref={newCatRef} value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const v = newCat.trim(); if (v) void quickAdd('product_categories', v).then((ok) => { if (ok) setDraft((d) => ({ ...d, category: v })); }); setAddingCat(false); setNewCat(''); } if (e.key === 'Escape') { setAddingCat(false); setNewCat(''); } }} className="w-full flex-1 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nouvelle catégorie…" />
-                <button type="button" onClick={() => { const v = newCat.trim(); if (v) void quickAdd('product_categories', v).then((ok) => { if (ok) setDraft((d) => ({ ...d, category: v })); }); setAddingCat(false); setNewCat(''); }} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-black text-emerald-700 hover:bg-emerald-100 transition-colors">OK</button>
-                <button type="button" onClick={() => { setAddingCat(false); setNewCat(''); }} className="shrink-0 px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-xs font-black text-zinc-500 hover:bg-zinc-100 transition-colors">&#x2715;</button>
-              </div>
-            )}
-            {!addingCat && productOptions.categories.length === 0 && <p className="text-[11px] text-amber-600 font-medium">Cliquez sur + pour ajouter une catégorie.</p>}
+            <input
+              list="product-categories-list"
+              value={draft.category}
+              onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Choisir ou saisir une catégorie…"
+            />
+            <datalist id="product-categories-list">
+              {productOptions.categories.map((c) => <option key={c} value={c} />)}
+            </datalist>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit *</label>
-            {!addingType ? (
-              <div className="flex gap-2">
-                <select value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full flex-1 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
-                  <option value="">— Choisir —</option>
-                  {productOptions.types.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <button type="button" onClick={() => { setAddingType(true); setTimeout(() => newTypeRef.current?.focus(), 50); }} className="shrink-0 px-3 py-2 rounded-xl bg-primary-50 border border-primary-200 text-xs font-black text-primary-700 hover:bg-primary-100 transition-colors" title="Ajouter un type"><Plus className="w-4 h-4" /></button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input ref={newTypeRef} value={newType} onChange={(e) => setNewType(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const v = newType.trim(); if (v) void quickAdd('product_types', v).then((ok) => { if (ok) setDraft((d) => ({ ...d, productType: v })); }); setAddingType(false); setNewType(''); } if (e.key === 'Escape') { setAddingType(false); setNewType(''); } }} className="w-full flex-1 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nouveau type…" />
-                <button type="button" onClick={() => { const v = newType.trim(); if (v) void quickAdd('product_types', v).then((ok) => { if (ok) setDraft((d) => ({ ...d, productType: v })); }); setAddingType(false); setNewType(''); }} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-black text-emerald-700 hover:bg-emerald-100 transition-colors">OK</button>
-                <button type="button" onClick={() => { setAddingType(false); setNewType(''); }} className="shrink-0 px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-xs font-black text-zinc-500 hover:bg-zinc-100 transition-colors">&#x2715;</button>
-              </div>
-            )}
-            {!addingType && productOptions.types.length === 0 && <p className="text-[11px] text-amber-600 font-medium">Cliquez sur + pour ajouter un type.</p>}
+            <input
+              list="product-types-list"
+              value={draft.productType}
+              onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Choisir ou saisir un type…"
+            />
+            <datalist id="product-types-list">
+              {productOptions.types.map((t) => <option key={t} value={t} />)}
+            </datalist>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock initial</label>
@@ -709,19 +700,29 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</label>
-            <select value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
-              <option value="">— Choisir —</option>
-              {productOptions.categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              {draft.category && !productOptions.categories.includes(draft.category) && <option value={draft.category}>{draft.category}</option>}
-            </select>
+            <input
+              list="product-categories-list-edit"
+              value={draft.category}
+              onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Choisir ou saisir…"
+            />
+            <datalist id="product-categories-list-edit">
+              {productOptions.categories.map((c) => <option key={c} value={c} />)}
+            </datalist>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit</label>
-            <select value={draft.productType} onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-bold">
-              <option value="">— Choisir —</option>
-              {productOptions.types.map((t) => <option key={t} value={t}>{t}</option>)}
-              {draft.productType && !productOptions.types.includes(draft.productType) && <option value={draft.productType}>{draft.productType}</option>}
-            </select>
+            <input
+              list="product-types-list-edit"
+              value={draft.productType}
+              onChange={(e) => setDraft((d) => ({ ...d, productType: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Choisir ou saisir…"
+            />
+            <datalist id="product-types-list-edit">
+              {productOptions.types.map((t) => <option key={t} value={t} />)}
+            </datalist>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût d'achat</label>
