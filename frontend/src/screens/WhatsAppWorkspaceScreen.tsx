@@ -397,7 +397,7 @@ export function WhatsAppWorkspaceScreen({
                   </div>
                   {selected.is_waiting_agent_reply ? (
                     <p className="text-xs font-bold text-amber-700 mt-3">
-                      Client en attente depuis {selected.waiting_agent_reply_minutes ?? 0} min sans reponse agent.
+                      Client en attente depuis {(() => { const m = selected.waiting_agent_reply_minutes ?? 0; if (m < 1) return `${Math.round(m * 60)}s`; if (m < 60) return `${Math.round(m)} min`; return `${Math.floor(m / 60)}h ${Math.round(m % 60)} min`; })()} sans reponse agent.
                     </p>
                   ) : null}
                 </div>
