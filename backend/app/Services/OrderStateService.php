@@ -2,17 +2,20 @@
 
 namespace App\Services;
 
+use App\Models\ClientInvoice;
 use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class OrderStateService
 {
     public function __construct(
         protected StockService $stockService,
-        protected OrderFulfillmentService $orderFulfillmentService
+        protected OrderFulfillmentService $orderFulfillmentService,
+        protected ClientInvoiceService $clientInvoiceService,
     ) {}
 
     public function updateStatus(Order $order, string $toStatus, User $user, ?string $note = null): Order
@@ -79,6 +82,27 @@ class OrderStateService
                 'note' => $note,
                 'event_at' => now(),
             ]);
+
+            // Auto-send invoice email when order is confirmed
+            if ($toStatus === 'confirmed') {
+                try {
+                    $invoice = ClientInvoice::query()->where('order_id', $locked->id)->first();
+                    if ($invoice) {
+                        $invoice->status = 'approved';
+                        $invoice->save();
+                        $this->clientInvoiceService->sendInvoiceEmail($invoice);
+                        $invoice->status = 'sent';
+                        $invoice->sent_at = now();
+                        $invoice->save();
+                    }
+                } catch (\Throwable $e) {
+                    // Log but don't block the confirmation
+                    Log::warning('invoice.auto_send.failed', [
+                        'order_id' => $locked->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             return $locked->fresh(['lines', 'events']);
         });
