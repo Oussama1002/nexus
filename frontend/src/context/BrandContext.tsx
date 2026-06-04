@@ -88,15 +88,14 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
     }
     const ids = new Set(brands.map((b) => b.id));
     if (!activeBrandId || !ids.has(activeBrandId)) {
-      setActiveBrandIdState(brands[0]!.id);
+      const first = brands[0]!.id;
+      writeStoredBrandId(first);       // sync localStorage BEFORE child effects
+      setActiveBrandIdState(first);
     }
   }, [brands, activeBrandId]);
 
-  useEffect(() => {
-    if (activeBrandId) writeStoredBrandId(activeBrandId);
-  }, [activeBrandId]);
-
   const setActiveBrandId = useCallback((id: string) => {
+    writeStoredBrandId(id);          // sync localStorage BEFORE re-render
     setActiveBrandIdState(id);
   }, []);
 
