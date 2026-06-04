@@ -138,7 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api.setStoredToken(token);
     applyMePayload(data);
     setLoading(false);
-    return { ok: true as const };
+    const loginRoles = (data.roles ?? []).map((r: ApiRole) => r.slug);
+    return { ok: true as const, roleSlugs: loginRoles };
   }, [applyMePayload]);
 
   const logout = useCallback(async () => {

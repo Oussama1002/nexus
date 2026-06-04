@@ -75,7 +75,7 @@ const ALL_VIEWS: View[] = [
 export const ROLE_DEFAULT_VIEWS: Record<string, View[]> = {
   admin: ALL_VIEWS,
   manager_operationnel: ALL_VIEWS.filter((v) => v !== 'settings' && v !== 'hr'),
-  confirmatrice: ['confirmatrice', 'whatsapp', 'customers', 'ordersNew', 'orders', 'trackingParcels', 'knowledgeBase', 'academy', 'automations', 'mediaBuying', 'collabProjects'],
+  confirmatrice: ['confirmatrice', 'whatsapp', 'customers', 'ordersNew', 'orders', 'trackingParcels', 'knowledgeBase', 'academy', 'automations', 'collabProjects'],
   media_buyer: ['dashboard', 'ads', 'mediaBuying', 'collabProjects', 'reporting', 'automations'],
   stock_manager: ['dashboard', 'products', 'stock', 'delivery', 'deliveryDashboard', 'trackingParcels', 'suppliers', 'purchaseOrders', 'knowledgeBase', 'academy', 'automations', 'mediaBuying', 'collabProjects'],
   community_manager: ['dashboard', 'whatsapp', 'leads', 'customers', 'brands', 'ads', 'mediaBuying', 'collabProjects', 'socialMedia', 'knowledgeBase', 'academy', 'automations'],
@@ -109,8 +109,8 @@ export function canAccessView(
   if (ctx.roleSlugs.includes('client_brand_owner')) {
     if (view !== 'clientPortal') return false;
   }
-  /** Confirmatrices use dedicated workflows; leads module is hidden for this role. */
-  if (view === 'leads' && ctx.roleSlugs.includes('confirmatrice')) return false;
+  /** Confirmatrices use dedicated workflows; leads, media buying & ads modules are hidden for this role. */
+  if (ctx.roleSlugs.includes('confirmatrice') && ['leads', 'mediaBuying', 'ads'].includes(view)) return false;
   const allReq = VIEW_REQUIRES_ALL_PERMISSIONS[view];
   if (allReq?.length && hasAllPermissions(ctx.permissionSlugs, allReq)) return true;
   const required = VIEW_PERMISSIONS[view];

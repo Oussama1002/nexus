@@ -116,9 +116,10 @@ export function MainApp() {
   useEffect(() => {
     const p = location.pathname.replace(/\/+$/, '') || '/';
     if (p === '/' || p === '') {
-      navigate('/dashboard', { replace: true });
+      const dest = currentUser.role === 'confirmatrice' ? '/whatsapp' : '/dashboard';
+      navigate(dest, { replace: true });
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, currentUser.role]);
 
   useEffect(() => {
     let cancelled = false;

@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
-  const { login, isAuthenticated, loading } = useAuth();
+  const { login, isAuthenticated, loading, roleSlugs } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,7 +12,8 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (!loading && isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    const dest = roleSlugs.includes('confirmatrice') ? '/whatsapp' : '/dashboard';
+    return <Navigate to={dest} replace />;
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -25,7 +26,8 @@ export function LoginPage() {
       setError(res.message);
       return;
     }
-    navigate('/dashboard', { replace: true });
+    const dest = res.roleSlugs?.includes('confirmatrice') ? '/whatsapp' : '/dashboard';
+    navigate(dest, { replace: true });
   }
 
   return (
