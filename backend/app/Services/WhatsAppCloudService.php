@@ -22,6 +22,8 @@ class WhatsAppCloudService
             ->whereIn('setting_key', [
                 'wa_provider', 'wa_api_base_url', 'wa_api_token',
                 'wa_phone_id', 'wa_business_account_id', 'wa_webhook_verify_token',
+                // Legacy keys (fallback)
+                'whatsapp_api_token', 'whatsapp_phone_id',
             ])
             ->pluck('setting_value', 'setting_key')
             ->all();
@@ -29,8 +31,8 @@ class WhatsAppCloudService
         return [
             'provider' => trim((string) ($rows['wa_provider'] ?? 'meta_cloud')),
             'base_url' => rtrim((string) ($rows['wa_api_base_url'] ?? 'https://graph.facebook.com/v25.0'), '/'),
-            'token' => trim((string) ($rows['wa_api_token'] ?? '')),
-            'phone_id' => trim((string) ($rows['wa_phone_id'] ?? '')),
+            'token' => trim((string) ($rows['wa_api_token'] ?? $rows['whatsapp_api_token'] ?? '')),
+            'phone_id' => trim((string) ($rows['wa_phone_id'] ?? $rows['whatsapp_phone_id'] ?? '')),
             'verify_token' => trim((string) ($rows['wa_webhook_verify_token'] ?? '')),
         ];
     }
