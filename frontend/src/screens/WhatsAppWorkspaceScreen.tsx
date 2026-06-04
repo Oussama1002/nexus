@@ -301,7 +301,7 @@ export function WhatsAppWorkspaceScreen({
       </div>
 
       <div className="rounded-2xl border border-zinc-200/90 bg-white shadow-[0_2px_24px_rgba(15,23,42,0.06)]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[min(780px,calc(100dvh-10rem))]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[calc(100dvh-13rem)] lg:max-h-[calc(100dvh-13rem)] overflow-hidden">
           <aside className="lg:col-span-4 flex flex-col min-w-0 min-h-0 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-100/90 bg-zinc-50/30">
             <div className="p-5 sm:p-6 border-b border-zinc-100/90 space-y-4 shrink-0">
               <div className="relative">
@@ -371,7 +371,7 @@ export function WhatsAppWorkspaceScreen({
             </div>
           </aside>
 
-          <section className="lg:col-span-8 flex flex-col min-w-0 min-h-[420px] lg:min-h-0 lg:h-full bg-white">
+          <section className="lg:col-span-8 flex flex-col min-w-0 min-h-[420px] lg:min-h-0 lg:h-full lg:max-h-full overflow-hidden bg-white">
             {selected ? (
               <>
                 <div className="px-5 sm:px-7 py-5 border-b border-zinc-100/90 shrink-0 bg-white">
@@ -449,7 +449,7 @@ export function WhatsAppWorkspaceScreen({
                   ) : null}
                 </div>
 
-                <div className="flex-1 min-h-[140px] overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 space-y-5 bg-gradient-to-b from-zinc-50/50 to-white">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 space-y-5 bg-gradient-to-b from-zinc-50/50 to-white">
                   {msgLoading ? (
                     <p className="text-sm font-bold text-zinc-500">Chargement messages…</p>
                   ) : (
