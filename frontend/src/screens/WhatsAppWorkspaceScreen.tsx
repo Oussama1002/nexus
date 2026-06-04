@@ -17,6 +17,7 @@ type ApiConversation = {
   status: string;
   channel: string;
   brand_id?: number;
+  assigned_user_id?: number | null;
   last_message_at: string | null;
   last_message_content?: string | null;
   last_message_direction?: 'inbound' | 'outbound' | null;
@@ -27,7 +28,10 @@ type ApiConversation = {
   customer?: { full_name: string; phone: string } | null;
   lead?: { id: number } | null;
   brand?: { id: number; name: string } | null;
+  assigned_user?: { id: number; name: string } | null;
 };
+
+type ApiUser = { id: number; name: string; email: string };
 
 type ApiMessage = {
   id: number;
@@ -82,6 +86,8 @@ export function WhatsAppWorkspaceScreen({
   const [newOpen, setNewOpen] = useState(false);
   const [customers, setCustomers] = useState<ApiCustomer[]>([]);
   const [newCustomerId, setNewCustomerId] = useState('');
+  const [agents, setAgents] = useState<ApiUser[]>([]);
+  const [assignSaving, setAssignSaving] = useState(false);
 
   const loadConversations = useCallback(async (silent = false) => {
     if (!activeBrandId) {
@@ -228,6 +234,27 @@ export function WhatsAppWorkspaceScreen({
   const isAdmin = roleSlugs.includes('admin');
   const canDelete = hasPermission('conversations.delete') || isAdmin;
 
+  // Load agents list for admin assignment
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    (async () => {
+      const res = await api.get<LaravelPaginator<ApiUser>>('users?per_page=200');
+      if (cancelled) return;
+      if (res.ok && isPaginator<ApiUser>(res.data)) setAgents(res.data.data);
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin]);
+
+  async function assignAgent(conversationId: number, userId: number | null) {
+    setAssignSaving(true);
+    const res = await api.patch<ApiConversation>(`conversations/${conversationId}`, { assigned_user_id: userId });
+    setAssignSaving(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    setConversations((prev) => prev.map((c) => c.id === conversationId ? { ...c, assigned_user_id: userId, assigned_user: agents.find((a) => a.id === userId) ?? null } : c));
+    toast.success('Agent assigne.');
+  }
+
   async function deleteMessage(msgId: number) {
     if (!selectedId || !confirm('Supprimer ce message ?')) return;
     const res = await api.del(`conversations/${selectedId}/messages/${msgId}`);
@@ -355,6 +382,25 @@ export function WhatsAppWorkspaceScreen({
                         <StatusChip tone={isMandatoryStatus(selected.status) ? 'success' : 'danger'}>
                           {isMandatoryStatus(selected.status) ? 'Statut valide' : 'Statut obligatoire'}
                         </StatusChip>
+                        {isAdmin && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Agent :</span>
+                            <select
+                              value={selected.assigned_user_id ?? ''}
+                              disabled={assignSaving}
+                              onChange={(e) => void assignAgent(selected.id, e.target.value ? Number(e.target.value) : null)}
+                              className="px-2 py-1 rounded-lg border border-zinc-200 text-[11px] font-bold bg-white text-zinc-700"
+                            >
+                              <option value="">— Non assigne —</option>
+                              {agents.map((a) => (
+                                <option key={a.id} value={a.id}>{a.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        {!isAdmin && selected.assigned_user && (
+                          <StatusChip tone="info">{selected.assigned_user.name}</StatusChip>
+                        )}
                         {selected.needs_reply_alert ? <StatusChip tone="warning">Reponse en retard</StatusChip> : null}
                         {showOnReadAlert ? <StatusChip tone="warning">Client en read trop longtemps</StatusChip> : null}
                       </div>
