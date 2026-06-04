@@ -18,6 +18,9 @@ type ApiConversation = {
   channel: string;
   brand_id?: number;
   last_message_at: string | null;
+  last_message_content?: string | null;
+  last_message_direction?: 'inbound' | 'outbound' | null;
+  unread_count?: number;
   is_waiting_agent_reply?: boolean;
   waiting_agent_reply_minutes?: number;
   needs_reply_alert?: boolean;
@@ -297,7 +300,7 @@ export function WhatsAppWorkspaceScreen({
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-black text-zinc-900 truncate">{name}</p>
                           <div className="flex items-center gap-1 shrink-0">
-                            <p className="text-[10px] font-bold text-zinc-400">{ts}</p>
+                            <p className={cn('text-[10px] font-bold', c.unread_count ? 'text-primary-600' : 'text-zinc-400')}>{ts}</p>
                             {canDelete && (
                               <button type="button" onClick={(e) => { e.stopPropagation(); void deleteConversation(c.id); }} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-rose-100" title="Supprimer la conversation">
                                 <Trash2 className="w-3.5 h-3.5 text-rose-400 hover:text-rose-600" />
@@ -305,10 +308,18 @@ export function WhatsAppWorkspaceScreen({
                             )}
                           </div>
                         </div>
-                        <p className="text-[11px] text-zinc-500 font-bold truncate mt-0.5">{phone}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          {c.needs_reply_alert ? <StatusChip tone="warning">Alerte reponse</StatusChip> : null}
-                          {!isMandatoryStatus(c.status) ? <StatusChip tone="danger">Statut requis</StatusChip> : null}
+                        <div className="flex items-center justify-between gap-2 mt-1">
+                          <p className={cn('text-[12px] truncate', c.unread_count ? 'font-bold text-zinc-800' : 'font-medium text-zinc-500')}>
+                            {c.last_message_direction === 'outbound' && (
+                              <CheckCircle2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-primary-500" />
+                            )}
+                            {c.last_message_content ? (c.last_message_content.length > 40 ? c.last_message_content.slice(0, 40) + '...' : c.last_message_content) : phone || 'Aucun message'}
+                          </p>
+                          {(c.unread_count ?? 0) > 0 && (
+                            <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-primary-600 text-white text-[10px] font-black flex items-center justify-center">
+                              {c.unread_count}
+                            </span>
+                          )}
                         </div>
                       </div>
                       {selectedId === c.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600" />}

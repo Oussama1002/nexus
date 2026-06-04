@@ -33,7 +33,7 @@ class ConversationController extends Controller
 
         $showAll = $request->query('all_brands') === '1';
 
-        $q = Conversation::query()->with(['customer', 'lead', 'assignedUser', 'brand:id,name'])
+        $q = Conversation::query()->with(['customer', 'lead', 'assignedUser', 'brand:id,name', 'latestMessage'])
             ->withMax(['messages as last_inbound_at' => fn ($mq) => $mq->where('direction', 'inbound')], 'sent_at')
             ->withMax(['messages as last_outbound_at' => fn ($mq) => $mq->where('direction', 'outbound')], 'sent_at')
             ->orderByDesc('last_message_at')
@@ -74,6 +74,25 @@ class ConversationController extends Controller
             $conversation->setAttribute('is_waiting_agent_reply', $waitingForAgentReply);
             $conversation->setAttribute('waiting_agent_reply_minutes', $waitingMinutes);
             $conversation->setAttribute('needs_reply_alert', $waitingForAgentReply && $waitingMinutes >= 15);
+
+            // Last message preview
+            $last = $conversation->latestMessage;
+            $conversation->setAttribute('last_message_content', $last?->content);
+            $conversation->setAttribute('last_message_direction', $last?->direction);
+
+            // Unread: inbound messages after last outbound
+            $unread = 0;
+            if ($outboundAt) {
+                $unread = $conversation->messages()
+                    ->where('direction', 'inbound')
+                    ->where('sent_at', '>', $outboundAt)
+                    ->count();
+            } elseif ($inboundAt) {
+                $unread = $conversation->messages()
+                    ->where('direction', 'inbound')
+                    ->count();
+            }
+            $conversation->setAttribute('unread_count', $unread);
 
             return $conversation;
         });

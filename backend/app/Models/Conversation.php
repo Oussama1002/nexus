@@ -49,6 +49,11 @@ class Conversation extends Model
         return $this->hasMany(Message::class);
     }
 
+    public function latestMessage()
+    {
+        return $this->hasOne(Message::class)->orderByDesc('sent_at')->orderByDesc('id');
+    }
+
     public function reminders()
     {
         return $this->hasMany(Reminder::class);
