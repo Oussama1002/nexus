@@ -594,28 +594,28 @@ export function FinanceScreen() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="card p-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="card p-5 overflow-hidden">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total charges</p>
-          <p className="mt-2 text-2xl font-black text-zinc-900">
+          <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">
             {formatCurrency(summary?.total_charges ?? 0)}
           </p>
         </div>
-        <div className="card p-5">
+        <div className="card p-5 overflow-hidden">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Ads</p>
-          <p className="mt-2 text-2xl font-black text-zinc-900">{formatCurrency(summary?.ad_spend ?? 0)}</p>
+          <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{formatCurrency(summary?.ad_spend ?? 0)}</p>
         </div>
-        <div className="card p-5">
+        <div className="card p-5 overflow-hidden">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Livraison</p>
-          <p className="mt-2 text-2xl font-black text-zinc-900">{formatCurrency(summary?.delivery_spend ?? 0)}</p>
+          <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{formatCurrency(summary?.delivery_spend ?? 0)}</p>
         </div>
-        <div className="card p-5">
+        <div className="card p-5 overflow-hidden">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Fournisseur</p>
-          <p className="mt-2 text-2xl font-black text-zinc-900">{formatCurrency(summary?.supplier_spend ?? 0)}</p>
+          <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{formatCurrency(summary?.supplier_spend ?? 0)}</p>
         </div>
-        <div className="card p-5">
+        <div className="card p-5 overflow-hidden">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Influence</p>
-          <p className="mt-2 text-2xl font-black text-emerald-700">{formatCurrency(summary?.influencer_spend ?? 0)}</p>
+          <p className="mt-2 text-lg md:text-xl font-black text-emerald-700 truncate">{formatCurrency(summary?.influencer_spend ?? 0)}</p>
         </div>
       </div>
 
