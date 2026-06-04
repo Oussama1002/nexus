@@ -32,6 +32,7 @@ type ApiLead = {
   created_at: string;
   customer?: { full_name: string; phone: string; city?: string | null; address?: string | null; gender?: string | null } | null;
   assigned_user?: { id: number; name: string } | null;
+  conversation?: { assigned_user?: { id: number; name: string } | null } | null;
 };
 
 type ApiUserRow = { id: number; name: string; email: string };
@@ -87,7 +88,7 @@ function mapLead(l: ApiLead, brandName: string): Lead {
     phone: l.customer?.phone ?? '—',
     brand: brandName,
     status: l.status,
-    agent: l.assigned_user?.name ?? '—',
+    agent: l.assigned_user?.name ?? l.conversation?.assigned_user?.name ?? '—',
     createdAt: fmtDate(l.created_at),
     price: Number(l.estimated_value ?? 0),
     source: l.source ?? '—',

@@ -35,7 +35,7 @@ class LeadController extends Controller
         $status = $request->query('status');
         $assigned = $request->query('assigned_user_id');
 
-        $q = Lead::query()->with(['customer', 'assignedUser'])->where('brand_id', $brandId)->orderByDesc('id');
+        $q = Lead::query()->with(['customer', 'assignedUser', 'conversation.assignedUser'])->where('brand_id', $brandId)->orderByDesc('id');
         if ($request->boolean('without_customer')) {
             $q->whereNull('customer_id');
         }
@@ -65,6 +65,7 @@ class LeadController extends Controller
 
         $data['brand_id'] = $brandId;
         $data['status'] = $data['status'] ?? 'new';
+        $data['assigned_user_id'] = $data['assigned_user_id'] ?? $request->user()->id;
 
         if (! empty($data['customer_id'])) {
             $this->assertCustomerInBrand((int) $data['customer_id'], $brandId);
