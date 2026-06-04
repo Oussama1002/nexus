@@ -37,6 +37,7 @@ type ApiCustomer = {
   lifecycle_status?: string | null;
   status: string;
   assigned_user?: { name: string } | null;
+  latest_conversation?: { assigned_user?: { id: number; name: string } | null } | null;
 };
 
 type ApiLeadRow = { id: number; source: string | null; status: string; customer?: ApiCustomer | null };
@@ -289,7 +290,10 @@ export function CustomersScreen() {
             {
               key: 'assign',
               header: 'Assigné',
-              cell: (c) => <span className="text-xs text-zinc-600">{c.assigned_user?.name ?? '—'}</span>,
+              cell: (c) => {
+                const name = c.assigned_user?.name ?? c.latest_conversation?.assigned_user?.name;
+                return <span className={`text-xs font-bold ${name ? 'text-zinc-700' : 'text-zinc-400'}`}>{name ?? '—'}</span>;
+              },
             },
           ]}
           emptyTitle="Aucun client"
