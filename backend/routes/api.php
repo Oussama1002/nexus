@@ -124,10 +124,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('conversations/{id}', [ConversationController::class, 'show'])->whereNumber('id')->middleware('permission:conversations.view');
     Route::put('conversations/{id}', [ConversationController::class, 'update'])->whereNumber('id')->middleware('permission:conversations.update');
     Route::patch('conversations/{id}', [ConversationController::class, 'update'])->whereNumber('id')->middleware('permission:conversations.update');
+    Route::delete('conversations/{conversationId}/messages/{messageId}', [ConversationController::class, 'destroyMessage'])->whereNumber('conversationId')->whereNumber('messageId')->middleware('permission:conversations.delete');
     Route::delete('conversations/{id}', [ConversationController::class, 'destroy'])->whereNumber('id')->middleware('permission:conversations.delete');
     Route::get('conversations/{id}/messages', [ConversationController::class, 'messages'])->whereNumber('id')->middleware('permission:conversations.view');
     Route::post('conversations/{id}/messages', [ConversationController::class, 'storeMessage'])->whereNumber('id')->middleware('permission:conversations.create');
-    Route::delete('conversations/{conversationId}/messages/{messageId}', [ConversationController::class, 'destroyMessage'])->whereNumber('conversationId')->whereNumber('messageId')->middleware('permission:conversations.delete');
 
     Route::get('orders', [OrderController::class, 'index'])->middleware('permission:orders.view');
     Route::post('orders', [OrderController::class, 'store'])->middleware('permission:orders.create');
