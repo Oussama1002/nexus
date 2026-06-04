@@ -15,18 +15,7 @@ return new class extends Migration
             $table->foreignId('campaign_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->date('charge_date');
-            $table->enum('type', [
-                'purchase_price',
-                'ads_fee',
-                'delivery_fee',
-                'confirmation_fee',
-                'packaging_fee',
-                'transport_fee',
-                'content_fee',
-                'gift_fee',
-                'risk_fee',
-                'other_fee',
-            ])->default('other_fee');
+            $table->string('type', 30)->default('other');
             $table->decimal('amount', 12, 2);
             $table->text('note')->nullable();
             $table->timestamps();
