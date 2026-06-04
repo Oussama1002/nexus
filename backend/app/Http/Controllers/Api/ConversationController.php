@@ -209,9 +209,9 @@ class ConversationController extends Controller
         $this->denyClientPortalUser($user);
         $user->loadMissing('roles');
 
-        $q = Conversation::query()->where('brand_id', $brandId)->whereKey($id);
+        $q = Conversation::query()->whereKey($id);
         if (! $user->canViewAllConversations()) {
-            $q->where('assigned_user_id', $user->id);
+            $q->where('brand_id', $brandId)->where('assigned_user_id', $user->id);
         }
 
         return $q->firstOrFail();
