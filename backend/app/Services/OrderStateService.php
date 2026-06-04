@@ -45,7 +45,7 @@ class OrderStateService
                 $locked->confirmed_at = now();
             }
 
-            if ($toStatus === 'cancelled' && $from === 'confirmed') {
+            if ($toStatus === 'cancelled' && in_array($from, ['confirmed', 'prepared', 'shipped'], true)) {
                 $locked->load(['lines.product']);
                 foreach ($locked->lines as $line) {
                     if ($line->product_id && $line->product) {

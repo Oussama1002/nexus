@@ -138,9 +138,18 @@ class StockService
         ]);
     }
 
-    public function releaseForOrderLine(Product $product, int $qty, Order $order, ?User $actor): StockMovement
+    public function releaseForOrderLine(Product $product, int $qty, Order $order, ?User $actor): ?StockMovement
     {
-        return $this->recordMovement($product, 'release', $qty, $actor, [
+        // Only release up to what is actually reserved – avoids crash when
+        // the order was confirmed before stock tracking existed or when the
+        // product had no reservation.
+        $reserved = (int) $product->reserved_quantity;
+        $releaseQty = min($qty, $reserved);
+        if ($releaseQty <= 0) {
+            return null; // nothing to release
+        }
+
+        return $this->recordMovement($product, 'release', $releaseQty, $actor, [
             'reference_type' => 'order',
             'reference_id' => $order->id,
             'reason' => 'order_cancelled',

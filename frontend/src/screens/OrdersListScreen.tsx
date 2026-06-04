@@ -513,28 +513,30 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
               </div>
             )}
 
-            {hasPermission('orders.update') && (
+            {(hasPermission('orders.update') || hasPermission('orders.delete')) && (
               <div className="space-y-3">
                 <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Actions</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    disabled={statusSaving || selected.status === 'Confirmé'}
-                    onClick={() => void patchStatus('Confirmé')}
-                    className="py-3 rounded-xl bg-primary-600 text-white font-black text-sm hover:bg-primary-700 transition-colors disabled:opacity-50"
-                  >
-                    Confirmer
-                  </button>
-                  <button
-                    type="button"
-                    disabled={statusSaving || selected.status === 'Annulé'}
-                    onClick={() => { setCancelReason(''); setCancelModalOpen(true); }}
-                    className="py-3 rounded-xl border border-rose-200 text-rose-700 font-black text-sm hover:bg-rose-50 transition-colors disabled:opacity-50"
-                  >
-                    Annuler
-                  </button>
-                </div>
-                {hasPermission('orders.delete') && ['Brouillon', 'En attente', 'Annulé'].includes(selected.status) && (
+                {hasPermission('orders.update') && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      disabled={statusSaving || selected.status === 'Confirmé'}
+                      onClick={() => void patchStatus('Confirmé')}
+                      className="py-3 rounded-xl bg-primary-600 text-white font-black text-sm hover:bg-primary-700 transition-colors disabled:opacity-50"
+                    >
+                      Confirmer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={statusSaving || selected.status === 'Annulé'}
+                      onClick={() => { setCancelReason(''); setCancelModalOpen(true); }}
+                      className="py-3 rounded-xl border border-rose-200 text-rose-700 font-black text-sm hover:bg-rose-50 transition-colors disabled:opacity-50"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                )}
+                {['Brouillon', 'En attente', 'Annulé'].includes(selected.status) && (
                   <button
                     type="button"
                     onClick={() => { setDeleteError(null); setDeleteModalOpen(true); }}
