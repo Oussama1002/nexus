@@ -83,18 +83,18 @@ export function WhatsAppWorkspaceScreen({
   const [customers, setCustomers] = useState<ApiCustomer[]>([]);
   const [newCustomerId, setNewCustomerId] = useState('');
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (silent = false) => {
     if (!activeBrandId) {
       setConversations([]);
-      setLoading(false);
+      if (!silent) setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     const res = await api.get<LaravelPaginator<ApiConversation>>('conversations?per_page=100&all_brands=1');
-    setLoading(false);
+    if (!silent) setLoading(false);
     if (!res.ok) {
-      toast.error(res.message);
-      setConversations([]);
+      if (!silent) toast.error(res.message);
+      if (!silent) setConversations([]);
       return;
     }
     setConversations(isPaginator<ApiConversation>(res.data) ? res.data.data : []);
@@ -104,14 +104,20 @@ export function WhatsAppWorkspaceScreen({
     void loadConversations();
   }, [loadConversations]);
 
+  // Auto-refresh conversations every 5s
+  useEffect(() => {
+    const timer = window.setInterval(() => { void loadConversations(true); }, 5000);
+    return () => window.clearInterval(timer);
+  }, [loadConversations]);
+
   const loadMessages = useCallback(
-    async (cid: number) => {
-      setMsgLoading(true);
+    async (cid: number, silent = false) => {
+      if (!silent) setMsgLoading(true);
       const res = await api.get<LaravelPaginator<ApiMessage>>(`conversations/${cid}/messages?per_page=100`);
-      setMsgLoading(false);
+      if (!silent) setMsgLoading(false);
       if (!res.ok) {
-        toast.error(res.message);
-        setMessages([]);
+        if (!silent) toast.error(res.message);
+        if (!silent) setMessages([]);
         return;
       }
       setMessages(isPaginator<ApiMessage>(res.data) ? res.data.data : []);
@@ -122,6 +128,13 @@ export function WhatsAppWorkspaceScreen({
   useEffect(() => {
     if (selectedId) void loadMessages(selectedId);
     else setMessages([]);
+  }, [selectedId, loadMessages]);
+
+  // Auto-refresh messages every 3s when a conversation is open
+  useEffect(() => {
+    if (!selectedId) return;
+    const timer = window.setInterval(() => { void loadMessages(selectedId, true); }, 3000);
+    return () => window.clearInterval(timer);
   }, [selectedId, loadMessages]);
 
   useEffect(() => {
