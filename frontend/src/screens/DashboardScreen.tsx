@@ -305,26 +305,68 @@ export function DashboardScreen() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="card p-6 xl:col-span-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-black text-[color:var(--color-text-0)]">Synthèse</p>
+              <p className="text-sm font-black text-[color:var(--color-text-0)]">Commandes par statut</p>
               <p className="mt-1 text-xs font-medium text-[color:var(--color-text-2)]">
-                Les totaux respectent la période choisie ci-dessus (filtre sur les dates de création des enregistrements).
+                Répartition sur la période sélectionnée
               </p>
             </div>
-            <StatusChip tone="info">{c ? `${c.brands} marque(s)` : '—'}</StatusChip>
+            <StatusChip tone="info">{c ? `${c.orders} total` : '—'}</StatusChip>
           </div>
-          <p className="mt-4 text-xs text-zinc-500">
-            Marge, capital ou ratios avancés nécessitent les modules Finance / Reportings selon votre périmètre.
-          </p>
+          {payload?.orders_by_status && Object.keys(payload.orders_by_status).length > 0 ? (
+            <div className="space-y-2.5">
+              {(() => {
+                const entries = Object.entries(payload.orders_by_status).sort((a, b) => b[1] - a[1]);
+                const max = Math.max(...entries.map(([, v]) => v), 1);
+                const colors: Record<string, string> = { confirmed: 'bg-emerald-500', pending: 'bg-amber-500', shipped: 'bg-blue-500', delivered: 'bg-primary-600', cancelled: 'bg-rose-500', returned: 'bg-zinc-400', new: 'bg-cyan-500' };
+                return entries.map(([label, value]) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-zinc-600 w-24 text-right capitalize">{label}</span>
+                    <div className="flex-1 h-7 bg-zinc-100 rounded-lg overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-lg transition-all duration-500', colors[label] ?? 'bg-primary-400')}
+                        style={{ width: `${Math.max((value / max) * 100, 2)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-black text-zinc-800 w-10">{value}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-400 mt-4">Aucune commande sur cette période.</p>
+          )}
         </div>
 
         <div className="card p-6">
-          <p className="text-sm font-black text-[color:var(--color-text-0)]">Campagnes & analytics</p>
-          <p className="mt-1 text-xs font-medium text-[color:var(--color-text-2)]">
-            Les graphes et attributions détaillées sont disponibles via{' '}
-            <strong>Campagnes Ads</strong> et <strong>Reportings</strong>.
+          <p className="text-sm font-black text-[color:var(--color-text-0)]">Colis par statut</p>
+          <p className="mt-1 text-xs font-medium text-[color:var(--color-text-2)] mb-4">
+            Répartition des expéditions
           </p>
+          {payload?.shipments_by_status && Object.keys(payload.shipments_by_status).length > 0 ? (
+            <div className="space-y-2.5">
+              {(() => {
+                const entries = Object.entries(payload.shipments_by_status).sort((a, b) => b[1] - a[1]);
+                const max = Math.max(...entries.map(([, v]) => v), 1);
+                const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-blue-500', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-cyan-500' };
+                return entries.map(([label, value]) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-zinc-600 w-20 text-right capitalize">{label.replace(/_/g, ' ')}</span>
+                    <div className="flex-1 h-7 bg-zinc-100 rounded-lg overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-lg transition-all duration-500', colors[label] ?? 'bg-primary-400')}
+                        style={{ width: `${Math.max((value / max) * 100, 2)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-black text-zinc-800 w-10">{value}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-400 mt-4">Aucun colis sur cette période.</p>
+          )}
         </div>
       </div>
     </div>

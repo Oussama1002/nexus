@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 
 export function ProfileScreen() {
-  const { user, roles, permissions, fetchMe } = useAuth();
+  const { user, roles, fetchMe } = useAuth();
   const { brands, activeBrand } = useBrand();
   const toast = useToast();
 
@@ -155,17 +155,6 @@ export function ProfileScreen() {
             {savingPw ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Modifier le mot de passe
           </button>
-        </div>
-      </div>
-
-      <div className="card p-6 space-y-4">
-        <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Permissions</h2>
-        <div className="flex flex-wrap gap-1.5">
-          {permissions.map((p) => (
-            <span key={p.id} className="px-2 py-1 rounded-lg bg-zinc-100 text-zinc-600 text-[11px] font-bold">
-              {p.slug}
-            </span>
-          ))}
         </div>
       </div>
 

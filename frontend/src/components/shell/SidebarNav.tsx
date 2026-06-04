@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 
 export type NavItem = {
@@ -26,6 +26,18 @@ export function SidebarNav({
   header?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const active = navRef.current?.querySelector('[aria-current="page"]');
+      if (active) {
+        active.scrollIntoView({ block: 'center', behavior: 'auto' });
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [groups]);
+
   return (
     <aside
       className={cn(
@@ -34,7 +46,7 @@ export function SidebarNav({
       )}
     >
       <div className="p-6 pb-2">{header}</div>
-      <nav className="flex-1 px-4 py-8 space-y-8 overflow-y-auto scrollbar-hide">
+      <nav ref={navRef} className="flex-1 px-4 py-8 space-y-8 overflow-y-auto scrollbar-hide">
         {groups.map((g) => (
           <div key={g.id} className="space-y-2">
             {open && <p className="px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">{g.label}</p>}

@@ -53,14 +53,13 @@ class SettingsConnectionTestService
     /** @return array{success: bool, message: string} */
     public function whatsapp(int $brandId): array
     {
-        $provider = $this->val($brandId, 'wa_provider') ?: $this->val($brandId, 'whatsapp_provider');
         $phoneId = $this->val($brandId, 'wa_phone_id') ?: $this->val($brandId, 'whatsapp_phone_id');
-        if ($provider === '' || $phoneId === '') {
-            return ['success' => false, 'message' => 'Configuration incomplète.'];
+        if ($phoneId === '') {
+            return ['success' => false, 'message' => 'Phone ID manquant.'];
         }
         $tokOk = $this->hasSecret($brandId, 'wa_api_token') || $this->hasSecret($brandId, 'whatsapp_api_token');
         if (! $tokOk) {
-            return ['success' => false, 'message' => 'Configuration incomplète.'];
+            return ['success' => false, 'message' => 'Jeton API manquant.'];
         }
 
         return ['success' => true, 'message' => 'Identifiants WhatsApp présents — appel API non exécuté dans cette version.'];

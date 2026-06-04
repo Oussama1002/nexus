@@ -78,6 +78,30 @@ const MOVEMENT_TYPE_FR: Record<string, string> = {
   returned: 'Retour',
 };
 
+const REASON_FR: Record<string, string> = {
+  initial_stock_on_create: 'Stock initial',
+  manual_adjustment: 'Ajustement manuel',
+  order_confirmed: 'Commande confirmée',
+  order_cancelled: 'Commande annulée',
+  order_shipped: 'Commande expédiée',
+  order_delivered: 'Commande livrée',
+  order_returned: 'Retour commande',
+  order_reservation: 'Réservation commande',
+  reservation_released: 'Réservation libérée',
+  stock_transfer: 'Transfert de stock',
+  damaged_item: 'Article endommagé',
+  inventory_count: 'Inventaire',
+  supplier_delivery: 'Livraison fournisseur',
+  customer_return: 'Retour client',
+  po_received: 'Réception bon de commande',
+  production: 'Production',
+  lost: 'Perte',
+  expired: 'Périmé',
+  gift: 'Cadeau / Offert',
+  sample: 'Échantillon',
+  correction: 'Correction',
+};
+
 export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock' }) {
   const { activeBrandId, activeBrand, brands } = useBrand();
   const { hasPermission } = useAuth();
@@ -435,7 +459,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                 cell: (m: ApiMovementRow) => <StatusChip tone="neutral">{MOVEMENT_TYPE_FR[m.movement_type] ?? m.movement_type}</StatusChip>,
               },
               { key: 'q', header: 'Qté', cell: (m: ApiMovementRow) => <span className="font-black">{m.quantity ?? '—'}</span> },
-              { key: 'r', header: 'Raison', cell: (m: ApiMovementRow) => <span className="text-sm text-zinc-600">{m.reason ?? '—'}</span> },
+              { key: 'r', header: 'Raison', cell: (m: ApiMovementRow) => <span className="text-sm text-zinc-600">{m.reason ? (REASON_FR[m.reason] ?? m.reason) : '—'}</span> },
             ] satisfies Column<ApiMovementRow>[]
           }
           emptyTitle="Aucun mouvement"
