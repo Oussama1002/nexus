@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Archive, Pencil } from 'lucide-react';
+import { Archive, Pencil, Trash2 } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
 import { formatCurrency } from '../../lib/utils';
 import * as api from '../../lib/api';
@@ -67,12 +67,15 @@ type Props = {
   onEdit: () => void;
   canUpdate: boolean;
   onArchive?: (id: number) => void;
+  onDelete?: (id: number) => void;
 };
 
-export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpdate, onArchive }: Props) {
+export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpdate, onArchive, onDelete }: Props) {
   const [data, setData] = useState<DetailPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!open || !customerId) {
@@ -120,28 +123,59 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
               {onArchive && customerId && (() => {
                 const isArchived = (cust.lifecycle_status as string) === 'inactive' || (cust.status as string) === 'inactive';
                 return (
-                  <button
-                    type="button"
-                    disabled={archiving}
-                    onClick={async () => {
-                      setArchiving(true);
-                      const newStatus = isArchived ? 'active' : 'inactive';
-                      const res = await api.put(`customers/${customerId}`, { lifecycle_status: newStatus });
-                      setArchiving(false);
-                      if (res.ok) {
-                        onArchive(customerId);
-                        onClose();
-                      }
-                    }}
-                    className={`px-4 py-2 rounded-xl border text-xs font-black inline-flex items-center gap-2 ${
-                      isArchived
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50'
-                    }`}
-                  >
-                    <Archive className="w-3.5 h-3.5" />
-                    {archiving ? '...' : isArchived ? 'Désarchiver client' : 'Archiver client'}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      disabled={archiving}
+                      onClick={async () => {
+                        setArchiving(true);
+                        const newStatus = isArchived ? 'active' : 'inactive';
+                        const res = await api.put(`customers/${customerId}`, { lifecycle_status: newStatus });
+                        setArchiving(false);
+                        if (res.ok) {
+                          onArchive(customerId);
+                          onClose();
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-xl border text-xs font-black inline-flex items-center gap-2 ${
+                        isArchived
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <Archive className="w-3.5 h-3.5" />
+                      {archiving ? '...' : isArchived ? 'Désarchiver client' : 'Archiver client'}
+                    </button>
+                    {isArchived && onDelete && (
+                      !confirmDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(true)}
+                          className="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black inline-flex items-center gap-2 hover:bg-rose-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Supprimer définitivement
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={deleting}
+                          onClick={async () => {
+                            setDeleting(true);
+                            const res = await api.del(`customers/${customerId}`);
+                            setDeleting(false);
+                            setConfirmDelete(false);
+                            if (res.ok) {
+                              onDelete(customerId);
+                              onClose();
+                            }
+                          }}
+                          className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-black inline-flex items-center gap-2 hover:bg-rose-700"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> {deleting ? 'Suppression…' : 'Confirmer la suppression'}
+                        </button>
+                      )
+                    )}
+                  </>
                 );
               })()}
             </div>
