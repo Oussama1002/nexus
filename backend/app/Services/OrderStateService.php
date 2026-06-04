@@ -27,7 +27,7 @@ class OrderStateService
             throw new RuntimeException('Invalid order status.');
         }
 
-        return DB::transaction(function () use ($order, $toStatus, $user, $note) {
+        $result = DB::transaction(function () use ($order, $toStatus, $user, $note) {
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             $from = $locked->status;
@@ -85,20 +85,22 @@ class OrderStateService
                 'event_at' => now(),
             ]);
 
-            // Auto-send invoice via WhatsApp when order is confirmed
-            if ($toStatus === 'confirmed') {
-                try {
-                    $this->sendInvoiceViaWhatsApp($locked, $user);
-                } catch (\Throwable $e) {
-                    Log::warning('invoice.whatsapp_send.failed', [
-                        'order_id' => $locked->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
             return $locked->fresh(['lines', 'events']);
         });
+
+        // Auto-send invoice via WhatsApp AFTER transaction commits
+        if ($toStatus === 'confirmed') {
+            try {
+                $this->sendInvoiceViaWhatsApp($result->fresh(['customer', 'lines']), $user);
+            } catch (\Throwable $e) {
+                Log::warning('invoice.whatsapp_send.failed', [
+                    'order_id' => $result->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $result;
     }
 
     public function recalculateTotals(Order $order): Order
@@ -121,19 +123,32 @@ class OrderStateService
 
         $customer = $order->customer;
         if (! $customer) {
+            Log::info('invoice.whatsapp: no customer on order', ['order_id' => $order->id]);
             return;
         }
 
-        // Find existing conversation for this customer + brand
+        // Find existing conversation for this customer or lead + brand
         $conversation = Conversation::query()
             ->where('brand_id', $order->brand_id)
-            ->where('customer_id', $customer->id)
             ->where('channel', 'whatsapp')
+            ->where(function ($q) use ($order, $customer) {
+                $q->where('customer_id', $customer->id);
+                if ($order->lead_id) {
+                    $q->orWhere('lead_id', $order->lead_id);
+                }
+            })
+            ->whereNotNull('external_thread_id')
+            ->where('external_thread_id', '!=', '')
             ->latest('last_message_at')
             ->first();
 
-        if (! $conversation || ! $conversation->external_thread_id) {
-            return; // no WhatsApp conversation to send to
+        if (! $conversation) {
+            Log::info('invoice.whatsapp: no conversation found', [
+                'order_id' => $order->id,
+                'customer_id' => $customer->id,
+                'lead_id' => $order->lead_id,
+            ]);
+            return;
         }
 
         // Build invoice message
