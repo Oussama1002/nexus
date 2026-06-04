@@ -57,12 +57,37 @@ class SettingsConnectionTestService
         if ($phoneId === '') {
             return ['success' => false, 'message' => 'Phone ID manquant.'];
         }
-        $tokOk = $this->hasSecret($brandId, 'wa_api_token') || $this->hasSecret($brandId, 'whatsapp_api_token');
-        if (! $tokOk) {
+        $token = $this->val($brandId, 'wa_api_token') ?: $this->val($brandId, 'whatsapp_api_token');
+        if ($token === '' || preg_match('/^\*+$/', $token)) {
             return ['success' => false, 'message' => 'Jeton API manquant.'];
         }
 
-        return ['success' => true, 'message' => 'Identifiants WhatsApp présents — appel API non exécuté dans cette version.'];
+        // Real API call to verify credentials
+        $baseUrl = $this->val($brandId, 'wa_api_base_url');
+        if ($baseUrl === '') {
+            $baseUrl = 'https://graph.facebook.com/v25.0';
+        }
+        $baseUrl = rtrim($baseUrl, '/');
+
+        try {
+            $res = \Illuminate\Support\Facades\Http::withToken($token)
+                ->acceptJson()
+                ->timeout(10)
+                ->get("{$baseUrl}/{$phoneId}");
+
+            if ($res->successful()) {
+                $name = $res->json('verified_name') ?? $res->json('display_phone_number') ?? '';
+                $suffix = $name ? " ({$name})" : '';
+
+                return ['success' => true, 'message' => "Connexion WhatsApp OK{$suffix}."];
+            }
+
+            $errMsg = $res->json('error.message') ?? $res->body();
+
+            return ['success' => false, 'message' => "Erreur Meta API: {$errMsg}"];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => 'Erreur de connexion: '.$e->getMessage()];
+        }
     }
 
     /** @return array{success: bool, message: string} */
