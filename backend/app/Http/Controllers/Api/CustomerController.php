@@ -154,7 +154,12 @@ class CustomerController extends Controller
         $customer = Customer::query()->where('brand_id', $brandId)->findOrFail($id);
 
         if (Order::query()->where('customer_id', $customer->id)->exists()) {
-            return ApiResponse::error('Cannot delete customer with orders.', null, 422);
+            return ApiResponse::error('Impossible de supprimer : ce client a des commandes liées.', null, 422);
+        }
+
+        if (Conversation::query()->where('customer_id', $customer->id)->exists()) {
+            // Delete linked conversations first
+            Conversation::query()->where('customer_id', $customer->id)->delete();
         }
 
         $before = $customer->toArray();

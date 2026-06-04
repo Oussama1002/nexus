@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Archive, Pencil, Trash2 } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
+import { Modal } from '../ui/Modal';
 import { formatCurrency } from '../../lib/utils';
 import * as api from '../../lib/api';
 import {
@@ -76,6 +77,7 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !customerId) {
@@ -100,6 +102,7 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
   const stats = data?.crm_stats;
 
   return (
+    <>
     <Drawer
       open={open && customerId !== null}
       onClose={onClose}
@@ -147,33 +150,13 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
                       {archiving ? '...' : isArchived ? 'Désarchiver client' : 'Archiver client'}
                     </button>
                     {isArchived && onDelete && (
-                      !confirmDelete ? (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDelete(true)}
-                          className="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black inline-flex items-center gap-2 hover:bg-rose-100"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Supprimer définitivement
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={deleting}
-                          onClick={async () => {
-                            setDeleting(true);
-                            const res = await api.del(`customers/${customerId}`);
-                            setDeleting(false);
-                            setConfirmDelete(false);
-                            if (res.ok) {
-                              onDelete(customerId);
-                              onClose();
-                            }
-                          }}
-                          className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-black inline-flex items-center gap-2 hover:bg-rose-700"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> {deleting ? 'Suppression…' : 'Confirmer la suppression'}
-                        </button>
-                      )
+                      <button
+                        type="button"
+                        onClick={() => { setDeleteError(null); setConfirmDelete(true); }}
+                        className="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-black inline-flex items-center gap-2 hover:bg-rose-100"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Supprimer définitivement
+                      </button>
                     )}
                   </>
                 );
@@ -269,5 +252,57 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
         </div>
       )}
     </Drawer>
+
+    <Modal
+      open={confirmDelete}
+      onClose={() => { setConfirmDelete(false); setDeleteError(null); }}
+      title="Supprimer définitivement"
+      subtitle={`Êtes-vous sûr de vouloir supprimer "${cust?.full_name ?? ''}" ? Cette action est irréversible.`}
+      footer={
+        <div className="space-y-3">
+          {deleteError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800">
+              {deleteError}
+            </div>
+          )}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => { setConfirmDelete(false); setDeleteError(null); }}
+              className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={async () => {
+                if (!customerId) return;
+                setDeleting(true);
+                setDeleteError(null);
+                const res = await api.del(`customers/${customerId}`);
+                setDeleting(false);
+                if (res.ok) {
+                  setConfirmDelete(false);
+                  onDelete?.(customerId);
+                  onClose();
+                } else {
+                  setDeleteError(res.message || 'Impossible de supprimer ce client.');
+                }
+              }}
+              className="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-black hover:bg-rose-700 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+              {deleting ? 'Suppression…' : 'Supprimer définitivement'}
+            </button>
+          </div>
+        </div>
+      }
+    >
+      <p className="text-sm text-zinc-600">
+        Toutes les données de ce client seront supprimées. Si le client a des commandes liées, la suppression sera refusée.
+      </p>
+    </Modal>
+    </>
   );
 }
