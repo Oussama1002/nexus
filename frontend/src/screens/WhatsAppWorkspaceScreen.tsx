@@ -16,12 +16,14 @@ type ApiConversation = {
   id: number;
   status: string;
   channel: string;
+  brand_id?: number;
   last_message_at: string | null;
   is_waiting_agent_reply?: boolean;
   waiting_agent_reply_minutes?: number;
   needs_reply_alert?: boolean;
   customer?: { full_name: string; phone: string } | null;
   lead?: { id: number } | null;
+  brand?: { id: number; name: string } | null;
 };
 
 type ApiMessage = {
@@ -85,7 +87,7 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setLoading(true);
-    const res = await api.get<LaravelPaginator<ApiConversation>>('conversations?per_page=100');
+    const res = await api.get<LaravelPaginator<ApiConversation>>('conversations?per_page=100&all_brands=1');
     setLoading(false);
     if (!res.ok) {
       toast.error(res.message);
@@ -278,8 +280,6 @@ export function WhatsAppWorkspaceScreen({
                         </div>
                         <p className="text-[11px] text-zinc-500 font-bold truncate mt-0.5">{phone}</p>
                         <div className="mt-2 flex items-center gap-2">
-                          <StatusChip tone="neutral">{c.status}</StatusChip>
-                          <StatusChip tone="info">{c.channel}</StatusChip>
                           {c.needs_reply_alert ? <StatusChip tone="warning">Alerte reponse</StatusChip> : null}
                           {!isMandatoryStatus(c.status) ? <StatusChip tone="danger">Statut requis</StatusChip> : null}
                         </div>

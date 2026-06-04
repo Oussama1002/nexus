@@ -31,12 +31,17 @@ class ConversationController extends Controller
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
 
-        $q = Conversation::query()->with(['customer', 'lead', 'assignedUser'])
+        $showAll = $request->query('all_brands') === '1';
+
+        $q = Conversation::query()->with(['customer', 'lead', 'assignedUser', 'brand:id,name'])
             ->withMax(['messages as last_inbound_at' => fn ($mq) => $mq->where('direction', 'inbound')], 'sent_at')
             ->withMax(['messages as last_outbound_at' => fn ($mq) => $mq->where('direction', 'outbound')], 'sent_at')
-            ->where('brand_id', $brandId)
             ->orderByDesc('last_message_at')
             ->orderByDesc('id');
+
+        if (! $showAll) {
+            $q->where('brand_id', $brandId);
+        }
 
         if (! $user->canViewAllConversations()) {
             $q->where('assigned_user_id', $user->id);
