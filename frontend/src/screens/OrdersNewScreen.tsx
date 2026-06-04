@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Trash2, Search, User } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { formatCurrency } from '../lib/utils';
 import type { OrderBrand, OrderDraft, OrderLine, OrderSource } from '../domain/orders';
@@ -16,6 +16,14 @@ type ApiProduct = {
   name: string;
   sku: string;
   price: string;
+};
+
+type ApiCustomer = {
+  id: number;
+  full_name: string;
+  phone: string;
+  city: string | null;
+  address: string | null;
 };
 
 const DRAFT_KEY = 'nexus.orderDraft';
@@ -37,6 +45,9 @@ export function OrdersNewScreen({
   const [saving, setSaving] = useState(false);
   const [errLines, setErrLines] = useState<string[]>([]);
   const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [customers, setCustomers] = useState<ApiCustomer[]>([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const customerBoxRef = useRef<HTMLDivElement>(null);
 
   const [source, setSource] = useState<OrderSource>('WhatsApp');
   const [customerName, setCustomerName] = useState('');
@@ -79,14 +90,52 @@ export function OrdersNewScreen({
     let cancelled = false;
     (async () => {
       if (!activeBrandId) return;
-      const res = await api.get<LaravelPaginator<ApiProduct>>('products?per_page=100');
+      const [pRes, cRes] = await Promise.all([
+        api.get<LaravelPaginator<ApiProduct>>('products?per_page=100'),
+        api.get<LaravelPaginator<ApiCustomer>>('customers?per_page=200&status=all'),
+      ]);
       if (cancelled) return;
-      if (res.ok && isPaginator<ApiProduct>(res.data)) setProducts(res.data.data);
+      if (pRes.ok && isPaginator<ApiProduct>(pRes.data)) setProducts(pRes.data.data);
+      if (cRes.ok && isPaginator<ApiCustomer>(cRes.data)) setCustomers(cRes.data.data);
     })();
     return () => {
       cancelled = true;
     };
   }, [activeBrandId]);
+
+  // Close customer dropdown on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (customerBoxRef.current && !customerBoxRef.current.contains(e.target as Node)) {
+        setShowCustomerDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const filteredCustomers = useMemo(() => {
+    if (!customerName.trim()) return customers;
+    const q = customerName.trim().toLowerCase();
+    return customers.filter(
+      (c) =>
+        c.full_name.toLowerCase().includes(q) ||
+        c.phone.includes(q) ||
+        (c.city ?? '').toLowerCase().includes(q),
+    );
+  }, [customers, customerName]);
+
+  const selectCustomer = useCallback(
+    (c: ApiCustomer) => {
+      setCustomerId(c.id);
+      setCustomerName(c.full_name);
+      setPhone(c.phone);
+      setCity(c.city ?? '');
+      setAddress(c.address ?? '');
+      setShowCustomerDropdown(false);
+    },
+    [],
+  );
 
   const totals = useMemo(() => {
     const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
@@ -205,9 +254,45 @@ export function OrdersNewScreen({
           <div className="card p-6 space-y-5">
             <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Client</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 relative" ref={customerBoxRef}>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Nom</label>
-                <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+                <div className="relative">
+                  <input
+                    value={customerName}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      setCustomerId(undefined); // clear linked customer on free-type
+                      setShowCustomerDropdown(true);
+                    }}
+                    onFocus={() => setShowCustomerDropdown(true)}
+                    placeholder="Tapez pour chercher un client…"
+                    className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 pr-10"
+                  />
+                  {customerId ? (
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  )}
+                </div>
+                {customerId && (
+                  <p className="text-[11px] text-emerald-600 font-bold">Client existant sélectionné</p>
+                )}
+                {showCustomerDropdown && filteredCustomers.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg">
+                    {filteredCustomers.slice(0, 30).map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => selectCustomer(c)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-primary-50 transition-colors border-b border-zinc-100 last:border-b-0"
+                      >
+                        <span className="font-bold text-sm text-zinc-800">{c.full_name}</span>
+                        <span className="ml-2 text-xs text-zinc-500">{c.phone}</span>
+                        {c.city && <span className="ml-2 text-xs text-zinc-400">— {c.city}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Téléphone</label>
