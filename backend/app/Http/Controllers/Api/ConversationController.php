@@ -191,6 +191,17 @@ class ConversationController extends Controller
         return ApiResponse::success($message->fresh(['sender']), 'Message added successfully.', 201);
     }
 
+    public function destroyMessage(Request $request, string $conversationId, string $messageId): JsonResponse
+    {
+        $conversation = $this->findConversationForUser($request, $conversationId);
+        $message = Message::query()->where('conversation_id', $conversation->id)->findOrFail($messageId);
+        $before = $message->toArray();
+        $message->delete();
+        AuditLogger::log($request, 'messages.delete', null, $before, null);
+
+        return ApiResponse::success(null, 'Message deleted successfully.');
+    }
+
     protected function findConversationForUser(Request $request, string $id): Conversation
     {
         $brandId = ApiBrandContext::resolveBrandId($request);

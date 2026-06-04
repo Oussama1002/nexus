@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, MessageSquare, Paperclip, Search, Send, Smile } from 'lucide-react';
+import { CheckCircle2, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -209,6 +209,26 @@ export function WhatsAppWorkspaceScreen({
     await loadConversations();
   }
 
+  const isAdmin = roleSlugs.includes('admin');
+  const canDelete = hasPermission('conversations.delete') || isAdmin;
+
+  async function deleteMessage(msgId: number) {
+    if (!selectedId || !confirm('Supprimer ce message ?')) return;
+    const res = await api.del(`conversations/${selectedId}/messages/${msgId}`);
+    if (!res.ok) { toast.error(res.message); return; }
+    setMessages((prev) => prev.filter((m) => m.id !== msgId));
+    toast.success('Message supprime.');
+  }
+
+  async function deleteConversation(cid: number) {
+    if (!confirm('Supprimer cette conversation et tous ses messages ?')) return;
+    const res = await api.del(`conversations/${cid}`);
+    if (!res.ok) { toast.error(res.message); return; }
+    setConversations((prev) => prev.filter((c) => c.id !== cid));
+    if (selectedId === cid) { setSelectedId(null); setMessages([]); }
+    toast.success('Conversation supprimee.');
+  }
+
   if (!activeBrandId) {
     return <EmptyState title="Marque requise" description="Choisissez une marque pour charger les conversations." />;
   }
@@ -266,7 +286,7 @@ export function WhatsAppWorkspaceScreen({
                       type="button"
                       onClick={() => handleSelectConversation(c.id)}
                       className={cn(
-                        'w-full text-left p-5 sm:p-6 flex gap-4 hover:bg-white/80 transition-colors relative',
+                        'w-full text-left p-5 sm:p-6 flex gap-4 hover:bg-white/80 transition-colors relative group',
                         selectedId === c.id && 'bg-primary-50/80',
                       )}
                     >
@@ -276,7 +296,14 @@ export function WhatsAppWorkspaceScreen({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-black text-zinc-900 truncate">{name}</p>
-                          <p className="text-[10px] font-bold text-zinc-400 shrink-0">{ts}</p>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <p className="text-[10px] font-bold text-zinc-400">{ts}</p>
+                            {canDelete && (
+                              <button type="button" onClick={(e) => { e.stopPropagation(); void deleteConversation(c.id); }} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-rose-100" title="Supprimer la conversation">
+                                <Trash2 className="w-3.5 h-3.5 text-rose-400 hover:text-rose-600" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-[11px] text-zinc-500 font-bold truncate mt-0.5">{phone}</p>
                         <div className="mt-2 flex items-center gap-2">
@@ -359,7 +386,7 @@ export function WhatsAppWorkspaceScreen({
                       const isAgent = m.direction === 'outbound';
                       const ts = m.sent_at ? new Date(m.sent_at).getTime() : Date.now();
                       return (
-                        <div key={m.id} className={cn('flex gap-3 max-w-[min(92%,28rem)]', isAgent ? 'flex-row-reverse ml-auto' : '')}>
+                        <div key={m.id} className={cn('flex gap-3 max-w-[min(92%,28rem)] group/msg', isAgent ? 'flex-row-reverse ml-auto' : '')}>
                           {!isAgent && (
                             <div className="w-8 h-8 rounded-xl bg-zinc-200 shrink-0 flex items-center justify-center text-[10px] font-black text-zinc-600">
                               {(selected.customer?.full_name ?? '?')[0]}
@@ -381,6 +408,11 @@ export function WhatsAppWorkspaceScreen({
                                 {new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                               {isAgent && <CheckCircle2 className="w-3 h-3 text-primary-500" />}
+                              {canDelete && (
+                                <button type="button" onClick={() => void deleteMessage(m.id)} className="ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity p-0.5 rounded hover:bg-rose-100" title="Supprimer">
+                                  <Trash2 className="w-3 h-3 text-rose-400 hover:text-rose-600" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
