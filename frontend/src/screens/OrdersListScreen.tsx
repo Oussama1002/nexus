@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronRight, Filter, Plus } from 'lucide-react';
+import { Calendar, ChevronRight, Filter, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
 import { Drawer } from '../components/ui/Drawer';
+import { Modal } from '../components/ui/Modal';
 import { StatusChip } from '../components/ui/StatusChip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn, formatCurrency } from '../lib/utils';
@@ -29,6 +30,7 @@ type ApiOrderRow = {
   bank_transfer_verification_note?: string | null;
   total: string;
   notes?: string | null;
+  cancellation_reason?: string | null;
   created_at: string;
   customer?: { full_name: string; phone: string; city?: string | null } | null;
   lines?: { product_name: string; quantity: number; unit_price: string }[];
@@ -129,6 +131,7 @@ function mapOrder(o: ApiOrderRow, brandName: string): Order {
         price: Number(ln.unit_price),
       })) ?? [],
     notes: o.notes ?? undefined,
+    cancellationReason: o.cancellation_reason ?? undefined,
   };
 }
 
@@ -181,6 +184,11 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const [dateRange, setDateRange] = useState<'Aujourd’hui' | '7 jours' | '30 jours' | '90 jours'>('7 jours');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!activeBrandId) {
@@ -230,10 +238,10 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     [filtered, rows, selectedId],
   );
 
-  async function patchStatus(next: OrderStatus) {
+  async function patchStatus(next: OrderStatus, extraPayload?: Record<string, unknown>) {
     if (!selected) return;
     setStatusSaving(true);
-    const res = await api.patch(`orders/${selected.apiId}/status`, { status: statusApi(next) });
+    const res = await api.patch(`orders/${selected.apiId}/status`, { status: statusApi(next), ...extraPayload });
     setStatusSaving(false);
     if (!res.ok) {
       toast.error(res.message);
@@ -243,6 +251,22 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
       return;
     }
     toast.success('Statut commande mis à jour.');
+    await load();
+  }
+
+  async function deleteOrder() {
+    if (!selected) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await api.del(`orders/${selected.apiId}`);
+    setDeleting(false);
+    if (!res.ok) {
+      setDeleteError(res.message || 'Impossible de supprimer cette commande.');
+      return;
+    }
+    setDeleteModalOpen(false);
+    setSelectedId(null);
+    toast.success('Commande supprimée.');
     await load();
   }
 
@@ -480,6 +504,15 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
               </div>
             )}
 
+            {selected.status === 'Annulé' && selected.cancellationReason && (
+              <div className="space-y-2">
+                <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Motif d'annulation</p>
+                <div className="card-muted p-4 text-sm font-medium text-rose-700 whitespace-pre-wrap border border-rose-100 bg-rose-50/50 rounded-xl">
+                  {selected.cancellationReason}
+                </div>
+              </div>
+            )}
+
             {hasPermission('orders.update') && (
               <div className="space-y-3">
                 <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Actions</p>
@@ -495,17 +528,95 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                   <button
                     type="button"
                     disabled={statusSaving || selected.status === 'Annulé'}
-                    onClick={() => void patchStatus('Annulé')}
+                    onClick={() => { setCancelReason(''); setCancelModalOpen(true); }}
                     className="py-3 rounded-xl border border-rose-200 text-rose-700 font-black text-sm hover:bg-rose-50 transition-colors disabled:opacity-50"
                   >
                     Annuler
                   </button>
                 </div>
+                {hasPermission('orders.delete') && ['Brouillon', 'En attente', 'Annulé'].includes(selected.status) && (
+                  <button
+                    type="button"
+                    onClick={() => { setDeleteError(null); setDeleteModalOpen(true); }}
+                    className="w-full py-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 font-black text-sm hover:bg-rose-100 transition-colors inline-flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" /> Supprimer la commande
+                  </button>
+                )}
               </div>
             )}
           </div>
         )}
       </Drawer>
+
+      {/* Cancel with reason modal */}
+      <Modal
+        open={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        title="Annuler la commande"
+        subtitle={selected ? `Commande ${selected.id}` : ''}
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button type="button" onClick={() => setCancelModalOpen(false)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50">
+              Fermer
+            </button>
+            <button
+              type="button"
+              disabled={statusSaving || !cancelReason.trim()}
+              onClick={async () => {
+                await patchStatus('Annulé', { cancellation_reason: cancelReason.trim() });
+                setCancelModalOpen(false);
+              }}
+              className="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-black hover:bg-rose-700 disabled:opacity-50"
+            >
+              {statusSaving ? 'Annulation…' : 'Confirmer l\'annulation'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-zinc-600">Indiquez la raison de l'annulation de cette commande.</p>
+          <textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium resize-none"
+            placeholder="Motif d'annulation…"
+            autoFocus
+          />
+        </div>
+      </Modal>
+
+      {/* Delete order modal */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Supprimer la commande"
+        subtitle={selected ? `Êtes-vous sûr de vouloir supprimer ${selected.id} ?` : ''}
+        footer={
+          <div className="space-y-3">
+            {deleteError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800">{deleteError}</div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button type="button" onClick={() => setDeleteModalOpen(false)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50">
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => void deleteOrder()}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-black hover:bg-rose-700 disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                {deleting ? 'Suppression…' : 'Supprimer définitivement'}
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <p className="text-sm text-zinc-600">Cette action est irréversible. Toutes les lignes de commande seront également supprimées.</p>
+      </Modal>
     </div>
   );
 }

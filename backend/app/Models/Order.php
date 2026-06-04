@@ -34,6 +34,7 @@ class Order extends Model
         'total',
         'shipping_address',
         'notes',
+        'cancellation_reason',
         'confirmed_at',
         'delivered_at',
         'stock_dispatched_at',

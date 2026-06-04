@@ -33,6 +33,7 @@ export type Order = {
   total: number;
   items: OrderLine[];
   notes?: string;
+  cancellationReason?: string;
 };
 
 export type OrderDraft = {

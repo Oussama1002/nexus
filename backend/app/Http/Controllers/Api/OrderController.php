@@ -173,9 +173,15 @@ class OrderController extends Controller
         $from = $order->status;
         $to = $request->validated()['status'];
         $note = $request->validated()['note'] ?? null;
+        $cancellationReason = $request->validated()['cancellation_reason'] ?? null;
 
         if ($order->status === 'delivered' && $to === 'cancelled') {
             return ApiResponse::error('Cannot cancel a delivered order.', null, 422);
+        }
+
+        if ($to === 'cancelled' && $cancellationReason) {
+            $order->cancellation_reason = $cancellationReason;
+            $order->save();
         }
 
         try {
@@ -203,8 +209,8 @@ class OrderController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $order = Order::query()->where('brand_id', $brandId)->findOrFail($id);
 
-        if (! in_array($order->status, ['draft', 'pending'], true)) {
-            return ApiResponse::error('Only draft or pending orders can be deleted.', null, 422);
+        if (! in_array($order->status, ['draft', 'pending', 'cancelled'], true)) {
+            return ApiResponse::error('Seules les commandes brouillon, en attente ou annulées peuvent être supprimées.', null, 422);
         }
 
         $before = $order->toArray();
