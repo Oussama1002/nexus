@@ -160,10 +160,15 @@ class WhatsAppCloudService
     {
         $phone = '+' . ltrim($waId, '+');
 
+        // Build all possible phone variants for matching (e.g. +212xxx ↔ 0xxx)
+        $variants = PhoneNormalizer::variants($phone);
+
         $customer = Customer::query()
             ->where('brand_id', $brandId)
-            ->where(function ($q) use ($phone, $waId) {
-                $q->where('phone', $phone)->orWhere('phone', $waId);
+            ->where(function ($q) use ($variants) {
+                foreach ($variants as $v) {
+                    $q->orWhere('phone', $v);
+                }
             })
             ->first();
 
@@ -252,4 +257,5 @@ class WhatsAppCloudService
 
         return (string) ($res->json('messages.0.id') ?? '');
     }
+
 }

@@ -157,11 +157,33 @@ class ClientInvoiceService
     }
 
     /**
+     * Generate invoice PDF content (bytes).
+     */
+    public function generatePdf(ClientInvoice $invoice): string
+    {
+        $invoice->loadMissing(['customer', 'brand', 'order']);
+
+        $data = [
+            'invoice' => $invoice,
+            'brandName' => $invoice->brand?->name ?? 'Nexus',
+            'customerName' => $invoice->customer?->full_name ?? '—',
+            'customerEmail' => $invoice->recipient_email ?: $invoice->customer?->email,
+            'currency' => $invoice->currency ?? 'MAD',
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.invoice', $data)
+            ->setPaper('a4')
+            ->setOption('defaultFont', 'Helvetica');
+
+        return $pdf->output();
+    }
+
+    /**
      * @throws RuntimeException
      */
     public function sendInvoiceEmail(ClientInvoice $invoice): void
     {
-        $invoice->loadMissing(['customer', 'brand']);
+        $invoice->loadMissing(['customer', 'brand', 'order']);
 
         $to = trim((string) ($invoice->recipient_email ?: $invoice->customer?->email));
         if ($to === '') {
@@ -172,17 +194,23 @@ class ClientInvoiceService
         $body = implode("\n", [
             'Bonjour,',
             '',
-            'Votre facture mensuelle est prete.',
+            'Veuillez trouver ci-joint votre facture.',
+            '',
             'Numero: '.$invoice->invoice_number,
             'Periode: '.$invoice->billing_period_start?->toDateString().' au '.$invoice->billing_period_end?->toDateString(),
-            'Montant total: '.number_format((float) $invoice->total, 2, '.', ' ').' '.$invoice->currency,
+            'Montant total: '.number_format((float) $invoice->total, 2, ',', ' ').' '.($invoice->currency ?? 'MAD'),
             '',
             'Merci de votre confiance.',
         ]);
 
+        $pdfContent = $this->generatePdf($invoice);
+        $filename = 'Facture-'.$invoice->invoice_number.'.pdf';
+
         try {
-            Mail::raw($body, function ($message) use ($to, $subject): void {
-                $message->to($to)->subject($subject);
+            Mail::raw($body, function ($message) use ($to, $subject, $pdfContent, $filename): void {
+                $message->to($to)
+                    ->subject($subject)
+                    ->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);
             });
         } catch (\Throwable $e) {
             Log::error('invoice.send.failed', [

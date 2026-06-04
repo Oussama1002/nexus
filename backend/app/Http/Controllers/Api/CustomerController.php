@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Services\AuditLogger;
+use App\Services\PhoneNormalizer;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -46,8 +47,8 @@ class CustomerController extends Controller
 
         $data['lifecycle_status'] = $data['lifecycle_status'] ?? 'new';
 
-        if (Customer::query()->where('brand_id', $brandId)->where('phone', $data['phone'])->exists()) {
-            return ApiResponse::error('This phone is already registered for the brand.', ['phone' => ['Duplicate phone.']], 422);
+        if (PhoneNormalizer::existsForBrand($brandId, $data['phone'])) {
+            return ApiResponse::error('Ce numéro de téléphone existe déjà pour cette marque.', ['phone' => ['Numéro en double.']], 422);
         }
 
         if ($originLeadId !== null) {

@@ -15,6 +15,7 @@ use App\Support\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class ClientInvoiceController extends Controller
@@ -174,6 +175,20 @@ class ClientInvoiceController extends Controller
         AuditService::log($request, 'client_invoices.send', $row, $before, $row->fresh()->toArray());
 
         return ApiResponse::success($row->fresh()->load(['customer']), 'Invoice sent successfully.');
+    }
+
+    public function downloadPdf(Request $request, string $id): Response
+    {
+        $this->requireFinancePermission($request, 'finance.view');
+        $invoice = ClientInvoice::query()->with(['customer', 'brand', 'order'])->findOrFail($id);
+
+        $pdfContent = $this->invoiceService->generatePdf($invoice);
+        $filename = 'Facture-'.$invoice->invoice_number.'.pdf';
+
+        return response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
     }
 
     public function generateMonthly(Request $request): JsonResponse
