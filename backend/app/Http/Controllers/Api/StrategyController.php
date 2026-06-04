@@ -162,30 +162,4 @@ class StrategyController extends Controller
 
         return ApiResponse::success($row->fresh(), 'Strategy approved.');
     }
-
-    public function uploadDocument(Request $request): JsonResponse
-    {
-        if (! $request->user()?->hasPermissionSlug('strategies.create')
-            && ! $request->user()?->hasPermissionSlug('strategies.update')) {
-            throw new AccessDeniedHttpException('Forbidden.');
-        }
-
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $request->validate([
-            'document' => [
-                'required',
-                'file',
-                'max:10240',
-                'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp',
-            ],
-        ]);
-
-        $file = $request->file('document');
-        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'pdf');
-        $filename = 'strategy-'.now()->format('YmdHis').'-'.Str::lower(Str::random(8)).'.'.$ext;
-        $path = $file->storeAs("strategy-documents/{$brandId}", $filename, 'public');
-        $url = Storage::disk('public')->url($path);
-
-        return ApiResponse::success(['document_path' => $url], 'Document téléversé.');
-    }
 }
