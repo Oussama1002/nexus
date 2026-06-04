@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Archive, Pencil } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
 import { formatCurrency } from '../../lib/utils';
 import * as api from '../../lib/api';
@@ -66,11 +66,13 @@ type Props = {
   onClose: () => void;
   onEdit: () => void;
   canUpdate: boolean;
+  onArchive?: (id: number) => void;
 };
 
-export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpdate }: Props) {
+export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpdate, onArchive }: Props) {
   const [data, setData] = useState<DetailPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     if (!open || !customerId) {
@@ -107,7 +109,7 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
       {cust && stats && (
         <div className="space-y-4 max-h-[calc(100vh-8rem)] overflow-y-auto pr-1">
           {canUpdate && (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onEdit}
@@ -115,6 +117,24 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
               >
                 <Pencil className="w-3.5 h-3.5" /> Modifier la fiche
               </button>
+              {onArchive && customerId && (cust.lifecycle_status as string) !== 'inactive' && (
+                <button
+                  type="button"
+                  disabled={archiving}
+                  onClick={async () => {
+                    setArchiving(true);
+                    const res = await api.put(`customers/${customerId}`, { lifecycle_status: 'inactive' });
+                    setArchiving(false);
+                    if (res.ok) {
+                      onArchive(customerId);
+                      onClose();
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-zinc-700 text-xs font-black inline-flex items-center gap-2 hover:bg-zinc-50"
+                >
+                  <Archive className="w-3.5 h-3.5" /> {archiving ? 'Archivage…' : 'Archiver client'}
+                </button>
+              )}
             </div>
           )}
 

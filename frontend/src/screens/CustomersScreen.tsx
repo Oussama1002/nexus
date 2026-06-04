@@ -306,6 +306,7 @@ export function CustomersScreen() {
         open={ficheId !== null}
         onClose={() => setFicheId(null)}
         canUpdate={canUpdate}
+        onArchive={() => { toast.success('Client archivé.'); void load(); }}
         onEdit={() => {
           if (selCustomer) {
             setFicheId(null);
