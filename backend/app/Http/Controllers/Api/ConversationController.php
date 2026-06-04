@@ -44,7 +44,13 @@ class ConversationController extends Controller
         }
 
         if (! $user->canViewAllConversations()) {
-            $q->where('assigned_user_id', $user->id);
+            if ($user->roles->contains('slug', 'confirmatrice')) {
+                $q->where(function ($w) use ($user) {
+                    $w->where('assigned_user_id', $user->id)->orWhereNull('assigned_user_id');
+                });
+            } else {
+                $q->where('assigned_user_id', $user->id);
+            }
         }
 
         if ($search) {
@@ -230,7 +236,12 @@ class ConversationController extends Controller
 
         $q = Conversation::query()->whereKey($id);
         if (! $user->canViewAllConversations()) {
-            $q->where('brand_id', $brandId)->where('assigned_user_id', $user->id);
+            $q->where('brand_id', $brandId);
+            if ($user->roles->contains('slug', 'confirmatrice')) {
+                $q->where(function ($w) use ($user) {
+                    $w->where('assigned_user_id', $user->id)->orWhereNull('assigned_user_id');
+                });
+            }
         }
 
         return $q->firstOrFail();

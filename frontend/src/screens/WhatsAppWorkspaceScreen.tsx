@@ -96,7 +96,8 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     if (!silent) setLoading(true);
-    const res = await api.get<LaravelPaginator<ApiConversation>>('conversations?per_page=100&all_brands=1');
+    const allBrands = roleSlugs.includes('admin') ? '&all_brands=1' : '';
+    const res = await api.get<LaravelPaginator<ApiConversation>>(`conversations?per_page=100${allBrands}`);
     if (!silent) setLoading(false);
     if (!res.ok) {
       if (!silent) toast.error(res.message);
@@ -104,7 +105,7 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setConversations(isPaginator<ApiConversation>(res.data) ? res.data.data : []);
-  }, [activeBrandId, toast]);
+  }, [activeBrandId, toast, roleSlugs]);
 
   useEffect(() => {
     void loadConversations();
