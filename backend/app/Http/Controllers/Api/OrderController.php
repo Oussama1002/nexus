@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\OrderLine;
+use App\Models\Charge;
 use App\Models\Product;
 use App\Services\AuditLogger;
 use App\Services\AutomationEngineService;
@@ -102,6 +103,19 @@ class OrderController extends Controller
         }
 
         AuditLogger::log($request, 'orders.create', $order, null, $order->toArray());
+
+        // Auto-create delivery charge from shipping fee
+        if ((float) $order->shipping_fee > 0) {
+            Charge::query()->create([
+                'brand_id' => $brandId,
+                'order_id' => $order->id,
+                'created_by' => $request->user()->id,
+                'charge_date' => now()->toDateString(),
+                'type' => 'delivery',
+                'amount' => (float) $order->shipping_fee,
+                'note' => 'Frais de livraison – Commande '.$order->order_number,
+            ]);
+        }
 
         $invoice = $this->clientInvoices->createFromOrder($order, $request->user()?->id);
 
