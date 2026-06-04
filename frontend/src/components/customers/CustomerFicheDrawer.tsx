@@ -117,24 +117,33 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
               >
                 <Pencil className="w-3.5 h-3.5" /> Modifier la fiche
               </button>
-              {onArchive && customerId && (cust.lifecycle_status as string) !== 'inactive' && (
-                <button
-                  type="button"
-                  disabled={archiving}
-                  onClick={async () => {
-                    setArchiving(true);
-                    const res = await api.put(`customers/${customerId}`, { lifecycle_status: 'inactive' });
-                    setArchiving(false);
-                    if (res.ok) {
-                      onArchive(customerId);
-                      onClose();
-                    }
-                  }}
-                  className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-zinc-700 text-xs font-black inline-flex items-center gap-2 hover:bg-zinc-50"
-                >
-                  <Archive className="w-3.5 h-3.5" /> {archiving ? 'Archivage…' : 'Archiver client'}
-                </button>
-              )}
+              {onArchive && customerId && (() => {
+                const isArchived = (cust.lifecycle_status as string) === 'inactive' || (cust.status as string) === 'inactive';
+                return (
+                  <button
+                    type="button"
+                    disabled={archiving}
+                    onClick={async () => {
+                      setArchiving(true);
+                      const newStatus = isArchived ? 'active' : 'inactive';
+                      const res = await api.put(`customers/${customerId}`, { lifecycle_status: newStatus });
+                      setArchiving(false);
+                      if (res.ok) {
+                        onArchive(customerId);
+                        onClose();
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-xl border text-xs font-black inline-flex items-center gap-2 ${
+                      isArchived
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                    {archiving ? '...' : isArchived ? 'Désarchiver client' : 'Archiver client'}
+                  </button>
+                );
+              })()}
             </div>
           )}
 

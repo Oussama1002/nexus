@@ -81,6 +81,7 @@ export function CustomersScreen() {
   const [leadsOpen, setLeadsOpen] = useState<ApiLeadRow[]>([]);
   const [leadSelectId, setLeadSelectId] = useState<string>('');
 
+  const [statusFilter, setStatusFilter] = useState<'active' | 'archived' | 'all'>('active');
   const [usersOpts, setUsersOpts] = useState<{ id: number; name: string }[]>([]);
 
   const [form, setForm] = useState<CustomerFormState>(() => emptyCustomerForm());
@@ -92,7 +93,8 @@ export function CustomersScreen() {
       return;
     }
     setLoading(true);
-    const res = await api.get<LaravelPaginator<ApiCustomer>>('customers?per_page=100');
+    const statusParam = statusFilter === 'active' ? '' : statusFilter === 'archived' ? '&status=archived' : '&status=all';
+    const res = await api.get<LaravelPaginator<ApiCustomer>>(`customers?per_page=100${statusParam}`);
     setLoading(false);
     if (!res.ok) {
       toast.error(res.message);
@@ -101,7 +103,7 @@ export function CustomersScreen() {
     }
     const page = res.data;
     setRows(isPaginator<ApiCustomer>(page) ? page.data : []);
-  }, [activeBrandId, toast]);
+  }, [activeBrandId, statusFilter, toast]);
 
   useEffect(() => {
     void load();
@@ -251,7 +253,22 @@ export function CustomersScreen() {
         }
       />
 
-      <FilterBar query={q} onQueryChange={setQ} right={<span className="text-sm font-black text-zinc-700">{filtered.length} clients</span>} />
+      <FilterBar
+        query={q}
+        onQueryChange={setQ}
+        left={
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'active' | 'archived' | 'all')}
+            className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-700"
+          >
+            <option value="active">Actifs</option>
+            <option value="archived">Archivés</option>
+            <option value="all">Tous</option>
+          </select>
+        }
+        right={<span className="text-sm font-black text-zinc-700">{filtered.length} clients</span>}
+      />
 
       {loading ? (
         <div className="card p-10 text-center text-sm font-bold text-zinc-500">Chargement…</div>

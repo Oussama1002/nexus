@@ -24,11 +24,22 @@ class CustomerController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
+        $statusFilter = $request->query('status');
 
         $q = Customer::query()
             ->with(['assignedUser:id,name', 'latestConversation.assignedUser:id,name'])
             ->where('brand_id', $brandId)
             ->orderByDesc('id');
+
+        // Filter by status: 'archived' shows only inactive, 'all' shows everything, default hides archived
+        if ($statusFilter === 'archived') {
+            $q->where('status', 'inactive');
+        } elseif ($statusFilter && $statusFilter !== 'all') {
+            $q->where('status', $statusFilter);
+        } elseif (! $statusFilter || $statusFilter === '') {
+            $q->where('status', '!=', 'inactive');
+        }
+
         if ($search) {
             $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';
             $q->where(function ($w) use ($s) {
