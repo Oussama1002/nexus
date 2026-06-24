@@ -45,6 +45,24 @@ type Draft = {
   members: DraftMember[];
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Brouillon',
+  in_progress: 'En cours',
+  blocked: 'Bloqué',
+  review: 'En révision',
+  published: 'Publié',
+  done: 'Terminé',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  content_creator: 'Tournage contenu',
+  video_editor: 'Monteur',
+  copywriter: 'Copywriter',
+  publisher: 'Publication',
+  reviewer: 'Relecture/validation',
+  other: 'Autre',
+};
+
 const ROLE_OPTIONS: { value: RoleType; label: string }[] = [
   { value: 'content_creator', label: 'Tournage contenu' },
   { value: 'video_editor', label: 'Monteur' },
@@ -241,12 +259,12 @@ export function CollabProjectsScreen() {
         right={
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
             <option value="">Tous statuts</option>
-            <option value="draft">draft</option>
-            <option value="in_progress">in_progress</option>
-            <option value="blocked">blocked</option>
-            <option value="review">review</option>
-            <option value="published">published</option>
-            <option value="done">done</option>
+            <option value="draft">Brouillon</option>
+            <option value="in_progress">En cours</option>
+            <option value="blocked">Bloqué</option>
+            <option value="review">En révision</option>
+            <option value="published">Publié</option>
+            <option value="done">Terminé</option>
           </select>
         }
       />
@@ -258,7 +276,7 @@ export function CollabProjectsScreen() {
           rows={rows}
           columns={[
             { key: 't', header: 'Projet', cell: (r) => <button type="button" className="font-black text-primary-600 hover:underline" onClick={() => openEdit(r)}>{r.title}</button> },
-            { key: 'st', header: 'Statut', cell: (r) => <StatusChip tone={statusTone(r.status)}>{r.status}</StatusChip> },
+            { key: 'st', header: 'Statut', cell: (r) => <StatusChip tone={statusTone(r.status)}>{STATUS_LABELS[r.status] ?? r.status}</StatusChip> },
             { key: 'due', header: 'Echéance', cell: (r) => <span>{r.due_date ?? '—'}</span> },
             {
               key: 'members',
@@ -267,7 +285,7 @@ export function CollabProjectsScreen() {
                 <div className="flex flex-wrap gap-1">
                   {(r.members ?? []).slice(0, 3).map((m) => (
                     <StatusChip key={m.id} tone={m.is_lead ? 'success' : 'neutral'}>
-                      {m.user?.name ?? `#${m.user_id}`} · {m.project_role}
+                      {m.user?.name ?? `#${m.user_id}`} · {ROLE_LABELS[m.project_role] ?? m.project_role}
                     </StatusChip>
                   ))}
                   {(r.members ?? []).length > 3 ? <span className="text-xs text-zinc-500 font-bold">+{(r.members ?? []).length - 3}</span> : null}
@@ -316,12 +334,12 @@ export function CollabProjectsScreen() {
             </label>
             <label className="text-xs font-black uppercase text-zinc-500">Statut
               <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as ProjectStatus }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold">
-                <option value="draft">draft</option>
-                <option value="in_progress">in_progress</option>
-                <option value="blocked">blocked</option>
-                <option value="review">review</option>
-                <option value="published">published</option>
-                <option value="done">done</option>
+                <option value="draft">Brouillon</option>
+                <option value="in_progress">En cours</option>
+                <option value="blocked">Bloqué</option>
+                <option value="review">En révision</option>
+                <option value="published">Publié</option>
+                <option value="done">Terminé</option>
               </select>
             </label>
             <label className="text-xs font-black uppercase text-zinc-500">Echéance

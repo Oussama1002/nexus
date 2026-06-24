@@ -257,7 +257,10 @@ class SettingsCenterService
                 if (! is_string($key)) {
                     continue;
                 }
-                $normalized[$key] = filter_var($visible, FILTER_VALIDATE_BOOL);
+                $val = filter_var($visible, FILTER_VALIDATE_BOOL);
+                if (! $val) {
+                    $normalized[$key] = false;
+                }
             }
             $this->upsert(
                 $brandId,
