@@ -94,12 +94,17 @@ function slugify(value: string): string {
     .replace(/-+/g, '-');
 }
 
-function parseCourseRows(payload: CourseListPayload | undefined): AcademyCourse[] {
+function parseCourseRows(payload: unknown): AcademyCourse[] {
   if (!payload || typeof payload !== 'object') return [];
-  if (Array.isArray(payload.data)) return payload.data;
-  if (payload.data && typeof payload.data === 'object' && Array.isArray(payload.data.data)) {
-    return payload.data.data;
+  const p = payload as Record<string, unknown>;
+  if (Array.isArray(p)) return p as AcademyCourse[];
+  if (Array.isArray(p.data)) return p.data as AcademyCourse[];
+  if (p.data && typeof p.data === 'object') {
+    const inner = p.data as Record<string, unknown>;
+    if (Array.isArray(inner.data)) return inner.data as AcademyCourse[];
+    if (Array.isArray(inner)) return inner as unknown as AcademyCourse[];
   }
+  console.warn('[Academy] Unexpected course list shape:', JSON.stringify(payload).slice(0, 500));
   return [];
 }
 
@@ -175,7 +180,7 @@ export function AcademyScreen() {
     queryKey,
     enabled: !!activeBrandId,
     queryFn: async () => {
-      const res = await api.get<CourseListPayload>(
+      const res = await api.get<unknown>(
         `academy/courses${buildQuery({ per_page: 200, search: q.trim() || undefined, status: status || undefined })}`,
       );
       if (!res.ok) {
