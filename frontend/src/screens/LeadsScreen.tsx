@@ -35,7 +35,7 @@ type ApiLead = {
   conversation?: { assigned_user?: { id: number; name: string } | null } | null;
 };
 
-type ApiUserRow = { id: number; name: string; email: string };
+type ApiUserRow = { id: number; name: string; email: string; roles?: { id: number; slug: string; name: string }[] };
 
 type ApiProductRow = { id: number; name: string };
 
@@ -224,13 +224,25 @@ export function LeadsScreen({
       if (uRes.ok && isPaginator<ApiUserRow>(uRes.data)) {
         setUsers(uRes.data.data);
       } else {
-        setUsers(user ? [{ id: Number(user.id), name: user.name, email: user.email }] : []);
+        setUsers(user ? [{ id: Number(user.id), name: user.name, email: user.email, roles: [] }] : []);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [user]);
+
+  const assignableUsers = useMemo(() => {
+    return users.filter((u) => {
+      if (!u.roles || u.roles.length === 0) return false;
+      return u.roles.some((r) => r.slug === 'admin' || r.slug === 'confirmatrice');
+    });
+  }, [users]);
+
+  const adminUserId = useMemo(() => {
+    const admin = users.find((u) => u.roles?.some((r) => r.slug === 'admin'));
+    return admin ? String(admin.id) : '';
+  }, [users]);
 
   useEffect(() => {
     if (!createOpen || !newLead.brand_id) {
@@ -314,8 +326,8 @@ export function LeadsScreen({
 
   useEffect(() => {
     if (selectedApi?.assigned_user_id) setAssignUserId(String(selectedApi.assigned_user_id));
-    else setAssignUserId('');
-  }, [selectedApi]);
+    else setAssignUserId(adminUserId);
+  }, [selectedApi, adminUserId]);
 
   useEffect(() => {
     if (selectedApi) {
@@ -568,7 +580,7 @@ export function LeadsScreen({
                     className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-800"
                   >
                     <option value="">— Non assigné —</option>
-                    {users.map((u) => (
+                    {assignableUsers.map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.name}
                       </option>
