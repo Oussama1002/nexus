@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\CampaignMetricController;
 use App\Http\Controllers\Api\ClientContractController;
 use App\Http\Controllers\Api\ClientPortalController;
 use App\Http\Controllers\Api\ClientInvoiceController;
+use App\Http\Controllers\Api\CollabKanbanController;
 use App\Http\Controllers\Api\CollabProjectController;
 use App\Http\Controllers\Api\ConfirmatriceWorkspaceController;
 use App\Http\Controllers\Api\ChargeController;
@@ -244,6 +245,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('collab-projects/{id}', [CollabProjectController::class, 'destroy'])->whereNumber('id')->middleware('permission:collab_projects.delete');
     Route::post('collab-projects/{id}/members', [CollabProjectController::class, 'addMember'])->whereNumber('id')->middleware('permission:collab_projects.update');
     Route::delete('collab-projects/{id}/members/{memberId}', [CollabProjectController::class, 'removeMember'])->whereNumber('id')->whereNumber('memberId')->middleware('permission:collab_projects.update');
+
+    // Kanban board for collab projects
+    Route::get('collab-projects/{projectId}/board', [CollabKanbanController::class, 'board'])->whereNumber('projectId')->middleware('permission:collab_projects.view');
+    Route::post('collab-projects/{projectId}/columns', [CollabKanbanController::class, 'storeColumn'])->whereNumber('projectId')->middleware('permission:collab_projects.update');
+    Route::put('collab-projects/{projectId}/columns/{columnId}', [CollabKanbanController::class, 'updateColumn'])->whereNumber('projectId')->whereNumber('columnId')->middleware('permission:collab_projects.update');
+    Route::delete('collab-projects/{projectId}/columns/{columnId}', [CollabKanbanController::class, 'destroyColumn'])->whereNumber('projectId')->whereNumber('columnId')->middleware('permission:collab_projects.update');
+    Route::post('collab-projects/{projectId}/columns/reorder', [CollabKanbanController::class, 'reorderColumns'])->whereNumber('projectId')->middleware('permission:collab_projects.update');
+    Route::post('collab-projects/{projectId}/tasks', [CollabKanbanController::class, 'storeTask'])->whereNumber('projectId')->middleware('permission:collab_projects.update');
+    Route::put('collab-projects/{projectId}/tasks/{taskId}', [CollabKanbanController::class, 'updateTask'])->whereNumber('projectId')->whereNumber('taskId')->middleware('permission:collab_projects.update');
+    Route::delete('collab-projects/{projectId}/tasks/{taskId}', [CollabKanbanController::class, 'destroyTask'])->whereNumber('projectId')->whereNumber('taskId')->middleware('permission:collab_projects.update');
+    Route::post('collab-projects/{projectId}/tasks/{taskId}/move', [CollabKanbanController::class, 'moveTask'])->whereNumber('projectId')->whereNumber('taskId')->middleware('permission:collab_projects.update');
     Route::get('directory/social-users', [SocialDirectoryController::class, 'users'])->middleware('permission:social_accounts.view');
 
     Route::get('social-accounts', [SocialAccountController::class, 'index'])->middleware('permission:social_accounts.view');
