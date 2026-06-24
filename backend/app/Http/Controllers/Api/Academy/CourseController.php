@@ -11,6 +11,7 @@ use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CourseController extends Controller
@@ -58,12 +59,14 @@ class CourseController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $data = $request->validated();
 
-        $request->validate([
-            'slug' => [
-                'required',
-                Rule::unique('courses', 'slug')->where(fn ($q) => $q->where('brand_id', $brandId)),
-            ],
-        ]);
+        $slug = ! empty($data['slug']) ? Str::slug($data['slug']) : Str::slug($data['title']);
+        $baseSlug = $slug ?: 'course';
+        $counter = 0;
+        while (Course::query()->where('brand_id', $brandId)->where('slug', $slug)->exists()) {
+            $counter++;
+            $slug = $baseSlug.'-'.$counter;
+        }
+        $data['slug'] = $slug;
 
         $data['brand_id'] = $brandId;
         $data['created_by'] = $request->user()?->id;

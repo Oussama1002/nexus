@@ -21,7 +21,7 @@ class StoreAcademyCourseRequest extends FormRequest
             'course_category_id' => ['nullable', 'integer', 'exists:course_categories,id'],
             'certificate_template_id' => ['nullable', 'integer', 'exists:certificate_templates,id'],
             'title' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255'],
             'short_description' => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in(['draft', 'published', 'archived'])],
