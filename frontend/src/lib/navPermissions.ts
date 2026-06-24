@@ -106,7 +106,7 @@ export function canAccessView(
 ): boolean {
   if (view === 'profile') return true;
   if (ctx.isAdmin) return true;
-  if (ctx.roleSlugs.includes('client_brand_owner')) {
+  if (ctx.roleSlugs.length === 1 && ctx.roleSlugs[0] === 'client_brand_owner') {
     if (view !== 'clientPortal') return false;
   }
   /** Confirmatrices use dedicated workflows; leads, media buying & ads modules are hidden for this role. */
