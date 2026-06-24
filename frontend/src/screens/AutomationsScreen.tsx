@@ -541,33 +541,70 @@ export function AutomationsScreen() {
             Règle active
           </label>
 
+          {/* Custom fields builder (for custom triggers — shown BEFORE conditions) */}
+          {!triggerConfig.builtin && (
+            <div className="rounded-2xl border-2 border-violet-100 bg-violet-50/50 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-black uppercase text-violet-700 inline-flex items-center gap-2">
+                  <List className="w-4 h-4" /> Champs de l'événement
+                </p>
+                <button type="button" onClick={addCustomField}
+                  className="text-xs font-black text-violet-700 hover:underline inline-flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Ajouter champ
+                </button>
+              </div>
+              {customFields.length === 0 ? (
+                <p className="text-xs text-violet-600">Ajoutez les champs que cet événement contient pour les utiliser dans les conditions et messages.</p>
+              ) : (
+                <div className="space-y-2">
+                  {customFields.map((cf, fi) => (
+                    <div key={fi} className="flex items-center gap-2 bg-white rounded-xl p-2.5 border border-violet-100">
+                      <input value={cf.label} onChange={(e) => {
+                        const label = e.target.value;
+                        const key = `event.${slugifyTrigger(label) || `champ_${fi + 1}`}`;
+                        setCustomFields((prev) => prev.map((f, i) => i === fi ? { ...f, label, value: key } : f));
+                      }} className="flex-1 px-2 py-1.5 rounded-lg border border-zinc-200 text-sm" placeholder="Nom du champ (ex: Montant, Statut…)" />
+                      <select value={cf.type} onChange={(e) => setCustomFields((prev) => prev.map((f, i) => i === fi ? { ...f, type: e.target.value as 'string' | 'number' | 'boolean' } : f))}
+                        className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold min-w-[100px]">
+                        <option value="string">Texte</option><option value="number">Nombre</option><option value="boolean">Oui/Non</option>
+                      </select>
+                      <button type="button" onClick={() => setCustomFields((prev) => prev.filter((_, i) => i !== fi))}
+                        className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Conditions builder */}
           <div className="rounded-2xl border-2 border-amber-100 bg-amber-50/50 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-black uppercase text-amber-700 inline-flex items-center gap-2">
                 <List className="w-4 h-4" /> Si (conditions)
               </p>
-              <button type="button" onClick={() => setConditions((prev) => [...prev, { field: triggerConfig.fields[0]?.value ?? 'event.champ', op: 'eq', value: '' }])}
-                className="text-xs font-black text-amber-700 hover:underline inline-flex items-center gap-1">
-                <Plus className="w-3 h-3" /> Ajouter
-              </button>
+              {triggerConfig.fields.length > 0 && (
+                <button type="button" onClick={() => setConditions((prev) => [...prev, { field: triggerConfig.fields[0].value, op: 'eq', value: '' }])}
+                  className="text-xs font-black text-amber-700 hover:underline inline-flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Ajouter
+                </button>
+              )}
             </div>
-            {conditions.length === 0 ? (
+            {triggerConfig.fields.length === 0 ? (
+              <p className="text-xs text-amber-600">Définissez d'abord les champs de l'événement ci-dessus pour ajouter des conditions.</p>
+            ) : conditions.length === 0 ? (
               <p className="text-xs text-amber-600">Aucune condition — la règle se déclenche toujours.</p>
             ) : (
               <div className="space-y-2">
                 {conditions.map((cond, ci) => (
                   <div key={ci} className="flex items-center gap-2 flex-wrap bg-white rounded-xl p-2.5 border border-amber-100">
                     {ci > 0 && <span className="text-[10px] font-black text-amber-500 bg-amber-100 rounded-full px-2 py-0.5">ET</span>}
-                    {triggerConfig.fields.length > 0 ? (
-                      <select value={cond.field} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, field: e.target.value } : c))}
-                        className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold flex-1 min-w-[140px]">
-                        {triggerConfig.fields.map((f) => <option key={f.value} value={f.value}>{f.label || f.value}</option>)}
-                      </select>
-                    ) : (
-                      <input value={cond.field} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, field: e.target.value } : c))}
-                        className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm flex-1 min-w-[140px]" placeholder="Nom du champ" />
-                    )}
+                    <select value={cond.field} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, field: e.target.value } : c))}
+                      className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold flex-1 min-w-[140px]">
+                      {triggerConfig.fields.map((f) => <option key={f.value} value={f.value}>{f.label || f.value}</option>)}
+                    </select>
                     <select value={cond.op} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, op: e.target.value as Op } : c))}
                       className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold min-w-[130px]">
                       {(Object.keys(OP_LABELS) as Op[]).map((op) => <option key={op} value={op}>{OP_LABELS[op]}</option>)}
@@ -606,44 +643,6 @@ export function AutomationsScreen() {
               </div>
             )}
           </div>
-
-          {/* Custom fields builder (for custom triggers only) */}
-          {!triggerConfig.builtin && (
-            <div className="rounded-2xl border-2 border-violet-100 bg-violet-50/50 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-black uppercase text-violet-700 inline-flex items-center gap-2">
-                  <List className="w-4 h-4" /> Champs de l'événement
-                </p>
-                <button type="button" onClick={addCustomField}
-                  className="text-xs font-black text-violet-700 hover:underline inline-flex items-center gap-1">
-                  <Plus className="w-3 h-3" /> Ajouter champ
-                </button>
-              </div>
-              {customFields.length === 0 ? (
-                <p className="text-xs text-violet-600">Ajoutez les champs que cet événement contient pour les utiliser dans les conditions et messages.</p>
-              ) : (
-                <div className="space-y-2">
-                  {customFields.map((cf, fi) => (
-                    <div key={fi} className="flex items-center gap-2 bg-white rounded-xl p-2.5 border border-violet-100">
-                      <input value={cf.label} onChange={(e) => {
-                        const label = e.target.value;
-                        const key = `event.${slugifyTrigger(label) || `champ_${fi + 1}`}`;
-                        setCustomFields((prev) => prev.map((f, i) => i === fi ? { ...f, label, value: key } : f));
-                      }} className="flex-1 px-2 py-1.5 rounded-lg border border-zinc-200 text-sm" placeholder="Nom du champ (ex: Montant, Statut…)" />
-                      <select value={cf.type} onChange={(e) => setCustomFields((prev) => prev.map((f, i) => i === fi ? { ...f, type: e.target.value as 'string' | 'number' | 'boolean' } : f))}
-                        className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold min-w-[100px]">
-                        <option value="string">Texte</option><option value="number">Nombre</option><option value="boolean">Oui/Non</option>
-                      </select>
-                      <button type="button" onClick={() => setCustomFields((prev) => prev.filter((_, i) => i !== fi))}
-                        className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Actions builder */}
           <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50/50 p-4">
