@@ -89,6 +89,12 @@ export function WhatsAppWorkspaceScreen({
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
 
+  useEffect(() => {
+    setSelectedId(null);
+    setMessages([]);
+    setConversations([]);
+  }, [activeBrandId]);
+
   const loadConversations = useCallback(async (silent = false) => {
     if (!activeBrandId) {
       setConversations([]);
@@ -96,8 +102,7 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     if (!silent) setLoading(true);
-    const allBrands = roleSlugs.includes('admin') ? '&all_brands=1' : '';
-    const res = await api.get<LaravelPaginator<ApiConversation>>(`conversations?per_page=100${allBrands}`);
+    const res = await api.get<LaravelPaginator<ApiConversation>>(`conversations?per_page=100`);
     if (!silent) setLoading(false);
     if (!res.ok) {
       if (!silent) toast.error(res.message);
@@ -105,7 +110,7 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setConversations(isPaginator<ApiConversation>(res.data) ? res.data.data : []);
-  }, [activeBrandId, toast, roleSlugs]);
+  }, [activeBrandId, toast]);
 
   useEffect(() => {
     void loadConversations();
