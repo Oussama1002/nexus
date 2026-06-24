@@ -276,17 +276,13 @@ export function AcademyScreen() {
     setDraft((prev) => ({
       ...prev,
       title: value,
-      slug: prev.slug ? prev.slug : slugify(value),
+      slug: slugify(value),
     }));
   }
 
   function onSubmitCourse() {
     if (!draft.title.trim()) {
       toast.error('Le titre est requis.');
-      return;
-    }
-    if (!draft.slug.trim()) {
-      toast.error('Le slug est requis.');
       return;
     }
 
@@ -469,26 +465,15 @@ export function AcademyScreen() {
         }
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">
-              Titre
-              <input
-                value={draft.title}
-                onChange={(e) => onChangeTitle(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                placeholder="Titre de la formation"
-              />
-            </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">
-              Slug
-              <input
-                value={draft.slug}
-                onChange={(e) => setDraft((d) => ({ ...d, slug: slugify(e.target.value) }))}
-                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                placeholder="slug-formation"
-              />
-            </label>
-          </div>
+          <label className="block text-xs font-black uppercase text-zinc-500">
+            Titre
+            <input
+              value={draft.title}
+              onChange={(e) => onChangeTitle(e.target.value)}
+              className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
+              placeholder="Titre de la formation"
+            />
+          </label>
 
           <label className="block text-xs font-black uppercase text-zinc-500">
             Description courte
