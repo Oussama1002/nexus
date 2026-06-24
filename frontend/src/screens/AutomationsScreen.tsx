@@ -25,13 +25,13 @@ import { useAuth } from '../context/AuthContext';
 
 /* ── Types ── */
 
-type TriggerKey = 'attendance.marked' | 'order.status_changed';
+type TriggerKey = string;
 type Op = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'contains';
 
 type AutomationRule = {
   id: number;
   name: string;
-  trigger_key: TriggerKey;
+  trigger_key: string;
   description: string | null;
   condition_json: Record<string, unknown> | null;
   action_json: Record<string, unknown>;
@@ -55,9 +55,10 @@ type ActionStep = { type: string; target: string; message: string; variants: Var
 
 type TriggerField = { value: string; label: string; type: 'string' | 'number' | 'boolean'; options?: { value: string; label: string }[] };
 type TriggerConfig = {
-  value: TriggerKey;
+  value: string;
   label: string;
   icon: React.ReactNode;
+  builtin?: boolean;
   fields: TriggerField[];
   actionTypes: { value: string; label: string }[];
   actionTargets: { value: string; label: string }[];
@@ -74,6 +75,7 @@ const TRIGGERS: TriggerConfig[] = [
     value: 'attendance.marked',
     label: 'Retard / présence employé',
     icon: <AlertTriangle className="w-4 h-4" />,
+    builtin: true,
     fields: [
       { value: 'event.status', label: 'Statut présence', type: 'string', options: [
         { value: 'present', label: 'Présent' }, { value: 'late', label: 'En retard' },
@@ -100,6 +102,7 @@ const TRIGGERS: TriggerConfig[] = [
     value: 'order.status_changed',
     label: 'Statut commande changé',
     icon: <Zap className="w-4 h-4" />,
+    builtin: true,
     fields: [
       { value: 'event.from_status', label: 'Ancien statut', type: 'string', options: [
         { value: 'new', label: 'Nouvelle' }, { value: 'confirmed', label: 'Confirmée' },
@@ -128,6 +131,36 @@ const TRIGGERS: TriggerConfig[] = [
     sampleEvent: { order_id: 1, from_status: 'confirmed', to_status: 'cancelled', order_number: 'NX-SAMPLE', total: 0 },
   },
 ];
+
+const GENERIC_ACTION_TYPES = [
+  { value: 'send_notification', label: 'Envoyer une notification' },
+  { value: 'send_message', label: 'Envoyer un message' },
+  { value: 'send_warning_message', label: 'Envoyer un avertissement' },
+  { value: 'log', label: 'Enregistrer un log' },
+];
+
+const GENERIC_ACTION_TARGETS = [
+  { value: 'admin', label: 'Administrateur' },
+  { value: 'employee', label: 'Employé concerné' },
+  { value: 'employee_manager', label: 'Manager' },
+  { value: 'customer', label: 'Client' },
+  { value: 'confirmatrice', label: 'Confirmatrice' },
+];
+
+function makeCustomTrigger(key: string, label: string): TriggerConfig {
+  return {
+    value: key, label, icon: <Zap className="w-4 h-4" />, builtin: false,
+    fields: [],
+    actionTypes: GENERIC_ACTION_TYPES,
+    actionTargets: GENERIC_ACTION_TARGETS,
+    sampleEvent: {},
+  };
+}
+
+function slugifyTrigger(label: string): string {
+  return label.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+    .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '_');
+}
 
 /* ── Helpers ── */
 
@@ -239,8 +272,17 @@ export function AutomationsScreen() {
   const [draftActive, setDraftActive] = useState(true);
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [actions, setActions] = useState<ActionStep[]>([]);
+  const [customTriggers, setCustomTriggers] = useState<TriggerConfig[]>([]);
+  const [newTriggerLabel, setNewTriggerLabel] = useState('');
+  // custom condition fields for custom triggers
+  const [customFields, setCustomFields] = useState<TriggerField[]>([]);
 
-  const triggerConfig = useMemo(() => TRIGGERS.find((t) => t.value === draftTrigger) ?? TRIGGERS[0], [draftTrigger]);
+  const allTriggers = useMemo(() => [...TRIGGERS, ...customTriggers], [customTriggers]);
+  const triggerConfig = useMemo(() => {
+    const found = allTriggers.find((t) => t.value === draftTrigger);
+    if (found && !found.builtin) return { ...found, fields: [...found.fields, ...customFields] };
+    return found ?? TRIGGERS[0];
+  }, [allTriggers, draftTrigger, customFields]);
 
   const loadRules = useCallback(async () => {
     setLoading(true);
@@ -265,6 +307,7 @@ export function AutomationsScreen() {
     setDraftActive(true);
     setConditions(defaultConditions('attendance.marked'));
     setActions(defaultActions('attendance.marked'));
+    setCustomFields([]);
     setModalOpen(true);
   }
 
@@ -272,17 +315,54 @@ export function AutomationsScreen() {
     setEditingId(rule.id);
     setDraftName(rule.name);
     setDraftDesc(rule.description ?? '');
+    // If trigger_key is not in known triggers, add it as custom
+    const known = [...TRIGGERS, ...customTriggers].find((t) => t.value === rule.trigger_key);
+    if (!known) {
+      const ct = makeCustomTrigger(rule.trigger_key, rule.trigger_key);
+      setCustomTriggers((prev) => [...prev, ct]);
+    }
     setDraftTrigger(rule.trigger_key);
     setDraftActive(rule.is_active);
-    setConditions(jsonToConditions(rule.condition_json));
+    const conds = jsonToConditions(rule.condition_json);
+    setConditions(conds);
     setActions(jsonToActions(rule.action_json));
+    // Extract custom fields from conditions for non-builtin triggers
+    const isBuiltin = TRIGGERS.some((t) => t.value === rule.trigger_key);
+    if (!isBuiltin) {
+      const builtinFieldValues = new Set(TRIGGERS.flatMap((t) => t.fields.map((f) => f.value)));
+      const cf = conds.filter((c) => !builtinFieldValues.has(c.field)).map((c) => ({
+        value: c.field, label: c.field.replace('event.', '').replace(/_/g, ' '), type: 'string' as const,
+      }));
+      setCustomFields(cf);
+    } else {
+      setCustomFields([]);
+    }
     setModalOpen(true);
   }
 
-  function changeTrigger(key: TriggerKey) {
+  function changeTrigger(key: string) {
     setDraftTrigger(key);
-    setConditions(defaultConditions(key));
-    setActions(defaultActions(key));
+    const isBuiltin = TRIGGERS.some((t) => t.value === key);
+    setConditions(isBuiltin ? defaultConditions(key) : []);
+    setActions(isBuiltin ? defaultActions(key) : [{ type: 'send_notification', target: 'admin', message: '', useAB: false, variants: [] }]);
+    setCustomFields([]);
+  }
+
+  function addCustomTrigger() {
+    const label = newTriggerLabel.trim();
+    if (!label) { toast.error('Saisissez un nom de déclencheur.'); return; }
+    const key = slugifyTrigger(label);
+    if (!key) { toast.error('Nom invalide.'); return; }
+    if (allTriggers.some((t) => t.value === key)) { toast.error('Ce déclencheur existe déjà.'); return; }
+    const ct = makeCustomTrigger(key, label);
+    setCustomTriggers((prev) => [...prev, ct]);
+    setNewTriggerLabel('');
+    changeTrigger(key);
+    toast.success(`Déclencheur « ${label} » ajouté.`);
+  }
+
+  function addCustomField() {
+    setCustomFields((prev) => [...prev, { value: `event.champ_${prev.length + 1}`, label: '', type: 'string' }]);
   }
 
   async function saveRule() {
@@ -410,15 +490,28 @@ export function AutomationsScreen() {
             <p className="text-xs font-black uppercase text-indigo-600 mb-3 inline-flex items-center gap-2">
               <Zap className="w-4 h-4" /> Quand (déclencheur)
             </p>
-            <div className="flex flex-wrap gap-2">
-              {TRIGGERS.map((t) => (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {allTriggers.map((t) => (
                 <button key={t.value} type="button" onClick={() => changeTrigger(t.value)}
                   className={`px-4 py-2.5 rounded-xl text-sm font-black inline-flex items-center gap-2 transition-all ${
                     draftTrigger === t.value ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100'
                   }`}>
                   {t.icon} {t.label}
+                  {!t.builtin && (
+                    <span onClick={(e) => { e.stopPropagation(); setCustomTriggers((prev) => prev.filter((ct) => ct.value !== t.value)); if (draftTrigger === t.value) changeTrigger(TRIGGERS[0].value); }}
+                      className="ml-1 text-[10px] opacity-60 hover:opacity-100">✕</span>
+                  )}
                 </button>
               ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input value={newTriggerLabel} onChange={(e) => setNewTriggerLabel(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomTrigger(); } }}
+                className="flex-1 px-3 py-2 rounded-xl border border-indigo-200 bg-white text-sm" placeholder="Nouveau déclencheur (ex: Stock faible, Paiement reçu…)" />
+              <button type="button" onClick={addCustomTrigger}
+                className="px-3 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-black hover:bg-indigo-200 inline-flex items-center gap-1 whitespace-nowrap">
+                <Plus className="w-4 h-4" /> Ajouter
+              </button>
             </div>
           </div>
 
@@ -434,7 +527,7 @@ export function AutomationsScreen() {
               <p className="text-xs font-black uppercase text-amber-700 inline-flex items-center gap-2">
                 <List className="w-4 h-4" /> Si (conditions)
               </p>
-              <button type="button" onClick={() => setConditions((prev) => [...prev, { field: triggerConfig.fields[0]?.value ?? '', op: 'eq', value: '' }])}
+              <button type="button" onClick={() => setConditions((prev) => [...prev, { field: triggerConfig.fields[0]?.value ?? 'event.champ', op: 'eq', value: '' }])}
                 className="text-xs font-black text-amber-700 hover:underline inline-flex items-center gap-1">
                 <Plus className="w-3 h-3" /> Ajouter
               </button>
@@ -446,10 +539,15 @@ export function AutomationsScreen() {
                 {conditions.map((cond, ci) => (
                   <div key={ci} className="flex items-center gap-2 flex-wrap bg-white rounded-xl p-2.5 border border-amber-100">
                     {ci > 0 && <span className="text-[10px] font-black text-amber-500 bg-amber-100 rounded-full px-2 py-0.5">ET</span>}
-                    <select value={cond.field} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, field: e.target.value } : c))}
-                      className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold flex-1 min-w-[140px]">
-                      {triggerConfig.fields.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
+                    {triggerConfig.fields.length > 0 ? (
+                      <select value={cond.field} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, field: e.target.value } : c))}
+                        className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold flex-1 min-w-[140px]">
+                        {triggerConfig.fields.map((f) => <option key={f.value} value={f.value}>{f.label || f.value}</option>)}
+                      </select>
+                    ) : (
+                      <input value={cond.field} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, field: e.target.value } : c))}
+                        className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm flex-1 min-w-[140px]" placeholder="Nom du champ" />
+                    )}
                     <select value={cond.op} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, op: e.target.value as Op } : c))}
                       className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold min-w-[130px]">
                       {(Object.keys(OP_LABELS) as Op[]).map((op) => <option key={op} value={op}>{OP_LABELS[op]}</option>)}
@@ -488,6 +586,44 @@ export function AutomationsScreen() {
               </div>
             )}
           </div>
+
+          {/* Custom fields builder (for custom triggers only) */}
+          {!triggerConfig.builtin && (
+            <div className="rounded-2xl border-2 border-violet-100 bg-violet-50/50 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-black uppercase text-violet-700 inline-flex items-center gap-2">
+                  <List className="w-4 h-4" /> Champs de l'événement
+                </p>
+                <button type="button" onClick={addCustomField}
+                  className="text-xs font-black text-violet-700 hover:underline inline-flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> Ajouter champ
+                </button>
+              </div>
+              {customFields.length === 0 ? (
+                <p className="text-xs text-violet-600">Ajoutez les champs que cet événement contient pour les utiliser dans les conditions et messages.</p>
+              ) : (
+                <div className="space-y-2">
+                  {customFields.map((cf, fi) => (
+                    <div key={fi} className="flex items-center gap-2 bg-white rounded-xl p-2.5 border border-violet-100">
+                      <input value={cf.label} onChange={(e) => {
+                        const label = e.target.value;
+                        const key = `event.${slugifyTrigger(label) || `champ_${fi + 1}`}`;
+                        setCustomFields((prev) => prev.map((f, i) => i === fi ? { ...f, label, value: key } : f));
+                      }} className="flex-1 px-2 py-1.5 rounded-lg border border-zinc-200 text-sm" placeholder="Nom du champ (ex: Montant, Statut…)" />
+                      <select value={cf.type} onChange={(e) => setCustomFields((prev) => prev.map((f, i) => i === fi ? { ...f, type: e.target.value as 'string' | 'number' | 'boolean' } : f))}
+                        className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold min-w-[100px]">
+                        <option value="string">Texte</option><option value="number">Nombre</option><option value="boolean">Oui/Non</option>
+                      </select>
+                      <button type="button" onClick={() => setCustomFields((prev) => prev.filter((_, i) => i !== fi))}
+                        className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Actions builder */}
           <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50/50 p-4">
