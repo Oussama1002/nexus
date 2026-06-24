@@ -46,6 +46,8 @@ class PermissionsSeeder extends Seeder
             'finance' => ['view', 'create', 'update', 'delete'],
             'hr' => ['view', 'create', 'update', 'delete', 'view_salary'],
             'reports' => ['view', 'create', 'update', 'delete'],
+            'academy_courses' => ['view', 'create', 'update', 'delete', 'publish', 'archive'],
+            'academy_lessons' => ['view', 'create', 'update', 'delete'],
             'audit_logs' => ['view'],
             'settings' => ['view', 'create', 'update', 'delete'],
             'roles' => ['view', 'update'],
