@@ -22,6 +22,9 @@ class CollabProjectController extends Controller
         $status = trim((string) $request->query('status', ''));
         $search = trim((string) $request->query('search', ''));
 
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
         $q = CollabProject::query()
             ->where('brand_id', $brandId)
             ->with([
@@ -29,6 +32,18 @@ class CollabProjectController extends Controller
                 'members.user:id,name,email',
             ])
             ->orderByDesc('id');
+
+        if (! $user->isAdmin()) {
+            $userId = $user->id;
+            $visibleStatuses = ['published', 'in_progress', 'review', 'done'];
+            $q->where(function ($w) use ($userId, $visibleStatuses) {
+                $w->where('created_by_user_id', $userId)
+                    ->orWhere(function ($sub) use ($userId, $visibleStatuses) {
+                        $sub->whereIn('status', $visibleStatuses)
+                            ->whereHas('members', fn ($m) => $m->where('user_id', $userId));
+                    });
+            });
+        }
 
         if ($status !== '') {
             $q->where('status', $status);
