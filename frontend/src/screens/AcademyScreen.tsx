@@ -56,6 +56,18 @@ type CourseDraft = {
   prerequisites: string;
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Brouillon',
+  published: 'Publié',
+  archived: 'Archivé',
+};
+
+const DIFFICULTY_LABELS: Record<string, string> = {
+  beginner: 'Débutant',
+  intermediate: 'Intermédiaire',
+  advanced: 'Avancé',
+};
+
 const defaultDraft: CourseDraft = {
   title: '',
   slug: '',
@@ -64,7 +76,7 @@ const defaultDraft: CourseDraft = {
   status: 'draft',
   enrollment_type: 'free',
   price: '0',
-  currency: 'USD',
+  currency: 'MAD',
   duration_minutes: '0',
   difficulty_level: 'beginner',
   learning_objectives: '',
@@ -104,7 +116,7 @@ function courseToDraft(course: AcademyCourse): CourseDraft {
     status: course.status,
     enrollment_type: course.enrollment_type,
     price: String(course.price ?? 0),
-    currency: course.currency ?? 'USD',
+    currency: course.currency ?? 'MAD',
     duration_minutes: String(course.duration_minutes ?? 0),
     difficulty_level: course.difficulty_level ?? 'beginner',
     learning_objectives: '',
@@ -130,7 +142,7 @@ function draftToPayload(draft: CourseDraft): Record<string, unknown> {
     status: draft.status,
     enrollment_type: draft.enrollment_type,
     price: Number.isFinite(Number(draft.price)) ? Number(draft.price) : 0,
-    currency: draft.currency.trim() || 'USD',
+    currency: draft.currency.trim() || 'MAD',
     duration_minutes: Number.isFinite(Number(draft.duration_minutes)) ? Number(draft.duration_minutes) : 0,
     difficulty_level: draft.difficulty_level,
     learning_objectives: learningObjectives,
@@ -182,14 +194,14 @@ export function AcademyScreen() {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Course created.');
+      toast.success('Formation créée.');
       setModalOpen(false);
       setEditingCourse(null);
       setDraft(defaultDraft);
       void queryClient.invalidateQueries({ queryKey: ['academy-courses'] });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to create course.');
+      toast.error(error instanceof Error ? error.message : 'Échec de la création.');
     },
   });
 
@@ -203,14 +215,14 @@ export function AcademyScreen() {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Course updated.');
+      toast.success('Formation mise à jour.');
       setModalOpen(false);
       setEditingCourse(null);
       setDraft(defaultDraft);
       void queryClient.invalidateQueries({ queryKey: ['academy-courses'] });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update course.');
+      toast.error(error instanceof Error ? error.message : 'Échec de la mise à jour.');
     },
   });
 
@@ -223,11 +235,11 @@ export function AcademyScreen() {
       return true;
     },
     onSuccess: () => {
-      toast.success('Course deleted.');
+      toast.success('Formation supprimée.');
       void queryClient.invalidateQueries({ queryKey: ['academy-courses'] });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete course.');
+      toast.error(error instanceof Error ? error.message : 'Échec de la suppression.');
     },
   });
 
@@ -240,11 +252,11 @@ export function AcademyScreen() {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Course published.');
+      toast.success('Formation publiée.');
       void queryClient.invalidateQueries({ queryKey: ['academy-courses'] });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to publish course.');
+      toast.error(error instanceof Error ? error.message : 'Échec de la publication.');
     },
   });
 
@@ -270,11 +282,11 @@ export function AcademyScreen() {
 
   function onSubmitCourse() {
     if (!draft.title.trim()) {
-      toast.error('Title is required.');
+      toast.error('Le titre est requis.');
       return;
     }
     if (!draft.slug.trim()) {
-      toast.error('Slug is required.');
+      toast.error('Le slug est requis.');
       return;
     }
 
@@ -289,8 +301,8 @@ export function AcademyScreen() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Course Management"
-        subtitle="Manage academy courses: create, update, publish, and archive."
+        title="Gestion des formations"
+        subtitle="Créez, modifiez, publiez et archivez les formations de l'académie."
         right={
           <div className="flex items-center gap-2">
             <button
@@ -298,7 +310,7 @@ export function AcademyScreen() {
               onClick={() => void queryClient.invalidateQueries({ queryKey: ['academy-courses'] })}
               className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex items-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" /> Refresh
+              <RefreshCw className="w-4 h-4" /> Actualiser
             </button>
             {canCreate ? (
               <button
@@ -306,7 +318,7 @@ export function AcademyScreen() {
                 onClick={openCreateModal}
                 className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" /> Create Course
+                <Plus className="w-4 h-4" /> Nouvelle formation
               </button>
             ) : null}
           </div>
@@ -322,18 +334,18 @@ export function AcademyScreen() {
             onChange={(e) => setStatus((e.target.value as CourseStatus) || '')}
             className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold"
           >
-            <option value="">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
+            <option value="">Tous les statuts</option>
+            <option value="draft">Brouillon</option>
+            <option value="published">Publié</option>
+            <option value="archived">Archivé</option>
           </select>
         }
       />
 
       {coursesQuery.isError ? (
-        <EmptyState title="Failed to load courses" description={coursesQuery.error instanceof Error ? coursesQuery.error.message : 'Unknown error'} />
+        <EmptyState title="Échec du chargement" description={coursesQuery.error instanceof Error ? coursesQuery.error.message : 'Erreur inconnue'} />
       ) : rows.length === 0 && !coursesQuery.isLoading ? (
-        <EmptyState title="No courses found" description="Create your first academy course to start enrolling students." />
+        <EmptyState title="Aucune formation" description="Créez votre première formation pour commencer à inscrire des apprenants." />
       ) : (
         <DataTable<AcademyCourse>
           rows={rows}
@@ -341,7 +353,7 @@ export function AcademyScreen() {
           columns={[
             {
               key: 'title',
-              header: 'Course',
+              header: 'Formation',
               cell: (row) => (
                 <div className="space-y-1">
                   <p className="font-black text-zinc-900">{row.title}</p>
@@ -351,22 +363,22 @@ export function AcademyScreen() {
             },
             {
               key: 'category',
-              header: 'Category',
+              header: 'Catégorie',
               cell: (row) => <span className="text-sm">{row.category?.name ?? '—'}</span>,
             },
             {
               key: 'status',
-              header: 'Status',
-              cell: (row) => <StatusChip tone={statusTone(row.status)}>{row.status}</StatusChip>,
+              header: 'Statut',
+              cell: (row) => <StatusChip tone={statusTone(row.status)}>{STATUS_LABELS[row.status] ?? row.status}</StatusChip>,
             },
             {
               key: 'difficulty',
-              header: 'Difficulty',
-              cell: (row) => <span className="text-sm capitalize">{row.difficulty_level}</span>,
+              header: 'Niveau',
+              cell: (row) => <span className="text-sm">{DIFFICULTY_LABELS[row.difficulty_level] ?? row.difficulty_level}</span>,
             },
             {
               key: 'price',
-              header: 'Price',
+              header: 'Prix',
               cell: (row) => (
                 <span className="text-sm font-bold">
                   {Number(row.price).toFixed(2)} {row.currency}
@@ -375,12 +387,12 @@ export function AcademyScreen() {
             },
             {
               key: 'duration',
-              header: 'Duration',
+              header: 'Durée',
               cell: (row) => <span className="text-sm">{row.duration_minutes} min</span>,
             },
             {
               key: 'actions',
-              header: 'Actions',
+              header: '',
               cell: (row) => (
                 <div className="flex items-center gap-3">
                   {canUpdate ? (
@@ -389,7 +401,7 @@ export function AcademyScreen() {
                       onClick={() => openEditModal(row)}
                       className="text-sm font-black text-primary-600 hover:underline"
                     >
-                      Edit
+                      Modifier
                     </button>
                   ) : null}
                   {canPublish && row.status !== 'published' ? (
@@ -399,21 +411,21 @@ export function AcademyScreen() {
                       className="text-sm font-black text-emerald-700 hover:underline inline-flex items-center gap-1"
                     >
                       <Rocket className="w-3.5 h-3.5" />
-                      Publish
+                      Publier
                     </button>
                   ) : null}
                   {canDelete ? (
                     <button
                       type="button"
                       onClick={() => {
-                        if (window.confirm(`Delete course "${row.title}"?`)) {
+                        if (window.confirm(`Supprimer la formation « ${row.title} » ?`)) {
                           deleteMutation.mutate(row.id);
                         }
                       }}
                       className="text-sm font-black text-rose-700 hover:underline inline-flex items-center gap-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      Delete
+                      Suppr.
                     </button>
                   ) : null}
                 </div>
@@ -430,8 +442,8 @@ export function AcademyScreen() {
           setEditingCourse(null);
           setDraft(defaultDraft);
         }}
-        title={editingCourse ? 'Edit Course' : 'Create Course'}
-        subtitle="All fields are saved directly to the academy course API."
+        title={editingCourse ? 'Modifier la formation' : 'Nouvelle formation'}
+        subtitle="Tous les champs sont enregistrés via l'API de l'académie."
         footer={
           <div className="flex justify-end gap-2">
             <button
@@ -443,7 +455,7 @@ export function AcademyScreen() {
               }}
               className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black"
             >
-              Cancel
+              Annuler
             </button>
             <button
               type="button"
@@ -451,7 +463,7 @@ export function AcademyScreen() {
               disabled={createMutation.isPending || updateMutation.isPending}
               className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60"
             >
-              {editingCourse ? 'Update' : 'Create'}
+              {editingCourse ? 'Mettre à jour' : 'Créer'}
             </button>
           </div>
         }
@@ -459,12 +471,12 @@ export function AcademyScreen() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Title
+              Titre
               <input
                 value={draft.title}
                 onChange={(e) => onChangeTitle(e.target.value)}
                 className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                placeholder="Course title"
+                placeholder="Titre de la formation"
               />
             </label>
             <label className="block text-xs font-black uppercase text-zinc-500">
@@ -473,18 +485,18 @@ export function AcademyScreen() {
                 value={draft.slug}
                 onChange={(e) => setDraft((d) => ({ ...d, slug: slugify(e.target.value) }))}
                 className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                placeholder="course-slug"
+                placeholder="slug-formation"
               />
             </label>
           </div>
 
           <label className="block text-xs font-black uppercase text-zinc-500">
-            Short Description
+            Description courte
             <input
               value={draft.short_description}
               onChange={(e) => setDraft((d) => ({ ...d, short_description: e.target.value }))}
               className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-              placeholder="Brief summary"
+              placeholder="Résumé rapide"
             />
           </label>
 
@@ -495,51 +507,51 @@ export function AcademyScreen() {
               onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
               rows={4}
               className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-              placeholder="Full course description"
+              placeholder="Description complète de la formation"
             />
           </label>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Status
+              Statut
               <select
                 value={draft.status}
                 onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as CourseStatus }))}
                 className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
               >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
+                <option value="draft">Brouillon</option>
+                <option value="published">Publié</option>
+                <option value="archived">Archivé</option>
               </select>
             </label>
 
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Enrollment
+              Inscription
               <select
                 value={draft.enrollment_type}
                 onChange={(e) => setDraft((d) => ({ ...d, enrollment_type: e.target.value as EnrollmentType }))}
                 className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
               >
-                <option value="free">Free</option>
-                <option value="paid">Paid</option>
+                <option value="free">Gratuite</option>
+                <option value="paid">Payante</option>
               </select>
             </label>
 
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Difficulty
+              Niveau
               <select
                 value={draft.difficulty_level}
                 onChange={(e) => setDraft((d) => ({ ...d, difficulty_level: e.target.value as DifficultyLevel }))}
                 className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
               >
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
+                <option value="beginner">Débutant</option>
+                <option value="intermediate">Intermédiaire</option>
+                <option value="advanced">Avancé</option>
               </select>
             </label>
 
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Duration (min)
+              Durée (min)
               <input
                 type="number"
                 min={0}
@@ -552,7 +564,7 @@ export function AcademyScreen() {
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Price
+              Prix
               <input
                 type="number"
                 min={0}
@@ -563,7 +575,7 @@ export function AcademyScreen() {
               />
             </label>
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Currency
+              Devise
               <input
                 value={draft.currency}
                 maxLength={3}
@@ -575,7 +587,7 @@ export function AcademyScreen() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Learning Objectives (one per line)
+              Objectifs pédagogiques (un par ligne)
               <textarea
                 rows={4}
                 value={draft.learning_objectives}
@@ -584,7 +596,7 @@ export function AcademyScreen() {
               />
             </label>
             <label className="block text-xs font-black uppercase text-zinc-500">
-              Prerequisites (one per line)
+              Prérequis (un par ligne)
               <textarea
                 rows={4}
                 value={draft.prerequisites}
