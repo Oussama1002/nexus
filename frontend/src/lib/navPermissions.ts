@@ -14,7 +14,7 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   confirmatrice: ['conversations.view'],
   leads: ['leads.view'],
   customers: ['customers.view'],
-  academy: ['academy_dashboard.view'],
+  academy: ['conversations.view'],
   mediaBuying: ['campaigns.view'],
   collabProjects: ['collab_projects.view'],
   automations: ['automations.view'],
