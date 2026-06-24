@@ -536,14 +536,59 @@ export function LeadsScreen({
             },
             { key: 'brand', header: 'Marque', cell: (l) => <span className="font-bold text-zinc-700">{l.brand}</span> },
             { key: 'source', header: 'Source', cell: (l) => <span className="font-bold text-zinc-700">{l.source}</span> },
-            { key: 'agent', header: 'Assigné', cell: (l) => <span className="font-bold text-zinc-700">{l.agent}</span> },
+            {
+              key: 'agent',
+              header: 'Assigné',
+              cell: (l) => {
+                const al = apiLeads.find((a) => String(a.id) === l.id);
+                const currentVal = al?.assigned_user_id ? String(al.assigned_user_id) : (adminUserId || '');
+                return (
+                  <select
+                    value={currentVal}
+                    onChange={async (e) => {
+                      const uid = e.target.value ? Number(e.target.value) : null;
+                      const res = await api.post(`leads/${l.id}/assign`, { assigned_user_id: uid });
+                      if (!res.ok) { toast.error(res.message); return; }
+                      toast.success('Assignation mise à jour.');
+                      await loadLeads();
+                    }}
+                    className="px-2 py-1 rounded-lg border border-zinc-200 text-sm font-bold text-zinc-800 bg-white cursor-pointer"
+                  >
+                    <option value="">— Non assigné —</option>
+                    {assignableUsers.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                );
+              },
+            },
             {
               key: 'status',
               header: 'Statut',
               cell: (l) => (
-                <StatusChip tone={l.status === 'confirmed' ? 'success' : l.status === 'lost' ? 'danger' : l.status === 'new' ? 'info' : 'neutral'}>
-                  {l.status}
-                </StatusChip>
+                <select
+                  value={l.status}
+                  onChange={async (e) => {
+                    const res = await api.patch(`leads/${l.id}/status`, { status: e.target.value });
+                    if (!res.ok) { toast.error(res.message); return; }
+                    toast.success('Statut mis à jour.');
+                    await loadLeads();
+                  }}
+                  className={cn(
+                    'px-2 py-1 rounded-lg border text-sm font-black cursor-pointer',
+                    l.status === 'confirmed' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
+                    l.status === 'lost' ? 'border-rose-200 bg-rose-50 text-rose-800' :
+                    l.status === 'new' ? 'border-blue-200 bg-blue-50 text-blue-800' :
+                    'border-zinc-200 bg-zinc-50 text-zinc-800'
+                  )}
+                >
+                  <option value="new">Nouveau</option>
+                  <option value="contacted">Contacté</option>
+                  <option value="qualified">Qualifié</option>
+                  <option value="confirmed">Confirmé</option>
+                  <option value="lost">Perdu</option>
+                  <option value="archived">Archivé</option>
+                </select>
               ),
             },
             { key: 'createdAt', header: 'Date création', cell: (l) => <span className="font-bold text-zinc-700">{l.createdAt}</span> },
