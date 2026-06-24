@@ -179,7 +179,7 @@ function defaultActions(trigger: TriggerKey): ActionStep[] {
     return [{
       type: 'send_warning_message', target: 'employee_manager', message: '', useAB: true,
       variants: [
-        { label: 'A', message: 'Avertissement : retard répété cette semaine ({{metrics.late_count_week}} retards).', weight: 1 },
+        { label: 'A', message: 'Avertissement : retard répété cette semaine.', weight: 1 },
         { label: 'B', message: 'Veuillez corriger vos horaires : retard de plus de 5 min détecté à nouveau.', weight: 1 },
       ],
     }];
@@ -187,6 +187,22 @@ function defaultActions(trigger: TriggerKey): ActionStep[] {
   return [{
     type: 'send_customer_message', target: 'customer', message: 'Votre commande {{event.order_number}} a été annulée.', useAB: false, variants: [],
   }];
+}
+
+function varToLabel(msg: string, fields: TriggerField[]): string {
+  let out = msg;
+  for (const f of fields) {
+    if (f.label) out = out.replaceAll(`{{${f.value}}}`, `[${f.label}]`);
+  }
+  return out;
+}
+
+function labelToVar(msg: string, fields: TriggerField[]): string {
+  let out = msg;
+  for (const f of fields) {
+    if (f.label) out = out.replaceAll(`[${f.label}]`, `{{${f.value}}}`);
+  }
+  return out;
 }
 
 function conditionsToJson(conditions: ConditionRow[]): Record<string, unknown> | null {
@@ -202,21 +218,22 @@ function conditionsToJson(conditions: ConditionRow[]): Record<string, unknown> |
   };
 }
 
-function actionsToJson(steps: ActionStep[]): Record<string, unknown> {
+function actionsToJson(steps: ActionStep[], fields: TriggerField[]): Record<string, unknown> {
+  const cv = (msg: string) => labelToVar(msg, fields);
   if (steps.length === 1 && !steps[0].useAB) {
-    return { type: steps[0].type, target: steps[0].target, message: steps[0].message };
+    return { type: steps[0].type, target: steps[0].target, message: cv(steps[0].message) };
   }
   if (steps.length === 1 && steps[0].useAB) {
     return {
       type: steps[0].type, target: steps[0].target,
-      variants: steps[0].variants.map((v) => ({ label: v.label, message: v.message, weight: v.weight })),
+      variants: steps[0].variants.map((v) => ({ label: v.label, message: cv(v.message), weight: v.weight })),
     };
   }
   return {
     type: 'sequence', target: steps[0]?.target ?? 'admin',
     sequence: steps.map((s) => {
-      if (s.useAB) return { type: s.type, variants: s.variants.map((v) => ({ label: v.label, message: v.message, weight: v.weight })) };
-      return { type: s.type, message: s.message };
+      if (s.useAB) return { type: s.type, variants: s.variants.map((v) => ({ label: v.label, message: cv(v.message), weight: v.weight })) };
+      return { type: s.type, message: cv(s.message) };
     }),
   };
 }
@@ -228,22 +245,23 @@ function jsonToConditions(json: Record<string, unknown> | null): ConditionRow[] 
   return all.map((c: any) => ({ field: String(c.field ?? ''), op: (c.op ?? 'eq') as Op, value: String(c.value ?? '') }));
 }
 
-function jsonToActions(json: Record<string, unknown>): ActionStep[] {
+function jsonToActions(json: Record<string, unknown>, fields: TriggerField[]): ActionStep[] {
+  const cv = (msg: string) => varToLabel(msg, fields);
   const j = json as any;
   if (j.sequence && Array.isArray(j.sequence)) {
     return j.sequence.map((s: any) => ({
-      type: s.type ?? 'log', target: j.target ?? 'admin', message: s.message ?? '',
+      type: s.type ?? 'log', target: j.target ?? 'admin', message: cv(s.message ?? ''),
       useAB: Array.isArray(s.variants) && s.variants.length > 0,
-      variants: (s.variants ?? []).map((v: any) => ({ label: v.label ?? 'A', message: v.message ?? '', weight: v.weight ?? 1 })),
+      variants: (s.variants ?? []).map((v: any) => ({ label: v.label ?? 'A', message: cv(v.message ?? ''), weight: v.weight ?? 1 })),
     }));
   }
   if (Array.isArray(j.variants) && j.variants.length > 0) {
     return [{
       type: j.type ?? 'send_warning_message', target: j.target ?? 'admin', message: '', useAB: true,
-      variants: j.variants.map((v: any) => ({ label: v.label ?? 'A', message: v.message ?? '', weight: v.weight ?? 1 })),
+      variants: j.variants.map((v: any) => ({ label: v.label ?? 'A', message: cv(v.message ?? ''), weight: v.weight ?? 1 })),
     }];
   }
-  return [{ type: j.type ?? 'log', target: j.target ?? 'admin', message: j.message ?? '', useAB: false, variants: [] }];
+  return [{ type: j.type ?? 'log', target: j.target ?? 'admin', message: cv(j.message ?? ''), useAB: false, variants: [] }];
 }
 
 /* ══════════════════════════════════════════════════════
@@ -325,7 +343,9 @@ export function AutomationsScreen() {
     setDraftActive(rule.is_active);
     const conds = jsonToConditions(rule.condition_json);
     setConditions(conds);
-    setActions(jsonToActions(rule.action_json));
+    // Resolve fields for this trigger to convert {{var}} to [Label]
+    const triggerConf = known ?? TRIGGERS.find((t) => t.value === rule.trigger_key) ?? TRIGGERS[0];
+    setActions(jsonToActions(rule.action_json, triggerConf.fields));
     // Extract custom fields from conditions for non-builtin triggers
     const isBuiltin = TRIGGERS.some((t) => t.value === rule.trigger_key);
     if (!isBuiltin) {
@@ -371,7 +391,7 @@ export function AutomationsScreen() {
       name: draftName.trim(), description: draftDesc.trim() || null,
       trigger_key: draftTrigger, is_active: draftActive,
       condition_json: conditionsToJson(conditions),
-      action_json: actionsToJson(actions),
+      action_json: actionsToJson(actions, triggerConfig.fields),
     };
     const res = editingId ? await api.put(`automations/rules/${editingId}`, body) : await api.post('automations/rules', body);
     if (!res.ok) { toast.error(res.message); return; }
@@ -719,15 +739,15 @@ export function AutomationsScreen() {
 
           {/* Variables hint */}
           <div className="card-muted p-3">
-            <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Variables disponibles <span className="text-zinc-400 normal-case font-bold">(cliquez pour copier)</span></p>
+            <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Variables disponibles <span className="text-zinc-400 normal-case font-bold">(cliquez pour copier et coller dans le message)</span></p>
             <div className="flex flex-wrap gap-1.5">
               {triggerConfig.fields.map((f) => (
                 <button key={f.value} type="button"
-                  className="text-xs bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-2.5 py-1 rounded-lg cursor-pointer transition-colors inline-flex items-center gap-1.5 border border-zinc-200"
-                  title={`Copier {{${f.value}}}`}
-                  onClick={() => { void navigator.clipboard.writeText(`{{${f.value}}}`); toast.success(`Variable « ${f.label} » copiée !`); }}>
-                  <Copy className="w-3 h-3 text-zinc-400" />
-                  <span className="font-bold">{f.label}</span>
+                  className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg cursor-pointer transition-colors inline-flex items-center gap-1.5 border border-indigo-200"
+                  title={`Insère [${f.label}] dans le message`}
+                  onClick={() => { void navigator.clipboard.writeText(`[${f.label}]`); toast.success(`Variable « ${f.label} » copiée — collez-la dans votre message.`); }}>
+                  <Copy className="w-3 h-3 text-indigo-400" />
+                  <span className="font-bold">[{f.label}]</span>
                 </button>
               ))}
             </div>
