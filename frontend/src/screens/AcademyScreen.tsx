@@ -86,7 +86,7 @@ const defaultDraft: CourseDraft = {
 function slugify(value: string): string {
   return value
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -162,6 +162,7 @@ export function AcademyScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<AcademyCourse | null>(null);
   const [draft, setDraft] = useState<CourseDraft>(defaultDraft);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const canCreate = hasPermission(['academy_courses.create', 'hr.update']);
   const canUpdate = hasPermission(['academy_courses.update', 'hr.update']);
@@ -191,12 +192,15 @@ export function AcademyScreen() {
       const res = await api.post<AcademyCourse>('academy/courses', payload);
       if (!res.ok) {
         const err = flattenFieldErrors(res.errors as Record<string, unknown>);
-        throw new Error(err.length > 0 ? err.join(' ') : res.message);
+        const msgs = err.length > 0 ? err : [res.message];
+        setFormErrors(msgs);
+        throw new Error(msgs.join(' '));
       }
       return res.data;
     },
     onSuccess: () => {
       toast.success('Formation créée.');
+      setFormErrors([]);
       setModalOpen(false);
       setEditingCourse(null);
       setDraft(defaultDraft);
@@ -265,12 +269,14 @@ export function AcademyScreen() {
   function openCreateModal() {
     setEditingCourse(null);
     setDraft(defaultDraft);
+    setFormErrors([]);
     setModalOpen(true);
   }
 
   function openEditModal(course: AcademyCourse) {
     setEditingCourse(course);
     setDraft(courseToDraft(course));
+    setFormErrors([]);
     setModalOpen(true);
   }
 
@@ -467,6 +473,13 @@ export function AcademyScreen() {
         }
       >
         <div className="space-y-4">
+          {formErrors.length > 0 && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800 space-y-1">
+              {formErrors.map((e) => (
+                <p key={e}>{e}</p>
+              ))}
+            </div>
+          )}
           <label className="block text-xs font-black uppercase text-zinc-500">
             Titre
             <input
