@@ -49,7 +49,17 @@ class CourseController extends Controller
             });
         }
 
-        return ApiResponse::success(CourseResource::collection($query->paginate($perPage)), 'Courses retrieved successfully.');
+        $paginator = $query->paginate($perPage);
+
+        return ApiResponse::success([
+            'data' => CourseResource::collection($paginator)->resolve(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ], 'Courses retrieved successfully.');
     }
 
     public function store(StoreAcademyCourseRequest $request): JsonResponse
