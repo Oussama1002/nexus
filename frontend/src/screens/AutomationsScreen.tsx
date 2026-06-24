@@ -53,7 +53,7 @@ type ActionStep = { type: string; target: string; message: string; variants: Var
 
 /* ── Trigger config ── */
 
-type TriggerField = { value: string; label: string; type: 'string' | 'number' | 'boolean' };
+type TriggerField = { value: string; label: string; type: 'string' | 'number' | 'boolean'; options?: { value: string; label: string }[] };
 type TriggerConfig = {
   value: TriggerKey;
   label: string;
@@ -75,7 +75,10 @@ const TRIGGERS: TriggerConfig[] = [
     label: 'Retard / présence employé',
     icon: <AlertTriangle className="w-4 h-4" />,
     fields: [
-      { value: 'event.status', label: 'Statut présence', type: 'string' },
+      { value: 'event.status', label: 'Statut présence', type: 'string', options: [
+        { value: 'present', label: 'Présent' }, { value: 'late', label: 'En retard' },
+        { value: 'absent', label: 'Absent' }, { value: 'justified', label: 'Justifié' },
+      ]},
       { value: 'event.minutes_late', label: 'Minutes de retard', type: 'number' },
       { value: 'event.was_late', label: 'Est en retard', type: 'boolean' },
       { value: 'metrics.late_count_week', label: 'Retards cette semaine', type: 'number' },
@@ -98,8 +101,16 @@ const TRIGGERS: TriggerConfig[] = [
     label: 'Statut commande changé',
     icon: <Zap className="w-4 h-4" />,
     fields: [
-      { value: 'event.from_status', label: 'Ancien statut', type: 'string' },
-      { value: 'event.to_status', label: 'Nouveau statut', type: 'string' },
+      { value: 'event.from_status', label: 'Ancien statut', type: 'string', options: [
+        { value: 'new', label: 'Nouvelle' }, { value: 'confirmed', label: 'Confirmée' },
+        { value: 'shipped', label: 'Expédiée' }, { value: 'delivered', label: 'Livrée' },
+        { value: 'cancelled', label: 'Annulée' }, { value: 'returned', label: 'Retournée' },
+      ]},
+      { value: 'event.to_status', label: 'Nouveau statut', type: 'string', options: [
+        { value: 'new', label: 'Nouvelle' }, { value: 'confirmed', label: 'Confirmée' },
+        { value: 'shipped', label: 'Expédiée' }, { value: 'delivered', label: 'Livrée' },
+        { value: 'cancelled', label: 'Annulée' }, { value: 'returned', label: 'Retournée' },
+      ]},
       { value: 'event.total', label: 'Total commande', type: 'number' },
       { value: 'event.order_number', label: 'N° commande', type: 'string' },
     ],
@@ -135,8 +146,8 @@ function defaultActions(trigger: TriggerKey): ActionStep[] {
     return [{
       type: 'send_warning_message', target: 'employee_manager', message: '', useAB: true,
       variants: [
-        { label: 'A', message: 'Avertissement: retard répété cette semaine ({{metrics.late_count_week}} fois).', weight: 1 },
-        { label: 'B', message: 'Merci de corriger vos horaires: retard > 5 min détecté à nouveau.', weight: 1 },
+        { label: 'A', message: 'Avertissement : retard répété cette semaine ({{metrics.late_count_week}} retards).', weight: 1 },
+        { label: 'B', message: 'Veuillez corriger vos horaires : retard de plus de 5 min détecté à nouveau.', weight: 1 },
       ],
     }];
   }
@@ -443,8 +454,31 @@ export function AutomationsScreen() {
                       className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold min-w-[130px]">
                       {(Object.keys(OP_LABELS) as Op[]).map((op) => <option key={op} value={op}>{OP_LABELS[op]}</option>)}
                     </select>
-                    <input value={cond.value} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, value: e.target.value } : c))}
-                      className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm flex-1 min-w-[80px]" placeholder="Valeur" />
+                    {(() => {
+                      const fieldConf = triggerConfig.fields.find((f) => f.value === cond.field);
+                      if (fieldConf?.options) {
+                        return (
+                          <select value={cond.value} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, value: e.target.value } : c))}
+                            className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold flex-1 min-w-[100px]">
+                            <option value="">— Choisir —</option>
+                            {fieldConf.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>
+                        );
+                      }
+                      if (fieldConf?.type === 'boolean') {
+                        return (
+                          <select value={cond.value} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, value: e.target.value } : c))}
+                            className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold flex-1 min-w-[80px]">
+                            <option value="true">Oui</option><option value="false">Non</option>
+                          </select>
+                        );
+                      }
+                      return (
+                        <input value={cond.value} onChange={(e) => setConditions((prev) => prev.map((c, i) => i === ci ? { ...c, value: e.target.value } : c))}
+                          type={fieldConf?.type === 'number' ? 'number' : 'text'}
+                          className="px-2 py-1.5 rounded-lg border border-zinc-200 text-sm flex-1 min-w-[80px]" placeholder="Valeur" />
+                      );
+                    })()}
                     <button type="button" onClick={() => setConditions((prev) => prev.filter((_, i) => i !== ci))}
                       className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600">
                       <Trash2 className="w-3.5 h-3.5" />
@@ -538,7 +572,7 @@ export function AutomationsScreen() {
                       <label className="text-[10px] font-black uppercase text-zinc-500 block">Message
                         <textarea value={step.message} onChange={(e) => setActions((prev) => prev.map((s, i) => i === si ? { ...s, message: e.target.value } : s))}
                           rows={2} className="mt-1 w-full px-2 py-1.5 rounded-lg border border-zinc-200 text-sm"
-                          placeholder="Utilisez {{event.field}} pour les variables dynamiques" />
+                          placeholder="Utilisez les variables ci-dessous pour personnaliser le message" />
                       </label>
                     )}
                   </div>
@@ -549,14 +583,16 @@ export function AutomationsScreen() {
 
           {/* Variables hint */}
           <div className="card-muted p-3">
-            <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Variables disponibles</p>
-            <div className="flex flex-wrap gap-1">
+            <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Variables disponibles <span className="text-zinc-400 normal-case font-bold">(cliquez pour copier)</span></p>
+            <div className="flex flex-wrap gap-1.5">
               {triggerConfig.fields.map((f) => (
-                <span key={f.value} className="text-[10px] font-mono bg-zinc-200 text-zinc-700 px-2 py-0.5 rounded-full cursor-pointer hover:bg-zinc-300"
-                  title={`Cliquez pour copier: {{${f.value}}}`}
-                  onClick={() => { void navigator.clipboard.writeText(`{{${f.value}}}`); toast.success('Copié !'); }}>
-                  {'{{' + f.value + '}}'}
-                </span>
+                <button key={f.value} type="button"
+                  className="text-xs bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-2.5 py-1 rounded-lg cursor-pointer transition-colors inline-flex items-center gap-1.5 border border-zinc-200"
+                  title={`Copier {{${f.value}}}`}
+                  onClick={() => { void navigator.clipboard.writeText(`{{${f.value}}}`); toast.success(`Variable « ${f.label} » copiée !`); }}>
+                  <Copy className="w-3 h-3 text-zinc-400" />
+                  <span className="font-bold">{f.label}</span>
+                </button>
               ))}
             </div>
           </div>
