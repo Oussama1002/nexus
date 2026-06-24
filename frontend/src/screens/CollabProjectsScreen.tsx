@@ -70,6 +70,12 @@ function toPayload(draft: Draft): Record<string, unknown> {
 function statusTone(status: ProjectStatus): 'neutral' | 'warning' | 'danger' | 'info' | 'success' {
   if (status === 'done') return 'success'; if (status === 'published') return 'info'; if (status === 'review') return 'warning'; if (status === 'blocked') return 'danger'; return 'neutral';
 }
+function fmtDate(raw: string | null | undefined): string {
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
 
 /* ══════════════════════════════════════════════════════
    Main Component
@@ -204,7 +210,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
             </button>
           )},
           { key: 'st', header: 'Statut', cell: (r) => <StatusChip tone={statusTone(r.status)}>{STATUS_LABELS[r.status] ?? r.status}</StatusChip> },
-          { key: 'due', header: 'Échéance', cell: (r) => <span>{r.due_date ?? '—'}</span> },
+          { key: 'due', header: 'Échéance', cell: (r) => <span>{fmtDate(r.due_date)}</span> },
           { key: 'members', header: 'Intervenants', cell: (r) => (
             <div className="flex flex-wrap gap-1">
               {(r.members ?? []).slice(0, 3).map((m) => (
@@ -272,7 +278,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
                     <select value={m.user_id} onChange={(e) => setDraft((d) => ({ ...d, members: d.members.map((x, i) => i === idx ? { ...x, user_id: e.target.value } : x) }))}
                       className="md:col-span-5 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                       <option value="">— Utilisateur —</option>
-                      {users.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.email}</option>)}
+                      {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                     <select value={m.project_role} onChange={(e) => setDraft((d) => ({ ...d, members: d.members.map((x, i) => i === idx ? { ...x, project_role: e.target.value as RoleType } : x) }))}
                       className="md:col-span-4 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
@@ -304,7 +310,6 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
 }) {
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<UserOption[]>([]);
 
   // Task modal
   const [taskModal, setTaskModal] = useState(false);
@@ -342,12 +347,7 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
     setColumns(cols);
   }, [project.id, toast]);
 
-  const loadUsers = useCallback(async () => {
-    const res = await api.get<LaravelPaginator<UserOption>>('users?per_page=200');
-    if (res.ok && isPaginator<UserOption>(res.data)) setUsers(res.data.data);
-  }, []);
-
-  useEffect(() => { void loadBoard(); void loadUsers(); }, [loadBoard, loadUsers]);
+  useEffect(() => { void loadBoard(); }, [loadBoard]);
 
   /* ── Column CRUD ── */
 
@@ -465,7 +465,7 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
             <h2 className="text-xl font-black text-zinc-900">{project.title}</h2>
             <p className="text-xs text-zinc-500">
               <StatusChip tone={statusTone(project.status)}>{STATUS_LABELS[project.status]}</StatusChip>
-              {project.due_date && <span className="ml-2">Échéance: {project.due_date}</span>}
+              {project.due_date && <span className="ml-2">Échéance: {fmtDate(project.due_date)}</span>}
             </p>
           </div>
         </div>
@@ -544,7 +544,7 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
                       </span>
                       {task.due_date && (
                         <span className="text-[10px] font-bold text-zinc-500 inline-flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />{task.due_date}
+                          <Calendar className="w-3 h-3" />{fmtDate(task.due_date)}
                         </span>
                       )}
                       {task.assignee_name && (
@@ -624,7 +624,7 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
             <label className="block text-xs font-black uppercase text-zinc-500">Assigné à
               <select value={taskDraft.assigned_to} onChange={(e) => setTaskDraft((d) => ({ ...d, assigned_to: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                 <option value="">— Non assigné —</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {project.members.map((m) => <option key={m.user_id} value={m.user_id}>{m.user?.name ?? `Utilisateur #${m.user_id}`} · {ROLE_LABELS[m.project_role] ?? m.project_role}</option>)}
               </select>
             </label>
           </div>
