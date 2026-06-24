@@ -16,9 +16,11 @@ class DatabaseSeeder extends Seeder
             Lot8RolePermissionsSeeder::class,
             ManagementRolePermissionsSeeder::class,
             ClientPortalRolePermissionsSeeder::class,
+            AcademyRolePermissionsSeeder::class,
             DemoBrandsSeeder::class,
             DeliveryCompaniesSeeder::class,
             InfluenceDemoSeeder::class,
+            AcademyDemoSeeder::class,
             SystemSettingsSeeder::class,
             AdminUserSeeder::class,
         ]);

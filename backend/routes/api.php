@@ -7,6 +7,10 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\BrandKnowledgeItemController;
 use App\Http\Controllers\Api\AdAccountController;
 use App\Http\Controllers\Api\AcademyLessonController;
+use App\Http\Controllers\Api\Academy\CourseController as AcademyCourseController;
+use App\Http\Controllers\Api\Academy\EnrollmentController as AcademyEnrollmentController;
+use App\Http\Controllers\Api\Academy\ReportController as AcademyReportController;
+use App\Http\Controllers\Api\Academy\StudentController as AcademyStudentController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\CampaignMetricController;
 use App\Http\Controllers\Api\ClientContractController;
@@ -353,12 +357,34 @@ Route::middleware('auth:sanctum')->group(function () {
         ->whereIn('type', ['department', 'role_title'])
         ->middleware('permission:hr.view');
     $registerCrud('hr', EmployeeController::class, 'hr');
-    Route::get('academy/lessons', [AcademyLessonController::class, 'index']);
-    Route::post('academy/lessons', [AcademyLessonController::class, 'store']);
-    Route::get('academy/lessons/{id}', [AcademyLessonController::class, 'show'])->whereNumber('id');
-    Route::put('academy/lessons/{id}', [AcademyLessonController::class, 'update'])->whereNumber('id');
-    Route::patch('academy/lessons/{id}', [AcademyLessonController::class, 'update'])->whereNumber('id');
-    Route::delete('academy/lessons/{id}', [AcademyLessonController::class, 'destroy'])->whereNumber('id');
+    Route::prefix('academy')->group(function () {
+        Route::get('courses', [AcademyCourseController::class, 'index'])->middleware('permission:academy_courses.view');
+        Route::post('courses', [AcademyCourseController::class, 'store'])->middleware('permission:academy_courses.create');
+        Route::get('courses/{id}', [AcademyCourseController::class, 'show'])->whereNumber('id')->middleware('permission:academy_courses.view');
+        Route::put('courses/{id}', [AcademyCourseController::class, 'update'])->whereNumber('id')->middleware('permission:academy_courses.update');
+        Route::patch('courses/{id}', [AcademyCourseController::class, 'update'])->whereNumber('id')->middleware('permission:academy_courses.update');
+        Route::delete('courses/{id}', [AcademyCourseController::class, 'destroy'])->whereNumber('id')->middleware('permission:academy_courses.delete');
+        Route::post('courses/{id}/publish', [AcademyCourseController::class, 'publish'])->whereNumber('id')->middleware('permission:academy_courses.publish');
+        Route::post('courses/{id}/archive', [AcademyCourseController::class, 'archive'])->whereNumber('id')->middleware('permission:academy_courses.archive');
+
+        Route::get('students', [AcademyStudentController::class, 'index'])->middleware('permission:academy_students.view');
+        Route::get('students/{id}', [AcademyStudentController::class, 'show'])->whereNumber('id')->middleware('permission:academy_students.view');
+
+        Route::get('enrollments', [AcademyEnrollmentController::class, 'index'])->middleware('permission:academy_enrollments.view');
+        Route::post('enrollments', [AcademyEnrollmentController::class, 'store'])->middleware('permission:academy_enrollments.create');
+        Route::post('enrollments/bulk', [AcademyEnrollmentController::class, 'bulkStore'])->middleware('permission:academy_enrollments.bulk_enroll');
+        Route::patch('enrollments/{id}', [AcademyEnrollmentController::class, 'update'])->whereNumber('id')->middleware('permission:academy_enrollments.update');
+
+        Route::get('reports/dashboard', [AcademyReportController::class, 'dashboard'])->middleware('permission:academy_reports.view');
+
+        // Legacy endpoint kept for backwards compatibility with existing frontend screen.
+        Route::get('lessons', [AcademyLessonController::class, 'index']);
+        Route::post('lessons', [AcademyLessonController::class, 'store']);
+        Route::get('lessons/{id}', [AcademyLessonController::class, 'show'])->whereNumber('id');
+        Route::put('lessons/{id}', [AcademyLessonController::class, 'update'])->whereNumber('id');
+        Route::patch('lessons/{id}', [AcademyLessonController::class, 'update'])->whereNumber('id');
+        Route::delete('lessons/{id}', [AcademyLessonController::class, 'destroy'])->whereNumber('id');
+    });
 
     Route::get('hr/attendance', [HrAttendanceController::class, 'index'])->middleware('permission:hr.view');
     Route::post('hr/attendance/clock-in', [HrAttendanceController::class, 'clockIn']);

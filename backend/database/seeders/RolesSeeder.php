@@ -19,6 +19,12 @@ class RolesSeeder extends Seeder
             ['name' => 'Social media manager', 'slug' => 'smm'],
             ['name' => 'Responsable influence', 'slug' => 'influence_manager'],
             ['name' => 'Propriétaire de marque (client)', 'slug' => 'client_brand_owner'],
+            ['name' => 'Super Admin', 'slug' => 'super_admin'],
+            ['name' => 'Academy Manager', 'slug' => 'academy_manager'],
+            ['name' => 'Trainer', 'slug' => 'trainer'],
+            ['name' => 'Student', 'slug' => 'student'],
+            ['name' => 'Sales Agent', 'slug' => 'sales_agent'],
+            ['name' => 'Support Agent', 'slug' => 'support_agent'],
         ];
 
         foreach ($roles as $role) {

@@ -50,6 +50,22 @@ class PermissionsSeeder extends Seeder
             'settings' => ['view', 'create', 'update', 'delete'],
             'roles' => ['view', 'update'],
             'permissions' => ['view'],
+            'academy_dashboard' => ['view'],
+            'academy_courses' => ['view', 'create', 'update', 'delete', 'publish', 'archive'],
+            'academy_categories' => ['view', 'create', 'update', 'delete'],
+            'academy_students' => ['view', 'create', 'update', 'delete'],
+            'academy_trainers' => ['view', 'create', 'update', 'delete'],
+            'academy_enrollments' => ['view', 'create', 'update', 'delete', 'bulk_enroll', 'manual_enroll'],
+            'academy_progress' => ['view', 'update'],
+            'academy_quizzes' => ['view', 'create', 'update', 'delete', 'attempt', 'grade'],
+            'academy_certificates' => ['view', 'create', 'download', 'verify'],
+            'academy_reviews' => ['view', 'create', 'update', 'delete', 'moderate'],
+            'academy_announcements' => ['view', 'create', 'update', 'delete'],
+            'academy_live_sessions' => ['view', 'create', 'update', 'delete', 'attendance'],
+            'academy_payments' => ['view', 'create', 'update', 'validate'],
+            'academy_coupons' => ['view', 'create', 'update', 'delete'],
+            'academy_notifications' => ['view', 'create', 'send'],
+            'academy_reports' => ['view', 'export'],
         ];
 
         foreach ($definitions as $module => $actions) {
