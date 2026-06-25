@@ -492,7 +492,7 @@ export function MainApp() {
           </button>
         }
       >
-        {renderContent()}
+        <div key={activeBrandId}>{renderContent()}</div>
       </AppShell>
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} canAccess={canAccess} />
     </>

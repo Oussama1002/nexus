@@ -172,9 +172,49 @@ class ClientInvoiceController extends Controller
         $row->email_last_error = null;
         $row->save();
 
+        // Store invoice message in conversation
+        $customer = $row->customer;
+        if ($customer && $customer->phone) {
+            $brandId = (int) $row->brand_id;
+            $phone = ltrim($customer->phone, '+');
+            $msg = "Facture #{$row->invoice_number}\n"
+                . "Client : {$customer->full_name}\n"
+                . "Montant : {$row->total} {$row->currency}\n"
+                . "Date : {$row->issue_date}\n"
+                . "Échéance : {$row->due_date}\n"
+                . "Statut : envoyée";
+
+            $conversation = Conversation::query()
+                ->where('brand_id', $brandId)
+                ->where('channel', 'whatsapp')
+                ->where('customer_id', $customer->id)
+                ->first();
+
+            if (! $conversation) {
+                $conversation = Conversation::query()->create([
+                    'brand_id' => $brandId,
+                    'customer_id' => $customer->id,
+                    'channel' => 'whatsapp',
+                    'external_thread_id' => $phone,
+                    'status' => 'open',
+                ]);
+            }
+
+            Message::query()->create([
+                'conversation_id' => $conversation->id,
+                'sender_user_id' => $request->user()?->id,
+                'direction' => 'outbound',
+                'content' => $msg,
+                'message_type' => 'text',
+                'sent_at' => now(),
+            ]);
+
+            $conversation->update(['last_message_at' => now()]);
+        }
+
         AuditService::log($request, 'client_invoices.send', $row, $before, $row->fresh()->toArray());
 
-        return ApiResponse::success($row->fresh()->load(['customer']), 'Invoice sent successfully.');
+        return ApiResponse::success($row->fresh()->load(['customer']), 'Facture envoyée et ajoutée à la conversation.');
     }
 
     public function downloadPdf(Request $request, string $id): Response

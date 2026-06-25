@@ -418,12 +418,18 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
               className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm"
             />
           )}
-          <input
-            placeholder="Raison"
+          <select
             value={movForm.reason}
             onChange={(e) => setMovForm((m) => ({ ...m, reason: e.target.value }))}
             className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm md:col-span-2"
-          />
+          >
+            <option value="">— Raison —</option>
+            {Object.entries(REASON_FR).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
           {hasPermission('stock.create') ? (
             <button
               type="button"

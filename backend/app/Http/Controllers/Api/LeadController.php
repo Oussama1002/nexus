@@ -75,28 +75,25 @@ class LeadController extends Controller
         if (! empty($data['customer_id'])) {
             $this->assertCustomerInBrand((int) $data['customer_id'], $brandId);
         } elseif (is_array($nestedCustomer)) {
-            $exists = Customer::query()
+            $existing = Customer::query()
                 ->where('brand_id', $brandId)
                 ->where('phone', $nestedCustomer['phone'])
-                ->exists();
-            if ($exists) {
-                return ApiResponse::error(
-                    'Un client avec ce téléphone existe déjà pour cette marque.',
-                    ['customer.phone' => ['Ce numéro est déjà enregistré pour cette marque.']],
-                    422
-                );
-            }
+                ->first();
 
-            $customer = Customer::query()->create([
-                'brand_id' => $brandId,
-                'full_name' => $nestedCustomer['full_name'],
-                'phone' => $nestedCustomer['phone'],
-                'city' => $nestedCustomer['city'],
-                'address' => $nestedCustomer['address'] ?? null,
-                'gender' => $nestedCustomer['gender'] ?? null,
-                'email' => $nestedCustomer['email'] ?? null,
-                'status' => 'active',
-            ]);
+            if ($existing) {
+                $customer = $existing;
+            } else {
+                $customer = Customer::query()->create([
+                    'brand_id' => $brandId,
+                    'full_name' => $nestedCustomer['full_name'],
+                    'phone' => $nestedCustomer['phone'],
+                    'city' => $nestedCustomer['city'],
+                    'address' => $nestedCustomer['address'] ?? null,
+                    'gender' => $nestedCustomer['gender'] ?? null,
+                    'email' => $nestedCustomer['email'] ?? null,
+                    'status' => 'active',
+                ]);
+            }
             $data['customer_id'] = $customer->id;
         } else {
             return ApiResponse::error('Informations client requises.', ['customer' => ['Fournissez un client existant ou les champs du nouveau contact.']], 422);
