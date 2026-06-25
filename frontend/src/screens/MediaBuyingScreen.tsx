@@ -14,6 +14,8 @@ import { useAuth } from '../context/AuthContext';
 
 type EntryStatus = 'testing' | 'winning' | 'losing' | 'archived';
 
+type TrafficSource = 'organic' | 'sponsored';
+
 type MediaBuyingEntry = {
   id: number;
   title: string;
@@ -22,12 +24,21 @@ type MediaBuyingEntry = {
   hook: string | null;
   script: string | null;
   status: EntryStatus;
+  traffic_source: TrafficSource;
   roas: string | null;
   cpa: string | null;
   ctr: string | null;
   spend: string;
   leads: number;
   confirmed_orders: number;
+  organic_reach: number | null;
+  organic_impressions: number | null;
+  organic_engagement: string | null;
+  organic_clicks: number | null;
+  sponsored_reach: number | null;
+  sponsored_impressions: number | null;
+  sponsored_engagement: string | null;
+  sponsored_clicks: number | null;
   repurpose_priority: number;
   repurpose_notes: string | null;
   tested_at: string | null;
@@ -42,12 +53,21 @@ type Draft = {
   hook: string;
   script: string;
   status: EntryStatus;
+  traffic_source: TrafficSource;
   roas: string;
   cpa: string;
   ctr: string;
   spend: string;
   leads: string;
   confirmed_orders: string;
+  organic_reach: string;
+  organic_impressions: string;
+  organic_engagement: string;
+  organic_clicks: string;
+  sponsored_reach: string;
+  sponsored_impressions: string;
+  sponsored_engagement: string;
+  sponsored_clicks: string;
   repurpose_priority: string;
   repurpose_notes: string;
   tested_at: string;
@@ -61,12 +81,21 @@ function emptyDraft(): Draft {
     hook: '',
     script: '',
     status: 'testing',
+    traffic_source: 'sponsored',
     roas: '',
     cpa: '',
     ctr: '',
     spend: '0',
     leads: '0',
     confirmed_orders: '0',
+    organic_reach: '',
+    organic_impressions: '',
+    organic_engagement: '',
+    organic_clicks: '',
+    sponsored_reach: '',
+    sponsored_impressions: '',
+    sponsored_engagement: '',
+    sponsored_clicks: '',
     repurpose_priority: '0',
     repurpose_notes: '',
     tested_at: '',
@@ -96,6 +125,15 @@ function toPayload(d: Draft): Record<string, unknown> {
     spend: asNum(d.spend),
     leads: asNum(d.leads),
     confirmed_orders: asNum(d.confirmed_orders),
+    traffic_source: d.traffic_source,
+    organic_reach: asNumOrNull(d.organic_reach),
+    organic_impressions: asNumOrNull(d.organic_impressions),
+    organic_engagement: asNumOrNull(d.organic_engagement),
+    organic_clicks: asNumOrNull(d.organic_clicks),
+    sponsored_reach: asNumOrNull(d.sponsored_reach),
+    sponsored_impressions: asNumOrNull(d.sponsored_impressions),
+    sponsored_engagement: asNumOrNull(d.sponsored_engagement),
+    sponsored_clicks: asNumOrNull(d.sponsored_clicks),
     repurpose_priority: asNum(d.repurpose_priority),
     repurpose_notes: d.repurpose_notes.trim() || null,
     tested_at: d.tested_at || null,
@@ -184,6 +222,15 @@ export function MediaBuyingScreen() {
       spend: row.spend ?? '0',
       leads: String(row.leads ?? 0),
       confirmed_orders: String(row.confirmed_orders ?? 0),
+      traffic_source: row.traffic_source ?? 'sponsored',
+      organic_reach: row.organic_reach != null ? String(row.organic_reach) : '',
+      organic_impressions: row.organic_impressions != null ? String(row.organic_impressions) : '',
+      organic_engagement: row.organic_engagement ?? '',
+      organic_clicks: row.organic_clicks != null ? String(row.organic_clicks) : '',
+      sponsored_reach: row.sponsored_reach != null ? String(row.sponsored_reach) : '',
+      sponsored_impressions: row.sponsored_impressions != null ? String(row.sponsored_impressions) : '',
+      sponsored_engagement: row.sponsored_engagement ?? '',
+      sponsored_clicks: row.sponsored_clicks != null ? String(row.sponsored_clicks) : '',
       repurpose_priority: String(row.repurpose_priority ?? 0),
       repurpose_notes: row.repurpose_notes ?? '',
       tested_at: row.tested_at ?? '',
@@ -290,6 +337,7 @@ export function MediaBuyingScreen() {
             { key: 't', header: 'Pub', cell: (r) => <button type="button" className="font-black text-primary-600 hover:underline" onClick={() => openEdit(r)}>{r.title}</button> },
             { key: 'a', header: 'Angle', cell: (r) => <span className="font-bold">{r.angle}</span> },
             { key: 'f', header: 'Format', cell: (r) => <span>{r.format ?? '—'}</span> },
+            { key: 'src', header: 'Source', cell: (r) => <StatusChip tone={r.traffic_source === 'organic' ? 'success' : 'info'}>{r.traffic_source === 'organic' ? 'Organique' : 'Sponsorisé'}</StatusChip> },
             { key: 's', header: 'Statut', cell: (r) => <StatusChip tone={statusTone(r.status)}>{r.status}</StatusChip> },
             { key: 'roas', header: 'ROAS', cell: (r) => <span>{r.roas ?? '—'}</span> },
             { key: 'cpa', header: 'CPA', cell: (r) => <span>{r.cpa ?? '—'}</span> },
@@ -355,6 +403,12 @@ export function MediaBuyingScreen() {
           <label className="text-xs font-black uppercase text-zinc-500 block">Script
             <textarea value={draft.script} onChange={(e) => setDraft((d) => ({ ...d, script: e.target.value }))} rows={4} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
           </label>
+          <label className="text-xs font-black uppercase text-zinc-500">Source de trafic
+            <select value={draft.traffic_source} onChange={(e) => setDraft((d) => ({ ...d, traffic_source: e.target.value as TrafficSource }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold">
+              <option value="sponsored">Sponsorisé</option>
+              <option value="organic">Organique</option>
+            </select>
+          </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <label className="text-xs font-black uppercase text-zinc-500">ROAS<input value={draft.roas} onChange={(e) => setDraft((d) => ({ ...d, roas: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
             <label className="text-xs font-black uppercase text-zinc-500">CPA<input value={draft.cpa} onChange={(e) => setDraft((d) => ({ ...d, cpa: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
@@ -364,6 +418,25 @@ export function MediaBuyingScreen() {
             <label className="text-xs font-black uppercase text-zinc-500">Confirmées<input value={draft.confirmed_orders} onChange={(e) => setDraft((d) => ({ ...d, confirmed_orders: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
             <label className="text-xs font-black uppercase text-zinc-500">Priorité repurpose<input value={draft.repurpose_priority} onChange={(e) => setDraft((d) => ({ ...d, repurpose_priority: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
             <label className="text-xs font-black uppercase text-zinc-500">Date test<input type="date" value={draft.tested_at} onChange={(e) => setDraft((d) => ({ ...d, tested_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 space-y-3">
+            <p className="text-xs font-black uppercase tracking-widest text-zinc-500">Comparaison organique vs sponsorisé</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Organique</p>
+                <label className="text-xs font-bold text-zinc-500">Portée<input value={draft.organic_reach} onChange={(e) => setDraft((d) => ({ ...d, organic_reach: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
+                <label className="text-xs font-bold text-zinc-500">Impressions<input value={draft.organic_impressions} onChange={(e) => setDraft((d) => ({ ...d, organic_impressions: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
+                <label className="text-xs font-bold text-zinc-500">Engagement %<input value={draft.organic_engagement} onChange={(e) => setDraft((d) => ({ ...d, organic_engagement: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0.00" /></label>
+                <label className="text-xs font-bold text-zinc-500">Clics<input value={draft.organic_clicks} onChange={(e) => setDraft((d) => ({ ...d, organic_clicks: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">Sponsorisé</p>
+                <label className="text-xs font-bold text-zinc-500">Portée<input value={draft.sponsored_reach} onChange={(e) => setDraft((d) => ({ ...d, sponsored_reach: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
+                <label className="text-xs font-bold text-zinc-500">Impressions<input value={draft.sponsored_impressions} onChange={(e) => setDraft((d) => ({ ...d, sponsored_impressions: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
+                <label className="text-xs font-bold text-zinc-500">Engagement %<input value={draft.sponsored_engagement} onChange={(e) => setDraft((d) => ({ ...d, sponsored_engagement: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0.00" /></label>
+                <label className="text-xs font-bold text-zinc-500">Clics<input value={draft.sponsored_clicks} onChange={(e) => setDraft((d) => ({ ...d, sponsored_clicks: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
+              </div>
+            </div>
           </div>
           <label className="text-xs font-black uppercase text-zinc-500 block">Notes repurpose
             <textarea value={draft.repurpose_notes} onChange={(e) => setDraft((d) => ({ ...d, repurpose_notes: e.target.value }))} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
