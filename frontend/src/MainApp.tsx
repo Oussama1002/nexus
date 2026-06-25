@@ -8,6 +8,7 @@ import * as api from './lib/api';
 import { buildQuery } from './lib/pagination';
 import type { Paginated } from './lib/pagination';
 import { ChevronDown, Layers, LogOut, Menu } from 'lucide-react';
+import { resolvePublicAssetUrl } from './lib/publicAssetUrl';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { User, View } from './types';
 import { useAuth } from './context/AuthContext';
@@ -104,6 +105,7 @@ export function MainApp() {
   const [selectedConfirmatriceUserId, setSelectedConfirmatriceUserId] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [brandLogoUrl, setBrandLogoUrl] = useState('');
 
   const [directoryUsers, setDirectoryUsers] = useState<User[]>([]);
   const [directoryLoaded, setDirectoryLoaded] = useState(false);
@@ -120,6 +122,18 @@ export function MainApp() {
       navigate(dest, { replace: true });
     }
   }, [location.pathname, navigate, currentUser.role]);
+
+  useEffect(() => {
+    if (!activeBrandId) return;
+    (async () => {
+      const res = await api.get<{ company?: { logoUrl?: string } }>('settings/center/general');
+      if (res.ok && res.data) {
+        const d = res.data as any;
+        const url = d?.company?.logoUrl ?? d?.data?.company?.logoUrl ?? '';
+        setBrandLogoUrl(url);
+      }
+    })();
+  }, [activeBrandId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -383,9 +397,13 @@ export function MainApp() {
         navGroups={navGroups}
         sidebarHeader={
           <div className="flex items-center gap-3">
-            <div className="min-w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-100 shrink-0">
-              <Layers className="text-white w-6 h-6" />
-            </div>
+            {brandLogoUrl ? (
+              <img src={resolvePublicAssetUrl(brandLogoUrl)} alt="" className="min-w-10 h-10 rounded-xl object-contain shrink-0" />
+            ) : (
+              <div className="min-w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-100 shrink-0">
+                <Layers className="text-white w-6 h-6" />
+              </div>
+            )}
             {sidebarOpen && <span className="text-xl font-bold tracking-tight text-zinc-900 truncate">Nexus Omni</span>}
           </div>
         }
@@ -464,12 +482,13 @@ export function MainApp() {
                 {roleSlugs[0] ?? currentUser.role}
               </p>
             </div>
-            <div
-              className="w-9 h-9 rounded-xl bg-primary-100 text-primary-800 font-black text-xs flex items-center justify-center ring-2 ring-white shadow-sm"
-              aria-hidden
-            >
-              {(currentUser.name || '?').slice(0, 2).toUpperCase()}
-            </div>
+            {authUser?.avatar_url ? (
+              <img src={resolvePublicAssetUrl(authUser.avatar_url)} alt="" className="w-9 h-9 rounded-xl object-cover ring-2 ring-white shadow-sm" />
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-primary-100 text-primary-800 font-black text-xs flex items-center justify-center ring-2 ring-white shadow-sm">
+                {(currentUser.name || '?').slice(0, 2).toUpperCase()}
+              </div>
+            )}
           </button>
         }
       >

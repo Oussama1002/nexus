@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SettingsCenterAuditLog;
+use App\Services\AuditLogger;
 use App\Services\SettingsCenterService;
 use App\Services\SettingsConnectionTestService;
 use App\Support\ApiBrandContext;
@@ -208,6 +209,8 @@ class SettingsCenterController extends Controller
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error($e->getMessage(), null, 422);
         }
+
+        AuditLogger::log($request, 'settings.logo_upload', null, null, ['brand_id' => $brandId, 'logo_url' => $logoUrl]);
 
         return ApiResponse::success(['logoUrl' => $logoUrl], 'Logo enregistré.');
     }

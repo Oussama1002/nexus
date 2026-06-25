@@ -490,7 +490,15 @@ export function ShipmentsScreen() {
 
       <FilterBar query={q} onQueryChange={setQ} right={<span className="text-sm font-black">{loading ? '…' : `${rows.length} expéditions`}</span>} />
 
-      {rows.length === 0 && !loading ? (
+      {rows.length === 0 && !loading && carriers.length === 0 ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm space-y-2">
+          <p className="font-black text-rose-800">API transporteur non connectée</p>
+          <p className="text-rose-700">
+            Aucune société de livraison n'est configurée. Rendez-vous dans{' '}
+            <strong>Centre de paramètres → Livraison</strong> pour connecter l'API de votre transporteur (Sendit, Ameex…) avant d'utiliser le suivi colis et le KPI livraison.
+          </p>
+        </div>
+      ) : rows.length === 0 && !loading ? (
         <EmptyState title="Aucune expédition" description="Créez une expédition depuis une commande confirmée ou préparée." />
       ) : (
         <DataTable rows={rows} columns={columns} />

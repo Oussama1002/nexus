@@ -106,6 +106,12 @@ class DeliveryDashboardController extends Controller
             ->where('created_at', '<', now()->subDays(7))
             ->count();
 
+        $revenue = (clone $q)
+            ->where('status', 'delivered')
+            ->whereNotNull('order_id')
+            ->join('orders', 'orders.id', '=', 'shipments.order_id')
+            ->sum('orders.total');
+
         return ApiResponse::success([
             'total_shipments' => $total,
             'pending_shipments' => $pending,
@@ -121,6 +127,7 @@ class DeliveryDashboardController extends Controller
             'shipments_by_company' => $byCompany,
             'shipments_by_city' => $byCity,
             'delayed_shipments' => $delayed,
+            'revenue' => round((float) $revenue, 2),
             'internal_statuses' => ShipmentOperationsService::STATUSES,
         ], 'Delivery dashboard.');
     }

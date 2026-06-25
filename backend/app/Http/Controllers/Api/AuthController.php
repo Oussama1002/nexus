@@ -9,6 +9,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -68,6 +69,7 @@ class AuthController extends Controller
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
+        $before = $user->only(['name', 'phone']);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -75,7 +77,30 @@ class AuthController extends Controller
 
         $user->update($data);
 
+        AuditLogger::log($request, 'profile.update', $user, $before, $user->fresh()->only(['name', 'phone']));
+
         return ApiResponse::success($this->userPayload($user->fresh()->loadMissing(['roles.permissions', 'brands'])), 'Profil mis à jour.');
+    }
+
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'file', 'max:2048', 'mimes:jpg,jpeg,png,gif,webp'],
+        ]);
+
+        $user = $request->user();
+        $before = ['avatar_url' => $user->avatar_url];
+
+        $dir = "avatars/{$user->id}";
+        Storage::disk('public')->deleteDirectory($dir);
+        $path = $request->file('avatar')->storeAs($dir, 'avatar.'.$request->file('avatar')->extension(), 'public');
+        $url = Storage::disk('public')->url($path);
+
+        $user->update(['avatar_url' => $url]);
+
+        AuditLogger::log($request, 'profile.avatar', $user, $before, ['avatar_url' => $url]);
+
+        return ApiResponse::success(['avatar_url' => $url], 'Photo de profil mise à jour.');
     }
 
     public function updatePassword(Request $request): JsonResponse
@@ -145,6 +170,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'avatar_url' => $user->avatar_url,
                 'status' => $user->status,
             ],
             'roles' => $roles,

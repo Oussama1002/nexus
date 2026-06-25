@@ -22,6 +22,7 @@ type DashboardPayload = {
   shipments_by_company: { delivery_company_id: number | null; count: number }[];
   shipments_by_city: { city_label: string | null; c: number }[];
   delayed_shipments: number;
+  revenue?: number;
 };
 
 type CarrierOpt = { id: number; name: string };
@@ -60,7 +61,12 @@ export function DeliveryDashboardScreen() {
     else if (!res.ok) toast.error(res.message);
   }, [activeBrandId, carrierId, dateFrom, dateTo, toast]);
 
-  const syncSendit = useCallback(async () => {
+  const selectedCarrierName = useMemo(() => {
+    if (!carrierId) return 'Tous';
+    return carriers.find((c) => String(c.id) === carrierId)?.name ?? 'Transporteur';
+  }, [carrierId, carriers]);
+
+  const syncCarrier = useCallback(async () => {
     if (!activeBrandId) return;
     setSyncing(true);
     setSyncProgress('');
@@ -75,6 +81,8 @@ export function DeliveryDashboardScreen() {
     try {
       while (true) {
         batch++;
+        const body: Record<string, unknown> = { start_page: startPage, max_pages: 5 };
+        if (carrierId) body.delivery_company_id = Number(carrierId);
         const res = await api.post<{
           imported: number;
           updated: number;
@@ -82,10 +90,10 @@ export function DeliveryDashboardScreen() {
           total: number;
           has_more?: boolean;
           next_page?: number;
-        }>('delivery/sendit/sync', { start_page: startPage, max_pages: 5 });
+        }>('delivery/sendit/sync', body);
 
         if (!res.ok) {
-          toast.error(res.message || 'Échec sync Sendit — réessayez ou vérifiez que le backend répond.');
+          toast.error(res.message || 'Échec sync — réessayez ou vérifiez la connexion API.');
           break;
         }
 
@@ -101,8 +109,8 @@ export function DeliveryDashboardScreen() {
         if (!payload?.has_more) {
           toast.success(
             total > 0
-              ? `Sendit synchronisé : ${total} colis (${imported} nouveaux, ${updated} mis à jour).`
-              : res.message || 'Sendit synchronisé.',
+              ? `Synchronisé : ${total} colis (${imported} nouveaux, ${updated} mis à jour).`
+              : res.message || 'Synchronisation terminée.',
           );
           await load();
           break;
@@ -114,7 +122,7 @@ export function DeliveryDashboardScreen() {
       setSyncing(false);
       setSyncProgress('');
     }
-  }, [activeBrandId, load, toast]);
+  }, [activeBrandId, carrierId, load, toast]);
 
   useEffect(() => {
     if (!activeBrandId) return;
@@ -134,6 +142,7 @@ export function DeliveryDashboardScreen() {
       { label: 'Échecs', value: String(data.failed_shipments) },
       { label: 'Taux livraison', value: `${data.delivery_rate}%` },
       { label: 'Taux retour', value: `${data.return_rate}%` },
+      { label: "Chiffre d'affaires", value: formatCurrency(data.revenue ?? 0) },
       { label: 'COD en attente', value: formatCurrency(data.cod_pending_amount) },
       { label: 'COD réconcilié', value: formatCurrency(data.cod_reconciled_amount) },
       {
@@ -150,24 +159,15 @@ export function DeliveryDashboardScreen() {
         title="Livraison — tableau de bord"
         subtitle="Volume, COD, performance transporteurs et zones."
         right={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void syncSendit()}
-              disabled={syncing}
-              className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex gap-2 items-center disabled:opacity-60"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? (syncProgress || 'Sync Sendit…') : 'Sync Sendit (tout)'}
-            </button>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex gap-2 items-center"
-            >
-              Actualiser
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => void syncCarrier()}
+            disabled={syncing}
+            className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex gap-2 items-center disabled:opacity-60"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? (syncProgress || 'Sync…') : `Sync ${selectedCarrierName}`}
+          </button>
         }
       />
 
@@ -217,8 +217,8 @@ export function DeliveryDashboardScreen() {
         <>
           {data.total_shipments === 0 && !syncing && (
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-700">
-              <p className="font-bold text-zinc-900">Aucun colis Sendit importé</p>
-              <p className="mt-1">Cliquez sur « Sync Sendit » pour importer vos colis et actions depuis Sendit.</p>
+              <p className="font-bold text-zinc-900">Aucun colis importé</p>
+              <p className="mt-1">Cliquez sur « Sync » pour importer vos colis et actions depuis le transporteur sélectionné.</p>
             </div>
           )}
 

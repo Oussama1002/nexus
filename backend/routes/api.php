@@ -82,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::put('profile', [AuthController::class, 'updateProfile']);
     Route::put('profile/password', [AuthController::class, 'updatePassword']);
+    Route::post('profile/avatar', [AuthController::class, 'uploadAvatar']);
 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view');

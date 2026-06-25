@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2, Save, User } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Camera, Loader2, Save, User } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { useBrand } from '../context/BrandContext';
 import { useToast } from '../context/ToastContext';
+import { resolvePublicAssetUrl } from '../lib/publicAssetUrl';
 import * as api from '../lib/api';
 
 export function ProfileScreen() {
@@ -19,6 +20,8 @@ export function ProfileScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -27,6 +30,22 @@ export function ProfileScreen() {
       setPhone(user.phone ?? '');
     }
   }, [user]);
+
+  const avatarUrl = user?.avatar_url ? resolvePublicAssetUrl(user.avatar_url) : '';
+
+  async function uploadAvatar(file: File) {
+    setUploadingAvatar(true);
+    const form = new FormData();
+    form.append('avatar', file);
+    const res = await api.post<{ avatar_url: string }>('profile/avatar', form);
+    setUploadingAvatar(false);
+    if (res.ok) {
+      toast.success('Photo de profil mise à jour.');
+      await fetchMe();
+    } else {
+      toast.error(res.message);
+    }
+  }
 
   async function saveProfile() {
     setSaving(true);
@@ -79,8 +98,37 @@ export function ProfileScreen() {
 
       <div className="card p-6 space-y-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary-100 text-primary-800 font-black text-xl flex items-center justify-center ring-2 ring-white shadow-md">
-            {(user?.name || '?').slice(0, 2).toUpperCase()}
+          <div className="relative group">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white shadow-md" />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-primary-100 text-primary-800 font-black text-xl flex items-center justify-center ring-2 ring-white shadow-md">
+                {(user?.name || '?').slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <Camera className="w-5 h-5 text-white" />
+              )}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadAvatar(file);
+                e.target.value = '';
+              }}
+            />
           </div>
           <div>
             <p className="text-lg font-black text-zinc-900">{user?.name}</p>
