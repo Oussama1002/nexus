@@ -294,6 +294,7 @@ export function AutomationsScreen() {
   const [newTriggerLabel, setNewTriggerLabel] = useState('');
   // custom condition fields for custom triggers
   const [customFields, setCustomFields] = useState<TriggerField[]>([]);
+  const [formError, setFormError] = useState<{ message: string; fields: Record<string, string[]> } | null>(null);
 
   const allTriggers = useMemo(() => [...TRIGGERS, ...customTriggers], [customTriggers]);
   const triggerConfig = useMemo(() => {
@@ -326,6 +327,7 @@ export function AutomationsScreen() {
     setConditions(defaultConditions('attendance.marked'));
     setActions(defaultActions('attendance.marked'));
     setCustomFields([]);
+    setFormError(null);
     setModalOpen(true);
   }
 
@@ -357,6 +359,7 @@ export function AutomationsScreen() {
     } else {
       setCustomFields([]);
     }
+    setFormError(null);
     setModalOpen(true);
   }
 
@@ -386,7 +389,8 @@ export function AutomationsScreen() {
   }
 
   async function saveRule() {
-    if (!draftName.trim()) { toast.error('Nom de règle requis.'); return; }
+    setFormError(null);
+    if (!draftName.trim()) { setFormError({ message: 'Nom de règle requis.', fields: {} }); return; }
     const body = {
       name: draftName.trim(), description: draftDesc.trim() || null,
       trigger_key: draftTrigger, is_active: draftActive,
@@ -394,7 +398,16 @@ export function AutomationsScreen() {
       action_json: actionsToJson(actions, triggerConfig.fields),
     };
     const res = editingId ? await api.put(`automations/rules/${editingId}`, body) : await api.post('automations/rules', body);
-    if (!res.ok) { toast.error(res.message); return; }
+    if (!res.ok) {
+      const fields: Record<string, string[]> = {};
+      if (res.errors && typeof res.errors === 'object') {
+        for (const [k, v] of Object.entries(res.errors)) {
+          fields[k] = Array.isArray(v) ? v : [String(v)];
+        }
+      }
+      setFormError({ message: res.message, fields });
+      return;
+    }
     toast.success(editingId ? 'Règle mise à jour.' : 'Règle créée.');
     setModalOpen(false);
     await loadRules();
@@ -494,6 +507,22 @@ export function AutomationsScreen() {
         }
       >
         <div className="space-y-5 max-h-[calc(92vh-12rem)] overflow-y-auto pr-1">
+
+          {/* Form errors */}
+          {formError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+              <p className="text-sm font-black text-rose-700">{formError.message}</p>
+              {Object.keys(formError.fields).length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {Object.entries(formError.fields).map(([field, msgs]) => (
+                    msgs.map((msg, i) => (
+                      <li key={`${field}-${i}`} className="text-xs text-rose-600">• {msg}</li>
+                    ))
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {/* Name + Description */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
