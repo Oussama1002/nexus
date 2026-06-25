@@ -267,9 +267,9 @@ export function MainApp() {
                 meta: { selectedConfirmatriceId: id },
               });
             }}
-            onOpenWhatsApp={() => navigate(pathForView('whatsapp'))}
-            onOpenOrders={() => navigate(pathForView('orders'))}
-            onOpenLeads={() => navigate(pathForView('leads'))}
+            onOpenWhatsApp={() => navigate(`${pathForView('whatsapp')}?assigned_user_id=${workspaceUid}`)}
+            onOpenOrders={() => navigate(`${pathForView('orders')}?assigned_user_id=${workspaceUid}`)}
+            onOpenLeads={() => navigate(`${pathForView('leads')}?assigned_user_id=${workspaceUid}`)}
             onCreateOrder={() => navigate(pathForView('ordersNew'))}
             onNavigateToUsersAdmin={() => navigate(pathForView('usersAdmin'))}
             onCloseNoConfirmatriceModal={() => navigate(pathForView('dashboard'))}

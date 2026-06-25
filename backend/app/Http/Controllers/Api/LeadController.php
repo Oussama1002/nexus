@@ -36,14 +36,19 @@ class LeadController extends Controller
         $assigned = $request->query('assigned_user_id');
 
         $q = Lead::query()->with(['customer', 'assignedUser', 'conversation.assignedUser'])->where('brand_id', $brandId)->orderByDesc('id');
+
+        $user = $request->user();
+        if ($user && ! $user->isAdmin() && ! $user->isManagerOperational() && $user->shouldRestrictShipmentsToAssignedOrders()) {
+            $q->where('assigned_user_id', $user->id);
+        } elseif ($assigned !== null && $assigned !== '') {
+            $q->where('assigned_user_id', (int) $assigned);
+        }
+
         if ($request->boolean('without_customer')) {
             $q->whereNull('customer_id');
         }
         if ($status) {
             $q->where('status', $status);
-        }
-        if ($assigned !== null && $assigned !== '') {
-            $q->where('assigned_user_id', (int) $assigned);
         }
         if ($search) {
             $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';

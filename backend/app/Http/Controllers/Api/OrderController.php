@@ -38,7 +38,17 @@ class OrderController extends Controller
         $search = $request->query('search');
         $status = $request->query('status');
 
+        $assigned = $request->query('assigned_user_id');
+
         $q = Order::query()->with(['customer', 'lines'])->where('brand_id', $brandId)->orderByDesc('id');
+
+        $user = $request->user();
+        if ($user && ! $user->isAdmin() && ! $user->isManagerOperational() && $user->shouldRestrictShipmentsToAssignedOrders()) {
+            $q->where('assigned_user_id', $user->id);
+        } elseif ($assigned !== null && $assigned !== '') {
+            $q->where('assigned_user_id', (int) $assigned);
+        }
+
         if ($status) {
             $q->where('status', $status);
         }

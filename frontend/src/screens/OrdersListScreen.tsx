@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Calendar, ChevronRight, Filter, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
@@ -174,6 +175,8 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const { activeBrandId, activeBrand, brands } = useBrand();
   const { hasPermission } = useAuth();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const assignedFilter = searchParams.get('assigned_user_id');
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Order[]>([]);
@@ -197,7 +200,9 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
       return;
     }
     setLoading(true);
-    const res = await api.get<LaravelPaginator<ApiOrderRow>>('orders?per_page=100');
+    const params = new URLSearchParams({ per_page: '100' });
+    if (assignedFilter) params.set('assigned_user_id', assignedFilter);
+    const res = await api.get<LaravelPaginator<ApiOrderRow>>(`orders?${params.toString()}`);
     setLoading(false);
     if (!res.ok) {
       toast.error(res.message);
@@ -209,7 +214,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     const nameById: Record<string, string> = {};
     for (const b of brands) nameById[b.id] = b.name;
     setRows(data.map((o) => mapOrder(o, nameById[String(o.brand_id)] ?? activeBrand.name)));
-  }, [activeBrandId, activeBrand.name, brands, toast]);
+  }, [activeBrandId, activeBrand.name, brands, toast, assignedFilter]);
 
   useEffect(() => {
     void load();

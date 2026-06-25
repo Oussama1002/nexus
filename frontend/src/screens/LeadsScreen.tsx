@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CalendarClock, MessageSquare, Plus, X } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
@@ -132,6 +133,8 @@ export function LeadsScreen({
   const { brands, activeBrandId, activeBrand } = useBrand();
   const { user, hasPermission } = useAuth();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const assignedFilter = searchParams.get('assigned_user_id');
 
   const brandNameById = useMemo(() => {
     const m: Record<string, string> = {};
@@ -202,6 +205,7 @@ export function LeadsScreen({
     setLoading(true);
     const params = new URLSearchParams({ per_page: '100' });
     if (status !== 'Tous') params.set('status', status);
+    if (assignedFilter) params.set('assigned_user_id', assignedFilter);
     const res = await api.get<LaravelPaginator<ApiLead>>(`leads?${params.toString()}`);
     setLoading(false);
     if (!res.ok) {
@@ -210,7 +214,7 @@ export function LeadsScreen({
       return;
     }
     setApiLeads(isPaginator<ApiLead>(res.data) ? res.data.data : []);
-  }, [activeBrandId, status, toast]);
+  }, [activeBrandId, status, toast, assignedFilter]);
 
   useEffect(() => {
     void loadLeads();
