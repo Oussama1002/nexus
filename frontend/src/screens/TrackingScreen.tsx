@@ -14,8 +14,10 @@ import {
   auditEntitySummaryFr,
   auditFieldLabelFr,
   formatAuditFieldValue,
+  isAuditImageField,
   sortedAuditEntries,
 } from '../lib/auditDisplayFr';
+import { resolvePublicAssetUrl } from '../lib/publicAssetUrl';
 
 type AuditUser = { id: number; name: string; email: string };
 
@@ -34,6 +36,14 @@ type AuditLogRow = {
 
 function hasAuditPayload(values: Record<string, unknown> | null | undefined): boolean {
   return values !== null && values !== undefined && Object.keys(values).length > 0;
+}
+
+function AuditFieldValue({ fieldKey, value, className }: { fieldKey: string; value: unknown; className?: string }) {
+  if (isAuditImageField(fieldKey) && typeof value === 'string' && value) {
+    const src = resolvePublicAssetUrl(value);
+    return <img src={src} alt={auditFieldLabelFr(fieldKey)} className={cn('w-12 h-12 rounded-lg object-cover', className)} />;
+  }
+  return <span className={className}>{formatAuditFieldValue(fieldKey, value)}</span>;
 }
 
 function AuditDiffSection({
@@ -120,11 +130,11 @@ function AuditDiffSection({
             <div className="flex flex-col gap-1 text-sm">
               <div className="flex items-start gap-2">
                 <span className="shrink-0 mt-0.5 inline-block w-5 h-5 rounded-md bg-rose-100 text-rose-600 text-[10px] font-black flex items-center justify-center">−</span>
-                <span className="text-zinc-500 line-through break-words">{formatAuditFieldValue(key, before)}</span>
+                <AuditFieldValue fieldKey={key} value={before} className="text-zinc-500 line-through break-words" />
               </div>
               <div className="flex items-start gap-2">
                 <span className="shrink-0 mt-0.5 inline-block w-5 h-5 rounded-md bg-emerald-100 text-emerald-600 text-[10px] font-black flex items-center justify-center">+</span>
-                <span className="text-zinc-900 font-bold break-words">{formatAuditFieldValue(key, after)}</span>
+                <AuditFieldValue fieldKey={key} value={after} className="text-zinc-900 font-bold break-words" />
               </div>
             </div>
           </div>
@@ -167,7 +177,7 @@ function AuditPayloadSection({
         {rows.map(([key, val]) => (
           <div key={key} className="grid grid-cols-1 sm:grid-cols-[minmax(10rem,32%)_1fr] gap-x-4 gap-y-1 py-2.5 text-sm first:pt-0">
             <dt className="font-bold text-zinc-600">{auditFieldLabelFr(key)}</dt>
-            <dd className="text-zinc-900 break-words">{formatAuditFieldValue(key, val)}</dd>
+            <dd className="text-zinc-900 break-words"><AuditFieldValue fieldKey={key} value={val} /></dd>
           </div>
         ))}
       </dl>

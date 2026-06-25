@@ -94,11 +94,11 @@ class AuthController extends Controller
         $dir = "avatars/{$user->id}";
         Storage::disk('public')->deleteDirectory($dir);
         $path = $request->file('avatar')->storeAs($dir, 'avatar.'.$request->file('avatar')->extension(), 'public');
-        $url = Storage::disk('public')->url($path);
+        $url = '/storage/'.$path;
 
         $user->update(['avatar_url' => $url]);
 
-        AuditLogger::log($request, 'profile.avatar', $user, $before, ['avatar_url' => $url]);
+        AuditLogger::log($request, 'profile.avatar_upload', $user, $before, ['avatar_url' => $url]);
 
         return ApiResponse::success(['avatar_url' => $url], 'Photo de profil mise à jour.');
     }

@@ -685,7 +685,7 @@ class SettingsCenterService
         \Illuminate\Support\Facades\Storage::disk('public')->deleteDirectory($dir);
         $path = $file->storeAs($dir, $filename, 'public');
 
-        $url = \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        $url = '/storage/'.$path;
         $this->upsert($brandId, 'general', 'company_logo_url', $url);
 
         return $url;

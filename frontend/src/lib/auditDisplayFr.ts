@@ -146,6 +146,11 @@ export const AUDIT_ACTION_LABELS_FR: Record<string, string> = {
   'settings.create': 'Création de paramètre système',
   'settings.update': 'Modification de paramètre système',
   'settings.delete': 'Suppression de paramètre système',
+  'settings.logo_upload': 'Mise à jour du logo',
+  'profile.update': 'Mise à jour du profil',
+  'profile.avatar_upload': 'Mise à jour de la photo de profil',
+  'client_invoices.approve': 'Validation de facture',
+  'client_invoices.send': 'Envoi de facture',
 };
 
 export function auditEntityLabelFr(entityType: string | null | undefined): string {
@@ -212,6 +217,9 @@ export const AUDIT_FIELD_LABELS_FR: Record<string, string> = {
   updated_at: 'Modifié le',
   deleted_at: 'Supprimé le',
   ip_address: 'Adresse IP',
+  avatar_url: 'Photo de profil',
+  logo_url: 'Logo',
+  company_logo_url: 'Logo de la marque',
 };
 
 function humanizeKey(key: string): string {
@@ -288,4 +296,10 @@ export function sortedAuditEntries(record: Record<string, unknown>): [string, un
 
 export function auditFieldLabelFr(key: string): string {
   return humanizeKey(key);
+}
+
+const IMAGE_FIELD_KEYS = new Set(['avatar_url', 'logo_url', 'company_logo_url']);
+
+export function isAuditImageField(key: string): boolean {
+  return IMAGE_FIELD_KEYS.has(key);
 }
