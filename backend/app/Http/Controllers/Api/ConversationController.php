@@ -47,6 +47,11 @@ class ConversationController extends Controller
             $q->where('assigned_user_id', $user->id);
         }
 
+        $agentFilter = $request->query('assigned_user_id');
+        if ($agentFilter && $user->canViewAllConversations()) {
+            $q->where('assigned_user_id', (int) $agentFilter);
+        }
+
         if ($search) {
             $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';
             $q->where(function ($w) use ($s) {

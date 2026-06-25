@@ -88,6 +88,7 @@ export function WhatsAppWorkspaceScreen({
   const [newCustomerId, setNewCustomerId] = useState('');
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
+  const [agentFilter, setAgentFilter] = useState<string>('');
 
   useEffect(() => {
     setSelectedId(null);
@@ -102,7 +103,9 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     if (!silent) setLoading(true);
-    const res = await api.get<LaravelPaginator<ApiConversation>>(`conversations?per_page=100`);
+    const params = new URLSearchParams({ per_page: '100' });
+    if (agentFilter) params.set('assigned_user_id', agentFilter);
+    const res = await api.get<LaravelPaginator<ApiConversation>>(`conversations?${params.toString()}`);
     if (!silent) setLoading(false);
     if (!res.ok) {
       if (!silent) toast.error(res.message);
@@ -110,7 +113,7 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setConversations(isPaginator<ApiConversation>(res.data) ? res.data.data : []);
-  }, [activeBrandId, toast]);
+  }, [activeBrandId, agentFilter, toast]);
 
   useEffect(() => {
     void loadConversations();
@@ -318,6 +321,18 @@ export function WhatsAppWorkspaceScreen({
                   placeholder="Rechercher…"
                 />
               </div>
+              {isAdmin && agents.length > 0 && (
+                <select
+                  value={agentFilter}
+                  onChange={(e) => setAgentFilter(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-2xl text-sm font-bold shadow-sm"
+                >
+                  <option value="">Tous les agents</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={String(a.id)}>{a.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-zinc-100/80">
               {loading ? (

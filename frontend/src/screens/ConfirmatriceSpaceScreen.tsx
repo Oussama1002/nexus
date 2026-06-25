@@ -21,6 +21,8 @@ type WorkspaceSummary = {
   orders_total: number;
   reminders_due: number;
   upsells_open: number;
+  satisfaction_rate: number;
+  follow_up_rate: number;
   reminders: Reminder[];
 };
 
@@ -299,6 +301,8 @@ export function ConfirmatriceSpaceScreen({
             confirmed={summary?.orders_confirmed ?? 0}
             cancelled={summary?.orders_cancelled ?? 0}
             avgHandleMins={null}
+            satisfactionRate={summary?.satisfaction_rate ?? null}
+            followUpRate={summary?.follow_up_rate ?? null}
           />
 
           <div className="card-muted p-5">

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Brand;
 use App\Models\SettingsCenterAuditLog;
 use App\Models\SystemSetting;
 use App\Support\SystemSettingRegistry;
@@ -197,7 +198,13 @@ class SettingsCenterService
     /** @return array<string, bool> */
     private function decodeSidebarNavVisibility(int $brandId): array
     {
-        $raw = $this->getRaw($brandId, 'sidebar_nav_visibility');
+        // Sidebar nav visibility is global — fetch from any brand that has the setting
+        $row = SystemSetting::query()
+            ->where('setting_key', 'sidebar_nav_visibility')
+            ->whereNotNull('setting_value')
+            ->where('setting_value', '!=', '')
+            ->first();
+        $raw = $row?->setting_value;
         if ($raw === null || trim((string) $raw) === '') {
             return [];
         }
@@ -262,12 +269,12 @@ class SettingsCenterService
                     $normalized[$key] = false;
                 }
             }
-            $this->upsert(
-                $brandId,
-                'general',
-                'sidebar_nav_visibility',
-                json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)
-            );
+            // Sidebar nav visibility is global — replicate to ALL brands
+            $navJson = json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $allBrandIds = Brand::query()->pluck('id');
+            foreach ($allBrandIds as $bid) {
+                $this->upsert((int) $bid, 'general', 'sidebar_nav_visibility', $navJson);
+            }
         });
     }
 

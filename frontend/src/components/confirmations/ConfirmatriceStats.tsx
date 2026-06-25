@@ -7,13 +7,16 @@ export function ConfirmatriceStats({
   confirmed,
   cancelled,
   avgHandleMins,
+  satisfactionRate,
+  followUpRate,
 }: {
   confirmationRate: number;
   volume: number;
   confirmed: number;
   cancelled: number;
-  /** Non disponible tant que les données de timing ne sont pas enregistrées côté API */
   avgHandleMins?: number | null;
+  satisfactionRate?: number | null;
+  followUpRate?: number | null;
 }) {
   return (
     <div className="card p-6 space-y-4">
@@ -43,6 +46,14 @@ export function ConfirmatriceStats({
         <div className="card-muted p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Annulées</p>
           <p className="mt-2 text-2xl font-black text-rose-600">{cancelled}</p>
+        </div>
+        <div className="card-muted p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux satisfaction</p>
+          <p className="mt-2 text-2xl font-black text-blue-600">{satisfactionRate != null ? `${satisfactionRate}%` : '—'}</p>
+        </div>
+        <div className="card-muted p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux suivi (follow-up)</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">{followUpRate != null ? `${followUpRate}%` : '—'}</p>
         </div>
       </div>
     </div>

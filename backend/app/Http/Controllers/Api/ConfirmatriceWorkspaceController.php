@@ -67,6 +67,32 @@ class ConfirmatriceWorkspaceController extends Controller
             ->limit(10)
             ->get(['id', 'title', 'remind_at']);
 
+        // Satisfaction rate: confirmed / (confirmed + cancelled) as percentage
+        $satisfactionDenom = $ordersConfirmed + $ordersCancelled;
+        $satisfactionRate = $satisfactionDenom > 0
+            ? round(100 * $ordersConfirmed / $satisfactionDenom, 1)
+            : 0;
+
+        // Follow-up rate: reminders completed / total reminders for this user & brand
+        $remindersTotal = Reminder::query()
+            ->where('assigned_user_id', $targetId)
+            ->where(function ($q) use ($brandId) {
+                $q->whereHas('conversation', fn ($c) => $c->where('brand_id', $brandId))
+                    ->orWhereHas('lead', fn ($l) => $l->where('brand_id', $brandId));
+            })
+            ->count();
+        $remindersDone = Reminder::query()
+            ->where('assigned_user_id', $targetId)
+            ->whereNotNull('completed_at')
+            ->where(function ($q) use ($brandId) {
+                $q->whereHas('conversation', fn ($c) => $c->where('brand_id', $brandId))
+                    ->orWhereHas('lead', fn ($l) => $l->where('brand_id', $brandId));
+            })
+            ->count();
+        $followUpRate = $remindersTotal > 0
+            ? round(100 * $remindersDone / $remindersTotal, 1)
+            : 0;
+
         return ApiResponse::success([
             'conversations_total' => $conversationsTotal,
             'leads_open' => $leadsOpen,
@@ -77,6 +103,8 @@ class ConfirmatriceWorkspaceController extends Controller
             'orders_total' => $ordersTotal,
             'reminders_due' => $remindersDue,
             'upsells_open' => 0,
+            'satisfaction_rate' => $satisfactionRate,
+            'follow_up_rate' => $followUpRate,
             'reminders' => $recentReminders->map(fn ($r) => [
                 'id' => (string) $r->id,
                 'at' => $r->remind_at->format('H:i'),
