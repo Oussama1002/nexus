@@ -22,18 +22,18 @@ class DeliveryDashboardController extends Controller
         $dc = $request->query('delivery_company_id');
         $brandFilter = $request->query('brand_id');
 
-        $q = Shipment::query()->where('brand_id', $brandId);
+        $q = Shipment::query()->where('shipments.brand_id', $brandId);
         if ($brandFilter && (int) $brandFilter !== (int) $brandId) {
-            $q->where('brand_id', (int) $brandFilter);
+            $q->where('shipments.brand_id', (int) $brandFilter);
         }
         if ($from) {
-            $q->whereDate('created_at', '>=', $from);
+            $q->whereDate('shipments.created_at', '>=', $from);
         }
         if ($to) {
-            $q->whereDate('created_at', '<=', $to);
+            $q->whereDate('shipments.created_at', '<=', $to);
         }
         if ($dc) {
-            $q->where('delivery_company_id', (int) $dc);
+            $q->where('shipments.delivery_company_id', (int) $dc);
         }
 
         if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
@@ -107,8 +107,8 @@ class DeliveryDashboardController extends Controller
             ->count();
 
         $revenue = (clone $q)
-            ->where('status', 'delivered')
-            ->whereNotNull('order_id')
+            ->where('shipments.status', 'delivered')
+            ->whereNotNull('shipments.order_id')
             ->join('orders', 'orders.id', '=', 'shipments.order_id')
             ->sum('orders.total');
 
