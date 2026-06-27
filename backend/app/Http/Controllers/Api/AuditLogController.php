@@ -4,6 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Brand;
+use App\Models\Customer;
+use App\Models\Supplier;
+use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,5 +61,19 @@ class AuditLogController extends Controller
         $row = AuditLog::query()->with(['user'])->findOrFail($id);
 
         return ApiResponse::success($row, 'Audit log retrieved successfully.');
+    }
+
+    public function lookups(Request $request): JsonResponse
+    {
+        if (! $request->user()?->hasPermissionSlug('audit_logs.view')) {
+            throw new AccessDeniedHttpException('Forbidden.');
+        }
+
+        return ApiResponse::success([
+            'users' => User::select('id', 'name')->orderBy('name')->get(),
+            'brands' => Brand::select('id', 'name')->orderBy('name')->get(),
+            'customers' => Customer::select('id', 'name')->orderBy('name')->get(),
+            'suppliers' => Supplier::select('id', 'name')->orderBy('name')->get(),
+        ]);
     }
 }

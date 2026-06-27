@@ -462,6 +462,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('finance', [ReportController::class, 'finance'])->middleware('permission:reports.view');
     });
     Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.view');
+    Route::get('audit-logs/lookups', [AuditLogController::class, 'lookups'])->middleware('permission:audit_logs.view');
     Route::get('audit-logs/{id}', [AuditLogController::class, 'show'])->whereNumber('id')->middleware('permission:audit_logs.view');
 
     // Lightweight endpoint: sidebar-nav visibility for ALL authenticated users (no settings.view required).

@@ -271,17 +271,14 @@ export function TrackingScreen() {
 
   useEffect(() => {
     (async () => {
-      const [usersRes, brandsRes, customersRes, suppliersRes] = await Promise.all([
-        api.get<Paginated<{ id: number; name: string }>>('users?per_page=500'),
-        api.get<Paginated<{ id: number; name: string }>>('brands?per_page=200'),
-        api.get<Paginated<{ id: number; name: string }>>('customers?per_page=500'),
-        api.get<Paginated<{ id: number; name: string }>>('suppliers?per_page=200'),
-      ]);
+      const res = await api.get<{ users: { id: number; name: string }[]; brands: { id: number; name: string }[]; customers: { id: number; name: string }[]; suppliers: { id: number; name: string }[] }>('audit-logs/lookups');
+      if (!res.ok || !res.data) return;
+      const d = res.data as any;
       const maps: Record<string, LookupMap> = { users: {}, brands: {}, customers: {}, suppliers: {} };
-      if (usersRes.ok && usersRes.data?.data) for (const u of usersRes.data.data) maps.users[u.id] = u.name;
-      if (brandsRes.ok && brandsRes.data?.data) for (const b of brandsRes.data.data) maps.brands[b.id] = b.name;
-      if (customersRes.ok && customersRes.data?.data) for (const c of customersRes.data.data) maps.customers[c.id] = c.name;
-      if (suppliersRes.ok && suppliersRes.data?.data) for (const s of suppliersRes.data.data) maps.suppliers[s.id] = s.name;
+      for (const u of (d.users ?? [])) maps.users[u.id] = u.name;
+      for (const b of (d.brands ?? [])) maps.brands[b.id] = b.name;
+      for (const c of (d.customers ?? [])) maps.customers[c.id] = c.name;
+      for (const s of (d.suppliers ?? [])) maps.suppliers[s.id] = s.name;
       setLookups(maps);
     })();
   }, []);
