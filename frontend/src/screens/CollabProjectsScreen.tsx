@@ -2,13 +2,17 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   Calendar,
+  ChevronDown,
   ChevronRight,
+  Download,
+  FileText,
   GripVertical,
   MoreHorizontal,
   Pencil,
   Plus,
   RefreshCw,
   Trash2,
+  Upload,
   User,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -38,6 +42,7 @@ type Draft = { title: string; objective: string; status: ProjectStatus; due_date
 
 type KanbanTask = { id: number; column_id: number; title: string; description: string | null; priority: Priority; due_date: string | null; sort_order: number; assigned_to: number | null; assignee_name: string | null };
 type KanbanColumn = { id: number; title: string; color: string; sort_order: number; tasks: KanbanTask[] };
+type ProjectDocument = { id: number; original_name: string; mime_type: string | null; size_bytes: number; uploaded_by: string; created_at: string; download_url: string };
 
 /* ── constants ── */
 
@@ -285,7 +290,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
                       {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                     <label className="md:col-span-2 inline-flex items-center gap-2 text-xs font-bold text-zinc-700">
-                      <input type="checkbox" checked={m.is_lead} onChange={(e) => setDraft((d) => ({ ...d, members: d.members.map((x, i) => i === idx ? { ...x, is_lead: e.target.checked } : x) }))} />Lead
+                      <input type="checkbox" checked={m.is_lead} onChange={(e) => setDraft((d) => ({ ...d, members: d.members.map((x, i) => i === idx ? { ...x, is_lead: e.target.checked } : x) }))} />Resp.
                     </label>
                     <button type="button" onClick={() => setDraft((d) => ({ ...d, members: d.members.filter((_, i) => i !== idx) }))}
                       className="md:col-span-1 px-2 py-2 rounded-xl border border-rose-200 text-rose-700 text-xs font-black hover:bg-rose-50">X</button>
@@ -321,6 +326,12 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
   const [editingCol, setEditingCol] = useState<KanbanColumn | null>(null);
   const [colDraft, setColDraft] = useState({ title: '', color: '#6366f1' });
 
+  // Documents
+  const [docs, setDocs] = useState<ProjectDocument[]>([]);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Drag state
   const dragTask = useRef<{ taskId: number; fromColId: number } | null>(null);
   const [dragOverCol, setDragOverCol] = useState<number | null>(null);
@@ -348,6 +359,38 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
   }, [project.id, toast]);
 
   useEffect(() => { void loadBoard(); }, [loadBoard]);
+
+  const loadDocs = useCallback(async () => {
+    const res = await api.get<ProjectDocument[]>(`collab-projects/${project.id}/documents`);
+    if (res.ok && Array.isArray(res.data)) setDocs(res.data);
+  }, [project.id]);
+
+  useEffect(() => { void loadDocs(); }, [loadDocs]);
+
+  async function uploadDoc(file: File) {
+    setUploading(true);
+    const form = new FormData();
+    form.append('file', file);
+    const res = await api.post<ProjectDocument>(`collab-projects/${project.id}/documents`, form);
+    setUploading(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success('Document ajouté.');
+    await loadDocs();
+  }
+
+  async function deleteDoc(doc: ProjectDocument) {
+    if (!window.confirm(`Supprimer « ${doc.original_name} » ?`)) return;
+    const res = await api.del(`collab-projects/${project.id}/documents/${doc.id}`);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success('Document supprimé.');
+    await loadDocs();
+  }
+
+  function fmtSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  }
 
   /* ── Column CRUD ── */
 
@@ -567,6 +610,103 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
           ))}
         </div>
       )}
+
+      {/* Documents Section */}
+      <div className="card overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setDocsOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary-600" />
+            <span className="text-sm font-black text-zinc-900">Documents du projet</span>
+            <span className="text-xs font-bold text-zinc-400 bg-zinc-100 rounded-full px-2 py-0.5">{docs.length}</span>
+          </div>
+          {docsOpen ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
+        </button>
+        {docsOpen && (
+          <div className="border-t border-zinc-100 px-5 py-4 space-y-3">
+            {canUpdate && (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadDoc(f);
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="px-3 py-2 rounded-xl bg-primary-600 text-white text-xs font-black inline-flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {uploading ? 'Envoi en cours…' : 'Ajouter un document'}
+                </button>
+                <span className="text-[10px] text-zinc-400">Max 20 Mo</span>
+              </div>
+            )}
+            {docs.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-2">Aucun document ajouté.</p>
+            ) : (
+              <div className="divide-y divide-zinc-100">
+                {docs.map((doc) => (
+                  <div key={doc.id} className="flex items-center gap-3 py-2.5 group">
+                    <FileText className="w-4 h-4 text-zinc-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-zinc-900 truncate">{doc.original_name}</p>
+                      <p className="text-[10px] text-zinc-400">
+                        {fmtSize(doc.size_bytes)} · {doc.uploaded_by} · {new Date(doc.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <a
+                        href={`${(import.meta.env.VITE_API_BASE_URL as string || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '')}/storage/${doc.download_url.split('/storage/').pop() ?? ''}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
+                        title="Télécharger"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const token = localStorage.getItem('nexus_token');
+                          const brandId = localStorage.getItem('nexus_active_brand_id');
+                          const url = `${(import.meta.env.VITE_API_BASE_URL as string || 'http://127.0.0.1:8000/api').replace(/\/$/, '')}/collab-projects/${project.id}/documents/${doc.id}/download`;
+                          void fetch(url, {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                              ...(brandId ? { 'X-Brand-Id': brandId } : {}),
+                            },
+                          }).then(async (r) => {
+                            if (!r.ok) { toast.error('Erreur de téléchargement.'); return; }
+                            const blob = await r.blob();
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = doc.original_name;
+                            a.click();
+                            URL.revokeObjectURL(a.href);
+                          });
+                        }}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                      {canDelete && (
+                        <button type="button" onClick={() => void deleteDoc(doc)} className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-500 hover:text-rose-600" title="Supprimer">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Column Modal */}
       <Modal open={colModal} onClose={() => setColModal(false)} title={editingCol ? 'Modifier la colonne' : 'Nouvelle colonne'} footer={

@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\CampaignMetricController;
 use App\Http\Controllers\Api\ClientContractController;
 use App\Http\Controllers\Api\ClientPortalController;
 use App\Http\Controllers\Api\ClientInvoiceController;
+use App\Http\Controllers\Api\CollabDocumentController;
 use App\Http\Controllers\Api\CollabKanbanController;
 use App\Http\Controllers\Api\CollabProjectController;
 use App\Http\Controllers\Api\ConfirmatriceWorkspaceController;
@@ -264,6 +265,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('collab-projects/{projectId}/tasks/{taskId}', [CollabKanbanController::class, 'updateTask'])->whereNumber('projectId')->whereNumber('taskId')->middleware('permission:collab_projects.update');
     Route::delete('collab-projects/{projectId}/tasks/{taskId}', [CollabKanbanController::class, 'destroyTask'])->whereNumber('projectId')->whereNumber('taskId')->middleware('permission:collab_projects.update');
     Route::post('collab-projects/{projectId}/tasks/{taskId}/move', [CollabKanbanController::class, 'moveTask'])->whereNumber('projectId')->whereNumber('taskId')->middleware('permission:collab_projects.update');
+
+    Route::get('collab-projects/{projectId}/documents', [CollabDocumentController::class, 'index'])->whereNumber('projectId')->middleware('permission:collab_projects.view');
+    Route::post('collab-projects/{projectId}/documents', [CollabDocumentController::class, 'store'])->whereNumber('projectId')->middleware('permission:collab_projects.update');
+    Route::get('collab-projects/{projectId}/documents/{docId}/download', [CollabDocumentController::class, 'download'])->whereNumber('projectId')->whereNumber('docId')->middleware('permission:collab_projects.view');
+    Route::delete('collab-projects/{projectId}/documents/{docId}', [CollabDocumentController::class, 'destroy'])->whereNumber('projectId')->whereNumber('docId')->middleware('permission:collab_projects.update');
+
     Route::get('directory/social-users', [SocialDirectoryController::class, 'users'])->middleware('permission:social_accounts.view');
 
     Route::get('social-accounts', [SocialAccountController::class, 'index'])->middleware('permission:social_accounts.view');
