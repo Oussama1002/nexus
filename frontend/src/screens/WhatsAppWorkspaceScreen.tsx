@@ -31,7 +31,7 @@ type ApiConversation = {
   assigned_user?: { id: number; name: string } | null;
 };
 
-type ApiUser = { id: number; name: string; email: string };
+type ApiUser = { id: number; name: string; email: string; roles?: { id: number; slug: string }[] };
 
 type ApiMessage = {
   id: number;
@@ -250,7 +250,11 @@ export function WhatsAppWorkspaceScreen({
     (async () => {
       const res = await api.get<LaravelPaginator<ApiUser>>('users?per_page=200');
       if (cancelled) return;
-      if (res.ok && isPaginator<ApiUser>(res.data)) setAgents(res.data.data);
+      if (res.ok && isPaginator<ApiUser>(res.data)) {
+        const AGENT_ROLES = ['admin', 'confirmatrice'];
+        const filtered = res.data.data.filter((u) => u.roles?.some((r) => AGENT_ROLES.includes(r.slug)) ?? false);
+        setAgents(filtered);
+      }
     })();
     return () => { cancelled = true; };
   }, [isAdmin]);
