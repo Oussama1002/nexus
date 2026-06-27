@@ -374,7 +374,10 @@ export function WhatsAppWorkspaceScreen({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-black text-zinc-900 truncate">{name}</p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-zinc-900 truncate">{name}</p>
+                            {c.brand?.name && <p className="text-[10px] font-bold text-zinc-400 truncate">{c.brand.name}</p>}
+                          </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <p className={cn('text-[10px] font-bold', c.unread_count ? 'text-primary-600' : 'text-zinc-400')}>{ts}</p>
                             {canDelete && (

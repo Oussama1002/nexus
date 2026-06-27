@@ -26,6 +26,7 @@ import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { flattenFieldErrors } from '../lib/formErrors';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useBrand } from '../context/BrandContext';
 
 /* ── types ── */
 
@@ -36,7 +37,7 @@ type View = 'list' | 'board';
 
 type UserOption = { id: number; name: string; email: string };
 type Member = { id: number; user_id: number; project_role: RoleType; is_lead: boolean; user?: { id: number; name: string; email: string } | null };
-type ProjectRow = { id: number; title: string; objective: string | null; status: ProjectStatus; due_date: string | null; asset_url: string | null; notes: string | null; members: Member[] };
+type ProjectRow = { id: number; brand_id?: number | null; title: string; objective: string | null; status: ProjectStatus; due_date: string | null; asset_url: string | null; notes: string | null; members: Member[] };
 type DraftMember = { user_id: string; project_role: RoleType; is_lead: boolean };
 type Draft = { title: string; objective: string; status: ProjectStatus; due_date: string; asset_url: string; notes: string; members: DraftMember[] };
 
@@ -117,6 +118,12 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
   toast: ReturnType<typeof useToast>; onOpenBoard: (p: ProjectRow) => void;
 }) {
   const { user: authUser, isAdmin } = useAuth();
+  const { brands } = useBrand();
+  const brandNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const b of brands) m[String(b.id)] = b.name;
+    return m;
+  }, [brands]);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
@@ -223,6 +230,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
               <ChevronRight className="w-3.5 h-3.5 inline ml-1 text-zinc-400 group-hover:text-primary-600" />
             </button>
           )},
+          { key: 'brand', header: 'Marque', cell: (r) => <span className="font-bold text-zinc-700">{r.brand_id ? (brandNameById[String(r.brand_id)] ?? '—') : '—'}</span> },
           { key: 'st', header: 'Statut', cell: (r) => <StatusChip tone={statusTone(r.status)}>{STATUS_LABELS[r.status] ?? r.status}</StatusChip> },
           { key: 'due', header: 'Échéance', cell: (r) => <span>{fmtDate(r.due_date)}</span> },
           { key: 'members', header: 'Intervenants', cell: (r) => (

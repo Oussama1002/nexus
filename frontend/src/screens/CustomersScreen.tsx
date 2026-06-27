@@ -61,8 +61,14 @@ function mapLeadSourceToClientSource(src: string | null | undefined): string {
 }
 
 export function CustomersScreen() {
-  const { activeBrandId } = useBrand();
+  const { activeBrandId, brands } = useBrand();
   const { hasPermission, fetchMe } = useAuth();
+
+  const brandNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const b of brands) m[String(b.id)] = b.name;
+    return m;
+  }, [brands]);
   const toast = useToast();
   const canCreate = hasPermission('customers.create');
   const canUpdate = hasPermission('customers.update');
@@ -290,6 +296,7 @@ export function CustomersScreen() {
                 </button>
               ),
             },
+            { key: 'brand', header: 'Marque', cell: (c) => <span className="font-bold text-zinc-700">{brandNameById[String(c.brand_id)] ?? '—'}</span> },
             { key: 'city', header: 'Ville', cell: (c) => <span className="font-bold text-zinc-700">{c.city ?? '—'}</span> },
             { key: 'email', header: 'Email', cell: (c) => <span className="font-bold text-zinc-700">{c.email ?? '—'}</span> },
             {
