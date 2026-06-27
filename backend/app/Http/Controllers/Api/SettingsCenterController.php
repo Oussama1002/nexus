@@ -7,6 +7,7 @@ use App\Models\SettingsCenterAuditLog;
 use App\Services\AuditLogger;
 use App\Services\SettingsCenterService;
 use App\Services\SettingsConnectionTestService;
+use App\Models\Brand;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use App\Support\SettingsCenterRules;
@@ -34,7 +35,7 @@ class SettingsCenterController extends Controller
             throw new AccessDeniedHttpException('Les paramètres de sécurité sont réservés aux administrateurs.');
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         return ApiResponse::success($this->settingsCenter->get($section, $brandId), 'OK');
     }
@@ -50,7 +51,7 @@ class SettingsCenterController extends Controller
             throw new AccessDeniedHttpException('Les paramètres de sécurité sont réservés aux administrateurs.');
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $payload = $request->validate(SettingsCenterRules::rules($section));
         $isAdmin = $request->user()?->isAdmin() ?? false;
 
@@ -65,7 +66,7 @@ class SettingsCenterController extends Controller
      */
     public function sidebarNavVisibility(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         return ApiResponse::success(
             ['items' => $this->settingsCenter->getSidebarNavVisibility($brandId)],
@@ -79,7 +80,7 @@ class SettingsCenterController extends Controller
      */
     public function productOptions(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         return ApiResponse::success(
             $this->settingsCenter->getProductOptions($brandId),
@@ -93,7 +94,7 @@ class SettingsCenterController extends Controller
      */
     public function supplierCategories(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         return ApiResponse::success(
             ['categories' => $this->settingsCenter->getSupplierCategories($brandId)],
@@ -107,7 +108,7 @@ class SettingsCenterController extends Controller
      */
     public function quickAddListItem(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         $data = $request->validate([
             'list' => 'required|string|in:product_categories,product_types,supplier_categories',
@@ -122,7 +123,7 @@ class SettingsCenterController extends Controller
     public function auditHistory(Request $request): JsonResponse
     {
         $this->requireView($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $perPage = min(max((int) $request->query('per_page', 30), 1), 100);
 
         $paginator = SettingsCenterAuditLog::query()
@@ -150,7 +151,7 @@ class SettingsCenterController extends Controller
     public function testSmtp(Request $request): JsonResponse
     {
         $this->requireUpdate($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $r = $this->connectionTests->smtp($brandId);
         if (! $r['success']) {
             return ApiResponse::error($r['message'], null, 422);
@@ -162,7 +163,7 @@ class SettingsCenterController extends Controller
     public function testWhatsapp(Request $request): JsonResponse
     {
         $this->requireUpdate($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $r = $this->connectionTests->whatsapp($brandId);
         if (! $r['success']) {
             return ApiResponse::error($r['message'], null, 422);
@@ -174,7 +175,7 @@ class SettingsCenterController extends Controller
     public function testMeta(Request $request): JsonResponse
     {
         $this->requireUpdate($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $r = $this->connectionTests->meta($brandId);
         if (! $r['success']) {
             return ApiResponse::error($r['message'], null, 422);
@@ -186,7 +187,7 @@ class SettingsCenterController extends Controller
     public function testDelivery(Request $request): JsonResponse
     {
         $this->requireUpdate($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $r = $this->connectionTests->delivery($brandId);
         if (! $r['success']) {
             return ApiResponse::error($r['message'], null, 422);
@@ -198,7 +199,7 @@ class SettingsCenterController extends Controller
     public function uploadLogo(Request $request): JsonResponse
     {
         $this->requireUpdate($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         $request->validate([
             'logo' => ['required', 'file', 'max:2048', 'mimes:jpg,jpeg,png,gif,webp,svg'],
@@ -213,6 +214,16 @@ class SettingsCenterController extends Controller
         AuditLogger::log($request, 'settings.logo_upload', null, null, ['brand_id' => $brandId, 'logo_url' => $logoUrl]);
 
         return ApiResponse::success(['logoUrl' => $logoUrl], 'Logo enregistré.');
+    }
+
+    private function resolveSettingsBrand(Request $request): int
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        if ($brandId !== null) {
+            return $brandId;
+        }
+
+        return (int) Brand::query()->orderBy('id')->value('id');
     }
 
     private function requireView(Request $request): void

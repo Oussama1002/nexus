@@ -572,7 +572,7 @@ export function WhatsAppWorkspaceScreen({
                           </div>
                         )}
                       </div>
-                      <button type="button" onClick={() => toast.info('Pièces jointes bientôt disponible')} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50" aria-label="attach">
+                      <button type="button" onClick={() => toast.success('Pièces jointes bientôt disponible')} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50" aria-label="attach">
                         <Paperclip className="w-5 h-5" />
                       </button>
                       <textarea
