@@ -33,14 +33,16 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
         $status = $request->query('status');
 
         $assigned = $request->query('assigned_user_id');
 
-        $q = Order::query()->with(['customer', 'lines'])->where('brand_id', $brandId)->orderByDesc('id');
+        $q = Order::query()->with(['customer', 'lines']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('id');
 
         $user = $request->user();
         if ($user && ! $user->isAdmin() && ! $user->isManagerOperational() && $user->shouldRestrictShipmentsToAssignedOrders()) {

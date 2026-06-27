@@ -87,7 +87,7 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const ids = new Set(brands.map((b) => b.id));
-    if (!activeBrandId || !ids.has(activeBrandId)) {
+    if (!activeBrandId || (activeBrandId !== 'all' && !ids.has(activeBrandId))) {
       const first = brands[0]!.id;
       writeStoredBrandId(first);       // sync localStorage BEFORE child effects
       setActiveBrandIdState(first);
@@ -99,17 +99,30 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
     setActiveBrandIdState(id);
   }, []);
 
+  const ALL_BRAND: UiBrand = useMemo(() => ({
+    id: 'all',
+    name: 'Toutes les marques',
+    logo: '∗',
+    color: '#3b82f6',
+    whatsappNumber: '',
+    status: 'Actif',
+    code: 'ALL',
+    contact: '',
+    note: '',
+  }), []);
+
   const value = useMemo<BrandContextValue>(() => {
     const list = brands.length ? brands : [];
-    const id = activeBrandId && list.some((b) => b.id === activeBrandId) ? activeBrandId : list[0]?.id ?? '';
-    const active = list.find((b) => b.id === id) ?? FALLBACK_BRAND;
+    const isAll = activeBrandId === 'all';
+    const id = isAll ? 'all' : (activeBrandId && list.some((b) => b.id === activeBrandId) ? activeBrandId : list[0]?.id ?? '');
+    const active = isAll ? ALL_BRAND : (list.find((b) => b.id === id) ?? FALLBACK_BRAND);
     return {
       brands: list,
       activeBrandId: id,
       setActiveBrandId,
       activeBrand: active,
     };
-  }, [brands, activeBrandId, setActiveBrandId]);
+  }, [brands, activeBrandId, setActiveBrandId, ALL_BRAND]);
 
   return <BrandContext.Provider value={value}>{children}</BrandContext.Provider>;
 }

@@ -21,15 +21,15 @@ class CustomerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
         $statusFilter = $request->query('status');
 
         $q = Customer::query()
-            ->with(['assignedUser:id,name', 'latestConversation.assignedUser:id,name'])
-            ->where('brand_id', $brandId)
-            ->orderByDesc('id');
+            ->with(['assignedUser:id,name', 'latestConversation.assignedUser:id,name']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('id');
 
         // Filter by status: 'archived' shows only inactive, 'all' shows everything, default hides archived
         if ($statusFilter === 'archived') {

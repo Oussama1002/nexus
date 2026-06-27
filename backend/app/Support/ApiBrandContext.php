@@ -33,7 +33,11 @@ class ApiBrandContext
         $raw = $request->header('X-Brand-Id') ?? $request->query('brand_id');
         $ownedIds = $user->brands->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
 
-        if ($raw === null || $raw === '') {
+        if ($raw === 'all' && $privileged && ! $required) {
+            return null;
+        }
+
+        if ($raw === null || $raw === '' || $raw === 'all') {
             if (! $required) {
                 return null;
             }
@@ -58,6 +62,18 @@ class ApiBrandContext
         }
 
         return $id;
+    }
+
+    /**
+     * Apply brand filter to a query builder — skips the filter when brandId is null (admin "all brands" mode).
+     */
+    public static function scopeBrand(\Illuminate\Database\Eloquent\Builder $query, ?int $brandId, string $column = 'brand_id'): \Illuminate\Database\Eloquent\Builder
+    {
+        if ($brandId !== null) {
+            $query->where($column, $brandId);
+        }
+
+        return $query;
     }
 
     public static function assertUserOwnsBrand(User $user, int $brandId): void

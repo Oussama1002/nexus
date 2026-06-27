@@ -23,11 +23,13 @@ class ProductController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
 
-        $q = Product::query()->where('brand_id', $brandId)->orderByDesc('id');
+        $q = Product::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('id');
         if ($search) {
             $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';
             $q->where(function ($w) use ($s) {
