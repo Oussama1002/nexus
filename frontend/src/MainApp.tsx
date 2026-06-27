@@ -57,6 +57,40 @@ import { parseAppPath, pathForView } from './lib/appPaths';
 
 const ORDER_DRAFT_KEY = 'nexus.orderDraft';
 
+const VIEW_LABELS_FR: Record<string, string> = {
+  dashboard: 'Tableau de bord',
+  ordersNew: 'Nouvelle commande',
+  orders: 'Commandes',
+  whatsapp: 'WhatsApp',
+  customers: 'Clients',
+  trackingParcels: 'Suivi colis',
+  products: 'Produits',
+  finance: 'Finance',
+  brands: 'Marques',
+  confirmatrice: 'Espace Confirmatrice',
+  leads: 'Leads',
+  ads: 'Publicités',
+  knowledgeBase: 'Base de connaissances',
+  academy: 'Académie',
+  mediaBuying: 'Achat média',
+  collabProjects: 'Projets collaboratifs',
+  automations: 'Automatisations',
+  clientPortal: 'Portail client',
+  hr: 'Ressources humaines',
+  delivery: 'Livraison',
+  deliveryDashboard: 'Tableau livraison',
+  stock: 'Stock',
+  suppliers: 'Fournisseurs',
+  purchaseOrders: 'Bons d\'achat',
+  reporting: 'Reporting',
+  settings: 'Paramètres',
+  tracking: 'Suivi',
+  usersAdmin: 'Utilisateurs',
+  socialMedia: 'Réseaux sociaux',
+  influenceHub: 'Hub influence',
+  profile: 'Profil',
+};
+
 type ApiUserRow = {
   id: number;
   name: string;
@@ -447,7 +481,7 @@ export function MainApp() {
               <Menu className="w-5 h-5" />
             </button>
             <div className="h-6 w-[1px] bg-zinc-200" />
-            <div className="text-sm font-black text-zinc-900 capitalize">{activeView}</div>
+            <div className="text-sm font-black text-zinc-900">{VIEW_LABELS_FR[activeView] ?? activeView}</div>
           </div>
         }
         topbarBrandPill={
