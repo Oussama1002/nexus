@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -291,7 +291,7 @@ export function MainApp() {
 
   const renderContent = () => {
     if (!canAccess(activeView)) {
-      const fallback = currentUser.role === ‘confirmatrice’ ? ‘whatsapp’ : ‘dashboard’;
+      const fallback = currentUser.role === 'confirmatrice' ? 'whatsapp' : 'dashboard';
       navigate(pathForView(fallback), { replace: true });
       return null;
     }

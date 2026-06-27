@@ -81,7 +81,48 @@ class UserController extends Controller
         $user = User::query()->with(['roles.permissions', 'brands'])->findOrFail($id);
         $this->assertCanManageTarget($request, $user);
 
-        return ApiResponse::success($user, 'User retrieved successfully.');
+        $data = $user->toArray();
+
+        $employee = \App\Models\Employee::query()->where('user_id', $user->id)->first();
+        if ($employee) {
+            $data['employee'] = [
+                'id' => $employee->id,
+                'full_name' => $employee->full_name,
+                'role_title' => $employee->role_title,
+                'department' => $employee->department,
+                'work_start_time' => $employee->work_start_time,
+                'work_end_time' => $employee->work_end_time,
+                'work_days' => $employee->work_days,
+            ];
+            $data['attendance_history'] = $employee->attendanceRecords()
+                ->orderByDesc('attendance_date')
+                ->limit(30)
+                ->get()
+                ->toArray();
+        } else {
+            $data['employee'] = null;
+            $data['attendance_history'] = [];
+        }
+
+        $data['recent_activity'] = \App\Models\AuditLog::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get()
+            ->toArray();
+
+        $data['recent_messages'] = \App\Models\InternalMessage::query()
+            ->where(function ($q) use ($user) {
+                $q->where('sender_id', $user->id)
+                  ->orWhere('receiver_id', $user->id);
+            })
+            ->with(['sender:id,name', 'receiver:id,name'])
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get()
+            ->toArray();
+
+        return ApiResponse::success($data, 'User retrieved successfully.');
     }
 
     public function update(UpdateUserRequest $request, string $id): JsonResponse

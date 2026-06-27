@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyRound, MessageCircle, Pencil, RefreshCw, Trash2, UserPlus } from 'lucide-react';
+import { Eye, KeyRound, MessageCircle, Pencil, RefreshCw, Trash2, UserPlus } from 'lucide-react';
 import { InternalChatModal } from '../components/chat/InternalChatModal';
+import { UserFicheDrawer } from '../components/users/UserFicheDrawer';
 import { PageHeader } from '../components/ui/PageHeader';
 import { DataTable, type Column } from '../components/ui/DataTable';
 import { Modal } from '../components/ui/Modal';
@@ -113,6 +114,9 @@ export function UsersAdminScreen() {
 
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPeer, setChatPeer] = useState<UserRow | null>(null);
+
+  const [ficheOpen, setFicheOpen] = useState(false);
+  const [ficheUserId, setFicheUserId] = useState<number | null>(null);
 
   const [employeeCandidates, setEmployeeCandidates] = useState<EmployeePick[]>([]);
   const [employeesLoading, setEmployeesLoading] = useState(false);
@@ -365,7 +369,11 @@ export function UsersAdminScreen() {
 
   const columns = useMemo<Column<UserRow>[]>(
     () => [
-      { key: 'name', header: 'Nom', cell: (u) => <span className="font-black text-zinc-900">{u.name}</span> },
+      { key: 'name', header: 'Nom', cell: (u) => (
+        <button type="button" onClick={() => { setFicheUserId(u.id); setFicheOpen(true); }} className="font-black text-primary-700 hover:underline">
+          {u.name}
+        </button>
+      ) },
       { key: 'email', header: 'Email', cell: (u) => <span className="text-sm text-zinc-700">{u.email}</span> },
       {
         key: 'roles',
@@ -382,6 +390,14 @@ export function UsersAdminScreen() {
         header: '',
         cell: (u) => (
           <div className="flex gap-1 justify-end">
+            <button
+              type="button"
+              onClick={() => { setFicheUserId(u.id); setFicheOpen(true); }}
+              className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-600"
+              title="Voir la fiche"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
             <button
               type="button"
               onClick={() => { setChatPeer(u); setChatOpen(true); }}
@@ -698,6 +714,12 @@ export function UsersAdminScreen() {
         onClose={() => { setChatOpen(false); setChatPeer(null); }}
         initialPeer={chatPeer ? { id: chatPeer.id, name: chatPeer.name, email: chatPeer.email } : null}
         allUsers={users.map((u) => ({ id: u.id, name: u.name, email: u.email }))}
+      />
+
+      <UserFicheDrawer
+        userId={ficheUserId}
+        open={ficheOpen}
+        onClose={() => { setFicheOpen(false); setFicheUserId(null); }}
       />
     </div>
   );
