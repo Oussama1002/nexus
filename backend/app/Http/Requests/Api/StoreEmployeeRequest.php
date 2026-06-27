@@ -28,6 +28,11 @@ class StoreEmployeeRequest extends FormRequest
             'role_title' => ['nullable', 'string', 'max:255'],
             'joined_at' => ['nullable', 'date'],
             'salary' => ['nullable', 'numeric', 'min:0'],
+            'work_start_time' => ['nullable', 'date_format:H:i'],
+            'work_end_time' => ['nullable', 'date_format:H:i'],
+            'work_days_per_week' => ['nullable', 'integer', 'min:1', 'max:7'],
+            'work_days' => ['nullable', 'array'],
+            'work_days.*' => ['string', Rule::in(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'])],
             'status' => ['nullable', Rule::in(['active', 'inactive', 'terminated'])],
         ];
     }

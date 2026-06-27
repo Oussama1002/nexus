@@ -121,6 +121,7 @@ class EmployeeController extends Controller
         $data['work_start_time'] = $row->work_start_time;
         $data['work_end_time'] = $row->work_end_time;
         $data['work_days_per_week'] = $row->work_days_per_week;
+        $data['work_days'] = $row->work_days;
 
         $data['attendance_history'] = $row->attendanceRecords()
             ->orderByDesc('attendance_date')

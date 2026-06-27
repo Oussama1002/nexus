@@ -28,6 +28,7 @@ export type EmployeeDetail = {
   work_start_time?: string | null;
   work_end_time?: string | null;
   work_days_per_week?: number | null;
+  work_days?: string[] | null;
   attendance_history?: AttendanceRecord[];
   user?: { id: number; name: string; email: string } | null;
   brand?: { id: number; name: string } | null;
@@ -203,7 +204,14 @@ export function EmployeeFicheDrawer({
           <Section title="Horaires de travail">
             <Row label="Heure de début" value={fmtTime(emp.work_start_time)} />
             <Row label="Heure de fin" value={fmtTime(emp.work_end_time)} />
-            <Row label="Jours / semaine" value={emp.work_days_per_week != null ? `${emp.work_days_per_week} jours` : '—'} />
+            <Row
+              label="Jours de travail"
+              value={
+                emp.work_days && emp.work_days.length > 0
+                  ? <div className="flex flex-wrap gap-1">{emp.work_days.map((d) => <span key={d} className="px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 text-[10px] font-bold capitalize">{d}</span>)}</div>
+                  : emp.work_days_per_week != null ? `${emp.work_days_per_week} jours` : '—'
+              }
+            />
           </Section>
 
           <Section title="Compte & rémunération">

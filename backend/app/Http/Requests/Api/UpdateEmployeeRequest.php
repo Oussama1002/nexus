@@ -31,6 +31,8 @@ class UpdateEmployeeRequest extends FormRequest
             'work_start_time' => ['nullable', 'date_format:H:i'],
             'work_end_time' => ['nullable', 'date_format:H:i'],
             'work_days_per_week' => ['nullable', 'integer', 'min:1', 'max:7'],
+            'work_days' => ['nullable', 'array'],
+            'work_days.*' => ['string', Rule::in(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'])],
             'status' => ['sometimes', Rule::in(['active', 'inactive', 'terminated'])],
         ];
     }

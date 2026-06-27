@@ -57,6 +57,7 @@ function employeeToDraft(e: EmployeeRow | EmployeeDetail) {
     work_start_time: (e as any).work_start_time ? String((e as any).work_start_time).slice(0, 5) : '',
     work_end_time: (e as any).work_end_time ? String((e as any).work_end_time).slice(0, 5) : '',
     work_days_per_week: (e as any).work_days_per_week != null ? String((e as any).work_days_per_week) : '',
+    work_days: Array.isArray((e as any).work_days) ? (e as any).work_days as string[] : [],
   };
 }
 
@@ -202,6 +203,7 @@ export function EmployeesManagementScreen() {
     work_start_time: '',
     work_end_time: '',
     work_days_per_week: '',
+    work_days: [] as string[],
   });
   const [academyRows, setAcademyRows] = useState<AcademyLesson[]>([]);
   const [academySearch, setAcademySearch] = useState('');
@@ -338,6 +340,7 @@ export function EmployeesManagementScreen() {
       work_start_time: '',
       work_end_time: '',
       work_days_per_week: '',
+      work_days: [],
     });
     setFormOpen(true);
   };
@@ -438,7 +441,8 @@ export function EmployeesManagementScreen() {
       salary: draft.salary === '' ? undefined : Number(draft.salary),
       work_start_time: draft.work_start_time || undefined,
       work_end_time: draft.work_end_time || undefined,
-      work_days_per_week: draft.work_days_per_week === '' ? undefined : Number(draft.work_days_per_week),
+      work_days: draft.work_days.length ? draft.work_days : undefined,
+      work_days_per_week: draft.work_days.length || undefined,
       all_brands: draft.all_brands,
       brand_ids: draft.all_brands ? undefined : draft.brand_ids,
     };
@@ -466,6 +470,7 @@ export function EmployeesManagementScreen() {
       work_start_time: '',
       work_end_time: '',
       work_days_per_week: '',
+      work_days: [],
     });
     toast.success(isEdit ? 'Employé mis à jour.' : 'Employé créé.');
     await load();
@@ -925,14 +930,14 @@ export function EmployeesManagementScreen() {
                 className={EMPLOYEE_FIELD_INPUT}
               />
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <label className={EMPLOYEE_FIELD_LABEL}>
                 Heure début
                 <input
                   type="time"
                   value={draft.work_start_time}
                   onChange={(e) => setDraft((d) => ({ ...d, work_start_time: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT}
+                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
                 />
               </label>
               <label className={EMPLOYEE_FIELD_LABEL}>
@@ -941,21 +946,35 @@ export function EmployeesManagementScreen() {
                   type="time"
                   value={draft.work_end_time}
                   onChange={(e) => setDraft((d) => ({ ...d, work_end_time: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT}
-                />
-              </label>
-              <label className={EMPLOYEE_FIELD_LABEL}>
-                Jours/sem.
-                <input
-                  type="number"
-                  min={1}
-                  max={7}
-                  value={draft.work_days_per_week}
-                  onChange={(e) => setDraft((d) => ({ ...d, work_days_per_week: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT}
+                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
                 />
               </label>
             </div>
+            <fieldset>
+              <legend className="text-xs font-semibold text-zinc-900 mb-2">Jours de travail</legend>
+              <div className="flex flex-wrap gap-2">
+                {(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'] as const).map((day) => {
+                  const checked = draft.work_days.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => setDraft((d) => ({
+                        ...d,
+                        work_days: checked ? d.work_days.filter((x) => x !== day) : [...d.work_days, day],
+                      }))}
+                      className={`px-3 py-2 rounded-xl border text-xs font-bold capitalize transition-colors ${
+                        checked
+                          ? 'bg-primary-600 text-white border-primary-600'
+                          : 'bg-white text-zinc-600 border-zinc-300 hover:border-primary-400'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
             {editingId ? (
               <label className={EMPLOYEE_FIELD_LABEL}>
                 Statut

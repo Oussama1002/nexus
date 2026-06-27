@@ -24,12 +24,14 @@ class Employee extends Model
         'work_start_time',
         'work_end_time',
         'work_days_per_week',
+        'work_days',
     ];
 
     protected $casts = [
         'joined_at' => 'date',
         'all_brands' => 'boolean',
         'work_days_per_week' => 'integer',
+        'work_days' => 'array',
     ];
 
     public function user()
