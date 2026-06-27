@@ -21,7 +21,7 @@ class ContentCalendarController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $status = $request->query('status');
         $platform = $request->query('platform');
@@ -30,9 +30,9 @@ class ContentCalendarController extends Controller
         $assigned = $request->query('assigned_user_id');
 
         $q = ContentCalendar::query()
-            ->with(['socialAccount', 'strategy', 'assignee', 'validatedByUser:id,name,email'])
-            ->where('brand_id', $brandId)
-            ->orderByDesc('planned_at');
+            ->with(['socialAccount', 'strategy', 'assignee', 'validatedByUser:id,name,email']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('planned_at');
         if ($status) {
             $q->where('status', $status);
         }

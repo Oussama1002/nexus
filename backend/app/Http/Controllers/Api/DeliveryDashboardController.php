@@ -16,14 +16,15 @@ class DeliveryDashboardController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $from = $request->query('date_from');
         $to = $request->query('date_to');
         $dc = $request->query('delivery_company_id');
         $brandFilter = $request->query('brand_id');
 
-        $q = Shipment::query()->where('shipments.brand_id', $brandId);
-        if ($brandFilter && (int) $brandFilter !== (int) $brandId) {
+        $q = Shipment::query();
+        ApiBrandContext::scopeBrand($q, $brandId, 'shipments.brand_id');
+        if ($brandFilter && ($brandId === null || (int) $brandFilter !== (int) $brandId)) {
             $q->where('shipments.brand_id', (int) $brandFilter);
         }
         if ($from) {

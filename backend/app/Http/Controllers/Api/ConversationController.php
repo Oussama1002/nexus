@@ -23,7 +23,7 @@ class ConversationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $user = $request->user();
         $this->denyClientPortalUser($user);
         $user->loadMissing('roles');
@@ -31,17 +31,13 @@ class ConversationController extends Controller
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
 
-        $showAll = $request->query('all_brands') === '1';
-
         $q = Conversation::query()->with(['customer', 'lead', 'assignedUser', 'brand:id,name', 'latestMessage'])
             ->withMax(['messages as last_inbound_at' => fn ($mq) => $mq->where('direction', 'inbound')], 'sent_at')
             ->withMax(['messages as last_outbound_at' => fn ($mq) => $mq->where('direction', 'outbound')], 'sent_at')
             ->orderByDesc('last_message_at')
             ->orderByDesc('id');
 
-        if (! $showAll) {
-            $q->where('brand_id', $brandId);
-        }
+        ApiBrandContext::scopeBrand($q, $brandId);
 
         if (! $user->canViewAllConversations()) {
             $q->where('assigned_user_id', $user->id);
@@ -264,14 +260,15 @@ class ConversationController extends Controller
 
     protected function findConversationForUser(Request $request, string $id): Conversation
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $user = $request->user();
         $this->denyClientPortalUser($user);
         $user->loadMissing('roles');
 
         $q = Conversation::query()->whereKey($id);
         if (! $user->canViewAllConversations()) {
-            $q->where('brand_id', $brandId)->where('assigned_user_id', $user->id);
+            ApiBrandContext::scopeBrand($q, $brandId);
+            $q->where('assigned_user_id', $user->id);
         }
 
         return $q->firstOrFail();

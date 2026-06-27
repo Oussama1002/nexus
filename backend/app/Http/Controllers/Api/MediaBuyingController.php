@@ -16,7 +16,7 @@ class MediaBuyingController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 30), 1), 100);
         $search = trim((string) $request->query('search', ''));
         $status = trim((string) $request->query('status', ''));
@@ -24,9 +24,9 @@ class MediaBuyingController extends Controller
         $winningOnly = filter_var((string) $request->query('winning_only', ''), FILTER_VALIDATE_BOOLEAN);
 
         $q = MediaBuyingEntry::query()
-            ->where('brand_id', $brandId)
-            ->with(['campaign:id,name', 'adAccount:id,account_name', 'sourceEntry:id,title,angle'])
-            ->orderByDesc('repurpose_priority')
+            ->with(['campaign:id,name', 'adAccount:id,account_name', 'sourceEntry:id,title,angle']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('repurpose_priority')
             ->orderByDesc('id');
 
         if ($status !== '') {

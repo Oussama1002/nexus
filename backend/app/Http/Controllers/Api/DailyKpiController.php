@@ -14,12 +14,14 @@ class DailyKpiController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $from = $request->query('date_from');
         $to = $request->query('date_to');
 
-        $q = DailyKpi::query()->where('brand_id', $brandId)->orderByDesc('kpi_date');
+        $q = DailyKpi::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('kpi_date');
         if ($from) {
             $q->whereDate('kpi_date', '>=', $from);
         }

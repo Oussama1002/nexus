@@ -16,14 +16,16 @@ class AdAccountController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $platform = $request->query('platform');
         $status = $request->query('status');
         $from = $request->query('date_from');
         $to = $request->query('date_to');
 
-        $q = AdAccount::query()->where('brand_id', $brandId)->orderByDesc('id');
+        $q = AdAccount::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('id');
         if ($platform) {
             $q->where('platform', $platform);
         }

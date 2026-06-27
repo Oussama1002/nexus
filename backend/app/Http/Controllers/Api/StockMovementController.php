@@ -22,12 +22,13 @@ class StockMovementController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $productId = $request->query('product_id');
 
-        $q = StockMovement::query()->with(['product', 'actor'])
-            ->where('brand_id', $brandId)
+        $q = StockMovement::query()->with(['product', 'actor']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->orderByDesc('moved_at');
 
         if ($productId) {

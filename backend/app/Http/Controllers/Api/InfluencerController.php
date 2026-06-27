@@ -16,17 +16,20 @@ class InfluencerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $status = $request->query('status');
         $platform = $request->query('platform');
         $from = $request->query('date_from');
         $to = $request->query('date_to');
 
-        $q = Influencer::query()
-            ->where(function ($q2) use ($brandId) {
+        $q = Influencer::query();
+        if ($brandId !== null) {
+            $q->where(function ($q2) use ($brandId) {
                 $q2->where('brand_id', $brandId)->orWhereNull('brand_id');
-            })
+            });
+        }
+        $q
             ->orderByDesc('id');
 
         if ($status) {

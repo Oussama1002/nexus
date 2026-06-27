@@ -27,7 +27,7 @@ class PurchaseOrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
         $status = $request->query('status');
@@ -37,8 +37,9 @@ class PurchaseOrderController extends Controller
         $to = $request->query('date_to');
 
         $q = PurchaseOrder::query()
-            ->with(['supplier', 'brand', 'lines.product', 'creator:id,name,email', 'responsibleUser:id,name,email'])
-            ->where('brand_id', $brandId)
+            ->with(['supplier', 'brand', 'lines.product', 'creator:id,name,email', 'responsibleUser:id,name,email']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->orderByDesc('ordered_at')
             ->orderByDesc('id');
         if ($status) {

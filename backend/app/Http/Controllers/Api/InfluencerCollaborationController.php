@@ -19,7 +19,7 @@ class InfluencerCollaborationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $status = $request->query('status');
         $platform = $request->query('platform');
@@ -27,9 +27,9 @@ class InfluencerCollaborationController extends Controller
         $to = $request->query('date_to');
 
         $q = InfluencerCollaboration::query()
-            ->with(['influencer', 'campaign', 'owner'])
-            ->where('brand_id', $brandId)
-            ->orderByDesc('id');
+            ->with(['influencer', 'campaign', 'owner']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('id');
 
         if ($status) {
             $q->where('status', $status);

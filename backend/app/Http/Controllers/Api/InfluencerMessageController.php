@@ -16,19 +16,21 @@ class InfluencerMessageController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $from = $request->query('date_from');
         $to = $request->query('date_to');
         $platform = $request->query('platform');
 
         $q = InfluencerMessage::query()
-            ->with(['influencer', 'collaboration'])
-            ->where(function ($q) use ($brandId) {
+            ->with(['influencer', 'collaboration']);
+        if ($brandId !== null) {
+            $q->where(function ($q) use ($brandId) {
                 $q->whereHas('collaboration', fn ($c) => $c->where('brand_id', $brandId))
                     ->orWhereHas('influencer', fn ($in) => $in->where('brand_id', $brandId));
-            })
-            ->orderByDesc('message_at');
+            });
+        }
+        $q->orderByDesc('message_at');
 
         if ($from) {
             $q->whereDate('message_at', '>=', $from);

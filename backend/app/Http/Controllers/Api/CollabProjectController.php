@@ -17,7 +17,7 @@ class CollabProjectController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 30), 1), 100);
         $status = trim((string) $request->query('status', ''));
         $search = trim((string) $request->query('search', ''));
@@ -25,8 +25,9 @@ class CollabProjectController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $q = CollabProject::query()
-            ->where('brand_id', $brandId)
+        $q = CollabProject::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->with([
                 'createdBy:id,name',
                 'members.user:id,name,email',

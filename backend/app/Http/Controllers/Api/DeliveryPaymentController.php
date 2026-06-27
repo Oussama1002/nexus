@@ -24,14 +24,15 @@ class DeliveryPaymentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $state = $request->query('state');
         $deliveryCompanyId = $request->query('delivery_company_id');
 
         $q = DeliveryPayment::query()
-            ->with(['deliveryCompany', 'shipments'])
-            ->where('brand_id', $brandId)
+            ->with(['deliveryCompany', 'shipments']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->orderByDesc('id');
         if ($state) {
             $q->where('state', $state);

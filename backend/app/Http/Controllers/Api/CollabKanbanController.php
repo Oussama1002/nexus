@@ -30,7 +30,10 @@ class CollabKanbanController extends Controller
 
     public function board(Request $request, int $projectId): JsonResponse
     {
-        $project = $this->findProject($request, $projectId);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $projectQuery = CollabProject::query();
+        ApiBrandContext::scopeBrand($projectQuery, $brandId);
+        $project = $projectQuery->findOrFail($projectId);
 
         $columns = CollabColumn::query()
             ->where('project_id', $project->id)

@@ -19,19 +19,21 @@ class InfluencerPerformanceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $from = $request->query('date_from');
         $to = $request->query('date_to');
         $influencerId = $request->query('influencer_id');
 
         $q = InfluencerPerformance::query()
-            ->with(['influencer', 'collaboration'])
-            ->where(function ($q) use ($brandId) {
+            ->with(['influencer', 'collaboration']);
+        if ($brandId !== null) {
+            $q->where(function ($q) use ($brandId) {
                 $q->whereHas('collaboration', fn ($c) => $c->where('brand_id', $brandId))
                     ->orWhereHas('influencer', fn ($in) => $in->where('brand_id', $brandId));
-            })
-            ->orderByDesc('metric_date');
+            });
+        }
+        $q->orderByDesc('metric_date');
 
         if ($influencerId) {
             $q->where('influencer_id', (int) $influencerId);

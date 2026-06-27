@@ -19,7 +19,7 @@ class CampaignController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $status = $request->query('status');
         $platform = $request->query('platform');
@@ -35,8 +35,9 @@ class CampaignController extends Controller
                 'product:id,name',
                 'confirmatrice:id,name',
                 'influencer:id,full_name,username',
-            ])
-            ->where('brand_id', $brandId)
+            ]);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->orderByDesc('id');
         if ($status) {
             $q->where('status', $status);

@@ -33,13 +33,13 @@ class ApiBrandContext
         $raw = $request->header('X-Brand-Id') ?? $request->query('brand_id');
         $ownedIds = $user->brands->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
 
-        if ($raw === 'all' && $privileged && ! $required) {
+        if (($raw === 'all' || $raw === null || $raw === '') && ! $required && $privileged) {
             return null;
         }
 
         if ($raw === null || $raw === '' || $raw === 'all') {
-            if (! $required) {
-                return null;
+            if (! $required && count($ownedIds) >= 1) {
+                return $ownedIds[0];
             }
             if (count($ownedIds) === 1) {
                 return $ownedIds[0];

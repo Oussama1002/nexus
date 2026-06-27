@@ -23,15 +23,15 @@ class AutomationRuleController extends Controller
     public function index(Request $request): JsonResponse
     {
         $this->requirePermission($request, 'automations.view');
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 50), 1), 200);
         $trigger = trim((string) $request->query('trigger', ''));
         $search = trim((string) $request->query('search', ''));
 
         $q = AutomationRule::query()
-            ->where('brand_id', $brandId)
-            ->with(['createdBy:id,name', 'updatedBy:id,name'])
-            ->orderByDesc('id');
+            ->with(['createdBy:id,name', 'updatedBy:id,name']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('id');
         if ($trigger !== '') {
             $q->where('trigger_key', $trigger);
         }

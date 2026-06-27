@@ -26,7 +26,7 @@ class ShipmentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
         $status = $request->query('status');
@@ -38,8 +38,9 @@ class ShipmentController extends Controller
         $to = $request->query('to');
 
         $q = Shipment::query()
-            ->with(['order.customer', 'deliveryCompany'])
-            ->where('brand_id', $brandId)
+            ->with(['order.customer', 'deliveryCompany']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->orderByDesc('id');
 
         if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {

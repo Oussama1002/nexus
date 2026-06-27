@@ -35,7 +35,7 @@ class ReportController extends Controller
 
     public function dashboard(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         [$from, $to] = $this->parsePeriod($request);
 
         return ApiResponse::success(

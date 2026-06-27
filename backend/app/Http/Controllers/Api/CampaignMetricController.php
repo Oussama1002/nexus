@@ -23,19 +23,25 @@ class CampaignMetricController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $campaignId = $request->query('campaign_id');
         $from = $request->query('date_from');
         $to = $request->query('date_to');
 
         $q = CampaignMetric::query()
-            ->with('campaign')
-            ->whereHas('campaign', fn ($c) => $c->where('brand_id', $brandId))
-            ->orderByDesc('metric_date');
+            ->with('campaign');
+        if ($brandId !== null) {
+            $q->whereHas('campaign', fn ($c) => $c->where('brand_id', $brandId));
+        }
+        $q->orderByDesc('metric_date');
 
         if ($campaignId) {
-            Campaign::query()->where('brand_id', $brandId)->whereKey($campaignId)->firstOrFail();
+            $campaignQuery = Campaign::query()->whereKey($campaignId);
+            if ($brandId !== null) {
+                $campaignQuery->where('brand_id', $brandId);
+            }
+            $campaignQuery->firstOrFail();
             $q->where('campaign_id', (int) $campaignId);
         }
         if ($from) {

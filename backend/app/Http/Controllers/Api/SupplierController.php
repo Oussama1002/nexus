@@ -16,13 +16,14 @@ class SupplierController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
         $status = $request->query('status');
 
-        $q = Supplier::query()
-            ->where('brand_id', $brandId)
+        $q = Supplier::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->withCount('purchaseOrders')
             ->withMax('purchaseOrders', 'created_at')
             ->orderByDesc('id');
