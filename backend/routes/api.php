@@ -479,10 +479,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('settings/center/upload/logo', [SettingsCenterController::class, 'uploadLogo'])->middleware('permission:settings.update');
     Route::get('settings/center/{section}', [SettingsCenterController::class, 'show'])
         ->middleware('permission:settings.view')
-        ->whereIn('section', ['general', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security']);
+        ->whereIn('section', ['general', 'catalogue', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security']);
     Route::put('settings/center/{section}', [SettingsCenterController::class, 'update'])
         ->middleware('permission:settings.update')
-        ->whereIn('section', ['general', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security']);
+        ->whereIn('section', ['general', 'catalogue', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security']);
 
     foreach (['settings', 'system-settings'] as $settingsPath) {
         Route::get($settingsPath, [SystemSettingController::class, 'index'])->middleware('permission:settings.view');
