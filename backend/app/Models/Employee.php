@@ -21,11 +21,15 @@ class Employee extends Model
         'joined_at',
         'status',
         'salary',
+        'work_start_time',
+        'work_end_time',
+        'work_days_per_week',
     ];
 
     protected $casts = [
         'joined_at' => 'date',
         'all_brands' => 'boolean',
+        'work_days_per_week' => 'integer',
     ];
 
     public function user()

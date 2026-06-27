@@ -54,6 +54,9 @@ function employeeToDraft(e: EmployeeRow | EmployeeDetail) {
     user_id: '',
     all_brands: e.all_brands ?? false,
     brand_ids: e.brands?.map((b) => b.id) ?? (e.brand?.id ? [e.brand.id] : []),
+    work_start_time: (e as any).work_start_time ? String((e as any).work_start_time).slice(0, 5) : '',
+    work_end_time: (e as any).work_end_time ? String((e as any).work_end_time).slice(0, 5) : '',
+    work_days_per_week: (e as any).work_days_per_week != null ? String((e as any).work_days_per_week) : '',
   };
 }
 
@@ -196,6 +199,9 @@ export function EmployeesManagementScreen() {
     user_id: '' as string,
     all_brands: false,
     brand_ids: [] as number[],
+    work_start_time: '',
+    work_end_time: '',
+    work_days_per_week: '',
   });
   const [academyRows, setAcademyRows] = useState<AcademyLesson[]>([]);
   const [academySearch, setAcademySearch] = useState('');
@@ -329,6 +335,9 @@ export function EmployeesManagementScreen() {
         : brands[0]
           ? [Number(brands[0].id)]
           : [],
+      work_start_time: '',
+      work_end_time: '',
+      work_days_per_week: '',
     });
     setFormOpen(true);
   };
@@ -427,6 +436,9 @@ export function EmployeesManagementScreen() {
       joined_at: draft.joined_at || undefined,
       status: isEdit ? draft.status : 'active',
       salary: draft.salary === '' ? undefined : Number(draft.salary),
+      work_start_time: draft.work_start_time || undefined,
+      work_end_time: draft.work_end_time || undefined,
+      work_days_per_week: draft.work_days_per_week === '' ? undefined : Number(draft.work_days_per_week),
       all_brands: draft.all_brands,
       brand_ids: draft.all_brands ? undefined : draft.brand_ids,
     };
@@ -451,6 +463,9 @@ export function EmployeesManagementScreen() {
       user_id: '',
       all_brands: false,
       brand_ids: [],
+      work_start_time: '',
+      work_end_time: '',
+      work_days_per_week: '',
     });
     toast.success(isEdit ? 'Employé mis à jour.' : 'Employé créé.');
     await load();
@@ -910,6 +925,37 @@ export function EmployeesManagementScreen() {
                 className={EMPLOYEE_FIELD_INPUT}
               />
             </label>
+            <div className="grid grid-cols-3 gap-3">
+              <label className={EMPLOYEE_FIELD_LABEL}>
+                Heure début
+                <input
+                  type="time"
+                  value={draft.work_start_time}
+                  onChange={(e) => setDraft((d) => ({ ...d, work_start_time: e.target.value }))}
+                  className={EMPLOYEE_FIELD_INPUT}
+                />
+              </label>
+              <label className={EMPLOYEE_FIELD_LABEL}>
+                Heure fin
+                <input
+                  type="time"
+                  value={draft.work_end_time}
+                  onChange={(e) => setDraft((d) => ({ ...d, work_end_time: e.target.value }))}
+                  className={EMPLOYEE_FIELD_INPUT}
+                />
+              </label>
+              <label className={EMPLOYEE_FIELD_LABEL}>
+                Jours/sem.
+                <input
+                  type="number"
+                  min={1}
+                  max={7}
+                  value={draft.work_days_per_week}
+                  onChange={(e) => setDraft((d) => ({ ...d, work_days_per_week: e.target.value }))}
+                  className={EMPLOYEE_FIELD_INPUT}
+                />
+              </label>
+            </div>
             {editingId ? (
               <label className={EMPLOYEE_FIELD_LABEL}>
                 Statut

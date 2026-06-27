@@ -3,6 +3,16 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
 import * as api from '../../lib/api';
 
+type AttendanceRecord = {
+  id: number;
+  attendance_date: string;
+  clock_in_at: string | null;
+  clock_out_at: string | null;
+  status: string;
+  was_late: boolean;
+  minutes_late: number;
+};
+
 export type EmployeeDetail = {
   id: number;
   employee_code?: string | null;
@@ -15,6 +25,10 @@ export type EmployeeDetail = {
   joined_at?: string | null;
   status: string;
   all_brands?: boolean;
+  work_start_time?: string | null;
+  work_end_time?: string | null;
+  work_days_per_week?: number | null;
+  attendance_history?: AttendanceRecord[];
   user?: { id: number; name: string; email: string } | null;
   brand?: { id: number; name: string } | null;
   brands?: { id: number; name: string }[];
@@ -25,6 +39,26 @@ const STATUS_LABELS: Record<string, string> = {
   inactive: 'Inactif',
   terminated: 'Terminé',
 };
+
+const ATTENDANCE_STATUS: Record<string, { label: string; color: string }> = {
+  present: { label: 'Présent', color: 'text-emerald-700 bg-emerald-50' },
+  late: { label: 'En retard', color: 'text-amber-700 bg-amber-50' },
+  absent: { label: 'Absent', color: 'text-rose-700 bg-rose-50' },
+};
+
+function fmtTime(t: string | null | undefined): string {
+  if (!t) return '—';
+  return t.slice(0, 5);
+}
+
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return iso;
+  }
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -166,12 +200,52 @@ export function EmployeeFicheDrawer({
             <Row label="Date d'entrée" value={fmtDate(emp.joined_at)} />
           </Section>
 
+          <Section title="Horaires de travail">
+            <Row label="Heure de début" value={fmtTime(emp.work_start_time)} />
+            <Row label="Heure de fin" value={fmtTime(emp.work_end_time)} />
+            <Row label="Jours / semaine" value={emp.work_days_per_week != null ? `${emp.work_days_per_week} jours` : '—'} />
+          </Section>
+
           <Section title="Compte & rémunération">
             <Row
               label="Utilisateur lié"
               value={emp.user ? `${emp.user.name} (${emp.user.email})` : 'Aucun compte'}
             />
             <Row label="Salaire" value={emp.salary_hidden ? 'Masqué' : emp.salary != null ? String(emp.salary) : '—'} />
+          </Section>
+
+          <Section title="Historique de présence (30 derniers jours)">
+            {(!emp.attendance_history || emp.attendance_history.length === 0) ? (
+              <p className="text-xs text-zinc-500">Aucun enregistrement de présence.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-200">
+                      <th className="text-left py-1.5 font-black text-zinc-500">Date</th>
+                      <th className="text-left py-1.5 font-black text-zinc-500">Entrée</th>
+                      <th className="text-left py-1.5 font-black text-zinc-500">Sortie</th>
+                      <th className="text-left py-1.5 font-black text-zinc-500">Statut</th>
+                      <th className="text-left py-1.5 font-black text-zinc-500">Retard</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {emp.attendance_history.map((a) => {
+                      const st = ATTENDANCE_STATUS[a.status] ?? { label: a.status, color: 'text-zinc-700 bg-zinc-50' };
+                      return (
+                        <tr key={a.id}>
+                          <td className="py-1.5 font-medium">{fmtDate(a.attendance_date)}</td>
+                          <td className="py-1.5">{fmtDateTime(a.clock_in_at)}</td>
+                          <td className="py-1.5">{fmtDateTime(a.clock_out_at)}</td>
+                          <td className="py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${st.color}`}>{st.label}</span></td>
+                          <td className="py-1.5">{a.was_late ? `${a.minutes_late} min` : '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Section>
         </div>
       )}

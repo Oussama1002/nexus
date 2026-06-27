@@ -116,8 +116,19 @@ class EmployeeController extends Controller
     {
         $this->requirePermission($request, 'hr.view');
         $row = Employee::query()->with(['user', 'brand', 'brands'])->findOrFail($id);
+        $data = $this->transformEmployee($request, $row);
 
-        return ApiResponse::success($this->transformEmployee($request, $row), 'Employee retrieved successfully.');
+        $data['work_start_time'] = $row->work_start_time;
+        $data['work_end_time'] = $row->work_end_time;
+        $data['work_days_per_week'] = $row->work_days_per_week;
+
+        $data['attendance_history'] = $row->attendanceRecords()
+            ->orderByDesc('attendance_date')
+            ->limit(30)
+            ->get(['id', 'attendance_date', 'clock_in_at', 'clock_out_at', 'status', 'was_late', 'minutes_late'])
+            ->toArray();
+
+        return ApiResponse::success($data, 'Employee retrieved successfully.');
     }
 
     public function update(UpdateEmployeeRequest $request, string $id): JsonResponse
