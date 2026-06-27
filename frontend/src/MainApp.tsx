@@ -291,21 +291,9 @@ export function MainApp() {
 
   const renderContent = () => {
     if (!canAccess(activeView)) {
-      const fallback = currentUser.role === 'confirmatrice' ? 'confirmatrice' : 'dashboard';
-      return (
-        <PlaceholderScreen
-          title="Accès limité"
-          subtitle="Cette session n’a pas les permissions pour ce module."
-          cta={
-            <button
-              onClick={() => navigate(pathForView(fallback))}
-              className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700"
-            >
-              Retour
-            </button>
-          }
-        />
-      );
+      const fallback = currentUser.role === ‘confirmatrice’ ? ‘whatsapp’ : ‘dashboard’;
+      navigate(pathForView(fallback), { replace: true });
+      return null;
     }
     switch (activeView) {
       case 'dashboard':
