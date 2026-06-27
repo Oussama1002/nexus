@@ -172,16 +172,21 @@ class ClientInvoiceController extends Controller
         $row->email_last_error = null;
         $row->save();
 
-        // Store invoice message in conversation
         $customer = $row->customer;
         if ($customer && $customer->phone) {
             $brandId = (int) $row->brand_id;
             $phone = ltrim($customer->phone, '+');
+
+            $pdfContent = $this->invoiceService->generatePdf($row);
+            $filename = 'Facture-'.$row->invoice_number.'.pdf';
+            $storagePath = "invoices/{$brandId}/{$filename}";
+            \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath, $pdfContent);
+            $mediaUrl = '/storage/'.$storagePath;
+
             $msg = "Facture #{$row->invoice_number}\n"
                 . "Client : {$customer->full_name}\n"
                 . "Montant : {$row->total} {$row->currency}\n"
                 . "Date : {$row->issue_date}\n"
-                . "Échéance : {$row->due_date}\n"
                 . "Statut : envoyée";
 
             $conversation = Conversation::query()
@@ -205,7 +210,8 @@ class ClientInvoiceController extends Controller
                 'sender_user_id' => $request->user()?->id,
                 'direction' => 'outbound',
                 'content' => $msg,
-                'message_type' => 'text',
+                'message_type' => 'document',
+                'media_url' => $mediaUrl,
                 'sent_at' => now(),
             ]);
 
@@ -257,7 +263,7 @@ class ClientInvoiceController extends Controller
     {
         $this->requireFinancePermission($request, 'finance.view');
 
-        $invoice = ClientInvoice::with('customer')->findOrFail($id);
+        $invoice = ClientInvoice::with(['customer', 'brand', 'order'])->findOrFail($id);
         $customer = $invoice->customer;
 
         if (! $customer || ! $customer->phone) {
@@ -267,7 +273,12 @@ class ClientInvoiceController extends Controller
         $phone = ltrim($customer->phone, '+');
         $brandId = (int) $invoice->brand_id;
 
-        // Build invoice message
+        $pdfContent = $this->invoiceService->generatePdf($invoice);
+        $filename = 'Facture-'.$invoice->invoice_number.'.pdf';
+        $storagePath = "invoices/{$brandId}/{$filename}";
+        \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath, $pdfContent);
+        $mediaUrl = '/storage/'.$storagePath;
+
         $msg = "Facture #{$invoice->invoice_number}\n"
             . "Client : {$customer->full_name}\n"
             . "Montant : {$invoice->total} {$invoice->currency}\n"
@@ -275,7 +286,6 @@ class ClientInvoiceController extends Controller
             . "Echeance : {$invoice->due_date}\n"
             . "Statut : {$invoice->status}";
 
-        // Find or create conversation
         $conversation = Conversation::query()
             ->where('brand_id', $brandId)
             ->where('channel', 'whatsapp')
@@ -292,28 +302,26 @@ class ClientInvoiceController extends Controller
             ]);
         }
 
-        // Try to send via WhatsApp API
+        $externalId = null;
         try {
             $externalId = $this->whatsApp->sendText($brandId, $phone, $msg);
-        } catch (\Throwable $e) {
-            // Even if API fails, store the message locally
-            $externalId = null;
+        } catch (\Throwable) {
         }
 
-        // Store message in conversation
         Message::query()->create([
             'conversation_id' => $conversation->id,
             'sender_user_id' => $request->user()?->id,
             'direction' => 'outbound',
             'content' => $msg,
-            'message_type' => 'text',
+            'message_type' => 'document',
+            'media_url' => $mediaUrl,
             'external_message_id' => $externalId,
             'sent_at' => now(),
         ]);
 
         $conversation->update(['last_message_at' => now()]);
 
-        return ApiResponse::success(null, 'Facture envoyee dans la conversation WhatsApp.');
+        return ApiResponse::success(null, 'Facture PDF envoyee dans la conversation WhatsApp.');
     }
 
     private function requireFinancePermission(Request $request, string $slug): void

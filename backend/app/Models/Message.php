@@ -15,6 +15,7 @@ class Message extends Model
         'direction',
         'content',
         'message_type',
+        'media_url',
         'external_message_id',
         'sent_at',
     ];

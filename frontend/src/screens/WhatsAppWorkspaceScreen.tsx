@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
+import { CheckCircle2, FileText, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -37,6 +37,8 @@ type ApiMessage = {
   id: number;
   direction: 'inbound' | 'outbound';
   content: string | null;
+  message_type?: string | null;
+  media_url?: string | null;
   sent_at: string | null;
   sender?: { name: string } | null;
 };
@@ -505,7 +507,25 @@ export function WhatsAppWorkspaceScreen({
                                   : 'bg-white text-zinc-800 border-zinc-100 rounded-tl-none',
                               )}
                             >
-                              <p className="text-sm leading-relaxed break-words">{m.content ?? '—'}</p>
+                              {m.message_type === 'document' && m.media_url ? (
+                                <div className="space-y-2">
+                                  <a
+                                    href={`${window.location.origin}${m.media_url}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={cn(
+                                      'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold',
+                                      isAgent ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700',
+                                    )}
+                                  >
+                                    <FileText className="w-4 h-4 shrink-0" />
+                                    <span className="truncate">{m.media_url.split('/').pop() ?? 'Document'}</span>
+                                  </a>
+                                  {m.content && <p className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                </div>
+                              ) : (
+                                <p className="text-sm leading-relaxed break-words">{m.content ?? '—'}</p>
+                              )}
                             </div>
                             <div className={cn('flex items-center gap-1', isAgent ? 'justify-end' : '')}>
                               <span className="text-[10px] text-zinc-400 font-bold">
