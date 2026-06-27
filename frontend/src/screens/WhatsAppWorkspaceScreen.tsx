@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
@@ -89,6 +89,15 @@ export function WhatsAppWorkspaceScreen({
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const emojiRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!emojiOpen) return;
+    const handler = (e: MouseEvent) => { if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setEmojiOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [emojiOpen]);
 
   useEffect(() => {
     setSelectedId(null);
@@ -519,10 +528,28 @@ export function WhatsAppWorkspaceScreen({
                 {canCreateConversations && (
                   <div className="p-4 border-t border-zinc-100 bg-white shrink-0">
                     <div className="flex items-end gap-2">
-                      <button type="button" className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50" aria-label="emoji">
-                        <Smile className="w-5 h-5" />
-                      </button>
-                      <button type="button" className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50" aria-label="attach">
+                      <div className="relative" ref={emojiRef}>
+                        <button type="button" onClick={() => setEmojiOpen((p) => !p)} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50" aria-label="emoji">
+                          <Smile className="w-5 h-5" />
+                        </button>
+                        {emojiOpen && (
+                          <div className="absolute bottom-14 left-0 z-50 bg-white rounded-xl shadow-2xl border border-zinc-200 p-3 w-[280px]">
+                            <div className="grid grid-cols-8 gap-1 max-h-[200px] overflow-y-auto">
+                              {['😀','😂','😍','🥰','😎','🤔','👍','👏','🎉','❤️','🔥','✅','⭐','💯','🙏','😊','😢','😡','🤝','💪','📦','🚚','💰','📞','✉️','⏰','🔔','📝','🎁','🛒','📊','🏷️','✨','🌟','💼','📱','🖊️','📋','🔑','🛡️'].map((e) => (
+                                <button
+                                  key={e}
+                                  type="button"
+                                  className="text-xl hover:bg-zinc-100 rounded-lg p-1 transition-colors"
+                                  onClick={() => { setDraft((d) => d + e); setEmojiOpen(false); }}
+                                >
+                                  {e}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <button type="button" onClick={() => toast.info('Pièces jointes bientôt disponible')} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50" aria-label="attach">
                         <Paperclip className="w-5 h-5" />
                       </button>
                       <textarea
