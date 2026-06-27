@@ -52,6 +52,7 @@ import { ClientPortalScreen } from './screens/ClientPortalScreen';
 import { CollabProjectsScreen } from './screens/CollabProjectsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SearchModal } from './components/shell/SearchModal';
+import { NotificationPanel, type NotificationItem } from './components/shell/NotificationPanel';
 import { InternalChatModal } from './components/chat/InternalChatModal';
 import { parseAppPath, pathForView } from './lib/appPaths';
 
@@ -142,6 +143,9 @@ export function MainApp() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifData, setNotifData] = useState<{ items: NotificationItem[]; summary: { total: number; danger: number; warning: number } } | null>(null);
+  const [notifLoading, setNotifLoading] = useState(false);
   const [brandLogoUrl, setBrandLogoUrl] = useState('');
 
   const [directoryUsers, setDirectoryUsers] = useState<User[]>([]);
@@ -218,6 +222,16 @@ export function MainApp() {
 
   useEffect(() => initGlobalActions(() => actionCtx), [actionCtx]);
 
+  const fetchNotifications = useCallback(async () => {
+    setNotifLoading(true);
+    const res = await api.get<{ items: NotificationItem[]; summary: { total: number; danger: number; warning: number } }>('notifications');
+    setNotifLoading(false);
+    if (res.ok && res.data) {
+      const d = res.data as any;
+      setNotifData({ items: d.items ?? [], summary: d.summary ?? { total: 0, danger: 0, warning: 0 } });
+    }
+  }, []);
+
   useEffect(() => {
     const poll = async () => {
       const res = await api.get<{ unread: number }>('internal-chat/unread');
@@ -227,9 +241,11 @@ export function MainApp() {
       }
     };
     void poll();
+    void fetchNotifications();
     const timer = setInterval(poll, 10000);
-    return () => clearInterval(timer);
-  }, []);
+    const notifTimer = setInterval(fetchNotifications, 60000);
+    return () => { clearInterval(timer); clearInterval(notifTimer); };
+  }, [fetchNotifications]);
 
   // Ctrl+K to open search
   useEffect(() => {
@@ -522,6 +538,8 @@ export function MainApp() {
         onSearchClick={() => setSearchOpen(true)}
         onChatClick={() => setChatOpen(true)}
         unreadChatCount={unreadChatCount}
+        onNotificationClick={() => { setNotifOpen(true); void fetchNotifications(); }}
+        notificationCount={notifData?.summary?.total ?? 0}
         topbarRight={
           <button
             type="button"
@@ -547,6 +565,7 @@ export function MainApp() {
         <div key={activeBrandId}>{renderContent()}</div>
       </AppShell>
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} canAccess={canAccess} />
+      <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} data={notifData} loading={notifLoading} />
       <InternalChatModal
         open={chatOpen}
         onClose={() => { setChatOpen(false); void api.get<{ unread: number }>('internal-chat/unread').then((r) => { if (r.ok) setUnreadChatCount((r.data as any)?.unread ?? 0); }); }}

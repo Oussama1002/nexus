@@ -14,6 +14,8 @@ export function AppShell({
   onSearchClick,
   onChatClick,
   unreadChatCount,
+  onNotificationClick,
+  notificationCount,
   children,
 }: {
   sidebarOpen: boolean;
@@ -26,13 +28,15 @@ export function AppShell({
   onSearchClick?: () => void;
   onChatClick?: () => void;
   unreadChatCount?: number;
+  onNotificationClick?: () => void;
+  notificationCount?: number;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-screen bg-zinc-50 overflow-hidden">
       <SidebarNav open={sidebarOpen} header={sidebarHeader} footer={sidebarFooter} groups={navGroups} />
       <main className={cn('flex-1 flex flex-col min-w-0 max-h-screen overflow-hidden')}>
-        <Topbar left={topbarLeft} brandPill={topbarBrandPill} onSearchClick={onSearchClick} onChatClick={onChatClick} unreadChatCount={unreadChatCount} right={topbarRight} />
+        <Topbar left={topbarLeft} brandPill={topbarBrandPill} onSearchClick={onSearchClick} onChatClick={onChatClick} unreadChatCount={unreadChatCount} onNotificationClick={onNotificationClick} notificationCount={notificationCount} right={topbarRight} />
         <div className="flex-1 overflow-y-auto px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 scrollbar-hide">
           <div className="max-w-[1600px] mx-auto w-full">{children}</div>
         </div>

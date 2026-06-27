@@ -8,6 +8,8 @@ export function Topbar({
   onSearchClick,
   onChatClick,
   unreadChatCount = 0,
+  onNotificationClick,
+  notificationCount = 0,
   right,
 }: {
   left?: React.ReactNode;
@@ -15,6 +17,8 @@ export function Topbar({
   onSearchClick?: () => void;
   onChatClick?: () => void;
   unreadChatCount?: number;
+  onNotificationClick?: () => void;
+  notificationCount?: number;
   right?: React.ReactNode;
 }) {
   return (
@@ -39,11 +43,16 @@ export function Topbar({
           </button>
           <button
             type="button"
+            onClick={onNotificationClick}
             className={cn('relative p-2.5 text-zinc-500 hover:bg-zinc-100 rounded-xl transition-colors')}
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 border-2 border-white rounded-full" />
+            {notificationCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                {notificationCount > 99 ? '99+' : notificationCount}
+              </span>
+            )}
           </button>
           <button
             type="button"

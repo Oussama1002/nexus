@@ -88,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view');
+    Route::get('notifications', [DashboardController::class, 'notifications']);
 
     Route::get('confirmatrice-workspace/summary', [ConfirmatriceWorkspaceController::class, 'summary']);
 

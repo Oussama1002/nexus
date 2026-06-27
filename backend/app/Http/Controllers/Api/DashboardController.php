@@ -96,4 +96,12 @@ class DashboardController extends Controller
             'notifications' => $this->notifications->forUser($request->user()),
         ], 'Dashboard summary retrieved successfully.');
     }
+
+    public function notifications(Request $request): JsonResponse
+    {
+        return ApiResponse::success(
+            $this->notifications->forUser($request->user()),
+            'Notifications retrieved.'
+        );
+    }
 }
