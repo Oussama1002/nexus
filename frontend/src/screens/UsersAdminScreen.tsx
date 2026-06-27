@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyRound, Pencil, RefreshCw, Trash2, UserPlus } from 'lucide-react';
+import { KeyRound, MessageCircle, Pencil, RefreshCw, Trash2, UserPlus } from 'lucide-react';
+import { InternalChatModal } from '../components/chat/InternalChatModal';
 import { PageHeader } from '../components/ui/PageHeader';
 import { DataTable, type Column } from '../components/ui/DataTable';
 import { Modal } from '../components/ui/Modal';
@@ -109,6 +110,9 @@ export function UsersAdminScreen() {
   const [pwdOpen, setPwdOpen] = useState(false);
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [newPwd, setNewPwd] = useState('');
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatPeer, setChatPeer] = useState<UserRow | null>(null);
 
   const [employeeCandidates, setEmployeeCandidates] = useState<EmployeePick[]>([]);
   const [employeesLoading, setEmployeesLoading] = useState(false);
@@ -378,6 +382,14 @@ export function UsersAdminScreen() {
         header: '',
         cell: (u) => (
           <div className="flex gap-1 justify-end">
+            <button
+              type="button"
+              onClick={() => { setChatPeer(u); setChatOpen(true); }}
+              className="p-2 rounded-lg hover:bg-primary-50 text-primary-600"
+              title="Envoyer un message"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </button>
             {canUpdate && (
               <>
                 <button
@@ -680,6 +692,13 @@ export function UsersAdminScreen() {
           />
         </Modal>
       )}
+
+      <InternalChatModal
+        open={chatOpen}
+        onClose={() => { setChatOpen(false); setChatPeer(null); }}
+        initialPeer={chatPeer ? { id: chatPeer.id, name: chatPeer.name, email: chatPeer.email } : null}
+        allUsers={users.map((u) => ({ id: u.id, name: u.name, email: u.email }))}
+      />
     </div>
   );
 }

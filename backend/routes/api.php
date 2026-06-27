@@ -61,6 +61,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SettingsCenterController;
 use App\Http\Controllers\Api\SystemSettingController;
 use App\Http\Controllers\Api\HrAttendanceController;
+use App\Http\Controllers\Api\InternalChatController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Support\ApiResponse;
@@ -105,6 +106,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('users/{id}', [UserController::class, 'update'])->whereNumber('id')->middleware('permission:users.update');
     Route::delete('users/{id}', [UserController::class, 'destroy'])->whereNumber('id')->middleware('permission:users.delete');
     Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword'])->whereNumber('id')->middleware('permission:users.update');
+
+    // Internal chat (between users)
+    Route::get('internal-chat/threads', [InternalChatController::class, 'threads']);
+    Route::get('internal-chat/unread', [InternalChatController::class, 'unreadCount']);
+    Route::get('internal-chat/{userId}/messages', [InternalChatController::class, 'messages'])->whereNumber('userId');
+    Route::post('internal-chat/{userId}/messages', [InternalChatController::class, 'send'])->whereNumber('userId');
 
     Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
     Route::get('roles/{id}', [RoleController::class, 'show'])->whereNumber('id')->middleware('permission:roles.view');
