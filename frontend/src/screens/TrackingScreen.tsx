@@ -64,6 +64,24 @@ const ID_FIELD_LOOKUP: Record<string, string> = {
   supplier_id: 'suppliers',
 };
 
+const ENTITY_TYPE_LOOKUP: Record<string, string> = {
+  'App\\Models\\User': 'users',
+  'App\\Models\\Customer': 'customers',
+  'App\\Models\\Brand': 'brands',
+  'App\\Models\\Supplier': 'suppliers',
+};
+
+function resolveEntityName(
+  entityType: string | null | undefined,
+  entityId: string | number | null | undefined,
+  lookups: Record<string, LookupMap>,
+): string | null {
+  if (!entityType || entityId == null || entityId === '') return null;
+  const lookupKey = ENTITY_TYPE_LOOKUP[entityType];
+  if (!lookupKey || !lookups[lookupKey]) return null;
+  return lookups[lookupKey][entityId] ?? null;
+}
+
 type AuditUser = { id: number; name: string; email: string };
 
 type AuditLogRow = {
@@ -475,7 +493,7 @@ export function TrackingScreen() {
               </p>
               <p className="mt-1 text-sm font-black text-zinc-900">{auditActionLabelFr(r.action)}</p>
               <p className="text-xs text-zinc-600 mt-1">
-                {r.user?.name ?? '—'} · {auditEntitySummaryFr(r.entity_type, r.entity_id)}
+                {r.user?.name ?? '—'} · {resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditEntitySummaryFr(r.entity_type, r.entity_id)}
               </p>
             </div>
             <span className="text-[10px] font-mono text-zinc-400">{r.ip_address}</span>
@@ -514,7 +532,7 @@ export function TrackingScreen() {
               </p>
               <p>
                 <span className="text-zinc-500">Objet concerné : </span>
-                <span className="font-bold text-zinc-900">{auditEntitySummaryFr(detail.entity_type, detail.entity_id)}</span>
+                <span className="font-bold text-zinc-900">{resolveEntityName(detail.entity_type, detail.entity_id, lookups) ?? auditEntitySummaryFr(detail.entity_type, detail.entity_id)}</span>
               </p>
               {detail.ip_address ? (
                 <p className="text-xs text-zinc-500">
