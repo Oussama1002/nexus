@@ -116,6 +116,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
   canCreate: boolean; canUpdate: boolean; canDelete: boolean;
   toast: ReturnType<typeof useToast>; onOpenBoard: (p: ProjectRow) => void;
 }) {
+  const { user: authUser, isAdmin } = useAuth();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
@@ -151,7 +152,15 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
     published: rows.filter((r) => r.status === 'published').length,
   }), [rows]);
 
-  function openCreate() { setEditingId(null); setDraft(emptyDraft()); setModalOpen(true); }
+  function openCreate() {
+    setEditingId(null);
+    const d = emptyDraft();
+    if (authUser) {
+      d.members = [{ user_id: String(authUser.id), project_role: 'reviewer', is_lead: true }];
+    }
+    setDraft(d);
+    setModalOpen(true);
+  }
   function openEdit(row: ProjectRow) {
     setEditingId(row.id);
     setDraft({ title: row.title, objective: row.objective ?? '', status: row.status, due_date: row.due_date ?? '', asset_url: row.asset_url ?? '', notes: row.notes ?? '',
