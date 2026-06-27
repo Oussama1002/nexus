@@ -93,6 +93,8 @@ export function WhatsAppWorkspaceScreen({
   const [agentFilter, setAgentFilter] = useState<string>('');
   const [emojiOpen, setEmojiOpen] = useState(false);
   const emojiRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!emojiOpen) return;
@@ -229,6 +231,23 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setDraft('');
+    await loadMessages(selectedId);
+    await loadConversations();
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !selectedId) return;
+    e.target.value = '';
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await api.post(`conversations/${selectedId}/upload`, fd as any);
+    setUploading(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
     await loadMessages(selectedId);
     await loadConversations();
   }
@@ -510,7 +529,14 @@ export function WhatsAppWorkspaceScreen({
                                   : 'bg-white text-zinc-800 border-zinc-100 rounded-tl-none',
                               )}
                             >
-                              {m.message_type === 'document' && m.media_url ? (
+                              {m.message_type === 'image' && m.media_url ? (
+                                <div className="space-y-2">
+                                  <a href={`${window.location.origin}${m.media_url}`} target="_blank" rel="noopener noreferrer">
+                                    <img src={`${window.location.origin}${m.media_url}`} alt="" className="max-w-[240px] rounded-xl" />
+                                  </a>
+                                  {m.content && <p className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                </div>
+                              ) : m.message_type === 'document' && m.media_url ? (
                                 <div className="space-y-2">
                                   <a
                                     href={`${window.location.origin}${m.media_url}`}
@@ -572,8 +598,15 @@ export function WhatsAppWorkspaceScreen({
                           </div>
                         )}
                       </div>
-                      <button type="button" onClick={() => toast.success('Pièces jointes bientôt disponible')} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50" aria-label="attach">
-                        <Paperclip className="w-5 h-5" />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                        onChange={(e) => void handleFileUpload(e)}
+                      />
+                      <button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-50" aria-label="attach">
+                        <Paperclip className={`w-5 h-5 ${uploading ? 'animate-spin' : ''}`} />
                       </button>
                       <textarea
                         value={draft}

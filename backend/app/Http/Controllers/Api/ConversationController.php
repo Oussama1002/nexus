@@ -215,6 +215,42 @@ class ConversationController extends Controller
         return ApiResponse::success($message->fresh(['sender']), 'Message added successfully.', 201);
     }
 
+    public function uploadAttachment(Request $request, string $id): JsonResponse
+    {
+        $conversation = $this->findConversationForUser($request, $id);
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'],
+            'content' => ['nullable', 'string'],
+        ]);
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+        $originalName = $file->getClientOriginalName();
+        $dir = "conversation-attachments/{$conversation->id}";
+        $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+        $path = $file->storeAs($dir, $filename, 'public');
+        $mediaUrl = '/storage/' . $path;
+
+        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+        $messageType = $isImage ? 'image' : 'document';
+
+        $message = Message::query()->create([
+            'conversation_id' => $conversation->id,
+            'sender_user_id' => $request->user()->id,
+            'direction' => 'outbound',
+            'content' => $request->input('content') ?: $originalName,
+            'message_type' => $messageType,
+            'media_url' => $mediaUrl,
+            'sent_at' => now(),
+        ]);
+
+        $conversation->last_message_at = now();
+        $conversation->save();
+
+        return ApiResponse::success($message->fresh(['sender']), 'Fichier envoyé.', 201);
+    }
+
     public function destroyMessage(Request $request, string $conversationId, string $messageId): JsonResponse
     {
         $conversation = $this->findConversationForUser($request, $conversationId);
