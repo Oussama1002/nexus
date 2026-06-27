@@ -19,6 +19,51 @@ import {
 } from '../lib/auditDisplayFr';
 import { resolvePublicAssetUrl } from '../lib/publicAssetUrl';
 
+type LookupMap = Record<number, string>;
+
+const STATUS_FR: Record<string, string> = {
+  open: 'Ouvert', closed: 'Fermé', pending: 'En attente', active: 'Actif',
+  inactive: 'Inactif', draft: 'Brouillon', in_progress: 'En cours',
+  blocked: 'Bloqué', review: 'En révision', published: 'Publié',
+  done: 'Terminé', cancelled: 'Annulé', confirmed: 'Confirmé',
+  shipped: 'Expédié', delivered: 'Livré', returned: 'Retourné',
+  paid: 'Payé', unpaid: 'Impayé', partial: 'Partiel',
+  new: 'Nouveau', qualified: 'Qualifié', converted: 'Converti',
+  lost: 'Perdu', contacted: 'Contacté', won: 'Gagné',
+  processing: 'En traitement', completed: 'Terminé',
+  paused: 'En pause', ended: 'Terminé', scheduled: 'Planifié',
+};
+
+const CHANNEL_FR: Record<string, string> = {
+  whatsapp: 'WhatsApp', email: 'E-mail', phone: 'Téléphone',
+  sms: 'SMS', facebook: 'Facebook', instagram: 'Instagram',
+  tiktok: 'TikTok', google: 'Google', web: 'Web', other: 'Autre',
+};
+
+const ENUM_FIELDS: Record<string, Record<string, string>> = {
+  status: STATUS_FR,
+  channel: CHANNEL_FR,
+  payment_method: { cash: 'Espèces', card: 'Carte', transfer: 'Virement', cod: 'Contre remboursement', check: 'Chèque' },
+  payment_state: { paid: 'Payé', unpaid: 'Impayé', partial: 'Partiel', refunded: 'Remboursé' },
+  priority: { low: 'Basse', medium: 'Moyenne', high: 'Haute', urgent: 'Urgente' },
+  traffic_source: { organic: 'Organique', sponsored: 'Sponsorisé' },
+  project_role: { content_creator: 'Tournage contenu', video_editor: 'Monteur', copywriter: 'Copywriter', publisher: 'Publication', reviewer: 'Relecture', other: 'Autre' },
+};
+
+const ID_FIELD_LOOKUP: Record<string, string> = {
+  brand_id: 'brands',
+  user_id: 'users',
+  customer_id: 'customers',
+  assigned_user_id: 'users',
+  created_by_user_id: 'users',
+  updated_by_user_id: 'users',
+  assigned_to: 'users',
+  sender_id: 'users',
+  receiver_id: 'users',
+  uploaded_by: 'users',
+  supplier_id: 'suppliers',
+};
+
 type AuditUser = { id: number; name: string; email: string };
 
 type AuditLogRow = {
@@ -38,20 +83,38 @@ function hasAuditPayload(values: Record<string, unknown> | null | undefined): bo
   return values !== null && values !== undefined && Object.keys(values).length > 0;
 }
 
-function AuditFieldValue({ fieldKey, value, className }: { fieldKey: string; value: unknown; className?: string }) {
+function resolveAuditValue(fieldKey: string, value: unknown, lookups: Record<string, LookupMap>): string | null {
+  if (value === null || value === undefined) return null;
+  if (ENUM_FIELDS[fieldKey] && typeof value === 'string') {
+    return ENUM_FIELDS[fieldKey][value] ?? null;
+  }
+  const lookupType = ID_FIELD_LOOKUP[fieldKey];
+  if (lookupType && (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value)))) {
+    const id = Number(value);
+    const map = lookups[lookupType];
+    if (map && map[id]) return `${map[id]} (#${id})`;
+  }
+  return null;
+}
+
+function AuditFieldValue({ fieldKey, value, className, lookups = {} }: { fieldKey: string; value: unknown; className?: string; lookups?: Record<string, LookupMap> }) {
   if (isAuditImageField(fieldKey) && typeof value === 'string' && value) {
     const src = resolvePublicAssetUrl(value);
     return <img src={src} alt={auditFieldLabelFr(fieldKey)} className={cn('w-12 h-12 rounded-lg object-cover', className)} />;
   }
+  const resolved = resolveAuditValue(fieldKey, value, lookups);
+  if (resolved) return <span className={className}>{resolved}</span>;
   return <span className={className}>{formatAuditFieldValue(fieldKey, value)}</span>;
 }
 
 function AuditDiffSection({
   oldValues,
   newValues,
+  lookups = {},
 }: {
   oldValues: Record<string, unknown> | null | undefined;
   newValues: Record<string, unknown> | null | undefined;
+  lookups?: Record<string, LookupMap>;
 }) {
   const hasOld = hasAuditPayload(oldValues ?? null);
   const hasNew = hasAuditPayload(newValues ?? null);
@@ -64,6 +127,7 @@ function AuditDiffSection({
         tone="success"
         values={newValues}
         emptyHint=""
+        lookups={lookups}
       />
     );
   }
@@ -76,6 +140,7 @@ function AuditDiffSection({
         tone="neutral"
         values={oldValues}
         emptyHint=""
+        lookups={lookups}
       />
     );
   }
@@ -130,11 +195,11 @@ function AuditDiffSection({
             <div className="flex flex-col gap-1 text-sm">
               <div className="flex items-start gap-2">
                 <span className="shrink-0 mt-0.5 inline-block w-5 h-5 rounded-md bg-rose-100 text-rose-600 text-[10px] font-black flex items-center justify-center">−</span>
-                <AuditFieldValue fieldKey={key} value={before} className="text-zinc-500 line-through break-words" />
+                <AuditFieldValue fieldKey={key} value={before} className="text-zinc-500 line-through break-words" lookups={lookups} />
               </div>
               <div className="flex items-start gap-2">
                 <span className="shrink-0 mt-0.5 inline-block w-5 h-5 rounded-md bg-emerald-100 text-emerald-600 text-[10px] font-black flex items-center justify-center">+</span>
-                <AuditFieldValue fieldKey={key} value={after} className="text-zinc-900 font-bold break-words" />
+                <AuditFieldValue fieldKey={key} value={after} className="text-zinc-900 font-bold break-words" lookups={lookups} />
               </div>
             </div>
           </div>
@@ -149,11 +214,13 @@ function AuditPayloadSection({
   tone,
   values,
   emptyHint,
+  lookups = {},
 }: {
   heading: string;
   tone: 'neutral' | 'success';
   values: Record<string, unknown> | null | undefined;
   emptyHint: string;
+  lookups?: Record<string, LookupMap>;
 }) {
   const wrap =
     tone === 'success'
@@ -177,7 +244,7 @@ function AuditPayloadSection({
         {rows.map(([key, val]) => (
           <div key={key} className="grid grid-cols-1 sm:grid-cols-[minmax(10rem,32%)_1fr] gap-x-4 gap-y-1 py-2.5 text-sm first:pt-0">
             <dt className="font-bold text-zinc-600">{auditFieldLabelFr(key)}</dt>
-            <dd className="text-zinc-900 break-words"><AuditFieldValue fieldKey={key} value={val} /></dd>
+            <dd className="text-zinc-900 break-words"><AuditFieldValue fieldKey={key} value={val} lookups={lookups} /></dd>
           </div>
         ))}
       </dl>
@@ -198,8 +265,26 @@ export function TrackingScreen() {
   const [dateTo, setDateTo] = useState('');
 
   const [detail, setDetail] = useState<AuditLogRow | null>(null);
+  const [lookups, setLookups] = useState<Record<string, LookupMap>>({});
 
   const canView = hasPermission('audit_logs.view');
+
+  useEffect(() => {
+    (async () => {
+      const [usersRes, brandsRes, customersRes, suppliersRes] = await Promise.all([
+        api.get<Paginated<{ id: number; name: string }>>('users?per_page=500'),
+        api.get<Paginated<{ id: number; name: string }>>('brands?per_page=200'),
+        api.get<Paginated<{ id: number; name: string }>>('customers?per_page=500'),
+        api.get<Paginated<{ id: number; name: string }>>('suppliers?per_page=200'),
+      ]);
+      const maps: Record<string, LookupMap> = { users: {}, brands: {}, customers: {}, suppliers: {} };
+      if (usersRes.ok && usersRes.data?.data) for (const u of usersRes.data.data) maps.users[u.id] = u.name;
+      if (brandsRes.ok && brandsRes.data?.data) for (const b of brandsRes.data.data) maps.brands[b.id] = b.name;
+      if (customersRes.ok && customersRes.data?.data) for (const c of customersRes.data.data) maps.customers[c.id] = c.name;
+      if (suppliersRes.ok && suppliersRes.data?.data) for (const s of suppliersRes.data.data) maps.suppliers[s.id] = s.name;
+      setLookups(maps);
+    })();
+  }, []);
 
   const load = useCallback(async () => {
     if (!canView) return;
@@ -364,6 +449,7 @@ export function TrackingScreen() {
             <AuditDiffSection
               oldValues={detail.old_values}
               newValues={detail.new_values}
+              lookups={lookups}
             />
           </div>
         )}
