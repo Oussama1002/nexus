@@ -1,16 +1,20 @@
 import React from 'react';
-import { Bell, Search } from 'lucide-react';
+import { Bell, MessageCircle, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export function Topbar({
   left,
   brandPill,
   onSearchClick,
+  onChatClick,
+  unreadChatCount = 0,
   right,
 }: {
   left?: React.ReactNode;
   brandPill?: React.ReactNode;
   onSearchClick?: () => void;
+  onChatClick?: () => void;
+  unreadChatCount?: number;
   right?: React.ReactNode;
 }) {
   return (
@@ -20,6 +24,19 @@ export function Topbar({
       <div className="flex items-center gap-6 shrink-0">
         {brandPill}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onChatClick}
+            className={cn('relative p-2.5 text-zinc-500 hover:bg-zinc-100 rounded-xl transition-colors')}
+            aria-label="Messagerie"
+          >
+            <MessageCircle className="w-5 h-5" />
+            {unreadChatCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                {unreadChatCount > 99 ? '99+' : unreadChatCount}
+              </span>
+            )}
+          </button>
           <button
             type="button"
             className={cn('relative p-2.5 text-zinc-500 hover:bg-zinc-100 rounded-xl transition-colors')}
@@ -32,7 +49,7 @@ export function Topbar({
             type="button"
             onClick={onSearchClick}
             className="p-2.5 text-zinc-500 hover:bg-zinc-100 rounded-xl transition-colors"
-            aria-label="Search"
+            aria-label="Recherche"
           >
             <Search className="w-5 h-5" />
           </button>

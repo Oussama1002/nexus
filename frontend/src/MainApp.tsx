@@ -52,6 +52,7 @@ import { ClientPortalScreen } from './screens/ClientPortalScreen';
 import { CollabProjectsScreen } from './screens/CollabProjectsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SearchModal } from './components/shell/SearchModal';
+import { InternalChatModal } from './components/chat/InternalChatModal';
 import { parseAppPath, pathForView } from './lib/appPaths';
 
 const ORDER_DRAFT_KEY = 'nexus.orderDraft';
@@ -105,6 +106,8 @@ export function MainApp() {
   const [selectedConfirmatriceUserId, setSelectedConfirmatriceUserId] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [brandLogoUrl, setBrandLogoUrl] = useState('');
 
   const [directoryUsers, setDirectoryUsers] = useState<User[]>([]);
@@ -180,6 +183,19 @@ export function MainApp() {
   }, [currentUser.id, currentUser.role]);
 
   useEffect(() => initGlobalActions(() => actionCtx), [actionCtx]);
+
+  useEffect(() => {
+    const poll = async () => {
+      const res = await api.get<{ unread: number }>('internal-chat/unread');
+      if (res.ok && res.data) {
+        const d = res.data as any;
+        setUnreadChatCount(d?.unread ?? d?.data?.unread ?? 0);
+      }
+    };
+    void poll();
+    const timer = setInterval(poll, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Ctrl+K to open search
   useEffect(() => {
@@ -470,6 +486,8 @@ export function MainApp() {
           )
         }
         onSearchClick={() => setSearchOpen(true)}
+        onChatClick={() => setChatOpen(true)}
+        unreadChatCount={unreadChatCount}
         topbarRight={
           <button
             type="button"
@@ -495,6 +513,11 @@ export function MainApp() {
         <div key={activeBrandId}>{renderContent()}</div>
       </AppShell>
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} canAccess={canAccess} />
+      <InternalChatModal
+        open={chatOpen}
+        onClose={() => { setChatOpen(false); void api.get<{ unread: number }>('internal-chat/unread').then((r) => { if (r.ok) setUnreadChatCount((r.data as any)?.unread ?? 0); }); }}
+        allUsers={directoryUsers.map((u) => ({ id: Number(u.id), name: u.name, email: u.email }))}
+      />
     </>
   );
 }
