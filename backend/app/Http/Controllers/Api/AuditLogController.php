@@ -72,7 +72,7 @@ class AuditLogController extends Controller
         return ApiResponse::success([
             'users' => User::select('id', 'name')->orderBy('name')->get(),
             'brands' => Brand::select('id', 'name')->orderBy('name')->get(),
-            'customers' => Customer::select('id', 'name')->orderBy('name')->get(),
+            'customers' => Customer::selectRaw('id, full_name as name')->orderBy('full_name')->get(),
             'suppliers' => Supplier::select('id', 'name')->orderBy('name')->get(),
         ]);
     }
