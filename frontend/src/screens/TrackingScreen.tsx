@@ -97,6 +97,77 @@ function resolveAuditValue(fieldKey: string, value: unknown, lookups: Record<str
   return null;
 }
 
+const JSON_KEY_LABELS: Record<string, string> = {
+  type: 'Type', target: 'Cible', variants: 'Variantes', label: 'Libellé',
+  message: 'Message', weight: 'Poids', field: 'Champ', op: 'Opérateur',
+  value: 'Valeur', all: 'Toutes les conditions', any: 'Au moins une condition',
+  action: 'Action', condition: 'Condition', name: 'Nom', status: 'Statut',
+  email: 'E-mail', phone: 'Téléphone', description: 'Description', id: 'ID',
+  subject: 'Sujet', body: 'Corps', url: 'URL', key: 'Clé', code: 'Code',
+  title: 'Titre', content: 'Contenu', reason: 'Raison', note: 'Note',
+  amount: 'Montant', quantity: 'Quantité', price: 'Prix', total: 'Total',
+};
+const OP_LABELS: Record<string, string> = {
+  eq: '=', neq: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤',
+  contains: 'contient', not_contains: 'ne contient pas',
+  in: 'dans', not_in: 'pas dans', exists: 'existe', not_exists: 'n’existe pas',
+};
+
+function humanizeJsonKey(k: string): string {
+  return JSON_KEY_LABELS[k] ?? k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function HumanJsonValue({ value, depth = 0 }: { value: unknown; depth?: number }): React.ReactElement {
+  if (value === null || value === undefined) return <span className="text-zinc-400">—</span>;
+  if (typeof value === 'boolean') return <span>{value ? 'Oui' : 'Non'}</span>;
+  if (typeof value === 'number' || typeof value === 'string') return <span>{String(value)}</span>;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-zinc-400">—</span>;
+    if (value.every(v => typeof v === 'object' && v !== null && 'field' in v && 'op' in v && 'value' in v)) {
+      return (
+        <ul className="list-disc list-inside space-y-0.5">
+          {value.map((rule, i) => (
+            <li key={i} className="text-sm">
+              <span className="font-medium">{String(rule.field)}</span>{' '}
+              <span className="text-zinc-500">{OP_LABELS[rule.op] ?? rule.op}</span>{' '}
+              <span className="font-semibold">{String(rule.value)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    return (
+      <ul className={cn('space-y-1', depth === 0 ? 'mt-1' : 'ml-3')}>
+        {value.map((item, i) => (
+          <li key={i} className="text-sm border-l-2 border-zinc-200 pl-2">
+            <HumanJsonValue value={item} depth={depth + 1} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const entries = Object.entries(obj);
+    if (entries.length === 0) return <span className="text-zinc-400">—</span>;
+    return (
+      <dl className={cn('space-y-1', depth === 0 ? 'mt-1' : 'ml-3')}>
+        {entries.map(([k, v]) => (
+          <div key={k} className="text-sm">
+            <dt className="inline font-medium text-zinc-600">{humanizeJsonKey(k)} :</dt>{' '}
+            <dd className="inline"><HumanJsonValue value={v} depth={depth + 1} /></dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+  return <span>{String(value)}</span>;
+}
+
+function isJsonField(key: string): boolean {
+  return key.endsWith('_json') || key === 'metadata' || key === 'payload' || key === 'config' || key === 'options' || key === 'data';
+}
+
 function AuditFieldValue({ fieldKey, value, className, lookups = {} }: { fieldKey: string; value: unknown; className?: string; lookups?: Record<string, LookupMap> }) {
   if (isAuditImageField(fieldKey) && typeof value === 'string' && value) {
     const src = resolvePublicAssetUrl(value);
@@ -104,6 +175,15 @@ function AuditFieldValue({ fieldKey, value, className, lookups = {} }: { fieldKe
   }
   const resolved = resolveAuditValue(fieldKey, value, lookups);
   if (resolved) return <span className={className}>{resolved}</span>;
+  if (isJsonField(fieldKey) && value !== null && value !== undefined && typeof value === 'object') {
+    return <div className={className}><HumanJsonValue value={value} /></div>;
+  }
+  if (isJsonField(fieldKey) && typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return <div className={className}><HumanJsonValue value={parsed} /></div>;
+    } catch { /* fall through */ }
+  }
   return <span className={className}>{formatAuditFieldValue(fieldKey, value)}</span>;
 }
 
