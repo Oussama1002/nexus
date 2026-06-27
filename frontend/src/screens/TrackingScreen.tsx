@@ -493,7 +493,7 @@ export function TrackingScreen() {
               </p>
               <p className="mt-1 text-sm font-black text-zinc-900">{auditActionLabelFr(r.action)}</p>
               <p className="text-xs text-zinc-600 mt-1">
-                {r.user?.name ?? '—'} · {resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditEntitySummaryFr(r.entity_type, r.entity_id)}
+                {r.user?.name ?? resolveEntityName(r.entity_type, r.entity_id, lookups) ?? '—'} · {resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditEntitySummaryFr(r.entity_type, r.entity_id)}
               </p>
             </div>
             <span className="text-[10px] font-mono text-zinc-400">{r.ip_address}</span>
@@ -525,7 +525,7 @@ export function TrackingScreen() {
               </p>
               <p>
                 <span className="text-zinc-500">Utilisateur : </span>
-                <span className="font-bold text-zinc-900">{detail.user?.name ?? '—'}</span>
+                <span className="font-bold text-zinc-900">{detail.user?.name ?? resolveEntityName(detail.entity_type, detail.entity_id, lookups) ?? '—'}</span>
                 {detail.user?.email ? (
                   <span className="text-zinc-600 font-medium"> ({detail.user.email})</span>
                 ) : null}
