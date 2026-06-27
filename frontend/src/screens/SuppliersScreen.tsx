@@ -360,11 +360,6 @@ export function SuppliersScreen() {
       toast.error(fe.length ? fe.join(' ') : res.message);
       return;
     }
-    // Auto-save new category if typed in
-    if (draft.category.trim() && !supplierCategories.includes(draft.category.trim())) {
-      api.post('settings/quick-add-list-item', { list: 'supplier_categories', value: draft.category.trim() }).catch(() => {});
-      setSupplierCategories((prev) => [...prev, draft.category.trim()]);
-    }
     toast.success(editingId ? 'Fournisseur mis à jour.' : 'Fournisseur créé.');
     setModalOpen(false);
     void load();
@@ -559,16 +554,39 @@ export function SuppliersScreen() {
               </div>
               <div>
                 <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Catégorie</label>
-                <input
-                  list="supplier-categories-list"
-                  value={draft.category}
-                  onChange={(e) => patch({ category: e.target.value })}
-                  className={inputCls}
-                  placeholder="Choisir ou saisir une catégorie…"
-                />
-                <datalist id="supplier-categories-list">
-                  {supplierCategories.map((c) => <option key={c} value={c} />)}
-                </datalist>
+                {addingCategory ? (
+                  <div className="flex gap-2">
+                    <input
+                      ref={newCatRef}
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAddCategory(); } }}
+                      className={`${inputCls} flex-1`}
+                      placeholder="Nouvelle catégorie…"
+                      autoFocus
+                    />
+                    <button type="button" onClick={() => void handleAddCategory()} className="px-3 py-2 rounded-xl bg-primary-600 text-white text-xs font-black shrink-0">OK</button>
+                    <button type="button" onClick={() => { setAddingCategory(false); setNewCategory(''); }} className="px-3 py-2 rounded-xl border border-zinc-200 text-xs font-black text-zinc-600 shrink-0">Annuler</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <select
+                      value={draft.category}
+                      onChange={(e) => patch({ category: e.target.value })}
+                      className={`${inputCls} flex-1`}
+                    >
+                      <option value="">— Sélectionner —</option>
+                      {supplierCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { setAddingCategory(true); setTimeout(() => newCatRef.current?.focus(), 50); }}
+                      className="px-3 py-2 rounded-xl border border-primary-200 bg-primary-50 text-primary-700 text-xs font-black shrink-0 hover:bg-primary-100"
+                    >
+                      + Ajouter
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Statut</label>
