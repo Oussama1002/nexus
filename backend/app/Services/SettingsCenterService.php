@@ -135,13 +135,13 @@ class SettingsCenterService
     /** @param  array<string, mixed>  $p */
     private function saveCatalogue(int $brandId, array $p): void
     {
-        DB::transaction(function () use ($brandId, $p) {
+        DB::transaction(function () use ($p) {
             $cats = is_array($p['productCategories'] ?? null) ? array_values(array_filter($p['productCategories'], 'is_string')) : [];
             $types = is_array($p['productTypes'] ?? null) ? array_values(array_filter($p['productTypes'], 'is_string')) : [];
             $supCats = is_array($p['supplierCategories'] ?? null) ? array_values(array_filter($p['supplierCategories'], 'is_string')) : [];
-            $this->upsert($brandId, 'catalogue', 'product_categories', json_encode($cats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
-            $this->upsert($brandId, 'catalogue', 'product_types', json_encode($types, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
-            $this->upsert($brandId, 'catalogue', 'supplier_categories', json_encode($supCats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            $this->upsertAll('catalogue', 'product_categories', json_encode($cats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            $this->upsertAll('catalogue', 'product_types', json_encode($types, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            $this->upsertAll('catalogue', 'supplier_categories', json_encode($supCats, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
         });
     }
 
@@ -170,7 +170,7 @@ class SettingsCenterService
         $list = $this->decodeJsonList($brandId, $key);
         if (! in_array($value, $list, true)) {
             $list[] = $value;
-            $this->upsert($brandId, $group, $key, json_encode($list, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+            $this->upsertAll($group, $key, json_encode($list, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
         }
     }
 
@@ -233,30 +233,30 @@ class SettingsCenterService
     /** @param  array<string, mixed>  $p */
     private function saveGeneral(int $brandId, array $p): void
     {
-        DB::transaction(function () use ($brandId, $p) {
+        DB::transaction(function () use ($p) {
             $c = $p['company'] ?? [];
-            $this->upsert($brandId, 'general', 'company_name', $c['name'] ?? '');
-            $this->upsert($brandId, 'general', 'company_logo_url', $c['logoUrl'] ?? '');
-            $this->upsert($brandId, 'general', 'company_phone', $c['phone'] ?? '');
-            $this->upsert($brandId, 'general', 'company_email', $c['email'] ?? '');
-            $this->upsert($brandId, 'general', 'company_address', $c['address'] ?? '');
-            $this->upsert($brandId, 'general', 'company_city', $c['city'] ?? '');
-            $this->upsert($brandId, 'general', 'company_website', $c['website'] ?? '');
-            $this->upsert($brandId, 'general', 'company_ice', $c['ice'] ?? '');
-            $this->upsert($brandId, 'general', 'company_if', $c['ifNumber'] ?? '');
-            $this->upsert($brandId, 'general', 'company_rc', $c['rc'] ?? '');
+            $this->upsertAll('general', 'company_name', $c['name'] ?? '');
+            $this->upsertAll('general', 'company_logo_url', $c['logoUrl'] ?? '');
+            $this->upsertAll('general', 'company_phone', $c['phone'] ?? '');
+            $this->upsertAll('general', 'company_email', $c['email'] ?? '');
+            $this->upsertAll('general', 'company_address', $c['address'] ?? '');
+            $this->upsertAll('general', 'company_city', $c['city'] ?? '');
+            $this->upsertAll('general', 'company_website', $c['website'] ?? '');
+            $this->upsertAll('general', 'company_ice', $c['ice'] ?? '');
+            $this->upsertAll('general', 'company_if', $c['ifNumber'] ?? '');
+            $this->upsertAll('general', 'company_rc', $c['rc'] ?? '');
             $s = $p['system'] ?? [];
-            $this->upsert($brandId, 'general', 'system_timezone', $s['timezone'] ?? '');
-            $this->upsert($brandId, 'general', 'system_default_language', $s['defaultLanguage'] ?? '');
-            $this->upsert($brandId, 'general', 'system_currency', $s['currency'] ?? '');
-            $this->upsert($brandId, 'general', 'system_date_format', $s['dateFormat'] ?? '');
+            $this->upsertAll('general', 'system_timezone', $s['timezone'] ?? '');
+            $this->upsertAll('general', 'system_default_language', $s['defaultLanguage'] ?? '');
+            $this->upsertAll('general', 'system_currency', $s['currency'] ?? '');
+            $this->upsertAll('general', 'system_date_format', $s['dateFormat'] ?? '');
             $b = $p['branding'] ?? [];
-            $this->upsert($brandId, 'general', 'brand_primary_color', $b['primaryColor'] ?? '');
-            $this->upsert($brandId, 'general', 'brand_crm_display_name', $b['crmDisplayName'] ?? '');
+            $this->upsertAll('general', 'brand_primary_color', $b['primaryColor'] ?? '');
+            $this->upsertAll('general', 'brand_crm_display_name', $b['crmDisplayName'] ?? '');
             $w = $p['workflow'] ?? [];
-            $this->upsert($brandId, 'general', 'workflow_default_lead_status', $w['defaultLeadStatus'] ?? '');
-            $this->upsert($brandId, 'general', 'workflow_default_order_status', $w['defaultOrderStatus'] ?? '');
-            $this->upsert($brandId, 'general', 'workflow_lead_sla_hours', $w['leadSlaHours'] ?? '');
+            $this->upsertAll('general', 'workflow_default_lead_status', $w['defaultLeadStatus'] ?? '');
+            $this->upsertAll('general', 'workflow_default_order_status', $w['defaultOrderStatus'] ?? '');
+            $this->upsertAll('general', 'workflow_lead_sla_hours', $w['leadSlaHours'] ?? '');
             $nav = $p['navigation'] ?? [];
             $navItems = is_array($nav['items'] ?? null) ? $nav['items'] : [];
             $normalized = [];
@@ -269,12 +269,8 @@ class SettingsCenterService
                     $normalized[$key] = false;
                 }
             }
-            // Sidebar nav visibility is global — replicate to ALL brands
             $navJson = json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-            $allBrandIds = Brand::query()->pluck('id');
-            foreach ($allBrandIds as $bid) {
-                $this->upsert((int) $bid, 'general', 'sidebar_nav_visibility', $navJson);
-            }
+            $this->upsertAll('general', 'sidebar_nav_visibility', $navJson);
         });
     }
 
@@ -584,19 +580,19 @@ class SettingsCenterService
     /** @param  array<string, mixed>  $p */
     private function saveFinance(int $brandId, array $p): void
     {
-        DB::transaction(function () use ($brandId, $p) {
+        DB::transaction(function () use ($p) {
             $g = $p['global'] ?? [];
-            $this->upsert($brandId, 'finance', 'finance_tax_percent', $g['taxPercent'] ?? '');
-            $this->upsert($brandId, 'finance', 'finance_invoice_prefix', $g['invoicePrefix'] ?? '');
-            $this->upsert($brandId, 'finance', 'finance_invoice_auto_numbering', ! empty($g['invoiceAutoNumbering']) ? '1' : '0');
+            $this->upsertAll('finance', 'finance_tax_percent', $g['taxPercent'] ?? '');
+            $this->upsertAll('finance', 'finance_invoice_prefix', $g['invoicePrefix'] ?? '');
+            $this->upsertAll('finance', 'finance_invoice_auto_numbering', ! empty($g['invoiceAutoNumbering']) ? '1' : '0');
             $cod = $p['cod'] ?? [];
-            $this->upsert($brandId, 'finance', 'finance_cod_delay_days', $cod['delayDays'] ?? '');
+            $this->upsertAll('finance', 'finance_cod_delay_days', $cod['delayDays'] ?? '');
             $ch = $p['charges'] ?? [];
-            $this->upsert($brandId, 'finance', 'finance_charge_categories', $ch['categories'] ?? '');
-            $this->upsert($brandId, 'finance', 'finance_expense_validation', $ch['expenseValidation'] ?? '');
+            $this->upsertAll('finance', 'finance_charge_categories', $ch['categories'] ?? '');
+            $this->upsertAll('finance', 'finance_expense_validation', $ch['expenseValidation'] ?? '');
             $ac = $p['accounting'] ?? [];
-            $this->upsert($brandId, 'finance', 'finance_enable_accounting_export', ! empty($ac['enableExport']) ? '1' : '0');
-            $this->upsert($brandId, 'finance', 'finance_export_format', $ac['exportFormat'] ?? '');
+            $this->upsertAll('finance', 'finance_enable_accounting_export', ! empty($ac['enableExport']) ? '1' : '0');
+            $this->upsertAll('finance', 'finance_export_format', $ac['exportFormat'] ?? '');
         });
     }
 
@@ -627,20 +623,20 @@ class SettingsCenterService
     /** @param  array<string, mixed>  $p */
     private function saveSecurity(int $brandId, array $p): void
     {
-        DB::transaction(function () use ($brandId, $p) {
+        DB::transaction(function () use ($p) {
             $a = $p['auth'] ?? [];
-            $this->upsert($brandId, 'security', 'security_enable_2fa', ! empty($a['enable2fa']) ? '1' : '0');
-            $this->upsert($brandId, 'security', 'security_session_duration_minutes', $a['sessionTimeoutMinutes'] ?? '');
-            $this->upsert($brandId, 'security', 'security_max_login_attempts', $a['maxLoginAttempts'] ?? '');
+            $this->upsertAll('security', 'security_enable_2fa', ! empty($a['enable2fa']) ? '1' : '0');
+            $this->upsertAll('security', 'security_session_duration_minutes', $a['sessionTimeoutMinutes'] ?? '');
+            $this->upsertAll('security', 'security_max_login_attempts', $a['maxLoginAttempts'] ?? '');
             $pw = $p['passwords'] ?? [];
-            $this->upsert($brandId, 'security', 'security_password_min_length', $pw['minLength'] ?? '');
-            $this->upsert($brandId, 'security', 'security_password_require_complexity', ! empty($pw['requireComplexity']) ? '1' : '0');
+            $this->upsertAll('security', 'security_password_min_length', $pw['minLength'] ?? '');
+            $this->upsertAll('security', 'security_password_require_complexity', ! empty($pw['requireComplexity']) ? '1' : '0');
             $n = $p['network'] ?? [];
-            $this->upsert($brandId, 'security', 'security_ip_whitelist', $n['ipWhitelist'] ?? '');
-            $this->upsert($brandId, 'security', 'security_allowed_origins', $n['allowedOrigins'] ?? '');
+            $this->upsertAll('security', 'security_ip_whitelist', $n['ipWhitelist'] ?? '');
+            $this->upsertAll('security', 'security_allowed_origins', $n['allowedOrigins'] ?? '');
             $d = $p['data'] ?? [];
-            $this->upsert($brandId, 'security', 'security_encrypt_sensitive_fields', ! empty($d['encryptSensitiveFields']) ? '1' : '0');
-            $this->upsert($brandId, 'security', 'security_audit_retention_days', $d['auditRetentionDays'] ?? '');
+            $this->upsertAll('security', 'security_encrypt_sensitive_fields', ! empty($d['encryptSensitiveFields']) ? '1' : '0');
+            $this->upsertAll('security', 'security_audit_retention_days', $d['auditRetentionDays'] ?? '');
         });
     }
 
@@ -657,6 +653,14 @@ class SettingsCenterService
                 'description' => $meta['description'] ?? null,
             ]
         );
+    }
+
+    private function upsertAll(string $group, string $key, string $value): void
+    {
+        $brandIds = Brand::query()->pluck('id');
+        foreach ($brandIds as $bid) {
+            $this->upsert((int) $bid, $group, $key, $value);
+        }
     }
 
     /**
@@ -686,14 +690,14 @@ class SettingsCenterService
             throw new \InvalidArgumentException('Format non supporté (JPG, PNG, GIF, WebP ou SVG).');
         }
 
-        $dir = "brand-logos/{$brandId}";
+        $dir = 'brand-logos/shared';
         $filename = 'logo.'.$ext;
 
         \Illuminate\Support\Facades\Storage::disk('public')->deleteDirectory($dir);
         $path = $file->storeAs($dir, $filename, 'public');
 
         $url = '/storage/'.$path;
-        $this->upsert($brandId, 'general', 'company_logo_url', $url);
+        $this->upsertAll('general', 'company_logo_url', $url);
 
         return $url;
     }
