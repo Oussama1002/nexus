@@ -39,6 +39,13 @@ export type ApiBrand = {
   whatsapp_number?: string | null;
 };
 
+export type AttendanceInfo = {
+  status: 'present' | 'late' | 'absent';
+  clock_in_at: string | null;
+  was_late: boolean;
+  minutes_late: number;
+};
+
 export type AuthPayload = {
   token?: string;
   token_type?: string;
@@ -46,6 +53,7 @@ export type AuthPayload = {
   roles: ApiRole[];
   permissions: ApiPermission[];
   brands: ApiBrand[];
+  attendance?: AttendanceInfo | null;
 };
 
 type AuthContextValue = {
@@ -55,7 +63,7 @@ type AuthContextValue = {
   accessibleBrands: ApiBrand[];
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+  login: (email: string, password: string) => Promise<{ ok: true; roleSlugs?: string[]; attendance?: AttendanceInfo | null } | { ok: false; message: string }>;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
   hasPermission: (required: string | string[]) => boolean;
@@ -140,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     applyMePayload(data);
     setLoading(false);
     const loginRoles = (data.roles ?? []).map((r: ApiRole) => r.slug);
-    return { ok: true as const, roleSlugs: loginRoles };
+    return { ok: true as const, roleSlugs: loginRoles, attendance: data.attendance ?? null };
   }, [applyMePayload]);
 
   const logout = useCallback(async () => {

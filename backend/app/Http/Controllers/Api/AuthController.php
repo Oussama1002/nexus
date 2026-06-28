@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AttendanceService;
 use App\Services\AuditLogger;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -42,7 +43,19 @@ class AuthController extends Controller
             'email' => $user->email,
         ]);
 
-        return ApiResponse::success($this->authPayload($user, $token), 'Logged in successfully.');
+        $attendance = (new AttendanceService())->recordLoginAttendance($user);
+
+        $payload = $this->authPayload($user, $token);
+        if ($attendance) {
+            $payload['attendance'] = [
+                'status' => $attendance->status,
+                'clock_in_at' => $attendance->clock_in_at?->format('H:i'),
+                'was_late' => $attendance->was_late,
+                'minutes_late' => $attendance->minutes_late,
+            ];
+        }
+
+        return ApiResponse::success($payload, 'Logged in successfully.');
     }
 
     public function logout(Request $request): JsonResponse

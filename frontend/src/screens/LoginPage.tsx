@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Layers } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export function LoginPage() {
   const { login, isAuthenticated, loading, roleSlugs } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,11 @@ export function LoginPage() {
     if (res.ok === false) {
       setError(res.message);
       return;
+    }
+    if (res.attendance?.was_late) {
+      toast.error(`Retard de ${res.attendance.minutes_late} min — pointage a ${res.attendance.clock_in_at}`);
+    } else if (res.attendance) {
+      toast.success(`Pointage enregistre a ${res.attendance.clock_in_at}`);
     }
     const dest = res.roleSlugs?.includes('confirmatrice') ? '/whatsapp' : '/dashboard';
     navigate(dest, { replace: true });
