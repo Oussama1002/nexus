@@ -5,17 +5,32 @@ import {
   Handshake,
   LayoutGrid,
   MessageCircle,
+  Pencil,
+  Plus,
   RefreshCw,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { DataTable } from '../components/ui/DataTable';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Modal } from '../components/ui/Modal';
 import { useBrand } from '../context/BrandContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
+import { flattenFieldErrors } from '../lib/formErrors';
 import { formatCurrency } from '../lib/utils';
+import {
+  INFLUENCER_STATUS_LABELS,
+  COLLAB_STATUS_LABELS,
+  COLLAB_TYPE_LABELS,
+  COMPLAINT_STATUS_LABELS,
+  COMPLAINT_CATEGORY_LABELS,
+  COMPLAINT_SEVERITY_LABELS,
+  statusLabelFr,
+} from '../lib/statusLabelsFr';
 
 type Tab = 'dash' | 'influencers' | 'collabs' | 'perf' | 'messages' | 'complaints';
 
@@ -32,6 +47,24 @@ type PerfDraft = {
   likes: string;
   revenue: string;
 };
+
+const PF = [
+  { v: 'instagram', l: 'Instagram' },
+  { v: 'facebook', l: 'Facebook' },
+  { v: 'tiktok', l: 'TikTok' },
+  { v: 'youtube', l: 'YouTube' },
+  { v: 'linkedin', l: 'LinkedIn' },
+  { v: 'x', l: 'X' },
+];
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1">
+      <span className="text-[10px] font-bold uppercase text-zinc-400">{label}</span>
+      {children}
+    </label>
+  );
+}
 
 function fmtPct(n: number | null | undefined) {
   if (n == null || Number.isNaN(Number(n))) return '—';
@@ -70,8 +103,11 @@ function influencerLabel(row: Record<string, unknown>): string {
   return String(inf.full_name ?? inf.username ?? inf.handle ?? `#${String(row.influencer_id ?? '—')}`);
 }
 
+const selClass = 'w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold bg-white';
+
 export function InfluenceWorkspaceScreen() {
   const { activeBrandId } = useBrand();
+  const { hasPermission } = useAuth();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('dash');
   const [loading, setLoading] = useState(false);
@@ -97,6 +133,13 @@ export function InfluenceWorkspaceScreen() {
     revenue: '',
   }));
 
+  const [campaigns, setCampaigns] = useState<{ id: number; name: string }[]>([]);
+
+  const errToast = (res: { message: string; errors?: unknown }) => {
+    const fe = flattenFieldErrors((res.errors ?? {}) as Record<string, unknown>);
+    toast.error(fe.length ? fe.join(' ') : res.message);
+  };
+
   const load = useCallback(async () => {
     if (!activeBrandId) return;
     setLoading(true);
@@ -120,12 +163,18 @@ export function InfluenceWorkspaceScreen() {
         return;
       }
       if (tab === 'collabs') {
-        const r = await api.get<LaravelPaginator<Record<string, unknown>>>('influencer-collaborations?per_page=100');
-        if (r.ok && isPaginator(r.data)) setCollabs(r.data.data);
+        const [collabsRes, infRes, campRes] = await Promise.all([
+          api.get<LaravelPaginator<Record<string, unknown>>>('influencer-collaborations?per_page=100'),
+          api.get<LaravelPaginator<Record<string, unknown>>>('influencers?per_page=100'),
+          api.get<LaravelPaginator<{ id: number; name: string }>>('campaigns?per_page=200'),
+        ]);
+        if (collabsRes.ok && isPaginator(collabsRes.data)) setCollabs(collabsRes.data.data);
         else {
-          if (!r.ok) toast.error(r.message);
+          if (!collabsRes.ok) toast.error(collabsRes.message);
           setCollabs([]);
         }
+        if (infRes.ok && isPaginator(infRes.data)) setInfluencers(infRes.data.data);
+        if (campRes.ok && isPaginator(campRes.data)) setCampaigns(campRes.data.data);
         return;
       }
       if (tab === 'perf') {
@@ -157,12 +206,16 @@ export function InfluenceWorkspaceScreen() {
         return;
       }
       if (tab === 'complaints') {
-        const r = await api.get<LaravelPaginator<Record<string, unknown>>>('influencer-complaints?per_page=100');
-        if (r.ok && isPaginator(r.data)) setComplaints(r.data.data);
+        const [compRes, infRes] = await Promise.all([
+          api.get<LaravelPaginator<Record<string, unknown>>>('influencer-complaints?per_page=100'),
+          api.get<LaravelPaginator<Record<string, unknown>>>('influencers?per_page=100'),
+        ]);
+        if (compRes.ok && isPaginator(compRes.data)) setComplaints(compRes.data.data);
         else {
-          if (!r.ok) toast.error(r.message);
+          if (!compRes.ok) toast.error(compRes.message);
           setComplaints([]);
         }
+        if (infRes.ok && isPaginator(infRes.data)) setInfluencers(infRes.data.data);
         return;
       }
     } finally {
@@ -174,6 +227,252 @@ export function InfluenceWorkspaceScreen() {
     void load();
   }, [load]);
 
+  /* ── Influencer CRUD ── */
+  const [infOpen, setInfOpen] = useState(false);
+  const [infId, setInfId] = useState<number | undefined>();
+  const [infForm, setInfForm] = useState({
+    full_name: '',
+    username: '',
+    platform: '',
+    niche: '',
+    audience_size: '',
+    engagement_rate: '',
+    pricing_json: '',
+    contact_phone: '',
+    contact_email: '',
+    status: 'lead',
+  });
+  const [infSaving, setInfSaving] = useState(false);
+
+  const openInfluencer = (id?: number) => {
+    setInfId(id);
+    setInfForm({
+      full_name: '', username: '', platform: '', niche: '',
+      audience_size: '', engagement_rate: '', pricing_json: '',
+      contact_phone: '', contact_email: '', status: 'lead',
+    });
+    if (id) void loadInfluencer(id);
+    setInfOpen(true);
+  };
+
+  const loadInfluencer = async (id: number) => {
+    const r = await api.get<Record<string, unknown>>(`influencers/${id}`);
+    if (!r.ok) return errToast(r);
+    const d = r.data;
+    setInfForm({
+      full_name: String(d.full_name ?? ''),
+      username: String(d.username ?? ''),
+      platform: String(d.platform ?? ''),
+      niche: String(d.niche ?? ''),
+      audience_size: d.audience_size != null ? String(d.audience_size) : '',
+      engagement_rate: d.engagement_rate != null ? String(d.engagement_rate) : '',
+      pricing_json: d.pricing_json ? JSON.stringify(d.pricing_json, null, 2) : '',
+      contact_phone: String(d.contact_phone ?? ''),
+      contact_email: String(d.contact_email ?? ''),
+      status: String(d.status ?? 'lead'),
+    });
+  };
+
+  const saveInfluencer = async () => {
+    let pricing: unknown = null;
+    if (infForm.pricing_json.trim()) {
+      try {
+        pricing = JSON.parse(infForm.pricing_json) as unknown;
+      } catch {
+        toast.error('JSON pricing invalide.');
+        return;
+      }
+    }
+    const body: Record<string, unknown> = {
+      full_name: infForm.full_name,
+      username: infForm.username || null,
+      platform: infForm.platform || null,
+      niche: infForm.niche || null,
+      audience_size: infForm.audience_size ? Number(infForm.audience_size) : null,
+      engagement_rate: infForm.engagement_rate ? Number(infForm.engagement_rate) : null,
+      pricing_json: pricing,
+      contact_phone: infForm.contact_phone || null,
+      contact_email: infForm.contact_email || null,
+      status: infForm.status,
+    };
+    setInfSaving(true);
+    try {
+      const r = infId
+        ? await api.patch(`influencers/${infId}`, body)
+        : await api.post('influencers', body);
+      if (!r.ok) return errToast(r);
+      toast.success(infId ? 'Influenceur mis à jour.' : 'Influenceur créé.');
+      setInfOpen(false);
+      void load();
+    } finally {
+      setInfSaving(false);
+    }
+  };
+
+  const deleteInfluencer = async (id: number) => {
+    const r = await api.del(`influencers/${id}`);
+    if (!r.ok) return errToast(r);
+    toast.success('Influenceur supprimé.');
+    void load();
+  };
+
+  /* ── Collaboration CRUD ── */
+  const [colOpen, setColOpen] = useState(false);
+  const [colId, setColId] = useState<number | undefined>();
+  const [colForm, setColForm] = useState({
+    influencer_id: '',
+    campaign_id: '',
+    title: '',
+    collaboration_type: 'post',
+    status: 'draft',
+    deliverables: '',
+    contract_url: '',
+    agreed_amount: '',
+    start_date: '',
+    end_date: '',
+  });
+  const [colSaving, setColSaving] = useState(false);
+
+  const openCollab = (id?: number) => {
+    setColId(id);
+    setColForm({
+      influencer_id: '', campaign_id: '', title: '',
+      collaboration_type: 'post', status: 'draft', deliverables: '',
+      contract_url: '', agreed_amount: '', start_date: '', end_date: '',
+    });
+    if (id) void loadCollab(id);
+    setColOpen(true);
+  };
+
+  const loadCollab = async (id: number) => {
+    const r = await api.get<Record<string, unknown>>(`influencer-collaborations/${id}`);
+    if (!r.ok) return errToast(r);
+    const d = r.data;
+    setColForm({
+      influencer_id: d.influencer_id ? String(d.influencer_id) : '',
+      campaign_id: d.campaign_id ? String(d.campaign_id) : '',
+      title: String(d.title ?? ''),
+      collaboration_type: String(d.collaboration_type ?? 'post'),
+      status: String(d.status ?? 'draft'),
+      deliverables: String(d.deliverables ?? ''),
+      contract_url: String(d.contract_url ?? ''),
+      agreed_amount: d.agreed_amount != null ? String(d.agreed_amount) : '',
+      start_date: d.start_date ? String(d.start_date).slice(0, 10) : '',
+      end_date: d.end_date ? String(d.end_date).slice(0, 10) : '',
+    });
+  };
+
+  const saveCollab = async () => {
+    const body: Record<string, unknown> = {
+      influencer_id: Number(colForm.influencer_id),
+      campaign_id: colForm.campaign_id ? Number(colForm.campaign_id) : null,
+      title: colForm.title,
+      collaboration_type: colForm.collaboration_type,
+      status: colForm.status,
+      deliverables: colForm.deliverables || null,
+      contract_url: colForm.contract_url || null,
+      agreed_amount: colForm.agreed_amount ? Number(colForm.agreed_amount) : 0,
+      start_date: colForm.start_date || null,
+      end_date: colForm.end_date || null,
+    };
+    setColSaving(true);
+    try {
+      const r = colId
+        ? await api.patch(`influencer-collaborations/${colId}`, body)
+        : await api.post('influencer-collaborations', body);
+      if (!r.ok) return errToast(r);
+      toast.success(colId ? 'Collaboration mise à jour.' : 'Collaboration créée.');
+      setColOpen(false);
+      void load();
+    } finally {
+      setColSaving(false);
+    }
+  };
+
+  const deleteCollab = async (id: number) => {
+    const r = await api.del(`influencer-collaborations/${id}`);
+    if (!r.ok) return errToast(r);
+    toast.success('Collaboration supprimée.');
+    void load();
+  };
+
+  /* ── Complaint CRUD ── */
+  const [cmpOpen, setCmpOpen] = useState(false);
+  const [cmpId, setCmpId] = useState<number | undefined>();
+  const [cmpForm, setCmpForm] = useState({
+    influencer_id: '',
+    influencer_collaboration_id: '',
+    title: '',
+    category: 'other',
+    severity: 'medium',
+    description: '',
+    status: 'open',
+    resolution_notes: '',
+  });
+  const [cmpSaving, setCmpSaving] = useState(false);
+
+  const openComplaint = (id?: number) => {
+    setCmpId(id);
+    setCmpForm({
+      influencer_id: '', influencer_collaboration_id: '', title: '',
+      category: 'other', severity: 'medium', description: '',
+      status: 'open', resolution_notes: '',
+    });
+    if (id) void loadComplaint(id);
+    setCmpOpen(true);
+  };
+
+  const loadComplaint = async (id: number) => {
+    const r = await api.get<Record<string, unknown>>(`influencer-complaints/${id}`);
+    if (!r.ok) return errToast(r);
+    const d = r.data;
+    setCmpForm({
+      influencer_id: d.influencer_id ? String(d.influencer_id) : '',
+      influencer_collaboration_id: d.influencer_collaboration_id ? String(d.influencer_collaboration_id) : '',
+      title: String(d.title ?? ''),
+      category: String(d.category ?? 'other'),
+      severity: String(d.severity ?? 'medium'),
+      description: String(d.description ?? ''),
+      status: String(d.status ?? 'open'),
+      resolution_notes: String(d.resolution_notes ?? ''),
+    });
+  };
+
+  const saveComplaint = async () => {
+    const body: Record<string, unknown> = {
+      influencer_id: Number(cmpForm.influencer_id),
+      influencer_collaboration_id: cmpForm.influencer_collaboration_id
+        ? Number(cmpForm.influencer_collaboration_id)
+        : null,
+      title: cmpForm.title,
+      category: cmpForm.category,
+      severity: cmpForm.severity,
+      description: cmpForm.description || null,
+      status: cmpForm.status,
+      resolution_notes: cmpForm.resolution_notes || null,
+    };
+    setCmpSaving(true);
+    try {
+      const r = cmpId
+        ? await api.patch(`influencer-complaints/${cmpId}`, body)
+        : await api.post('influencer-complaints', body);
+      if (!r.ok) return errToast(r);
+      toast.success(cmpId ? 'Plainte mise à jour.' : 'Plainte créée.');
+      setCmpOpen(false);
+      void load();
+    } finally {
+      setCmpSaving(false);
+    }
+  };
+
+  const deleteComplaint = async (id: number) => {
+    const r = await api.del(`influencer-complaints/${id}`);
+    if (!r.ok) return errToast(r);
+    toast.success('Plainte supprimée.');
+    void load();
+  };
+
+  /* ── Performance ── */
   const perfTotals = useMemo(() => {
     const planned = perf.reduce((sum, row) => sum + asNumber(row.planned_actions), 0);
     const completed = perf.reduce((sum, row) => sum + asNumber(row.completed_actions), 0);
@@ -265,25 +564,64 @@ export function InfluenceWorkspaceScreen() {
     return (
       <div className="space-y-4">
         <PageHeader title="Influence" subtitle="Choisissez une marque active." />
-        <EmptyState title="Marque requise" description="Sélectionnez une marque dans l’en-tête." />
+        <EmptyState title="Marque requise" description="Sélectionnez une marque dans l'en-tête." />
       </div>
     );
   }
+
+  const canCreateInf = hasPermission('influence.create');
+  const canEditInf = hasPermission('influence.update');
+  const canDeleteInf = hasPermission('influence.delete');
+  const canCreateCollab = hasPermission('influencer_collaborations.create');
+  const canEditCollab = hasPermission('influencer_collaborations.update');
+  const canDeleteCollab = hasPermission('influencer_collaborations.delete');
+  const canCreateComplaint = hasPermission('influencer_complaints.create');
+  const canEditComplaint = hasPermission('influencer_complaints.update');
+  const canDeleteComplaint = hasPermission('influencer_complaints.delete');
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Studio Influence"
-        subtitle="Influenceurs, collaborations, performance, messages, plaintes (API)."
+        subtitle="Influenceurs, collaborations, performance, messages, plaintes."
         right={
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Actualiser
-          </button>
+          <div className="flex items-center gap-2">
+            {tab === 'influencers' && canCreateInf && (
+              <button
+                type="button"
+                onClick={() => openInfluencer()}
+                className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Nouvel influenceur
+              </button>
+            )}
+            {tab === 'collabs' && canCreateCollab && (
+              <button
+                type="button"
+                onClick={() => openCollab()}
+                className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Nouvelle collaboration
+              </button>
+            )}
+            {tab === 'complaints' && canCreateComplaint && (
+              <button
+                type="button"
+                onClick={() => openComplaint()}
+                className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Nouvelle plainte
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </button>
+          </div>
         }
       />
 
@@ -312,6 +650,7 @@ export function InfluenceWorkspaceScreen() {
         ))}
       </div>
 
+      {/* ── Dashboard ── */}
       {tab === 'dash' && loading && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -417,41 +756,189 @@ export function InfluenceWorkspaceScreen() {
           {Number(dash.total_influencers ?? 0) === 0 && (
             <EmptyState
               title="Pas encore de données influence"
-              description="Les indicateurs viennent des fiches influenceurs, collaborations, performances et plaintes pour la marque active. Créez des influenceurs ou importez des données — les seeders démo ne remplissent pas encore ce module."
+              description="Créez des influenceurs depuis l'onglet Influenceurs pour commencer."
             />
           )}
         </div>
       )}
 
+      {/* ── Influencers Tab ── */}
       {tab === 'influencers' && (
         <DataTable<Record<string, unknown>>
           rows={influencers}
           loading={loading}
           columns={[
             { key: 'n', header: 'Nom', cell: (r) => String(r.full_name ?? '') },
-            { key: 'p', header: 'Plateforme', cell: (r) => String(r.platform ?? '') },
-            { key: 's', header: 'Statut', cell: (r) => String(r.status ?? '') },
+            { key: 'u', header: 'Username', cell: (r) => r.username ? `@${String(r.username)}` : '—' },
+            { key: 'p', header: 'Plateforme', cell: (r) => String(r.platform ?? '—') },
+            { key: 'ni', header: 'Niche', cell: (r) => String(r.niche ?? '—') },
+            {
+              key: 'aud',
+              header: 'Audience',
+              cell: (r) => r.audience_size ? Number(r.audience_size).toLocaleString('fr-FR') : '—',
+            },
+            { key: 'ph', header: 'Contact', cell: (r) => String(r.contact_email ?? r.contact_phone ?? '—') },
+            {
+              key: 's',
+              header: 'Statut',
+              cell: (r) => {
+                const s = String(r.status ?? '');
+                const color =
+                  s === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                  s === 'blacklisted' ? 'bg-rose-50 text-rose-700' :
+                  s === 'inactive' ? 'bg-zinc-100 text-zinc-600' :
+                  'bg-amber-50 text-amber-700';
+                return (
+                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
+                    {statusLabelFr(s, INFLUENCER_STATUS_LABELS)}
+                  </span>
+                );
+              },
+            },
+            ...((canEditInf || canDeleteInf)
+              ? [{
+                  key: 'actions',
+                  header: '',
+                  cell: (r: Record<string, unknown>) => (
+                    <div className="flex items-center gap-1">
+                      {canEditInf && (
+                        <button
+                          type="button"
+                          onClick={() => openInfluencer(Number(r.id))}
+                          className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {canDeleteInf && (
+                        <button
+                          type="button"
+                          onClick={() => void deleteInfluencer(Number(r.id))}
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ),
+                }]
+              : []),
           ]}
           emptyTitle="Aucun influenceur pour cette marque"
-          emptyDescription="Les listes sont filtrées par la marque active. Les seeders démo créent des fiches pour Luxe Cosmetics, Zest Home et Moda Casa (voir InfluenceDemoSeeder). Sinon, ajoutez des influenceurs via l’API."
+          emptyDescription="Créez un influenceur pour commencer à suivre vos partenariats."
+          emptyAction={
+            canCreateInf ? (
+              <button
+                type="button"
+                onClick={() => openInfluencer()}
+                className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-bold"
+              >
+                Ajouter un influenceur
+              </button>
+            ) : undefined
+          }
         />
       )}
 
+      {/* ── Collabs Tab ── */}
       {tab === 'collabs' && (
         <DataTable<Record<string, unknown>>
           rows={collabs}
           loading={loading}
           columns={[
             { key: 't', header: 'Titre', cell: (r) => String(r.title ?? '') },
-            { key: 'type', header: 'Type', cell: (r) => String(r.collaboration_type ?? '') },
-            { key: 'st', header: 'Statut', cell: (r) => String(r.status ?? '') },
-            { key: 'a', header: 'Montant', cell: (r) => String(r.agreed_amount ?? '') },
+            {
+              key: 'inf',
+              header: 'Influenceur',
+              cell: (r) => {
+                const inf = r.influencer as Record<string, unknown> | undefined;
+                return inf ? String(inf.full_name ?? inf.username ?? '') : '—';
+              },
+            },
+            {
+              key: 'type',
+              header: 'Type',
+              cell: (r) => statusLabelFr(String(r.collaboration_type ?? ''), COLLAB_TYPE_LABELS),
+            },
+            {
+              key: 'a',
+              header: 'Montant',
+              cell: (r) => r.agreed_amount != null ? formatCurrency(Number(r.agreed_amount)) : '—',
+            },
+            {
+              key: 'dates',
+              header: 'Période',
+              cell: (r) => {
+                const s = r.start_date ? String(r.start_date).slice(0, 10) : '';
+                const e = r.end_date ? String(r.end_date).slice(0, 10) : '';
+                if (!s && !e) return '—';
+                return `${s} → ${e}`;
+              },
+            },
+            {
+              key: 'st',
+              header: 'Statut',
+              cell: (r) => {
+                const s = String(r.status ?? '');
+                const color =
+                  s === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                  s === 'completed' ? 'bg-blue-50 text-blue-700' :
+                  s === 'cancelled' || s === 'disputed' ? 'bg-rose-50 text-rose-700' :
+                  s === 'approved' ? 'bg-teal-50 text-teal-700' :
+                  'bg-amber-50 text-amber-700';
+                return (
+                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
+                    {statusLabelFr(s, COLLAB_STATUS_LABELS)}
+                  </span>
+                );
+              },
+            },
+            ...((canEditCollab || canDeleteCollab)
+              ? [{
+                  key: 'actions',
+                  header: '',
+                  cell: (r: Record<string, unknown>) => (
+                    <div className="flex items-center gap-1">
+                      {canEditCollab && (
+                        <button
+                          type="button"
+                          onClick={() => openCollab(Number(r.id))}
+                          className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {canDeleteCollab && (
+                        <button
+                          type="button"
+                          onClick={() => void deleteCollab(Number(r.id))}
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ),
+                }]
+              : []),
           ]}
           emptyTitle="Aucune collaboration"
-          emptyDescription="Rien n’est enregistré pour cette marque. Les données démo incluent une campagne active par marque démo après seed."
+          emptyDescription="Créez une collaboration pour suivre vos partenariats influenceurs."
+          emptyAction={
+            canCreateCollab ? (
+              <button
+                type="button"
+                onClick={() => openCollab()}
+                className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-bold"
+              >
+                Nouvelle collaboration
+              </button>
+            ) : undefined
+          }
         />
       )}
 
+      {/* ── Performance Tab ── */}
       {tab === 'perf' && (
         <div className="space-y-4">
           <div className="card p-4 space-y-4">
@@ -688,31 +1175,469 @@ export function InfluenceWorkspaceScreen() {
         </div>
       )}
 
+      {/* ── Messages Tab ── */}
       {tab === 'messages' && (
         <DataTable<Record<string, unknown>>
           rows={messages}
+          loading={loading}
           columns={[
             { key: 'dir', header: 'Sens', cell: (r) => String(r.direction ?? '') },
             { key: 'ch', header: 'Canal', cell: (r) => String(r.channel ?? '') },
             { key: 'm', header: 'Message', cell: (r) => String(r.message ?? '').slice(0, 80) },
           ]}
+          emptyTitle="Aucun message"
+          emptyDescription="Les messages avec les influenceurs apparaîtront ici."
         />
       )}
 
+      {/* ── Complaints Tab ── */}
       {tab === 'complaints' && (
         <DataTable<Record<string, unknown>>
           rows={complaints}
           loading={loading}
           columns={[
             { key: 't', header: 'Titre', cell: (r) => String(r.title ?? '') },
-            { key: 'cat', header: 'Cat.', cell: (r) => String(r.category ?? '') },
-            { key: 'sev', header: 'Gravité', cell: (r) => String(r.severity ?? '') },
-            { key: 'st', header: 'Statut', cell: (r) => String(r.status ?? '') },
+            {
+              key: 'inf',
+              header: 'Influenceur',
+              cell: (r) => {
+                const inf = r.influencer as Record<string, unknown> | undefined;
+                return inf ? String(inf.full_name ?? inf.username ?? '') : '—';
+              },
+            },
+            {
+              key: 'cat',
+              header: 'Catégorie',
+              cell: (r) => statusLabelFr(String(r.category ?? ''), COMPLAINT_CATEGORY_LABELS),
+            },
+            {
+              key: 'sev',
+              header: 'Gravité',
+              cell: (r) => {
+                const s = String(r.severity ?? '');
+                const color =
+                  s === 'critical' ? 'bg-rose-50 text-rose-700' :
+                  s === 'high' ? 'bg-orange-50 text-orange-700' :
+                  s === 'medium' ? 'bg-amber-50 text-amber-700' :
+                  'bg-zinc-100 text-zinc-600';
+                return (
+                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
+                    {statusLabelFr(s, COMPLAINT_SEVERITY_LABELS)}
+                  </span>
+                );
+              },
+            },
+            {
+              key: 'st',
+              header: 'Statut',
+              cell: (r) => {
+                const s = String(r.status ?? '');
+                const color =
+                  s === 'resolved' || s === 'closed' ? 'bg-emerald-50 text-emerald-700' :
+                  s === 'in_review' ? 'bg-amber-50 text-amber-700' :
+                  s === 'reopened' ? 'bg-orange-50 text-orange-700' :
+                  'bg-rose-50 text-rose-700';
+                return (
+                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
+                    {statusLabelFr(s, COMPLAINT_STATUS_LABELS)}
+                  </span>
+                );
+              },
+            },
+            ...((canEditComplaint || canDeleteComplaint)
+              ? [{
+                  key: 'actions',
+                  header: '',
+                  cell: (r: Record<string, unknown>) => (
+                    <div className="flex items-center gap-1">
+                      {canEditComplaint && (
+                        <button
+                          type="button"
+                          onClick={() => openComplaint(Number(r.id))}
+                          className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {canDeleteComplaint && (
+                        <button
+                          type="button"
+                          onClick={() => void deleteComplaint(Number(r.id))}
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ),
+                }]
+              : []),
           ]}
           emptyTitle="Aucune plainte"
-          emptyDescription="Aucun dossier pour cette marque. Le seed démo ajoute une plainte « ouverte » pour tester les filtres KPI."
+          emptyDescription="Créez une plainte pour signaler un problème avec un influenceur."
+          emptyAction={
+            canCreateComplaint ? (
+              <button
+                type="button"
+                onClick={() => openComplaint()}
+                className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-bold"
+              >
+                Nouvelle plainte
+              </button>
+            ) : undefined
+          }
         />
       )}
+
+      {/* ══════ MODALS ══════ */}
+
+      {/* ── Influencer Modal ── */}
+      <Modal
+        open={infOpen}
+        onClose={() => setInfOpen(false)}
+        title={infId ? 'Modifier influenceur' : 'Nouvel influenceur'}
+        panelClassName="max-w-xl"
+      >
+        <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+          <Field label="Nom complet *">
+            <input
+              className={selClass}
+              value={infForm.full_name}
+              onChange={(e) => setInfForm({ ...infForm, full_name: e.target.value })}
+              required
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Username">
+              <input
+                className={selClass}
+                placeholder="@handle"
+                value={infForm.username}
+                onChange={(e) => setInfForm({ ...infForm, username: e.target.value })}
+              />
+            </Field>
+            <Field label="Plateforme">
+              <select
+                className={selClass}
+                value={infForm.platform}
+                onChange={(e) => setInfForm({ ...infForm, platform: e.target.value })}
+              >
+                <option value="">—</option>
+                {PF.map((p) => (
+                  <option key={p.v} value={p.v}>{p.l}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Niche">
+            <input
+              className={selClass}
+              placeholder="beauté, sport, tech..."
+              value={infForm.niche}
+              onChange={(e) => setInfForm({ ...infForm, niche: e.target.value })}
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Taille audience">
+              <input
+                type="number"
+                min={0}
+                className={selClass}
+                value={infForm.audience_size}
+                onChange={(e) => setInfForm({ ...infForm, audience_size: e.target.value })}
+              />
+            </Field>
+            <Field label="Taux engagement %">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className={selClass}
+                value={infForm.engagement_rate}
+                onChange={(e) => setInfForm({ ...infForm, engagement_rate: e.target.value })}
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Téléphone">
+              <input
+                className={selClass}
+                value={infForm.contact_phone}
+                onChange={(e) => setInfForm({ ...infForm, contact_phone: e.target.value })}
+              />
+            </Field>
+            <Field label="Email">
+              <input
+                type="email"
+                className={selClass}
+                value={infForm.contact_email}
+                onChange={(e) => setInfForm({ ...infForm, contact_email: e.target.value })}
+              />
+            </Field>
+          </div>
+          <Field label="Tarifs (JSON)">
+            <textarea
+              className={`${selClass} font-mono text-xs min-h-[60px]`}
+              placeholder='{"story": 500, "reel": 1500, "post": 800}'
+              value={infForm.pricing_json}
+              onChange={(e) => setInfForm({ ...infForm, pricing_json: e.target.value })}
+            />
+          </Field>
+          <Field label="Statut">
+            <select
+              className={selClass}
+              value={infForm.status}
+              onChange={(e) => setInfForm({ ...infForm, status: e.target.value })}
+            >
+              {Object.entries(INFLUENCER_STATUS_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </Field>
+          <button
+            type="button"
+            disabled={infSaving || !infForm.full_name.trim()}
+            onClick={() => void saveInfluencer()}
+            className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black disabled:opacity-60"
+          >
+            {infSaving ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* ── Collaboration Modal ── */}
+      <Modal
+        open={colOpen}
+        onClose={() => setColOpen(false)}
+        title={colId ? 'Modifier collaboration' : 'Nouvelle collaboration'}
+        panelClassName="max-w-xl"
+      >
+        <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+          <Field label="Influenceur *">
+            <select
+              className={selClass}
+              value={colForm.influencer_id}
+              onChange={(e) => setColForm({ ...colForm, influencer_id: e.target.value })}
+              required
+            >
+              <option value="">— Sélectionner —</option>
+              {influencers.map((i) => (
+                <option key={String(i.id)} value={String(i.id)}>
+                  {String(i.full_name ?? i.username ?? `#${String(i.id)}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Titre *">
+            <input
+              className={selClass}
+              value={colForm.title}
+              onChange={(e) => setColForm({ ...colForm, title: e.target.value })}
+              required
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Type">
+              <select
+                className={selClass}
+                value={colForm.collaboration_type}
+                onChange={(e) => setColForm({ ...colForm, collaboration_type: e.target.value })}
+              >
+                {Object.entries(COLLAB_TYPE_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Montant convenu">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className={selClass}
+                value={colForm.agreed_amount}
+                onChange={(e) => setColForm({ ...colForm, agreed_amount: e.target.value })}
+              />
+            </Field>
+          </div>
+          <Field label="Campagne">
+            <select
+              className={selClass}
+              value={colForm.campaign_id}
+              onChange={(e) => setColForm({ ...colForm, campaign_id: e.target.value })}
+            >
+              <option value="">— Optionnel —</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Livrables">
+            <textarea
+              className={`${selClass} min-h-[60px]`}
+              placeholder="2 reels + 3 stories + 1 post..."
+              value={colForm.deliverables}
+              onChange={(e) => setColForm({ ...colForm, deliverables: e.target.value })}
+            />
+          </Field>
+          <Field label="URL contrat">
+            <input
+              className={selClass}
+              placeholder="https://..."
+              value={colForm.contract_url}
+              onChange={(e) => setColForm({ ...colForm, contract_url: e.target.value })}
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Date début">
+              <input
+                type="date"
+                className={selClass}
+                value={colForm.start_date}
+                onChange={(e) => setColForm({ ...colForm, start_date: e.target.value })}
+              />
+            </Field>
+            <Field label="Date fin">
+              <input
+                type="date"
+                className={selClass}
+                value={colForm.end_date}
+                onChange={(e) => setColForm({ ...colForm, end_date: e.target.value })}
+              />
+            </Field>
+          </div>
+          <Field label="Statut">
+            <select
+              className={selClass}
+              value={colForm.status}
+              onChange={(e) => setColForm({ ...colForm, status: e.target.value })}
+            >
+              {Object.entries(COLLAB_STATUS_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </Field>
+          <button
+            type="button"
+            disabled={colSaving || !colForm.influencer_id || !colForm.title.trim()}
+            onClick={() => void saveCollab()}
+            className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black disabled:opacity-60"
+          >
+            {colSaving ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* ── Complaint Modal ── */}
+      <Modal
+        open={cmpOpen}
+        onClose={() => setCmpOpen(false)}
+        title={cmpId ? 'Modifier plainte' : 'Nouvelle plainte'}
+        panelClassName="max-w-xl"
+      >
+        <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+          <Field label="Influenceur *">
+            <select
+              className={selClass}
+              value={cmpForm.influencer_id}
+              onChange={(e) => setCmpForm({ ...cmpForm, influencer_id: e.target.value })}
+              required
+            >
+              <option value="">— Sélectionner —</option>
+              {influencers.map((i) => (
+                <option key={String(i.id)} value={String(i.id)}>
+                  {String(i.full_name ?? i.username ?? `#${String(i.id)}`)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Titre *">
+            <input
+              className={selClass}
+              value={cmpForm.title}
+              onChange={(e) => setCmpForm({ ...cmpForm, title: e.target.value })}
+              required
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Catégorie">
+              <select
+                className={selClass}
+                value={cmpForm.category}
+                onChange={(e) => setCmpForm({ ...cmpForm, category: e.target.value })}
+              >
+                {Object.entries(COMPLAINT_CATEGORY_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Gravité">
+              <select
+                className={selClass}
+                value={cmpForm.severity}
+                onChange={(e) => setCmpForm({ ...cmpForm, severity: e.target.value })}
+              >
+                {Object.entries(COMPLAINT_SEVERITY_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Collaboration (optionnel)">
+            <select
+              className={selClass}
+              value={cmpForm.influencer_collaboration_id}
+              onChange={(e) => setCmpForm({ ...cmpForm, influencer_collaboration_id: e.target.value })}
+            >
+              <option value="">— Aucune —</option>
+              {collabs
+                .filter((c) => !cmpForm.influencer_id || String(c.influencer_id) === cmpForm.influencer_id)
+                .map((c) => (
+                  <option key={String(c.id)} value={String(c.id)}>
+                    {String(c.title ?? `#${String(c.id)}`)}
+                  </option>
+                ))}
+            </select>
+          </Field>
+          <Field label="Description">
+            <textarea
+              className={`${selClass} min-h-[80px]`}
+              placeholder="Décrivez le problème en détail..."
+              value={cmpForm.description}
+              onChange={(e) => setCmpForm({ ...cmpForm, description: e.target.value })}
+            />
+          </Field>
+          <Field label="Statut">
+            <select
+              className={selClass}
+              value={cmpForm.status}
+              onChange={(e) => setCmpForm({ ...cmpForm, status: e.target.value })}
+            >
+              {Object.entries(COMPLAINT_STATUS_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </Field>
+          {(cmpForm.status === 'resolved' || cmpForm.status === 'closed') && (
+            <Field label="Notes de résolution *">
+              <textarea
+                className={`${selClass} min-h-[60px]`}
+                placeholder="Comment le problème a été résolu..."
+                value={cmpForm.resolution_notes}
+                onChange={(e) => setCmpForm({ ...cmpForm, resolution_notes: e.target.value })}
+                required
+              />
+            </Field>
+          )}
+          <button
+            type="button"
+            disabled={cmpSaving || !cmpForm.influencer_id || !cmpForm.title.trim()}
+            onClick={() => void saveComplaint()}
+            className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black disabled:opacity-60"
+          >
+            {cmpSaving ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
