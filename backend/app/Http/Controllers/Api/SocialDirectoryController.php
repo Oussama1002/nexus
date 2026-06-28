@@ -16,17 +16,20 @@ class SocialDirectoryController extends Controller
      */
     public function users(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $roleParam = (string) $request->query('roles', 'community_manager,smm,admin');
         $slugs = array_values(array_filter(array_map('trim', explode(',', $roleParam))));
 
         $q = User::query()
             ->with(['roles:id,slug,name'])
-            ->whereHas('roles', fn ($r) => $r->whereIn('slug', $slugs))
-            ->where(function ($w) use ($brandId) {
+            ->whereHas('roles', fn ($r) => $r->whereIn('slug', $slugs));
+        if ($brandId !== null) {
+            $q->where(function ($w) use ($brandId) {
                 $w->whereHas('brands', fn ($b) => $b->whereKey($brandId))
                     ->orWhereHas('roles', fn ($r) => $r->where('slug', 'admin'));
-            })
+            });
+        }
+        $q
             ->orderBy('name');
 
         $search = $request->query('search');

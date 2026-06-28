@@ -53,7 +53,7 @@ class StrategyController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $status = $request->query('status');
         $from = $request->query('date_from');
@@ -61,7 +61,9 @@ class StrategyController extends Controller
         $assignedCm = $request->query('assigned_cm_id');
         $assignedCreator = $request->query('assigned_user_id');
 
-        $q = Strategy::query()->with(['creator', 'brand', 'assignedCm:id,name,email', 'approvedByUser:id,name'])->where('brand_id', $brandId)->orderByDesc('id');
+        $q = Strategy::query()->with(['creator', 'brand', 'assignedCm:id,name,email', 'approvedByUser:id,name']);
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q->orderByDesc('id');
         if ($status) {
             $q->where('status', $status);
         }

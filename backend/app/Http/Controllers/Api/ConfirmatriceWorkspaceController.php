@@ -20,7 +20,7 @@ class ConfirmatriceWorkspaceController extends Controller
      */
     public function summary(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $targetId = (int) $request->query('user_id');
         if ($targetId < 1) {
             return ApiResponse::error('user_id is required.', ['user_id' => ['Invalid']], 422);
@@ -37,15 +37,18 @@ class ConfirmatriceWorkspaceController extends Controller
             throw new AccessDeniedHttpException('Forbidden.');
         }
 
-        $convBase = Conversation::query()->where('brand_id', $brandId)->where('assigned_user_id', $targetId);
+        $convBase = Conversation::query()->where('assigned_user_id', $targetId);
+        ApiBrandContext::scopeBrand($convBase, $brandId);
 
         $conversationsTotal = (clone $convBase)->count();
 
-        $leadsBase = Lead::query()->where('brand_id', $brandId)->where('assigned_user_id', $targetId);
+        $leadsBase = Lead::query()->where('assigned_user_id', $targetId);
+        ApiBrandContext::scopeBrand($leadsBase, $brandId);
         $leadsOpen = (clone $leadsBase)->whereNotIn('status', ['lost', 'archived', 'confirmed'])->count();
         $leadsNew = (clone $leadsBase)->where('status', 'new')->count();
 
-        $ordersBase = Order::query()->where('brand_id', $brandId)->where('assigned_user_id', $targetId);
+        $ordersBase = Order::query()->where('assigned_user_id', $targetId);
+        ApiBrandContext::scopeBrand($ordersBase, $brandId);
         $ordersConfirmed = (clone $ordersBase)->where('status', 'confirmed')->count();
         $ordersCancelled = (clone $ordersBase)->where('status', 'cancelled')->count();
         $ordersPending = (clone $ordersBase)->where('status', 'pending')->count();
@@ -54,11 +57,13 @@ class ConfirmatriceWorkspaceController extends Controller
         $remindersScoped = Reminder::query()
             ->where('assigned_user_id', $targetId)
             ->where('status', 'pending')
-            ->where('remind_at', '<=', now())
-            ->where(function ($q) use ($brandId) {
+            ->where('remind_at', '<=', now());
+        if ($brandId !== null) {
+            $remindersScoped->where(function ($q) use ($brandId) {
                 $q->whereHas('conversation', fn ($c) => $c->where('brand_id', $brandId))
                     ->orWhereHas('lead', fn ($l) => $l->where('brand_id', $brandId));
             });
+        }
 
         $remindersDue = (clone $remindersScoped)->count();
 
@@ -74,21 +79,25 @@ class ConfirmatriceWorkspaceController extends Controller
             : 0;
 
         // Follow-up rate: reminders completed / total reminders for this user & brand
-        $remindersTotal = Reminder::query()
-            ->where('assigned_user_id', $targetId)
-            ->where(function ($q) use ($brandId) {
+        $remindersTotalQ = Reminder::query()
+            ->where('assigned_user_id', $targetId);
+        if ($brandId !== null) {
+            $remindersTotalQ->where(function ($q) use ($brandId) {
                 $q->whereHas('conversation', fn ($c) => $c->where('brand_id', $brandId))
                     ->orWhereHas('lead', fn ($l) => $l->where('brand_id', $brandId));
-            })
-            ->count();
-        $remindersDone = Reminder::query()
+            });
+        }
+        $remindersTotal = $remindersTotalQ->count();
+        $remindersDoneQ = Reminder::query()
             ->where('assigned_user_id', $targetId)
-            ->whereNotNull('completed_at')
-            ->where(function ($q) use ($brandId) {
+            ->whereNotNull('completed_at');
+        if ($brandId !== null) {
+            $remindersDoneQ->where(function ($q) use ($brandId) {
                 $q->whereHas('conversation', fn ($c) => $c->where('brand_id', $brandId))
                     ->orWhereHas('lead', fn ($l) => $l->where('brand_id', $brandId));
-            })
-            ->count();
+            });
+        }
+        $remindersDone = $remindersDoneQ->count();
         $followUpRate = $remindersTotal > 0
             ? round(100 * $remindersDone / $remindersTotal, 1)
             : 0;

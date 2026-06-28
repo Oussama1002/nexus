@@ -19,7 +19,7 @@ class SocialInfluenceDashboardController extends Controller
 
     public function social(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $from = $request->query('date_from');
         $to = $request->query('date_to');
         $platform = $request->query('platform');
@@ -34,7 +34,7 @@ class SocialInfluenceDashboardController extends Controller
 
     public function influence(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $from = $request->query('date_from');
         $to = $request->query('date_to');
 

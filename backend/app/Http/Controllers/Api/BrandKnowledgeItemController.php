@@ -16,14 +16,15 @@ class BrandKnowledgeItemController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
         $search = trim((string) $request->query('search', ''));
         $category = trim((string) $request->query('category', ''));
         $active = $request->query('active');
 
-        $q = BrandKnowledgeItem::query()
-            ->where('brand_id', $brandId)
+        $q = BrandKnowledgeItem::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        $q
             ->with(['createdBy:id,name', 'updatedBy:id,name'])
             ->orderByDesc('sort_order')
             ->orderByDesc('id');

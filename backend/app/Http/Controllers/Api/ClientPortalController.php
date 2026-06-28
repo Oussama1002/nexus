@@ -34,34 +34,36 @@ class ClientPortalController extends Controller
     public function overview(Request $request): JsonResponse
     {
         $this->requirePermission($request, 'client_portal.view');
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $user = $request->user();
 
-        $access = ClientPortalAccess::query()
-            ->where('brand_id', $brandId)
-            ->where('user_id', $user?->id)
-            ->first();
+        $accessQ = ClientPortalAccess::query();
+        ApiBrandContext::scopeBrand($accessQ, $brandId);
+        $access = $accessQ->where('user_id', $user?->id)->first();
         $widgets = $this->sanitizeWidgets($access?->enabled_widgets);
 
-        $orders = DB::table('orders')
-            ->where('brand_id', $brandId)
+        $ordersQ = DB::table('orders');
+        if ($brandId !== null) $ordersQ->where('brand_id', $brandId);
+        $orders = $ordersQ
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed")
             ->selectRaw("SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled")
             ->selectRaw("SUM(CASE WHEN status IN ('draft','pending') THEN 1 ELSE 0 END) as in_progress")
             ->first();
 
-        $shipments = DB::table('shipments')
-            ->where('brand_id', $brandId)
+        $shipmentsQ = DB::table('shipments');
+        if ($brandId !== null) $shipmentsQ->where('brand_id', $brandId);
+        $shipments = $shipmentsQ
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered")
             ->selectRaw("SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END) as returned")
             ->selectRaw("SUM(CASE WHEN status IN ('pending','created','shipped') THEN 1 ELSE 0 END) as in_progress")
             ->first();
 
-        $ads = DB::table('campaign_metrics')
-            ->join('campaigns', 'campaigns.id', '=', 'campaign_metrics.campaign_id')
-            ->where('campaigns.brand_id', $brandId)
+        $adsQ = DB::table('campaign_metrics')
+            ->join('campaigns', 'campaigns.id', '=', 'campaign_metrics.campaign_id');
+        if ($brandId !== null) $adsQ->where('campaigns.brand_id', $brandId);
+        $ads = $adsQ
             ->selectRaw('COALESCE(SUM(campaign_metrics.spend), 0) as spend')
             ->selectRaw('COALESCE(SUM(campaign_metrics.revenue), 0) as revenue')
             ->selectRaw('COALESCE(SUM(campaign_metrics.leads), 0) as leads')
@@ -113,17 +115,20 @@ class ClientPortalController extends Controller
     public function listAccesses(Request $request): JsonResponse
     {
         $this->requirePermission($request, 'client_portal.manage');
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
-        $users = User::query()
-            ->whereHas('brands', fn ($q) => $q->where('brands.id', $brandId))
-            ->whereHas('roles', fn ($q) => $q->where('slug', 'client_brand_owner'))
+        $users = User::query();
+        if ($brandId !== null) {
+            $users->whereHas('brands', fn ($q) => $q->where('brands.id', $brandId));
+        }
+        $users->whereHas('roles', fn ($q) => $q->where('slug', 'client_brand_owner'))
             ->with(['roles:id,slug,name'])
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+            ->orderBy('name');
+        $users = $users->get(['id', 'name', 'email']);
 
-        $accesses = ClientPortalAccess::query()
-            ->where('brand_id', $brandId)
+        $accessesQ = ClientPortalAccess::query();
+        ApiBrandContext::scopeBrand($accessesQ, $brandId);
+        $accesses = $accessesQ
             ->get()
             ->keyBy('user_id');
 
