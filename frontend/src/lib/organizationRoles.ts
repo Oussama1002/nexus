@@ -8,6 +8,7 @@ export const ORGANIZATION_ROLE_LABELS: Record<string, string> = {
   community_manager: 'Community manager',
   smm: 'Social media manager',
   influence_manager: 'Responsable influence',
+  comptable: 'Comptable',
   client_brand_owner: 'Propriétaire de marque (client)',
 };
 

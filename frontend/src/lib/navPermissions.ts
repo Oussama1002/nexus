@@ -31,6 +31,7 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   reporting: ['reports.view'],
   hr: ['hr.view'],
   finance: ['finance.view'],
+  comptabilite: ['accounting.view'],
   settings: ['settings.view'],
   tracking: ['audit_logs.view'],
   usersAdmin: ['users.view'],
@@ -69,6 +70,7 @@ const ALL_VIEWS: View[] = [
   'usersAdmin',
   'socialMedia',
   'influenceHub',
+  'comptabilite',
 ];
 
 /** When the API returns no matching permission rows yet, fall back to role slug lists (backend RolesSeeder). */
@@ -81,6 +83,7 @@ export const ROLE_DEFAULT_VIEWS: Record<string, View[]> = {
   community_manager: ['dashboard', 'whatsapp', 'leads', 'customers', 'brands', 'ads', 'mediaBuying', 'collabProjects', 'socialMedia', 'knowledgeBase', 'academy', 'automations'],
   smm: ['dashboard', 'brands', 'ads', 'mediaBuying', 'collabProjects', 'reporting', 'leads', 'customers', 'socialMedia', 'influenceHub', 'knowledgeBase', 'academy', 'automations'],
   influence_manager: ['dashboard', 'brands', 'leads', 'customers', 'influenceHub', 'reporting', 'academy', 'automations', 'mediaBuying', 'collabProjects'],
+  comptable: ['dashboard', 'comptabilite', 'finance'],
   client_brand_owner: ['clientPortal'],
 };
 

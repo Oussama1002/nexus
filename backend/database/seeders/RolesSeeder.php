@@ -18,6 +18,7 @@ class RolesSeeder extends Seeder
             ['name' => 'Community manager', 'slug' => 'community_manager'],
             ['name' => 'Social media manager', 'slug' => 'smm'],
             ['name' => 'Responsable influence', 'slug' => 'influence_manager'],
+            ['name' => 'Comptable', 'slug' => 'comptable'],
             ['name' => 'Propriétaire de marque (client)', 'slug' => 'client_brand_owner'],
         ];
 

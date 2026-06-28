@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AutomationRuleController;
 use App\Http\Controllers\Api\AuthController;
@@ -382,6 +383,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('finance/summary', [FinanceSummaryController::class, 'summary'])->middleware('permission:finance.view');
     Route::get('finance/charges-by-type', [FinanceSummaryController::class, 'chargesByType'])->middleware('permission:finance.view');
     Route::get('finance/monthly', [FinanceSummaryController::class, 'monthly'])->middleware('permission:finance.view');
+
+    // ── Accounting (comptabilite) ──
+    Route::get('accounting/accounts', [AccountingController::class, 'accountsIndex'])->middleware('permission:accounting.view');
+    Route::post('accounting/accounts', [AccountingController::class, 'accountsStore'])->middleware('permission:accounting.create');
+    Route::put('accounting/accounts/{id}', [AccountingController::class, 'accountsUpdate'])->whereNumber('id')->middleware('permission:accounting.update');
+    Route::delete('accounting/accounts/{id}', [AccountingController::class, 'accountsDestroy'])->whereNumber('id')->middleware('permission:accounting.delete');
+    Route::get('accounting/entries', [AccountingController::class, 'entriesIndex'])->middleware('permission:accounting.view');
+    Route::post('accounting/entries', [AccountingController::class, 'entriesStore'])->middleware('permission:accounting.create');
+    Route::delete('accounting/entries/{id}', [AccountingController::class, 'entriesDestroy'])->whereNumber('id')->middleware('permission:accounting.delete');
+    Route::get('accounting/summary', [AccountingController::class, 'summary'])->middleware('permission:accounting.view');
+    Route::get('accounting/export-csv', [AccountingController::class, 'exportCsv'])->middleware('permission:accounting.view');
 
     Route::get('hr/lookups/{type}', [EmployeeController::class, 'lookups'])
         ->whereIn('type', ['department', 'role_title'])

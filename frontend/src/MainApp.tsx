@@ -37,6 +37,7 @@ import { AdsScreen } from './screens/AdsScreen';
 import { ShipmentsScreen } from './screens/ShipmentsScreen';
 import { ProductsStockScreen } from './screens/ProductsStockScreen';
 import { FinanceScreen } from './screens/FinanceScreen';
+import { AccountingScreen } from './screens/AccountingScreen';
 import { EmployeesManagementScreen } from './screens/EmployeesManagementScreen';
 import { UsersAdminScreen } from './screens/UsersAdminScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -67,6 +68,7 @@ const VIEW_LABELS_FR: Record<string, string> = {
   trackingParcels: 'Suivi colis',
   products: 'Produits',
   finance: 'Finance',
+  comptabilite: 'Comptabilite',
   brands: 'Marques',
   confirmatrice: 'Espace Confirmatrice',
   leads: 'Leads',
@@ -399,6 +401,8 @@ export function MainApp() {
         return <ProductsStockScreen variant="stock" />;
       case 'finance':
         return <FinanceScreen />;
+      case 'comptabilite':
+        return <AccountingScreen />;
       case 'socialMedia':
         return <SocialMediaWorkspaceScreen />;
       case 'influenceHub':

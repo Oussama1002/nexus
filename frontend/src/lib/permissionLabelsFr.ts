@@ -36,6 +36,7 @@ export const PERMISSION_MODULE_LABELS_FR: Record<string, string> = {
   influencer_messages: 'Messages influenceurs',
   influencer_complaints: 'Réclamations influenceurs',
   finance: 'Finance',
+  accounting: 'Comptabilite',
   hr: 'Ressources humaines',
   reports: 'Rapports',
   audit_logs: 'Journal d’audit',

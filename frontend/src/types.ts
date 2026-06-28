@@ -30,6 +30,7 @@ export type View =
   | 'usersAdmin'
   | 'socialMedia'
   | 'influenceHub'
+  | 'comptabilite'
   | 'profile';
 
 export interface User {

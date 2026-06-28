@@ -23,5 +23,17 @@ class ManagementRolePermissionsSeeder extends Seeder
                 'permissions.view',
             ]));
         }
+
+        $comptable = Role::query()->where('slug', 'comptable')->first();
+        if ($comptable) {
+            $comptable->permissions()->syncWithoutDetaching($bySlug([
+                'accounting.view',
+                'accounting.create',
+                'accounting.update',
+                'accounting.delete',
+                'finance.view',
+                'dashboard.view',
+            ]));
+        }
     }
 }

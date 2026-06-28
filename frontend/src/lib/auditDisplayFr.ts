@@ -55,6 +55,8 @@ export const AUDIT_ENTITY_LABELS_FR: Record<string, string> = {
   'App\\Models\\ClientContract': 'Contrat client',
   'App\\Models\\ClientInvoice': 'Facture client',
   'App\\Models\\SocialPublication': 'Publication sociale',
+  'App\\Models\\AccountingAccount': 'Compte comptable',
+  'App\\Models\\AccountingEntry': 'Écriture comptable',
 };
 
 /** Libellés FR pour actions API (slug technique → phrase lisible). */
@@ -181,6 +183,11 @@ export const AUDIT_ACTION_LABELS_FR: Record<string, string> = {
   'employees.create': 'Cr\u00e9ation collaborateur',
   'employees.update': 'Modification collaborateur',
   'employees.delete': 'Suppression collaborateur',
+  'accounting_accounts.create': 'Création compte comptable',
+  'accounting_accounts.update': 'Modification compte comptable',
+  'accounting_accounts.delete': 'Suppression compte comptable',
+  'accounting_entries.create': 'Création écriture comptable',
+  'accounting_entries.delete': 'Suppression écriture comptable',
 };
 
 export function auditEntityLabelFr(entityType: string | null | undefined): string {

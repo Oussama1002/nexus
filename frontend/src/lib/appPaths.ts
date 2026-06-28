@@ -28,6 +28,7 @@ export const VIEW_PATH: Record<Exclude<View, 'login' | 'settings'>, string> = {
   suppliers: '/fournisseurs',
   purchaseOrders: '/achats-fournisseurs',
   influenceHub: '/influence',
+  comptabilite: '/comptabilite',
   reporting: '/reportings',
   hr: '/rh',
   finance: '/finance',
