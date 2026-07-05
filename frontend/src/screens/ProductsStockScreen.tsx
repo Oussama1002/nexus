@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Filter, Plus } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronRight, Filter, ImagePlus, Pencil, Plus, Upload } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
@@ -16,6 +16,7 @@ import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { flattenFieldErrors } from '../lib/formErrors';
+import { resolvePublicAssetUrl } from '../lib/publicAssetUrl';
 
 type ApiProductRow = {
   id: number;
@@ -30,6 +31,8 @@ type ApiProductRow = {
   reserved_quantity: number;
   low_stock_threshold: number;
   status: string;
+  image?: string | null;
+  description?: string | null;
 };
 
 type ApiMovementRow = {
@@ -59,6 +62,7 @@ function mapProduct(p: ApiProductRow, brandName: string): Product {
     reserved: p.reserved_quantity,
     lowStockThreshold: p.low_stock_threshold,
     status: p.status === 'active' ? 'Actif' : 'Inactif',
+    image: p.image ?? '',
   };
 }
 
@@ -133,7 +137,12 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     reserved: 0,
     lowStockThreshold: 10,
     status: 'Actif',
+    image: '',
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [description, setDescription] = useState('');
+  const imgInputRef = useRef<HTMLInputElement>(null);
 
   // Product categories & types from settings
   const [productOptions, setProductOptions] = useState<{ categories: string[]; types: string[] }>({ categories: [], types: [] });
@@ -222,17 +231,54 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     return { total, low, stockValue };
   }, [products]);
 
+  function openEditModal(p: Product) {
+    setFormErr([]);
+    setDraft({
+      name: p.name,
+      sku: p.sku,
+      brand: p.brand,
+      category: p.category,
+      productType: p.productType,
+      supplier: p.supplier,
+      price: p.price,
+      cost: p.cost,
+      stock: p.stock,
+      reserved: p.reserved,
+      lowStockThreshold: p.lowStockThreshold,
+      status: p.status,
+      image: p.image,
+    });
+    setDescription('');
+    setImageFile(null);
+    setImagePreview(p.image ? resolvePublicAssetUrl(p.image) : '');
+    setSelectedId(p.id);
+    setEditOpen(true);
+  }
+
+  const canEdit = hasPermission('products.update');
+
   const columns = useMemo<Column<Product>[]>(() => {
-    return [
+    const cols: Column<Product>[] = [
       {
         key: 'name',
         header: 'Produit',
         cell: (p) => (
-          <div className="space-y-1">
-            <p className="text-sm font-black text-zinc-900">{p.name}</p>
-            <p className="text-[11px] font-medium text-zinc-500">
-              SKU {p.sku} • {p.supplier}
-            </p>
+          <div className="flex items-center gap-3">
+            {p.image ? (
+              <img
+                src={resolvePublicAssetUrl(p.image)}
+                alt={p.name}
+                className="w-10 h-10 rounded-lg object-cover border border-zinc-200 shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center shrink-0">
+                <ImagePlus className="w-4 h-4 text-zinc-400" />
+              </div>
+            )}
+            <div className="space-y-0.5 min-w-0">
+              <p className="text-sm font-black text-zinc-900 truncate">{p.name}</p>
+              <p className="text-[11px] font-medium text-zinc-500">SKU {p.sku}</p>
+            </div>
           </div>
         ),
       },
@@ -252,33 +298,54 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       },
       { key: 'cost', header: 'Coût', className: 'text-right', cell: (p) => <span className="text-sm font-black text-zinc-900">{formatCurrency(p.cost)}</span> },
       { key: 'price', header: 'Prix', className: 'text-right', cell: (p) => <span className="text-sm font-black text-zinc-900">{formatCurrency(p.price)}</span> },
-      {
-        key: 'open',
+    ];
+
+    if (canEdit) {
+      cols.push({
+        key: 'edit',
         header: '',
-        className: 'text-right',
         cell: (p) => (
-          <button type="button" onClick={() => setSelectedId(p.id)} className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700">
-            Ouvrir <ChevronRight className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={() => openEditModal(p)}
+            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
+            title="Modifier"
+          >
+            <Pencil className="w-3.5 h-3.5" />
           </button>
         ),
-      },
-    ];
-  }, []);
+      });
+    }
+
+    cols.push({
+      key: 'open',
+      header: '',
+      className: 'text-right',
+      cell: (p) => (
+        <button type="button" onClick={() => setSelectedId(p.id)} className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700">
+          Ouvrir <ChevronRight className="w-4 h-4" />
+        </button>
+      ),
+    });
+
+    return cols;
+  }, [canEdit]);
 
   async function saveProduct() {
     setSaving(true);
     setFormErr([]);
-    const body: Record<string, unknown> = {
-      name: draft.name.trim(),
-      category: draft.category.trim(),
-      product_type: draft.productType.trim(),
-      price: draft.price,
-      cost: draft.cost,
-      low_stock_threshold: draft.lowStockThreshold,
-      status: 'active',
-      stock_quantity: draft.stock,
-    };
-    const res = await api.post('products', body);
+    const fd = new FormData();
+    fd.append('name', draft.name.trim());
+    fd.append('category', draft.category.trim());
+    fd.append('product_type', draft.productType.trim());
+    fd.append('price', String(draft.price));
+    fd.append('cost', String(draft.cost));
+    fd.append('low_stock_threshold', String(draft.lowStockThreshold));
+    fd.append('status', 'active');
+    fd.append('stock_quantity', String(draft.stock));
+    if (description.trim()) fd.append('description', description.trim());
+    if (imageFile) fd.append('image', imageFile);
+    const res = await api.post('products', fd);
     setSaving(false);
     if (!res.ok) {
       const rawErr = 'errors' in res ? res.errors : {};
@@ -307,16 +374,19 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     if (!selected) return;
     setSaving(true);
     setFormErr([]);
-    const res = await api.put(`products/${selected.apiId}`, {
-      name: draft.name.trim(),
-      sku: draft.sku.trim(),
-      category: draft.category.trim(),
-      product_type: draft.productType.trim(),
-      price: draft.price,
-      cost: draft.cost,
-      low_stock_threshold: draft.lowStockThreshold,
-      status: draft.status === 'Actif' ? 'active' : 'inactive',
-    });
+    const fd = new FormData();
+    fd.append('_method', 'PUT');
+    fd.append('name', draft.name.trim());
+    fd.append('sku', draft.sku.trim());
+    fd.append('category', draft.category.trim());
+    fd.append('product_type', draft.productType.trim());
+    fd.append('price', String(draft.price));
+    fd.append('cost', String(draft.cost));
+    fd.append('low_stock_threshold', String(draft.lowStockThreshold));
+    fd.append('status', draft.status === 'Actif' ? 'active' : 'inactive');
+    if (description.trim()) fd.append('description', description.trim());
+    if (imageFile) fd.append('image', imageFile);
+    const res = await api.post(`products/${selected.apiId}`, fd);
     setSaving(false);
     if (!res.ok) {
       const rawErr = 'errors' in res ? res.errors : {};
@@ -499,7 +569,11 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                   reserved: 0,
                   lowStockThreshold: 10,
                   status: 'Actif',
+                  image: '',
                 });
+                setImageFile(null);
+                setImagePreview('');
+                setDescription('');
                 setCreateOpen(true);
               }}
               className="px-4 py-2 bg-primary-600 text-white rounded-2xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
@@ -573,33 +647,23 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           selected && hasPermission('products.update') ? (
             <button
               type="button"
-              onClick={() => {
-                setFormErr([]);
-                setDraft({
-                  name: selected.name,
-                  sku: selected.sku,
-                  brand: selected.brand,
-                  category: selected.category,
-                  productType: selected.productType,
-                  supplier: selected.supplier,
-                  price: selected.price,
-                  cost: selected.cost,
-                  stock: selected.stock,
-                  reserved: selected.reserved,
-                  lowStockThreshold: selected.lowStockThreshold,
-                  status: selected.status,
-                });
-                setEditOpen(true);
-              }}
+              onClick={() => openEditModal(selected)}
               className="w-full py-3 rounded-xl bg-primary-600 text-white font-black text-sm"
             >
-              Éditer (API)
+              Éditer
             </button>
           ) : undefined
         }
       >
         {selected && (
           <div className="space-y-6">
+            {selected.image && (
+              <img
+                src={resolvePublicAssetUrl(selected.image)}
+                alt={selected.name}
+                className="w-full h-48 object-contain rounded-xl border border-zinc-200 bg-zinc-50"
+              />
+            )}
             <div className="card-muted p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</p>
@@ -656,6 +720,61 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           <div className="space-y-2 md:col-span-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom *</label>
             <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nom du produit" />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Image du produit</label>
+            <div className="flex items-center gap-4">
+              {imagePreview ? (
+                <img src={imagePreview} alt="" className="w-20 h-20 rounded-xl object-cover border border-zinc-200" />
+              ) : (
+                <div className="w-20 h-20 rounded-xl bg-zinc-100 border border-dashed border-zinc-300 flex items-center justify-center">
+                  <ImagePlus className="w-6 h-6 text-zinc-400" />
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <input
+                  ref={imgInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => imgInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-700 hover:bg-zinc-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  {imagePreview ? 'Changer' : 'Choisir une image'}
+                </button>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => { setImageFile(null); setImagePreview(''); }}
+                    className="text-xs font-bold text-rose-600 hover:underline text-left"
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              placeholder="Description du produit (optionnel)"
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Marque *</label>
@@ -733,6 +852,61 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           <div className="space-y-2 md:col-span-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom</label>
             <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Image du produit</label>
+            <div className="flex items-center gap-4">
+              {imagePreview ? (
+                <img src={imagePreview} alt="" className="w-20 h-20 rounded-xl object-cover border border-zinc-200" />
+              ) : (
+                <div className="w-20 h-20 rounded-xl bg-zinc-100 border border-dashed border-zinc-300 flex items-center justify-center">
+                  <ImagePlus className="w-6 h-6 text-zinc-400" />
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  id="edit-product-img"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('edit-product-img')?.click()}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-700 hover:bg-zinc-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  {imagePreview ? 'Changer' : 'Choisir une image'}
+                </button>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => { setImageFile(null); setImagePreview(''); }}
+                    className="text-xs font-bold text-rose-600 hover:underline text-left"
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              placeholder="Description du produit (optionnel)"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">SKU</label>

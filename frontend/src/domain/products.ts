@@ -16,6 +16,7 @@ export type Product = {
   reserved: number;
   lowStockThreshold: number;
   status: ProductStatus;
+  image: string;
 };
 
 export type ProductDraft = Omit<Product, 'id' | 'apiId'>;

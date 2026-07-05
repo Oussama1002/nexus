@@ -14,6 +14,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -50,7 +51,10 @@ class ProductController extends Controller
         $initial = (int) ($data['stock_quantity'] ?? 0);
         unset($data['stock_quantity']);
 
-        // Auto-generate SKU when not provided.
+        if ($request->hasFile('image')) {
+            $data['image'] = '/storage/' . $request->file('image')->store('products', 'public');
+        }
+
         if (empty($data['sku'])) {
             $data['sku'] = $this->generateSku($brandId);
         }
@@ -88,6 +92,15 @@ class ProductController extends Controller
         $product = Product::query()->where('brand_id', $brandId)->findOrFail($id);
         $before = $product->toArray();
         $product->fill($request->validated());
+
+        if ($request->hasFile('image')) {
+            if ($product->getOriginal('image')) {
+                $old = str_replace('/storage/', '', $product->getOriginal('image'));
+                Storage::disk('public')->delete($old);
+            }
+            $product->image = '/storage/' . $request->file('image')->store('products', 'public');
+        }
+
         $product->save();
 
         AuditLogger::log($request, 'products.update', $product, $before, $product->fresh()->toArray());
