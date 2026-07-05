@@ -88,9 +88,8 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
     }
     const ids = new Set(brands.map((b) => b.id));
     if (!activeBrandId || (activeBrandId !== 'all' && !ids.has(activeBrandId))) {
-      const first = brands[0]!.id;
-      writeStoredBrandId(first);       // sync localStorage BEFORE child effects
-      setActiveBrandIdState(first);
+      writeStoredBrandId('all');       // sync localStorage BEFORE child effects
+      setActiveBrandIdState('all');
     }
   }, [brands, activeBrandId]);
 
