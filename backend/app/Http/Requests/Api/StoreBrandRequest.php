@@ -22,7 +22,8 @@ class StoreBrandRequest extends FormRequest
             'code' => ['required', 'string', 'max:50', 'unique:brands,code'],
             'logo_url' => ['nullable', 'string', 'max:2048'],
             'color' => ['nullable', 'string', 'max:20'],
-            'whatsapp_number' => ['nullable', 'string', 'max:30'],
+            'whatsapp_number' => ['nullable', 'array'],
+            'whatsapp_number.*' => ['required', 'string', 'max:30'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
         ];
     }

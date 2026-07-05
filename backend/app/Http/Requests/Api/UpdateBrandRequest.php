@@ -24,7 +24,8 @@ class UpdateBrandRequest extends FormRequest
             'code' => ['sometimes', 'string', 'max:50', Rule::unique('brands', 'code')->ignore($id)],
             'logo_url' => ['nullable', 'string', 'max:2048'],
             'color' => ['nullable', 'string', 'max:20'],
-            'whatsapp_number' => ['nullable', 'string', 'max:30'],
+            'whatsapp_number' => ['nullable', 'array'],
+            'whatsapp_number.*' => ['required', 'string', 'max:30'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
         ];
     }

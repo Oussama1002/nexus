@@ -18,6 +18,10 @@ class Brand extends Model
         'status',
     ];
 
+    protected $casts = [
+        'whatsapp_number' => 'array',
+    ];
+
     public function users()
     {
         return $this->belongsToMany(User::class, 'brand_users');

@@ -36,7 +36,7 @@ export type ApiBrand = {
   name: string;
   code: string;
   status: string;
-  whatsapp_number?: string | null;
+  whatsapp_number?: string[] | null;
 };
 
 export type AttendanceInfo = {

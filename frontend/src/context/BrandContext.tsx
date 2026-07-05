@@ -33,19 +33,20 @@ function apiBrandToUi(b: {
   name: string;
   code: string;
   status: string;
-  whatsapp_number?: string | null;
+  whatsapp_number?: string[] | null;
 }): UiBrand {
   const code = b.code ?? String(b.id);
   const initials = code.slice(0, 2).toUpperCase();
   const palette = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
   const color = palette[Math.abs(b.id) % palette.length];
   const statusFr: 'Actif' | 'Inactif' = b.status === 'active' ? 'Actif' : 'Inactif';
+  const nums = b.whatsapp_number ?? [];
   return {
     id: String(b.id),
     name: b.name,
     logo: initials,
     color,
-    whatsappNumber: (b.whatsapp_number ?? '').trim(),
+    whatsappNumber: Array.isArray(nums) ? nums.join(', ') : String(nums),
     status: statusFr,
     code,
     contact: '',

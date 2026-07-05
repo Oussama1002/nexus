@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable } from '../components/ui/DataTable';
@@ -28,7 +28,7 @@ type ApiBrandRow = {
   name: string;
   code: string;
   status: string;
-  whatsapp_number?: string | null;
+  whatsapp_number?: string[] | null;
   color?: string | null;
 };
 
@@ -45,12 +45,23 @@ function toUiBrand(b: ApiBrandRow): BrandExt {
     name: b.name,
     logo: initials,
     color,
-    whatsappNumber: b.whatsapp_number ?? '',
+    whatsappNumber: Array.isArray(b.whatsapp_number) ? b.whatsapp_number.join(', ') : (b.whatsapp_number ?? ''),
     status: statusFr,
     code,
     contact: '',
     note: '',
   };
+}
+
+function nameToCode(name: string): string {
+  return name
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 50);
 }
 
 function KpiDot({ tone }: { tone?: 'success' | 'info' | 'neutral' }) {
@@ -91,12 +102,13 @@ export function BrandsScreen() {
     name: '',
     logo: 'BR',
     color: '#4f46e5',
-    whatsappNumber: '+212 ',
+    whatsappNumber: '',
     status: 'Actif',
     code: '',
     contact: '',
     note: '',
   });
+  const [waNumbers, setWaNumbers] = useState<string[]>(['+212 ']);
 
   const brands = useMemo(() => apiBrands.map(toUiBrand), [apiBrands]);
 
@@ -173,28 +185,33 @@ export function BrandsScreen() {
       name: '',
       logo: 'BR',
       color: '#4f46e5',
-      whatsappNumber: '+212 ',
+      whatsappNumber: '',
       status: 'Actif',
       code: '',
       contact: '',
       note: '',
     });
+    setWaNumbers(['+212 ']);
     setModalOpen(true);
   }
 
   function startEdit(b: BrandExt) {
     setFieldErr([]);
     setDraft({ ...b });
+    const raw = apiBrands.find((x) => String(x.id) === b.id);
+    const nums = raw?.whatsapp_number;
+    setWaNumbers(Array.isArray(nums) && nums.length ? nums : ['+212 ']);
     setModalOpen(true);
   }
 
   async function saveBrand() {
     setSaving(true);
     setFieldErr([]);
+    const cleanNums = waNumbers.map((n) => n.trim()).filter(Boolean);
     const payload = {
       name: draft.name.trim(),
-      code: (draft.code ?? '').trim(),
-      whatsapp_number: draft.whatsappNumber?.trim() || null,
+      code: draft.id ? (draft.code ?? '').trim() : nameToCode(draft.name),
+      whatsapp_number: cleanNums.length ? cleanNums : null,
       color: draft.color || null,
       status: draft.status === 'Actif' ? 'active' : 'inactive',
     };
@@ -414,15 +431,6 @@ export function BrandsScreen() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Code</label>
-              <input
-                value={draft.code ?? ''}
-                onChange={(e) => setDraft({ ...draft, code: e.target.value })}
-                disabled={Boolean(draft.id)}
-                className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60"
-              />
-            </div>
-            <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Statut</label>
               <select
                 value={draft.status ?? 'Actif'}
@@ -433,21 +441,63 @@ export function BrandsScreen() {
                 <option>Inactif</option>
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Couleur (#hex)</label>
-              <input
-                value={draft.color}
-                onChange={(e) => setDraft({ ...draft, color: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
-              />
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Couleur</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={draft.color || '#4f46e5'}
+                  onChange={(e) => setDraft({ ...draft, color: e.target.value })}
+                  className="w-12 h-12 rounded-xl border border-zinc-200 cursor-pointer p-1"
+                />
+                <input
+                  value={draft.color || ''}
+                  onChange={(e) => setDraft({ ...draft, color: e.target.value })}
+                  placeholder="#4f46e5"
+                  className="flex-1 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 font-mono text-sm"
+                />
+                <span
+                  className="w-10 h-10 rounded-xl border border-zinc-200 shrink-0"
+                  style={{ backgroundColor: draft.color || '#4f46e5' }}
+                />
+              </div>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro WhatsApp</label>
-              <input
-                value={draft.whatsappNumber}
-                onChange={(e) => setDraft({ ...draft, whatsappNumber: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéros WhatsApp</label>
+                <button
+                  type="button"
+                  onClick={() => setWaNumbers([...waNumbers, '+212 '])}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-primary-600 hover:text-primary-700"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Ajouter
+                </button>
+              </div>
+              <div className="space-y-2">
+                {waNumbers.map((num, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      value={num}
+                      onChange={(e) => {
+                        const next = [...waNumbers];
+                        next[idx] = e.target.value;
+                        setWaNumbers(next);
+                      }}
+                      placeholder="+212 0XXXXXXXXX"
+                      className="flex-1 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    {waNumbers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setWaNumbers(waNumbers.filter((_, i) => i !== idx))}
+                        className="p-2 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
