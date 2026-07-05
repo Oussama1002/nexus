@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable } from '../components/ui/DataTable';
@@ -298,6 +298,22 @@ export function BrandsScreen() {
             { key: 'products', header: 'Produits', cell: (b) => <span className="font-bold text-zinc-700">{statsByBrand.get(b.id)?.products ?? 0}</span> },
             { key: 'orders', header: 'Commandes', cell: (b) => <span className="font-bold text-zinc-700">{statsByBrand.get(b.id)?.orders ?? 0}</span> },
             { key: 'ca', header: 'CA (échantillon)', cell: (b) => <span className="font-black text-zinc-900">{formatCurrency(statsByBrand.get(b.id)?.ca ?? 0)}</span> },
+            ...(canMutate
+              ? [{
+                  key: 'actions',
+                  header: '',
+                  cell: (b: BrandExt) => (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(b)}
+                      className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
+                      title="Modifier"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  ),
+                }]
+              : []),
           ]}
           emptyTitle="Aucune marque"
           emptyDescription="Créez une marque ou vérifiez vos droits d’accès."
