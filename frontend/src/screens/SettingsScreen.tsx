@@ -187,6 +187,10 @@ export function SettingsScreen() {
   }
 
   async function connectFacebook() {
+    if (!activeBrandId) {
+      toast.error("Veuillez d'abord sélectionner une marque spécifique (pas \"Toutes les marques\").");
+      return;
+    }
     setConnectingFb(true);
     const res = await api.get<{ url: string }>('meta/oauth/url');
     setConnectingFb(false);
