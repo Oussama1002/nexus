@@ -80,6 +80,7 @@ export function SettingsScreen() {
   const [auditRows, setAuditRows] = useState<SettingsAuditApiRow[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [testLoading, setTestLoading] = useState<'smtp' | 'whatsapp' | 'meta' | 'delivery' | null>(null);
+  const [connectingFb, setConnectingFb] = useState(false);
 
   const navItems = useMemo(() => NAV.filter((n) => n.id !== 'security' || isAdmin), [isAdmin]);
 
@@ -184,6 +185,39 @@ export function SettingsScreen() {
     if (res.ok) toast.success(res.message);
     else toast.error(res.message);
   }
+
+  async function connectFacebook() {
+    setConnectingFb(true);
+    const res = await api.get<{ url: string }>('meta/oauth/url');
+    setConnectingFb(false);
+    if (!res.ok || !res.data?.url) {
+      toast.error(res.message || 'Impossible de générer le lien de connexion Meta.');
+      return;
+    }
+    window.location.href = res.data.url;
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauth = params.get('oauth');
+    const sec = params.get('section');
+    if (oauth && sec === 'meta') {
+      if (oauth === 'success') {
+        toast.success('Compte Facebook connecté avec succès !');
+        setReloadToken((t) => t + 1);
+      } else if (oauth === 'denied') {
+        toast.error('Connexion Facebook refusée par l\'utilisateur.');
+      } else if (oauth === 'exchange_failed') {
+        toast.error('Échec de l\'échange de token Facebook.');
+      } else if (oauth === 'missing_config') {
+        toast.error('Configuration Meta incomplète (App ID / App Secret manquant).');
+      } else {
+        toast.error('Erreur de connexion Facebook.');
+      }
+      setSection('meta');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const sidebarNote =
     section === 'security' && !isAdmin ? 'Les modifications de sécurité nécessitent un compte administrateur.' : null;
@@ -315,6 +349,8 @@ export function SettingsScreen() {
                   isAdmin={isAdmin}
                   onTestMeta={canUpdate ? () => void runConnectionTest('meta') : undefined}
                   metaTesting={testLoading === 'meta'}
+                  onConnectFacebook={canUpdate ? connectFacebook : undefined}
+                  connectingFacebook={connectingFb}
                 />
               )}
               {section === 'finance' && (

@@ -392,6 +392,8 @@ export function MetaPanel({
   isAdmin,
   onTestMeta,
   metaTesting,
+  onConnectFacebook,
+  connectingFacebook,
 }: {
   value: MetaModel;
   onChange: (v: MetaModel) => void;
@@ -399,11 +401,38 @@ export function MetaPanel({
   isAdmin: boolean;
   onTestMeta?: () => void;
   metaTesting?: boolean;
+  onConnectFacebook?: () => void;
+  connectingFacebook?: boolean;
 }) {
   const p = (patch: Partial<MetaModel>) => onChange({ ...value, ...patch });
   const sec = !disabled && isAdmin;
+  const hasToken = value.credentials.accessTokenConfigured;
+  const fbBlue = "#1877F2";
   return (
     <div className="space-y-8">
+      <SectionCard title="Connexion Facebook">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={onConnectFacebook}
+            disabled={disabled || connectingFacebook || !value.credentials.appId}
+            className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white transition disabled:opacity-50"
+            style={{ backgroundColor: fbBlue }}
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.026 4.388 11.018 10.125 11.927v-8.437H7.078v-3.49h3.047V9.41c0-3.026 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97H15.83c-1.491 0-1.956.93-1.956 1.886v2.268h3.328l-.532 3.49h-2.796v8.437C19.612 23.09 24 18.1 24 12.073z"/></svg>
+            {hasToken ? "Reconnecter avec Facebook" : "Connecter avec Facebook"}
+          </button>
+          {hasToken && (
+            <span className="inline-flex items-center gap-1.5 text-sm text-green-600">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              {"Connecté"}
+            </span>
+          )}
+          {!value.credentials.appId && (
+            <span className="text-sm text-gray-500">{"Renseignez d’abord le Meta App ID ci-dessous"}</span>
+          )}
+        </div>
+      </SectionCard>
       <SectionCard
         title="Identifiants Meta"
         actions={

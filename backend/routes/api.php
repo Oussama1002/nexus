@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\InfluencerMessageController;
 use App\Http\Controllers\Api\InfluencerPerformanceController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MetaAdsController;
+use App\Http\Controllers\Api\MetaOAuthController;
 use App\Http\Controllers\Api\MediaBuyingController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PermissionController;
@@ -223,6 +224,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('ad-accounts/{id}', [AdAccountController::class, 'destroy'])->whereNumber('id')->middleware('permission:ad_accounts.delete');
 
     Route::prefix('meta')->group(function () {
+        Route::get('oauth/url', [MetaOAuthController::class, 'redirectUrl']);
         Route::get('ad-accounts', [MetaAdsController::class, 'previewAdAccounts'])->middleware('permission:ad_accounts.view');
         Route::post('sync/ad-accounts', [MetaAdsController::class, 'syncAdAccounts'])->middleware('permission:ad_accounts.update');
         Route::post('sync/campaigns', [MetaAdsController::class, 'syncCampaigns'])->middleware('permission:campaigns.update');
