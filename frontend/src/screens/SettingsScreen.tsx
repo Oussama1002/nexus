@@ -187,7 +187,7 @@ export function SettingsScreen() {
   }
 
   async function connectFacebook() {
-    if (!activeBrandId) {
+    if (!activeBrandId || activeBrandId === "all") {
       toast.error("Veuillez d'abord sélectionner une marque spécifique (pas \"Toutes les marques\").");
       return;
     }
