@@ -241,10 +241,24 @@ export function SettingsScreen() {
     );
   }
 
-  if (!activeBrandId) {
+  if (!activeBrandId || activeBrandId === "all") {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center text-sm font-medium text-zinc-600 shadow-sm">
-        Sélectionnez une marque active pour configurer le centre de paramètres.
+      <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center space-y-4 shadow-sm">
+        <p className="text-sm font-medium text-zinc-600">
+          {"Sélectionnez une marque spécifique pour configurer le centre de paramètres."}
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {brands.filter((b) => b.id !== "all").map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => setActiveBrandId(b.id)}
+              className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-900 hover:bg-zinc-50 transition"
+            >
+              {b.name}
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
