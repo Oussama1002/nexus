@@ -64,7 +64,7 @@ const NAV: { id: SettingsCenterSection; label: string; description: string }[] =
 
 export function SettingsScreen() {
   const toast = useToast();
-  const { activeBrandId } = useBrand();
+  const { activeBrandId, brands, setActiveBrandId } = useBrand();
   const { hasPermission, isAdmin } = useAuth();
   const canView = hasPermission('settings.view');
   const canUpdate = hasPermission('settings.update');
@@ -81,6 +81,7 @@ export function SettingsScreen() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [testLoading, setTestLoading] = useState<'smtp' | 'whatsapp' | 'meta' | 'delivery' | null>(null);
   const [connectingFb, setConnectingFb] = useState(false);
+  const [brandPickerOpen, setBrandPickerOpen] = useState(false);
 
   const navItems = useMemo(() => NAV.filter((n) => n.id !== 'security' || isAdmin), [isAdmin]);
 
@@ -188,7 +189,7 @@ export function SettingsScreen() {
 
   async function connectFacebook() {
     if (!activeBrandId || activeBrandId === "all") {
-      toast.error("Veuillez d'abord sélectionner une marque spécifique (pas \"Toutes les marques\").");
+      setBrandPickerOpen(true);
       return;
     }
     setConnectingFb(true);
@@ -199,6 +200,12 @@ export function SettingsScreen() {
       return;
     }
     window.location.href = res.data.url;
+  }
+
+  function handleBrandPick(brandId: string) {
+    setBrandPickerOpen(false);
+    setActiveBrandId(brandId);
+    toast.success("Marque active mise à jour. Cliquez de nouveau sur Connecter avec Facebook.");
   }
 
   useEffect(() => {
@@ -428,6 +435,26 @@ export function SettingsScreen() {
               );
             })
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={brandPickerOpen}
+        title="Sélectionner une marque"
+        subtitle="Choisissez la marque pour laquelle connecter Facebook."
+        onClose={() => setBrandPickerOpen(false)}
+      >
+        <div className="space-y-2">
+          {brands.filter((b) => b.id !== "all").map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => handleBrandPick(b.id)}
+              className="w-full text-left rounded-xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50 transition"
+            >
+              {b.name}
+            </button>
+          ))}
         </div>
       </Modal>
     </div>
