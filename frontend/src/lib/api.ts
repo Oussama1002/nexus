@@ -176,7 +176,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     return err;
   }
 
-  return normalize<T>(res.status, body);
+  const result = normalize<T>(res.status, body);
+  if (!result.ok && brandHeader === 'all' && result.message?.includes('brand')) {
+    window.dispatchEvent(new CustomEvent('nexus:brand-required'));
+  }
+  return result;
 }
 
 export function get<T>(path: string, init?: RequestOptions): Promise<NormalizedResponse<T>> {

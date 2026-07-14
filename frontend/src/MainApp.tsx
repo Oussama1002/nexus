@@ -55,6 +55,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { SearchModal } from './components/shell/SearchModal';
 import { NotificationPanel, type NotificationItem } from './components/shell/NotificationPanel';
 import { InternalChatModal } from './components/chat/InternalChatModal';
+import { Modal } from './components/ui/Modal';
 import { parseAppPath, pathForView } from './lib/appPaths';
 
 const ORDER_DRAFT_KEY = 'nexus.orderDraft';
@@ -149,6 +150,7 @@ export function MainApp() {
   const [notifData, setNotifData] = useState<{ items: NotificationItem[]; summary: { total: number; danger: number; warning: number } } | null>(null);
   const [notifLoading, setNotifLoading] = useState(false);
   const [brandLogoUrl, setBrandLogoUrl] = useState('');
+  const [brandPickerOpen, setBrandPickerOpen] = useState(false);
 
   const [directoryUsers, setDirectoryUsers] = useState<User[]>([]);
   const [directoryLoaded, setDirectoryLoaded] = useState(false);
@@ -259,6 +261,12 @@ export function MainApp() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setBrandPickerOpen(true);
+    window.addEventListener('nexus:brand-required', handler);
+    return () => window.removeEventListener('nexus:brand-required', handler);
   }, []);
 
   useEffect(() => {
@@ -566,6 +574,25 @@ export function MainApp() {
         onClose={() => { setChatOpen(false); void api.get<{ unread: number }>('internal-chat/unread').then((r) => { if (r.ok) setUnreadChatCount((r.data as any)?.unread ?? 0); }); }}
         allUsers={directoryUsers.map((u) => ({ id: Number(u.id), name: u.name, email: u.email }))}
       />
+      <Modal
+        open={brandPickerOpen}
+        title="Marque requise"
+        subtitle="Cette action nécessite une marque spécifique."
+        onClose={() => setBrandPickerOpen(false)}
+      >
+        <div className="space-y-2">
+          {brands.filter((b) => b.id !== "all").map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => { setActiveBrandId(b.id); setBrandPickerOpen(false); }}
+              className="w-full text-left rounded-xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50 transition"
+            >
+              {b.name}
+            </button>
+          ))}
+        </div>
+      </Modal>
     </>
   );
 }
