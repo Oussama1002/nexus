@@ -64,7 +64,7 @@ const NAV: { id: SettingsCenterSection; label: string; description: string }[] =
 
 export function SettingsScreen() {
   const toast = useToast();
-  const { activeBrandId, brands, setActiveBrandId } = useBrand();
+  const { activeBrandId } = useBrand();
   const { hasPermission, isAdmin } = useAuth();
   const canView = hasPermission('settings.view');
   const canUpdate = hasPermission('settings.update');
@@ -81,7 +81,6 @@ export function SettingsScreen() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [testLoading, setTestLoading] = useState<'smtp' | 'whatsapp' | 'meta' | 'delivery' | null>(null);
   const [connectingFb, setConnectingFb] = useState(false);
-  const [brandPickerOpen, setBrandPickerOpen] = useState(false);
 
   const navItems = useMemo(() => NAV.filter((n) => n.id !== 'security' || isAdmin), [isAdmin]);
 
@@ -189,7 +188,7 @@ export function SettingsScreen() {
 
   async function connectFacebook() {
     if (!activeBrandId || activeBrandId === "all") {
-      setBrandPickerOpen(true);
+      toast.error("Veuillez sélectionner une marque spécifique.");
       return;
     }
     setConnectingFb(true);
@@ -202,11 +201,6 @@ export function SettingsScreen() {
     window.location.href = res.data.url;
   }
 
-  function handleBrandPick(brandId: string) {
-    setBrandPickerOpen(false);
-    setActiveBrandId(brandId);
-    toast.success("Marque active mise à jour. Cliquez de nouveau sur Connecter avec Facebook.");
-  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -243,22 +237,8 @@ export function SettingsScreen() {
 
   if (!activeBrandId || activeBrandId === "all") {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center space-y-4 shadow-sm">
-        <p className="text-sm font-medium text-zinc-600">
-          {"Sélectionnez une marque spécifique pour configurer le centre de paramètres."}
-        </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {brands.filter((b) => b.id !== "all").map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => setActiveBrandId(b.id)}
-              className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-900 hover:bg-zinc-50 transition"
-            >
-              {b.name}
-            </button>
-          ))}
-        </div>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center text-sm font-medium text-zinc-600 shadow-sm">
+        {"Sélectionnez une marque spécifique pour configurer le centre de paramètres."}
       </div>
     );
   }
@@ -452,25 +432,6 @@ export function SettingsScreen() {
         </div>
       </Modal>
 
-      <Modal
-        open={brandPickerOpen}
-        title="Sélectionner une marque"
-        subtitle="Choisissez la marque pour laquelle connecter Facebook."
-        onClose={() => setBrandPickerOpen(false)}
-      >
-        <div className="space-y-2">
-          {brands.filter((b) => b.id !== "all").map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => handleBrandPick(b.id)}
-              className="w-full text-left rounded-xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50 transition"
-            >
-              {b.name}
-            </button>
-          ))}
-        </div>
-      </Modal>
     </div>
   );
 }
