@@ -92,7 +92,7 @@ export function SettingsScreen() {
   const dirty = model !== null && JSON.stringify(model) !== baseline;
 
   useEffect(() => {
-    if (!activeBrandId || !canView) return;
+    if (!activeBrandId || activeBrandId === "all" || !canView) return;
     let cancelled = false;
     setLoading(true);
     void (async () => {
@@ -129,7 +129,7 @@ export function SettingsScreen() {
   }, [activeBrandId, canView, section, toast, reloadToken]);
 
   async function save() {
-    if (!canUpdate || !activeBrandId || model === null) return;
+    if (!canUpdate || !activeBrandId || activeBrandId === "all" || model === null) return;
     if (section === 'security' && !isAdmin) {
       toast.error('La section Sécurité est réservée aux administrateurs.');
       return;
