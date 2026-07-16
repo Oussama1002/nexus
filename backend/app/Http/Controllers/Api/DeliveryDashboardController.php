@@ -152,8 +152,8 @@ class DeliveryDashboardController extends Controller
 
         try {
             $brandIds = $this->resolveBrandIds($request);
-            $maxPages = min(max((int) $request->input('max_pages', 5), 1), 20);
-            $startPage = max((int) $request->input('start_page', 1), 1);
+            $maxPages = count($brandIds) > 1 ? 20 : min(max((int) $request->input('max_pages', 5), 1), 20);
+            $startPage = count($brandIds) > 1 ? 1 : max((int) $request->input('start_page', 1), 1);
 
             $merged = ['imported' => 0, 'updated' => 0, 'events' => 0, 'pages' => 0, 'total' => 0, 'errors' => [], 'has_more' => false, 'next_page' => 1];
 
@@ -165,9 +165,6 @@ class DeliveryDashboardController extends Controller
                 $merged['pages'] += $result['pages'];
                 $merged['total'] += $result['total'];
                 $merged['errors'] = array_merge($merged['errors'], $result['errors']);
-                if ($result['has_more']) {
-                    $merged['has_more'] = true;
-                }
             }
 
             if ($merged['total'] === 0 && $merged['errors'] !== []) {
@@ -191,8 +188,8 @@ class DeliveryDashboardController extends Controller
 
         try {
             $brandIds = $this->resolveBrandIds($request);
-            $maxPages = min(max((int) $request->input('max_pages', 5), 1), 20);
-            $startPage = max((int) $request->input('start_page', 1), 1);
+            $maxPages = count($brandIds) > 1 ? 20 : min(max((int) $request->input('max_pages', 5), 1), 20);
+            $startPage = count($brandIds) > 1 ? 1 : max((int) $request->input('start_page', 1), 1);
 
             $merged = ['imported' => 0, 'updated' => 0, 'events' => 0, 'pages' => 0, 'total' => 0, 'errors' => [], 'has_more' => false, 'next_page' => 1];
 
@@ -204,9 +201,6 @@ class DeliveryDashboardController extends Controller
                 $merged['pages'] += $result['pages'];
                 $merged['total'] += $result['total'];
                 $merged['errors'] = array_merge($merged['errors'], $result['errors']);
-                if ($result['has_more']) {
-                    $merged['has_more'] = true;
-                }
             }
 
             if ($merged['total'] === 0 && $merged['errors'] !== []) {
