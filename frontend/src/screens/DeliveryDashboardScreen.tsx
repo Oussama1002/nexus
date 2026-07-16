@@ -23,6 +23,9 @@ type DashboardPayload = {
   shipments_by_city: { city_label: string | null; c: number }[];
   delayed_shipments: number;
   revenue?: number;
+  _debug_raw_count?: number;
+  _debug_brand_id?: number | null;
+  _debug_sql?: string;
 };
 
 type CarrierOpt = { id: number; name: string; code?: string };
@@ -233,6 +236,13 @@ export function DeliveryDashboardScreen() {
           </select>
         </div>
       </div>
+
+      {data && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 font-mono">
+          <p>DEBUG: raw_count={data._debug_raw_count} | brand_id={String(data._debug_brand_id)} | total_shipments={data.total_shipments}</p>
+          <p className="mt-1 break-all">SQL: {data._debug_sql}</p>
+        </div>
+      )}
 
       {loading && !data ? (
         <p className="text-sm text-zinc-500">Chargement…</p>
