@@ -21,14 +21,14 @@ class AmeexInboundSyncService
         $company = $this->carriers->resolve('ameex', $brandId);
 
         if (! $company) {
-            return $this->emptyResult(['Transporteur Ameex introuvable ou inactif.']);
+            return $this->emptyResult();
         }
 
         $apiId = trim((string) ($company->api_key_ref ?? ''));
         $apiKey = trim((string) ($company->api_key ?? ''));
 
         if ($apiId === '' || $apiKey === '') {
-            return $this->emptyResult(['Clés API Ameex manquantes — configurez-les dans Paramètres → Livraison.']);
+            return $this->emptyResult();
         }
 
         $provider = new AmeexDeliveryProvider($company);

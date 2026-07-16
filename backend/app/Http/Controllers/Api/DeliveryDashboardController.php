@@ -167,10 +167,6 @@ class DeliveryDashboardController extends Controller
                 $merged['errors'] = array_merge($merged['errors'], $result['errors']);
             }
 
-            if ($merged['total'] === 0 && $merged['errors'] !== []) {
-                return ApiResponse::error($merged['errors'][0] ?? 'Synchronisation Sendit impossible.', $merged, 422);
-            }
-
             $message = sprintf(
                 'Sendit synchronisé : %d colis traités (%d nouveaux, %d mis à jour, %d actions).',
                 $merged['total'], $merged['imported'], $merged['updated'], $merged['events']
@@ -203,14 +199,14 @@ class DeliveryDashboardController extends Controller
                 $merged['errors'] = array_merge($merged['errors'], $result['errors']);
             }
 
-            if ($merged['total'] === 0 && $merged['errors'] !== []) {
-                return ApiResponse::error($merged['errors'][0] ?? 'Synchronisation Ameex impossible.', $merged, 422);
-            }
-
             $message = sprintf(
                 'Ameex synchronisé : %d colis traités (%d nouveaux, %d mis à jour, %d actions).',
                 $merged['total'], $merged['imported'], $merged['updated'], $merged['events']
             );
+
+            if ($merged['errors'] !== []) {
+                $message .= ' Erreurs: ' . implode('; ', array_slice($merged['errors'], 0, 3));
+            }
 
             return ApiResponse::success($merged, $message);
         } catch (\Throwable $e) {
