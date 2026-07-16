@@ -101,7 +101,7 @@ export type DeliveryModel = {
       secretKey: string;
       secretKeyConfigured: boolean;
     };
-    ameex: { apiUrl: string; apiKey: string; apiKeyConfigured: boolean };
+    ameex: { apiUrl: string; apiId: string; apiKey: string; apiKeyConfigured: boolean };
   };
   cod: {
     reconciliationDelayDays: string;

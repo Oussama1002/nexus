@@ -310,7 +310,8 @@ export function DeliveryPanel({
           <div className="space-y-4">
             <p className="text-xs font-bold uppercase tracking-wider text-primary-700">Ameex</p>
             <TextField label="URL API" value={value.carriers.ameex.apiUrl} onChange={(v) => p({ carriers: { ...value.carriers, ameex: { ...value.carriers.ameex, apiUrl: v } } })} disabled={disabled} />
-            <SecretField label="Clé API (C-Api-Key)" configured={value.carriers.ameex.apiKeyConfigured} value={value.carriers.ameex.apiKey} onChange={(v) => p({ carriers: { ...value.carriers, ameex: { ...value.carriers.ameex, apiKey: v } } })} disabled={!sec} />
+            <TextField label="API ID (C-Api-Id)" value={value.carriers.ameex.apiId} onChange={(v) => p({ carriers: { ...value.carriers, ameex: { ...value.carriers.ameex, apiId: v } } })} disabled={disabled} />
+            <SecretField label="API Key (C-Api-Key)" configured={value.carriers.ameex.apiKeyConfigured} value={value.carriers.ameex.apiKey} onChange={(v) => p({ carriers: { ...value.carriers, ameex: { ...value.carriers.ameex, apiKey: v } } })} disabled={!sec} />
           </div>
         </div>
       </SectionCard>

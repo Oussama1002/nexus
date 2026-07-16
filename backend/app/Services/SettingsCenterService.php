@@ -377,7 +377,8 @@ class SettingsCenterService
                 ],
                 'ameex' => [
                     'apiUrl' => $this->getRaw($brandId, 'carrier_ameex_api_url')
-                        ?: (string) config('delivery.ameex.api_url', ''),
+                        ?: (string) config('delivery.ameex.api_url', 'https://api.ameex.app'),
+                    'apiId' => $this->getRaw($brandId, 'carrier_ameex_api_id') ?? '',
                     'apiKey' => '',
                     'apiKeyConfigured' => $this->hasStoredValue($brandId, 'carrier_ameex_api_key'),
                 ],
@@ -423,6 +424,7 @@ class SettingsCenterService
             }
             $ax = $car['ameex'] ?? [];
             $this->upsert($brandId, 'delivery', 'carrier_ameex_api_url', $ax['apiUrl'] ?? '');
+            $this->upsert($brandId, 'delivery', 'carrier_ameex_api_id', $ax['apiId'] ?? '');
             $ak = $ax['apiKey'] ?? '';
             if ($isAdmin && ! SystemSetting::valueIsUnchangedSecretPlaceholder((string) $ak) && $ak !== '') {
                 $this->upsertSensitive($brandId, 'delivery', 'carrier_ameex_api_key', (string) $ak, $defs);
