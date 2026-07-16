@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\Shipment;
 use App\Services\Delivery\AmeexInboundSyncService;
 use App\Services\Delivery\SenditInboundSyncService;
@@ -141,30 +142,51 @@ class DeliveryDashboardController extends Controller
         ], 'Delivery dashboard.');
     }
 
+    private function resolveBrandIds(Request $request): array
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+
+        if ($brandId !== null) {
+            return [$brandId];
+        }
+
+        return Brand::pluck('id')->all();
+    }
+
     public function syncSendit(Request $request, SenditInboundSyncService $senditSync): JsonResponse
     {
         set_time_limit(300);
 
         try {
-            $brandId = ApiBrandContext::resolveBrandId($request);
+            $brandIds = $this->resolveBrandIds($request);
             $maxPages = min(max((int) $request->input('max_pages', 5), 1), 20);
             $startPage = max((int) $request->input('start_page', 1), 1);
 
-            $result = $senditSync->sync($brandId, $request->user(), $maxPages, $startPage);
+            $merged = ['imported' => 0, 'updated' => 0, 'events' => 0, 'pages' => 0, 'total' => 0, 'errors' => [], 'has_more' => false, 'next_page' => 1];
 
-            if ($result['total'] === 0 && $result['errors'] !== []) {
-                return ApiResponse::error($result['errors'][0] ?? 'Synchronisation Sendit impossible.', $result, 422);
+            foreach ($brandIds as $bid) {
+                $result = $senditSync->sync($bid, $request->user(), $maxPages, $startPage);
+                $merged['imported'] += $result['imported'];
+                $merged['updated'] += $result['updated'];
+                $merged['events'] += $result['events'];
+                $merged['pages'] += $result['pages'];
+                $merged['total'] += $result['total'];
+                $merged['errors'] = array_merge($merged['errors'], $result['errors']);
+                if ($result['has_more']) {
+                    $merged['has_more'] = true;
+                }
+            }
+
+            if ($merged['total'] === 0 && $merged['errors'] !== []) {
+                return ApiResponse::error($merged['errors'][0] ?? 'Synchronisation Sendit impossible.', $merged, 422);
             }
 
             $message = sprintf(
                 'Sendit synchronisé : %d colis traités (%d nouveaux, %d mis à jour, %d actions).',
-                $result['total'],
-                $result['imported'],
-                $result['updated'],
-                $result['events']
+                $merged['total'], $merged['imported'], $merged['updated'], $merged['events']
             );
 
-            return ApiResponse::success($result, $message);
+            return ApiResponse::success($merged, $message);
         } catch (\Throwable $e) {
             return ApiResponse::error('Synchronisation Sendit interrompue : '.$e->getMessage(), null, 500);
         }
@@ -175,25 +197,35 @@ class DeliveryDashboardController extends Controller
         set_time_limit(300);
 
         try {
-            $brandId = ApiBrandContext::resolveBrandId($request);
+            $brandIds = $this->resolveBrandIds($request);
             $maxPages = min(max((int) $request->input('max_pages', 5), 1), 20);
             $startPage = max((int) $request->input('start_page', 1), 1);
 
-            $result = $ameexSync->sync($brandId, $request->user(), $maxPages, $startPage);
+            $merged = ['imported' => 0, 'updated' => 0, 'events' => 0, 'pages' => 0, 'total' => 0, 'errors' => [], 'has_more' => false, 'next_page' => 1];
 
-            if ($result['total'] === 0 && $result['errors'] !== []) {
-                return ApiResponse::error($result['errors'][0] ?? 'Synchronisation Ameex impossible.', $result, 422);
+            foreach ($brandIds as $bid) {
+                $result = $ameexSync->sync($bid, $request->user(), $maxPages, $startPage);
+                $merged['imported'] += $result['imported'];
+                $merged['updated'] += $result['updated'];
+                $merged['events'] += $result['events'];
+                $merged['pages'] += $result['pages'];
+                $merged['total'] += $result['total'];
+                $merged['errors'] = array_merge($merged['errors'], $result['errors']);
+                if ($result['has_more']) {
+                    $merged['has_more'] = true;
+                }
+            }
+
+            if ($merged['total'] === 0 && $merged['errors'] !== []) {
+                return ApiResponse::error($merged['errors'][0] ?? 'Synchronisation Ameex impossible.', $merged, 422);
             }
 
             $message = sprintf(
                 'Ameex synchronisé : %d colis traités (%d nouveaux, %d mis à jour, %d actions).',
-                $result['total'],
-                $result['imported'],
-                $result['updated'],
-                $result['events']
+                $merged['total'], $merged['imported'], $merged['updated'], $merged['events']
             );
 
-            return ApiResponse::success($result, $message);
+            return ApiResponse::success($merged, $message);
         } catch (\Throwable $e) {
             return ApiResponse::error('Synchronisation Ameex interrompue : '.$e->getMessage(), null, 500);
         }
