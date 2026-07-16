@@ -3,9 +3,12 @@
 namespace App\Services\Delivery\Providers;
 
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Http;
 
 /**
- * Ameex.ma customer delivery API — C-Api-Key header authentication.
+ * Ameex.app customer delivery API.
+ * Auth: C-Api-Id + C-Api-Key headers.
+ * api_key_ref = C-Api-Id, api_key = C-Api-Key.
  */
 class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
 {
@@ -16,19 +19,24 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
 
     protected function defaultApiUrl(): string
     {
-        return (string) config('delivery.ameex.api_url', 'https://api.ameex.ma');
+        return (string) config('delivery.ameex.api_url', 'https://api.ameex.app');
     }
 
-    /** @return array{api_key: string}|null */
+    /** @return array{api_id: string, api_key: string}|null */
     protected function credentialsReady(): ?array
     {
         if (! $this->company) {
             return null;
         }
 
-        $key = trim((string) ($this->company->integrationApiKey() ?? ''));
+        $apiId = trim((string) ($this->company->api_key_ref ?? ''));
+        $apiKey = trim((string) ($this->company->api_key ?? ''));
 
-        return $key !== '' ? ['api_key' => $key] : null;
+        if ($apiId === '' || $apiKey === '') {
+            return null;
+        }
+
+        return ['api_id' => $apiId, 'api_key' => $apiKey];
     }
 
     public function createShipment(array $payload): array
@@ -39,23 +47,24 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         }
 
         $body = [
-            'parcel_receiver' => (string) ($payload['recipient_name'] ?? ''),
-            'parcel_phone' => (string) ($payload['recipient_phone'] ?? ''),
-            'parcel_city' => (string) ($payload['recipient_city'] ?? ''),
-            'parcel_address' => (string) ($payload['recipient_address'] ?? ''),
-            'parcel_price' => (float) ($payload['cod_amount'] ?? 0),
-            'parcel_product' => (string) ($payload['products'] ?? ''),
-            'parcel_note' => (string) ($payload['comment'] ?? $payload['notes'] ?? ''),
-            'parcel_ref' => (string) ($payload['reference'] ?? $payload['tracking_number'] ?? ''),
-            'parcel_open' => ! empty($payload['allow_open']) ? 1 : 0,
+            'type' => 'SIMPLE',
+            'business' => $credentials['api_id'],
+            'order_num' => (string) ($payload['reference'] ?? ''),
+            'receiver' => (string) ($payload['recipient_name'] ?? ''),
+            'phone' => (string) ($payload['recipient_phone'] ?? ''),
+            'city' => (string) ($payload['recipient_city'] ?? ''),
+            'address' => (string) ($payload['recipient_address'] ?? ''),
+            'cod' => (string) ((float) ($payload['cod_amount'] ?? 0)),
+            'product' => (string) ($payload['products'] ?? ''),
+            'comment' => (string) ($payload['comment'] ?? $payload['notes'] ?? ''),
+            'open' => ! empty($payload['allow_open']) ? 'YES' : 'NO',
+            'try' => ! empty($payload['allow_try']) ? 'YES' : 'NO',
+            'fragile' => '0',
+            'replace' => 'false',
         ];
 
-        $response = $this->authorizedPost('customer/Delivery/AddParcel', $body);
+        $response = $this->ameexPost('customer/Delivery/Parcels/Action/Type/Add', $body, $credentials);
         $data = $this->decodeJson($response);
-
-        if ($this->isApiKeyError($data)) {
-            return $this->failure('ameex_auth_failed', 'Ameex API key invalid or not authorized.');
-        }
 
         if (! $response->successful() || ! is_array($data)) {
             return $this->failure('ameex_create_failed', $this->responseMessage($response, 'Ameex create parcel failed.'), [
@@ -64,15 +73,16 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             ]);
         }
 
-        $tracking = $data['parcel_code'] ?? $data['code'] ?? $data['tracking'] ?? null;
-        if ($tracking === null && is_array($data['data'] ?? null)) {
-            $tracking = $data['data']['parcel_code'] ?? $data['data']['code'] ?? null;
+        if ($this->isApiError($data)) {
+            return $this->failure('ameex_create_failed', $this->extractMessage($data, 'Ameex create parcel failed.'), ['raw' => $data]);
         }
 
-        return $this->success('ameex_created', 'Shipment registered at Ameex.', [
+        $tracking = $this->extractTracking($data);
+
+        return $this->success('ameex_created', 'Colis enregistré chez Ameex.', [
             'tracking_number' => $tracking,
             'external_tracking_id' => $tracking,
-            'carrier_status' => (string) ($data['status'] ?? $data['parcel_status'] ?? 'created'),
+            'carrier_status' => (string) ($data['status'] ?? 'created'),
             'raw' => $data,
         ]);
     }
@@ -84,17 +94,12 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             return $this->notConfigured();
         }
 
-        $response = $this->authorizedPost('customer/Delivery/GetParcelTracking', [
-            'parcel_code' => $trackingNumber,
-            'code' => $trackingNumber,
-            'tracking' => $trackingNumber,
-        ]);
-
+        $response = $this->ameexGet(
+            'customer/Delivery/DeliveryNotes/Print/Type/Note',
+            ['Ref' => $trackingNumber],
+            $credentials
+        );
         $data = $this->decodeJson($response);
-
-        if ($this->isApiKeyError($data)) {
-            return $this->failure('ameex_auth_failed', 'Ameex API key invalid or not authorized.');
-        }
 
         if (! $response->successful() || ! is_array($data)) {
             return $this->failure('ameex_track_failed', $this->responseMessage($response, 'Ameex tracking failed.'), [
@@ -103,11 +108,7 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             ]);
         }
 
-        $status = (string) (
-            $data['parcel_status']
-            ?? $data['status']
-            ?? (is_array($data['data'] ?? null) ? ($data['data']['status'] ?? $data['data']['parcel_status'] ?? '') : '')
-        );
+        $status = (string) ($data['status'] ?? $data['parcel_status'] ?? '');
 
         return $this->success('ameex_track', 'Ameex tracking snapshot.', [
             'tracking_number' => $trackingNumber,
@@ -124,16 +125,14 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             return $this->notConfigured();
         }
 
-        $response = $this->authorizedPost('customer/Delivery/DeleteParcel', [
-            'parcel_code' => $trackingNumber,
-            'code' => $trackingNumber,
-        ]);
+        $response = Http::timeout(30)
+            ->acceptJson()
+            ->withHeaders($this->apiHeaders($credentials))
+            ->delete($this->apiUrl() . '/customer/Delivery/DeliveryNotes/Action/Type/Add', [
+                'Ref' => $trackingNumber,
+            ]);
 
         $data = $this->decodeJson($response);
-
-        if ($this->isApiKeyError($data)) {
-            return $this->failure('ameex_auth_failed', 'Ameex API key invalid or not authorized.');
-        }
 
         if (! $response->successful()) {
             return $this->failure('ameex_cancel_failed', $this->responseMessage($response, 'Ameex cancel failed.'), [
@@ -142,7 +141,7 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             ]);
         }
 
-        return $this->success('ameex_cancelled', 'Shipment cancelled at Ameex.', [
+        return $this->success('ameex_cancelled', 'Colis annulé chez Ameex.', [
             'tracking_number' => $trackingNumber,
             'raw' => $data,
         ]);
@@ -150,80 +149,122 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
 
     public function printLabel(string $trackingNumber): array
     {
-        $track = $this->trackShipment($trackingNumber);
-        if (! ($track['ok'] ?? false)) {
-            return $track;
+        $credentials = $this->credentialsReady();
+        if ($credentials === null) {
+            return $this->notConfigured();
         }
 
-        $raw = is_array($track['data']['raw'] ?? null) ? $track['data']['raw'] : [];
-        $labelUrl = $raw['label_url'] ?? $raw['label'] ?? null;
-        if (is_array($raw['data'] ?? null)) {
-            $labelUrl = $labelUrl ?? ($raw['data']['label_url'] ?? $raw['data']['label'] ?? null);
-        }
-
-        if (! is_string($labelUrl) || $labelUrl === '') {
-            return $this->failure('ameex_label_failed', 'Ameex label not available for this parcel.', [
-                'tracking_number' => $trackingNumber,
-            ]);
-        }
+        $url = $this->apiUrl() . '/customer/Delivery/DeliveryNotes/Print/Type/Note?Ref=' . urlencode($trackingNumber);
 
         return $this->success('label_available', 'Ameex label URL retrieved.', [
-            'label_url' => $labelUrl,
+            'label_url' => $url,
             'tracking_number' => $trackingNumber,
+            'headers' => $this->apiHeaders($credentials),
         ]);
     }
 
-    /** @param  array{api_key: string}  $credentials */
+    /** @param  array{api_id: string, api_key: string}  $credentials */
     public function testConnection(array $credentials): array
     {
-        if ($credentials['api_key'] === '') {
-            return $this->failure('ameex_incomplete', 'Ameex API key is required.');
+        if ($credentials['api_id'] === '' || $credentials['api_key'] === '') {
+            return $this->failure('ameex_incomplete', 'Ameex API ID et API Key requis.');
         }
 
-        $response = $this->httpGet('customer/Delivery/ParcelsList', [], $this->apiHeaders($credentials['api_key']));
-        $data = $this->decodeJson($response);
+        $response = $this->ameexPost('customer/Delivery/Parcels/Action/Type/Add', [
+            'type' => 'SIMPLE',
+            'business' => $credentials['api_id'],
+        ], $credentials);
 
-        if ($this->isApiKeyError($data)) {
-            return $this->failure('ameex_auth_failed', 'Ameex API key invalid or not authorized.');
+        if ($response->status() === 401 || $response->status() === 403) {
+            return $this->failure('ameex_auth_failed', 'Ameex API credentials invalides.');
         }
 
-        if (! $response->successful()) {
-            return $this->failure('ameex_connection_failed', $this->responseMessage($response, 'Ameex connection test failed.'));
-        }
-
-        return $this->success('ameex_connected', 'Ameex API connection successful.');
+        return $this->success('ameex_connected', 'Connexion Ameex API réussie.');
     }
 
-    /** @param  array<string, mixed>  $body */
-    protected function authorizedPost(string $path, array $body): Response
+    protected function ameexPost(string $path, array $body, array $credentials): Response
     {
-        $credentials = $this->credentialsReady();
-        $key = is_array($credentials) ? $credentials['api_key'] : '';
+        return Http::timeout(30)
+            ->acceptJson()
+            ->withHeaders($this->apiHeaders($credentials))
+            ->asMultipart()
+            ->post($this->apiUrl() . '/' . ltrim($path, '/'), $this->toMultipart($body));
+    }
 
-        return $this->httpPost($path, $body, $this->apiHeaders($key));
+    protected function ameexGet(string $path, array $query, array $credentials): Response
+    {
+        return Http::timeout(30)
+            ->acceptJson()
+            ->withHeaders($this->apiHeaders($credentials))
+            ->get($this->apiUrl() . '/' . ltrim($path, '/'), $query);
     }
 
     /** @return array<string, string> */
-    protected function apiHeaders(string $apiKey): array
+    protected function apiHeaders(array $credentials): array
     {
         return [
-            'C-Api-Key' => $apiKey,
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
+            'C-Api-Id' => $credentials['api_id'],
+            'C-Api-Key' => $credentials['api_key'],
         ];
     }
 
-    /** @param  array<string, mixed>|null  $data */
-    protected function isApiKeyError(?array $data): bool
+    /** @return array<int, array{name: string, contents: string}> */
+    private function toMultipart(array $body): array
+    {
+        $parts = [];
+        foreach ($body as $key => $value) {
+            $parts[] = ['name' => $key, 'contents' => (string) $value];
+        }
+
+        return $parts;
+    }
+
+    private function isApiError(?array $data): bool
     {
         if (! is_array($data)) {
             return false;
         }
-
         $check = $data['CHECK_API'] ?? null;
+        if (is_array($check) && ($check['RESULT'] ?? '') === 'ERROR') {
+            return true;
+        }
+        if (isset($data['error']) && $data['error'] === true) {
+            return true;
+        }
 
-        return is_array($check)
-            && ($check['RESULT'] ?? '') === 'ERROR'
-            && str_contains(mb_strtolower((string) ($check['MESSAGE'] ?? '')), 'api key');
+        return false;
+    }
+
+    private function extractMessage(?array $data, string $fallback): string
+    {
+        if (! is_array($data)) {
+            return $fallback;
+        }
+        $check = $data['CHECK_API'] ?? null;
+        if (is_array($check) && ! empty($check['MESSAGE'])) {
+            return (string) $check['MESSAGE'];
+        }
+        if (! empty($data['message'])) {
+            return (string) $data['message'];
+        }
+
+        return $fallback;
+    }
+
+    private function extractTracking(?array $data): ?string
+    {
+        if (! is_array($data)) {
+            return null;
+        }
+        foreach (['code', 'parcel_code', 'tracking', 'ref', 'Ref'] as $key) {
+            if (! empty($data[$key])) {
+                return (string) $data[$key];
+            }
+            if (is_array($data['data'] ?? null) && ! empty($data['data'][$key])) {
+                return (string) $data['data'][$key];
+            }
+        }
+
+        return null;
     }
 }

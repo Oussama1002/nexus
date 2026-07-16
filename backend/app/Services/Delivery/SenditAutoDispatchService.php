@@ -5,11 +5,13 @@ namespace App\Services\Delivery;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Models\User;
-use App\Services\Delivery\Providers\SenditDeliveryProvider;
+use App\Services\Delivery\Contracts\DeliveryProviderInterface;
 use Illuminate\Support\Facades\Log;
 
 class SenditAutoDispatchService
 {
+    private const CARRIERS = ['ameex', 'sendit'];
+
     public function __construct(
         protected DeliveryCarrierResolver $carrierResolver,
         protected DeliveryProviderFactory $providerFactory,
@@ -19,14 +21,23 @@ class SenditAutoDispatchService
     {
         $order->loadMissing(['customer', 'lines.product', 'brand']);
 
-        $company = $this->carrierResolver->resolve('sendit', $order->brand_id);
-        if (!$company) {
-            Log::warning('SenditAutoDispatch: no Sendit carrier configured for brand ' . $order->brand_id);
-            return null;
+        $company = null;
+        $provider = null;
+
+        foreach (self::CARRIERS as $code) {
+            $candidate = $this->carrierResolver->resolve($code, $order->brand_id);
+            if ($candidate) {
+                $p = $this->providerFactory->forCompany($candidate);
+                if ($p instanceof DeliveryProviderInterface) {
+                    $company = $candidate;
+                    $provider = $p;
+                    break;
+                }
+            }
         }
 
-        $provider = $this->providerFactory->forCompany($company);
-        if (!($provider instanceof SenditDeliveryProvider)) {
+        if (!$company || !$provider) {
+            Log::warning('AutoDispatch: no delivery carrier configured for brand ' . $order->brand_id);
             return null;
         }
 
@@ -63,8 +74,9 @@ class SenditAutoDispatchService
         $result = $provider->createShipment($payload);
 
         if (!($result['ok'] ?? false)) {
-            Log::warning('SenditAutoDispatch: failed to create shipment', [
+            Log::warning('AutoDispatch: failed to create shipment', [
                 'order_id' => $order->id,
+                'carrier' => $company->code,
                 'error' => $result['message'] ?? 'Unknown error',
                 'data' => $result['data'] ?? [],
             ]);
@@ -97,9 +109,10 @@ class SenditAutoDispatchService
 
         return [
             'ok' => true,
+            'carrier' => $company->code,
             'shipment_id' => $shipment->id,
             'tracking_number' => $trackingNumber,
-            'sendit_result' => $result,
+            'result' => $result,
         ];
     }
 }

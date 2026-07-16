@@ -26,13 +26,13 @@ class DeliveryCarrierResolver
             ],
             'ameex' => [
                 'name' => 'Ameex',
-                'api_url' => (string) config('delivery.ameex.api_url'),
-                'tracking_base_url' => 'https://www.ameex.ma/en/delivery',
+                'api_url' => (string) config('delivery.ameex.api_url', 'https://api.ameex.app'),
+                'tracking_base_url' => 'https://www.ameex.app',
                 'avg_delivery_days' => 3,
-                'public_key' => null,
+                'public_key' => 'carrier_ameex_api_id',
                 'secret_key' => 'carrier_ameex_api_key',
                 'api_url_key' => 'carrier_ameex_api_url',
-                'env_public' => null,
+                'env_public' => 'AMEEX_API_ID',
                 'env_secret' => 'AMEEX_API_KEY',
             ],
             default => null,
@@ -78,11 +78,7 @@ class DeliveryCarrierResolver
             $secret = $this->brandSetting($brandId, $defaults['secret_key'])
                 ?: trim((string) env($defaults['env_secret'], ''));
             if ($secret !== '') {
-                if ($code === 'ameex') {
-                    $company->api_key_ref = $secret;
-                } else {
-                    $company->api_key = $secret;
-                }
+                $company->api_key = $secret;
             }
         }
 
