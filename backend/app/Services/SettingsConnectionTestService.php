@@ -140,23 +140,18 @@ class SettingsConnectionTestService
             }
         }
 
-        $ameexCompany = DeliveryCompany::query()->where('code', 'ameex')->first();
-        if ($ameexCompany && filled($ameexCompany->integrationApiKey())) {
-            $result = (new AmeexDeliveryProvider($ameexCompany))->testConnection([
-                'api_key' => (string) $ameexCompany->integrationApiKey(),
-            ]);
-            $messages[] = 'Ameex: '.$result['message'];
-            $anyOk = $anyOk || ($result['ok'] ?? false);
-        }
-
-        if (! $anyOk && $this->hasSecret($brandId, 'carrier_ameex_api_key')) {
+        $ameexApiId = $this->val($brandId, 'carrier_ameex_api_id');
+        $ameexApiKey = $this->val($brandId, 'carrier_ameex_api_key');
+        if ($ameexApiId !== '' && $ameexApiKey !== '') {
             $company = new DeliveryCompany([
                 'code' => 'ameex',
-                'api_url' => $this->val($brandId, 'carrier_ameex_api_url') ?: config('delivery.ameex.api_url'),
-                'api_key_ref' => $this->val($brandId, 'carrier_ameex_api_key'),
+                'api_url' => $this->val($brandId, 'carrier_ameex_api_url') ?: 'https://api.ameex.app',
+                'api_key_ref' => $ameexApiId,
+                'api_key' => $ameexApiKey,
             ]);
             $result = (new AmeexDeliveryProvider($company))->testConnection([
-                'api_key' => $this->val($brandId, 'carrier_ameex_api_key'),
+                'api_id' => $ameexApiId,
+                'api_key' => $ameexApiKey,
             ]);
             $messages[] = 'Ameex: '.$result['message'];
             $anyOk = $anyOk || ($result['ok'] ?? false);
