@@ -25,7 +25,7 @@ type DashboardPayload = {
   revenue?: number;
 };
 
-type CarrierOpt = { id: number; name: string };
+type CarrierOpt = { id: number; name: string; code?: string };
 
 export function DeliveryDashboardScreen() {
   const { activeBrandId } = useBrand();
@@ -66,63 +66,90 @@ export function DeliveryDashboardScreen() {
     return carriers.find((c) => String(c.id) === carrierId)?.name ?? 'Transporteur';
   }, [carrierId, carriers]);
 
+  const syncOneCarrier = useCallback(async (endpoint: string, label: string) => {
+    let startPage = 1;
+    let imported = 0;
+    let updated = 0;
+    let total = 0;
+
+    while (true) {
+      const body: Record<string, unknown> = { start_page: startPage, max_pages: 5 };
+      const res = await api.post<{
+        imported: number;
+        updated: number;
+        events: number;
+        total: number;
+        has_more?: boolean;
+        next_page?: number;
+      }>(endpoint, body);
+
+      if (!res.ok) {
+        return { ok: false, message: res.message || `Échec sync ${label}`, imported, updated, total };
+      }
+
+      const payload = res.data;
+      if (payload) {
+        imported += payload.imported ?? 0;
+        updated += payload.updated ?? 0;
+        total += payload.total ?? 0;
+      }
+
+      if (!payload?.has_more) break;
+      startPage = payload.next_page ?? startPage + 5;
+    }
+
+    return { ok: true, imported, updated, total, message: '' };
+  }, []);
+
   const syncCarrier = useCallback(async () => {
     if (!activeBrandId) return;
     setSyncing(true);
     setSyncProgress('');
 
-    let startPage = 1;
-    let imported = 0;
-    let updated = 0;
-    let events = 0;
-    let total = 0;
-    let batch = 0;
-
     try {
-      while (true) {
-        batch++;
-        const body: Record<string, unknown> = { start_page: startPage, max_pages: 5 };
-        if (carrierId) body.delivery_company_id = Number(carrierId);
-        const res = await api.post<{
-          imported: number;
-          updated: number;
-          events: number;
-          total: number;
-          has_more?: boolean;
-          next_page?: number;
-        }>('delivery/sendit/sync', body);
+      const results: string[] = [];
+      let totalImported = 0;
+      let totalUpdated = 0;
+      let totalCount = 0;
 
-        if (!res.ok) {
-          toast.error(res.message || 'Échec sync — réessayez ou vérifiez la connexion API.');
-          break;
-        }
-
-        const payload = res.data;
-        if (payload) {
-          imported += payload.imported ?? 0;
-          updated += payload.updated ?? 0;
-          events += payload.events ?? 0;
-          total += payload.total ?? 0;
-          setSyncProgress(total > 0 ? `${total} colis…` : `Lot ${batch}…`);
-        }
-
-        if (!payload?.has_more) {
-          toast.success(
-            total > 0
-              ? `Synchronisé : ${total} colis (${imported} nouveaux, ${updated} mis à jour).`
-              : res.message || 'Synchronisation terminée.',
-          );
-          await load();
-          break;
-        }
-
-        startPage = payload.next_page ?? startPage + 5;
+      setSyncProgress('Sync Ameex…');
+      const ameex = await syncOneCarrier('delivery/ameex/sync', 'Ameex');
+      if (ameex.ok) {
+        totalImported += ameex.imported;
+        totalUpdated += ameex.updated;
+        totalCount += ameex.total;
+        if (ameex.total > 0) results.push(`Ameex: ${ameex.total} colis`);
+      } else if (ameex.message && !ameex.message.includes('introuvable')) {
+        results.push(`Ameex: ${ameex.message}`);
       }
+
+      setSyncProgress('Sync Sendit…');
+      const sendit = await syncOneCarrier('delivery/sendit/sync', 'Sendit');
+      if (sendit.ok) {
+        totalImported += sendit.imported;
+        totalUpdated += sendit.updated;
+        totalCount += sendit.total;
+        if (sendit.total > 0) results.push(`Sendit: ${sendit.total} colis`);
+      } else if (sendit.message && !sendit.message.includes('introuvable')) {
+        results.push(`Sendit: ${sendit.message}`);
+      }
+
+      if (totalCount > 0) {
+        toast.success(
+          `Synchronisé : ${totalCount} colis (${totalImported} nouveaux, ${totalUpdated} mis à jour). ${results.join(' | ')}`,
+        );
+      } else if (results.length > 0) {
+        toast.error(results.join(' | '));
+      } else {
+        toast.success('Synchronisation terminée — aucun nouveau colis.');
+      }
+
+      await load();
     } finally {
       setSyncing(false);
       setSyncProgress('');
     }
-  }, [activeBrandId, carrierId, load, toast]);
+  }, [activeBrandId, syncOneCarrier, load, toast]);
 
   useEffect(() => {
     if (!activeBrandId) return;

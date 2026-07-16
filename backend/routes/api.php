@@ -206,6 +206,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('delivery/dashboard', DeliveryDashboardController::class)->middleware('permission:delivery.dashboard');
     Route::post('delivery/sendit/sync', [DeliveryDashboardController::class, 'syncSendit'])->middleware('permission:delivery.dashboard');
+    Route::post('delivery/ameex/sync', [DeliveryDashboardController::class, 'syncAmeex'])->middleware('permission:delivery.dashboard');
 
     Route::get('delivery-payments', [DeliveryPaymentController::class, 'index'])->middleware('permission:delivery_payments.view');
     Route::get('delivery-payments/cod-summary', [DeliveryPaymentController::class, 'codPendingSummary'])->middleware('permission:delivery_payments.view');

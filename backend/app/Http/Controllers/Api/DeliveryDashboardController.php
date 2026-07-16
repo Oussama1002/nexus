@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
+use App\Services\Delivery\AmeexInboundSyncService;
 use App\Services\Delivery\SenditInboundSyncService;
 use App\Services\ShipmentOperationsService;
 use App\Support\ApiBrandContext;
@@ -159,6 +160,35 @@ class DeliveryDashboardController extends Controller
             return ApiResponse::success($result, $message);
         } catch (\Throwable $e) {
             return ApiResponse::error('Synchronisation Sendit interrompue : '.$e->getMessage(), null, 500);
+        }
+    }
+
+    public function syncAmeex(Request $request, AmeexInboundSyncService $ameexSync): JsonResponse
+    {
+        set_time_limit(300);
+
+        try {
+            $brandId = ApiBrandContext::resolveBrandId($request);
+            $maxPages = min(max((int) $request->input('max_pages', 5), 1), 20);
+            $startPage = max((int) $request->input('start_page', 1), 1);
+
+            $result = $ameexSync->sync($brandId, $request->user(), $maxPages, $startPage);
+
+            if ($result['total'] === 0 && $result['errors'] !== []) {
+                return ApiResponse::error($result['errors'][0] ?? 'Synchronisation Ameex impossible.', $result, 422);
+            }
+
+            $message = sprintf(
+                'Ameex synchronisé : %d colis traités (%d nouveaux, %d mis à jour, %d actions).',
+                $result['total'],
+                $result['imported'],
+                $result['updated'],
+                $result['events']
+            );
+
+            return ApiResponse::success($result, $message);
+        } catch (\Throwable $e) {
+            return ApiResponse::error('Synchronisation Ameex interrompue : '.$e->getMessage(), null, 500);
         }
     }
 }

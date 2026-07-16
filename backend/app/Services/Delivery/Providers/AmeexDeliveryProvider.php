@@ -164,6 +164,69 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
     }
 
     /** @param  array{api_id: string, api_key: string}  $credentials */
+    public function listDeliveries(int $page = 1): array
+    {
+        $credentials = $this->credentialsReady();
+        if ($credentials === null) {
+            return $this->notConfigured();
+        }
+
+        $response = $this->ameexGet('customer/Delivery/Parcels/Action/Type/List', [
+            'page' => max(1, $page),
+            'business' => $credentials['api_id'],
+        ], $credentials);
+        $data = $this->decodeJson($response);
+
+        if (! $response->successful() || ! is_array($data)) {
+            return $this->failure('ameex_list_failed', $this->responseMessage($response, 'Ameex list parcels failed.'), [
+                'page' => $page,
+                'http_status' => $response->status(),
+                'raw' => $data,
+            ]);
+        }
+
+        if ($this->isApiError($data)) {
+            return $this->failure('ameex_list_failed', $this->extractMessage($data, 'Ameex list parcels failed.'), ['raw' => $data]);
+        }
+
+        $items = $data['data'] ?? $data['parcels'] ?? $data['list'] ?? [];
+        if (! is_array($items)) {
+            $items = [];
+        }
+
+        return $this->success('ameex_list', 'Ameex parcels retrieved.', [
+            'page' => $page,
+            'items' => $items,
+            'count' => count($items),
+            'raw' => $data,
+        ]);
+    }
+
+    public function getDelivery(string $code): array
+    {
+        $credentials = $this->credentialsReady();
+        if ($credentials === null) {
+            return $this->notConfigured();
+        }
+
+        $response = $this->ameexGet('customer/Delivery/Parcels/Action/Type/Show', [
+            'Ref' => $code,
+        ], $credentials);
+        $data = $this->decodeJson($response);
+
+        if (! $response->successful() || ! is_array($data)) {
+            return $this->failure('ameex_detail_failed', $this->responseMessage($response, 'Ameex detail failed.'), [
+                'tracking_number' => $code,
+                'raw' => $data,
+            ]);
+        }
+
+        return $this->success('ameex_detail', 'Ameex parcel detail.', [
+            'delivery' => $data['data'] ?? $data,
+            'raw' => $data,
+        ]);
+    }
+
     public function testConnection(array $credentials): array
     {
         if ($credentials['api_id'] === '' || $credentials['api_key'] === '') {
