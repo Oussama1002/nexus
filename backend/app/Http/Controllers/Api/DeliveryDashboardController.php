@@ -115,14 +115,7 @@ class DeliveryDashboardController extends Controller
             ->join('orders', 'orders.id', '=', 'shipments.order_id')
             ->sum('orders.total');
 
-        $debugRawCount = Shipment::count();
-        $debugBrandId = $brandId;
-        $debugSql = (clone $q)->toRawSql();
-
         return ApiResponse::success([
-            '_debug_raw_count' => $debugRawCount,
-            '_debug_brand_id' => $debugBrandId,
-            '_debug_sql' => $debugSql,
             'total_shipments' => $total,
             'pending_shipments' => $pending,
             'in_transit_shipments' => $inTransit,
