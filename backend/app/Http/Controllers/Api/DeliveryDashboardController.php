@@ -116,6 +116,8 @@ class DeliveryDashboardController extends Controller
             ->sum('orders.total');
 
         return ApiResponse::success([
+            '_raw_count' => Shipment::count(),
+            '_brand_id' => $brandId,
             'total_shipments' => $total,
             'pending_shipments' => $pending,
             'in_transit_shipments' => $inTransit,

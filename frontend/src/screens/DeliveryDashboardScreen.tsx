@@ -235,7 +235,7 @@ export function DeliveryDashboardScreen() {
       </div>
 
       <div className="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-sm font-bold text-red-900">
-        BUILD 2026-07-17-V2 | data={data ? 'YES' : 'NO'} | total={data?.total_shipments ?? 'null'} | brandId={activeBrandId ?? 'null'}
+        BUILD V3 | total={data?.total_shipments ?? 'null'} | raw={(data as any)?._raw_count ?? '?'} | bid={(data as any)?._brand_id ?? '?'} | activeBrand={activeBrandId ?? 'null'}
       </div>
 
       {loading && !data ? (
