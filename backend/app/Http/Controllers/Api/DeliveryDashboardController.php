@@ -118,6 +118,8 @@ class DeliveryDashboardController extends Controller
         return ApiResponse::success([
             '_raw_count' => Shipment::count(),
             '_brand_id' => $brandId,
+            '_restrict' => $request->user()->shouldRestrictShipmentsToAssignedOrders(),
+            '_sql' => (clone $q)->toRawSql(),
             'total_shipments' => $total,
             'pending_shipments' => $pending,
             'in_transit_shipments' => $inTransit,
