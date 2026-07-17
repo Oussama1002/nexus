@@ -38,8 +38,6 @@ class AmeexInboundSyncService
         $pages = 0;
         $total = 0;
         $errors = [];
-        $lastPageItemCount = 0;
-        $nextPage = max(1, $startPage);
 
         $existingCodes = Shipment::query()
             ->where('brand_id', $brandId)
@@ -55,11 +53,10 @@ class AmeexInboundSyncService
             ->flip()
             ->all();
 
-        $pageLimit = max(1, $maxPages);
-        $endPage = max(1, $startPage) + $pageLimit - 1;
+        $perPage = 100;
 
-        for ($page = max(1, $startPage); $page <= $endPage; $page++) {
-            $list = $provider->listDeliveries($page);
+        for ($page = max(1, $startPage); $page <= $startPage + $maxPages - 1; $page++) {
+            $list = $provider->listDeliveries($page, $perPage);
             if (! ($list['ok'] ?? false)) {
                 if ($page === max(1, $startPage)) {
                     $errors[] = (string) ($list['message'] ?? 'Échec lecture Ameex.');
@@ -73,28 +70,16 @@ class AmeexInboundSyncService
             }
 
             $pages++;
-            $lastPageItemCount = count($items);
-            $total += $lastPageItemCount;
-            $nextPage = $page + 1;
+            $total += count($items);
 
             foreach ($items as $item) {
-                $code = $this->extractCode($item);
+                $code = (string) ($item['TBL_CODE'] ?? '');
                 if ($code === '') {
                     continue;
                 }
 
-                $isKnown = isset($existingCodes[$code]);
-                if (! $isKnown) {
-                    $detail = $provider->getDelivery($code);
-                    $delivery = ($detail['ok'] ?? false) && is_array($detail['data']['delivery'] ?? null)
-                        ? $detail['data']['delivery']
-                        : $item;
-                } else {
-                    $delivery = $item;
-                }
-
                 try {
-                    $result = $this->upsertDelivery($brandId, $company->id, $actor, $delivery, $code);
+                    $result = $this->upsertDelivery($brandId, $company->id, $actor, $item, $code);
                     if ($result['created']) {
                         $imported++;
                         $existingCodes[$code] = true;
@@ -107,34 +92,36 @@ class AmeexInboundSyncService
                 }
             }
 
-            if ($lastPageItemCount < 10) {
+            $hasMore = $list['data']['has_more'] ?? false;
+            if (! $hasMore) {
                 break;
             }
         }
 
-        $hasMore = $pages === $pageLimit && $lastPageItemCount >= 10;
-
         return compact('imported', 'updated', 'events', 'pages', 'total', 'errors') + [
-            'has_more' => $hasMore,
-            'next_page' => $nextPage,
+            'has_more' => false,
+            'next_page' => 1,
         ];
     }
 
-    protected function upsertDelivery(int $brandId, int $companyId, User $actor, array $delivery, string $code): array
+    protected function upsertDelivery(int $brandId, int $companyId, User $actor, array $item, string $code): array
     {
-        $carrierStatus = (string) ($delivery['status'] ?? $delivery['parcel_status'] ?? '');
-        $internalStatus = $this->mapper->toInternal($carrierStatus) ?? 'created';
+        $carrierStatus = $this->stripHtml($item['TBL_STATUT'] ?? '');
+        $carrierStatus = preg_replace('/[؀-ۿ\s]+$/u', '', $carrierStatus);
+        $internalStatus = $this->mapAmeexStatus($carrierStatus);
 
-        $city = (string) ($delivery['city'] ?? $delivery['ville'] ?? '');
-        $amount = (float) ($delivery['cod'] ?? $delivery['amount'] ?? $delivery['prix'] ?? 0);
-        $fee = (float) ($delivery['fee'] ?? $delivery['frais'] ?? 0);
-        $createdAt = $this->parseDate($delivery['created_at'] ?? $delivery['date'] ?? null);
-        $lastActionAt = $this->parseDate($delivery['last_action_at'] ?? $delivery['updated_at'] ?? null);
+        $city = (string) ($item['TBL_CITY'] ?? '');
+        $address = (string) ($item['TBL_ADDRESS'] ?? '');
+        $cod = (float) $this->stripHtml($item['TBL_COD'] ?? '0');
+        $createdAt = $this->parseDate($item['TBL_C_DATE'] ?? null);
+        $pickupAt = $this->parseDate($item['TBL_P_DATE'] ?? null);
+        $deliveredAt = $this->parseDate($item['TBL_D_DATE'] ?? null);
+        $returnedAt = $this->parseDate($item['TBL_RTN_R_DATE'] ?? null);
 
         return DB::transaction(function () use (
-            $brandId, $companyId, $actor, $delivery, $code,
-            $carrierStatus, $internalStatus, $city, $amount, $fee,
-            $createdAt, $lastActionAt,
+            $brandId, $companyId, $actor, $item, $code,
+            $carrierStatus, $internalStatus, $city, $address, $cod,
+            $createdAt, $pickupAt, $deliveredAt, $returnedAt,
         ) {
             $existing = Shipment::query()
                 ->where('brand_id', $brandId)
@@ -154,29 +141,28 @@ class AmeexInboundSyncService
                 'external_tracking_id' => $code,
                 'status' => $internalStatus,
                 'carrier_status' => $carrierStatus,
-                'carrier_response_json' => $delivery,
+                'carrier_response_json' => $item,
                 'carrier_last_sync_at' => now(),
                 'sync_error' => null,
-                'recipient_name' => (string) ($delivery['receiver'] ?? $delivery['name'] ?? ''),
-                'recipient_phone' => (string) ($delivery['phone'] ?? ''),
+                'recipient_name' => (string) ($item['TBL_RECEIVER'] ?? ''),
+                'recipient_phone' => (string) ($item['TBL_PHONE'] ?? ''),
                 'recipient_city' => $city,
                 'city' => $city,
-                'recipient_address' => (string) ($delivery['address'] ?? ''),
-                'address' => (string) ($delivery['address'] ?? ''),
-                'cod_amount' => $amount,
-                'delivery_fee' => $fee,
-                'payment_status' => $amount > 0 ? 'cod_pending' : 'not_applicable',
-                'notes' => (string) ($delivery['comment'] ?? ''),
+                'recipient_address' => $address,
+                'address' => $address,
+                'cod_amount' => $cod,
+                'payment_status' => $cod > 0 ? 'cod_pending' : 'not_applicable',
+                'notes' => (string) ($item['TBL_NOTE'] ?? ''),
             ];
 
             if ($createdAt) {
-                $payload['shipped_at'] = $payload['shipped_at'] ?? $createdAt;
+                $payload['shipped_at'] = $pickupAt ?? $createdAt;
             }
-            if ($internalStatus === 'delivered' && $lastActionAt) {
-                $payload['delivered_at'] = $lastActionAt;
+            if ($internalStatus === 'delivered' && $deliveredAt) {
+                $payload['delivered_at'] = $deliveredAt;
             }
-            if ($internalStatus === 'returned' && $lastActionAt) {
-                $payload['returned_at'] = $lastActionAt;
+            if ($internalStatus === 'returned' && $returnedAt) {
+                $payload['returned_at'] = $returnedAt;
             }
 
             if ($existing) {
@@ -191,19 +177,60 @@ class AmeexInboundSyncService
             $eventCount = 0;
 
             if ($created) {
-                $this->addEvent($shipment, $actor, 'imported', $internalStatus, 'Importé depuis Ameex', $delivery, $createdAt);
+                $this->addEvent($shipment, $actor, 'imported', $internalStatus, 'Importé depuis Ameex', $item, $createdAt);
                 $eventCount++;
             } elseif ($previousStatus !== null && $previousStatus !== $internalStatus) {
                 $this->addEvent(
                     $shipment, $actor, 'status_changed', $internalStatus,
                     sprintf('Ameex: %s → %s', $previousStatus, $internalStatus),
-                    $delivery, $lastActionAt
+                    $item, null
                 );
                 $eventCount++;
             }
 
             return ['created' => $created, 'events' => $eventCount];
         });
+    }
+
+    protected function mapAmeexStatus(string $raw): string
+    {
+        $s = mb_strtolower(trim($raw));
+
+        if (str_starts_with($s, 'livré')) {
+            return 'delivered';
+        }
+        if (str_starts_with($s, 'retourné')) {
+            return 'returned';
+        }
+        if (str_starts_with($s, 'annulé')) {
+            return 'cancelled';
+        }
+        if (str_starts_with($s, 'refusé')) {
+            return 'returned';
+        }
+        if (str_starts_with($s, 'expédié')) {
+            return 'in_transit';
+        }
+        if (str_starts_with($s, 'en cours')) {
+            return 'in_transit';
+        }
+        if (str_starts_with($s, 'ramassé') || str_starts_with($s, 'reçu')) {
+            return 'picked_up';
+        }
+        if (str_starts_with($s, 'reporté') || str_starts_with($s, 'programmé')) {
+            return 'out_for_delivery';
+        }
+        if (str_starts_with($s, 'nouveau')) {
+            return 'created';
+        }
+        if (str_contains($s, 'pas de réponse') || str_contains($s, 'boîte vocale') || str_starts_with($s, 'relancer')) {
+            return 'failed';
+        }
+        if (str_contains($s, 'hors-zone') || str_contains($s, 'en voyage')) {
+            return 'in_transit';
+        }
+
+        return $this->mapper->toInternal($raw) ?? 'created';
     }
 
     protected function addEvent(
@@ -234,14 +261,9 @@ class AmeexInboundSyncService
         }
     }
 
-    private function extractCode(array $item): string
+    private function stripHtml(string $html): string
     {
-        foreach (['code', 'parcel_code', 'ref', 'Ref', 'tracking', 'order_num'] as $key) {
-            if (! empty($item[$key])) {
-                return (string) $item[$key];
-            }
-        }
-        return '';
+        return trim(strip_tags($html));
     }
 
     private function emptyResult(array $errors = []): array

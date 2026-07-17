@@ -164,17 +164,27 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
     }
 
     /** @param  array{api_id: string, api_key: string}  $credentials */
-    public function listDeliveries(int $page = 1): array
+    public function listDeliveries(int $page = 1, int $perPage = 100): array
     {
         $credentials = $this->credentialsReady();
         if ($credentials === null) {
             return $this->notConfigured();
         }
 
-        $response = $this->ameexGet('customer/Delivery/Parcels/Action/Type/List', [
-            'page' => max(1, $page),
+        $start = ($page - 1) * $perPage;
+
+        $body = [
+            'start' => (string) $start,
+            'length' => (string) $perPage,
+            'search[value]' => '',
+            'search[regex]' => 'false',
             'business' => $credentials['api_id'],
-        ], $credentials);
+            'all_data' => '1',
+            'date[from]' => '01/01/2020',
+            'date[to]' => now()->format('m/d/Y'),
+        ];
+
+        $response = $this->ameexPost('customer/Delivery/Parcels/Json', $body, $credentials);
         $data = $this->decodeJson($response);
 
         if (! $response->successful() || ! is_array($data)) {
@@ -185,45 +195,19 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             ]);
         }
 
-        if ($this->isApiError($data)) {
-            return $this->failure('ameex_list_failed', $this->extractMessage($data, 'Ameex list parcels failed.'), ['raw' => $data]);
-        }
-
-        $items = $data['data'] ?? $data['parcels'] ?? $data['list'] ?? [];
+        $items = $data['aaData'] ?? [];
         if (! is_array($items)) {
             $items = [];
         }
+
+        $totalRecords = (int) ($data['iTotalDisplayRecords'] ?? 0);
 
         return $this->success('ameex_list', 'Ameex parcels retrieved.', [
             'page' => $page,
             'items' => $items,
             'count' => count($items),
-            'raw' => $data,
-        ]);
-    }
-
-    public function getDelivery(string $code): array
-    {
-        $credentials = $this->credentialsReady();
-        if ($credentials === null) {
-            return $this->notConfigured();
-        }
-
-        $response = $this->ameexGet('customer/Delivery/Parcels/Action/Type/Show', [
-            'Ref' => $code,
-        ], $credentials);
-        $data = $this->decodeJson($response);
-
-        if (! $response->successful() || ! is_array($data)) {
-            return $this->failure('ameex_detail_failed', $this->responseMessage($response, 'Ameex detail failed.'), [
-                'tracking_number' => $code,
-                'raw' => $data,
-            ]);
-        }
-
-        return $this->success('ameex_detail', 'Ameex parcel detail.', [
-            'delivery' => $data['data'] ?? $data,
-            'raw' => $data,
+            'total_records' => $totalRecords,
+            'has_more' => ($start + count($items)) < $totalRecords,
         ]);
     }
 

@@ -234,10 +234,6 @@ export function DeliveryDashboardScreen() {
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-sm font-bold text-red-900">
-        V4 | total={data?.total_shipments ?? '?'} | raw={(data as any)?._raw_count ?? '?'} | restrict={String((data as any)?._restrict)} | sql={(data as any)?._sql ?? '?'}
-      </div>
-
       {loading && !data ? (
         <p className="text-sm text-zinc-500">Chargement…</p>
       ) : !data ? (
