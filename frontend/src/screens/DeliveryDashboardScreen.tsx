@@ -234,6 +234,10 @@ export function DeliveryDashboardScreen() {
         </div>
       </div>
 
+      <div className="rounded-xl border-2 border-red-400 bg-red-50 p-3 text-sm font-bold text-red-900">
+        BUILD 2026-07-17-V2 | data={data ? 'YES' : 'NO'} | total={data?.total_shipments ?? 'null'} | brandId={activeBrandId ?? 'null'}
+      </div>
+
       {loading && !data ? (
         <p className="text-sm text-zinc-500">Chargement…</p>
       ) : !data ? (
