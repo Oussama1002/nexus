@@ -119,6 +119,9 @@ export function ShipmentsScreen() {
   const [cityFilter, setCityFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(0);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -152,7 +155,7 @@ export function ShipmentsScreen() {
   const load = useCallback(async () => {
     if (!activeBrandId) return;
     setLoading(true);
-    const qs = new URLSearchParams({ per_page: '200' });
+    const qs = new URLSearchParams({ per_page: '100', page: String(page) });
     if (status !== 'all') qs.set('status', status);
     if (paymentStatus !== 'all') qs.set('payment_status', paymentStatus);
     if (carrierFilter !== 'all') qs.set('delivery_company_id', carrierFilter);
@@ -163,9 +166,12 @@ export function ShipmentsScreen() {
 
     const res = await api.get<LaravelPaginator<ApiShipment>>(`shipments?${qs}`);
     setLoading(false);
-    if (res.ok && isPaginator<ApiShipment>(res.data)) setRows(res.data.data);
-    else if (!res.ok) toast.error(res.message);
-  }, [activeBrandId, carrierFilter, cityFilter, dateFrom, dateTo, paymentStatus, q, status, toast]);
+    if (res.ok && isPaginator<ApiShipment>(res.data)) {
+      setRows(res.data.data);
+      setLastPage(res.data.last_page);
+      setTotalRows(res.data.total);
+    } else if (!res.ok) toast.error(res.message);
+  }, [activeBrandId, carrierFilter, cityFilter, dateFrom, dateTo, page, paymentStatus, q, status, toast]);
 
   useEffect(() => {
     void load();
@@ -444,7 +450,7 @@ export function ShipmentsScreen() {
       <div className="flex flex-wrap gap-2 items-center">
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value as typeof status)}
+          onChange={(e) => { setStatus(e.target.value as typeof status); setPage(1); }}
           className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold"
         >
           <option value="all">Tous les statuts</option>
@@ -456,7 +462,7 @@ export function ShipmentsScreen() {
         </select>
         <select
           value={paymentStatus}
-          onChange={(e) => setPaymentStatus(e.target.value as typeof paymentStatus)}
+          onChange={(e) => { setPaymentStatus(e.target.value as typeof paymentStatus); setPage(1); }}
           className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold"
         >
           <option value="all">Paiement (tous)</option>
@@ -468,7 +474,7 @@ export function ShipmentsScreen() {
         </select>
         <select
           value={carrierFilter}
-          onChange={(e) => setCarrierFilter(e.target.value as typeof carrierFilter)}
+          onChange={(e) => { setCarrierFilter(e.target.value as typeof carrierFilter); setPage(1); }}
           className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold min-w-[160px]"
         >
           <option value="all">Transporteur</option>
@@ -481,14 +487,14 @@ export function ShipmentsScreen() {
         <input
           placeholder="Ville destinataire"
           value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
+          onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
           className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold w-40"
         />
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" />
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" />
+        <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" />
+        <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" />
       </div>
 
-      <FilterBar query={q} onQueryChange={setQ} right={<span className="text-sm font-black">{loading ? '…' : `${rows.length} expéditions`}</span>} />
+      <FilterBar query={q} onQueryChange={(v) => { setQ(v); setPage(1); }} right={<span className="text-sm font-black">{loading ? '…' : `${totalRows} expéditions`}</span>} />
 
       {rows.length === 0 && !loading && carriers.length === 0 ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm space-y-2">
@@ -501,7 +507,72 @@ export function ShipmentsScreen() {
       ) : rows.length === 0 && !loading ? (
         <EmptyState title="Aucune expédition" description="Créez une expédition depuis une commande confirmée ou préparée." />
       ) : (
-        <DataTable rows={rows} columns={columns} />
+        <>
+          <DataTable rows={rows} columns={columns} />
+          {lastPage > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-sm text-zinc-500">
+                Page {page} / {lastPage} — {totalRows} expéditions
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage(1)}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold disabled:opacity-40"
+                >
+                  ««
+                </button>
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold disabled:opacity-40"
+                >
+                  ‹ Précédent
+                </button>
+                {Array.from({ length: Math.min(lastPage, 7) }, (_, i) => {
+                  let p: number;
+                  if (lastPage <= 7) {
+                    p = i + 1;
+                  } else if (page <= 4) {
+                    p = i + 1;
+                  } else if (page >= lastPage - 3) {
+                    p = lastPage - 6 + i;
+                  } else {
+                    p = page - 3 + i;
+                  }
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      className={`px-3 py-1.5 rounded-lg border text-sm font-bold ${p === page ? 'bg-primary-600 text-white border-primary-600' : 'border-zinc-200'}`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  disabled={page >= lastPage}
+                  onClick={() => setPage(page + 1)}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold disabled:opacity-40"
+                >
+                  Suivant ›
+                </button>
+                <button
+                  type="button"
+                  disabled={page >= lastPage}
+                  onClick={() => setPage(lastPage)}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold disabled:opacity-40"
+                >
+                  »»
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <Drawer open={!!selected} onClose={() => setSelectedId(null)} title={selected?.tracking_number ?? ''}>
