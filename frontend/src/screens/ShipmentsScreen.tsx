@@ -152,7 +152,7 @@ export function ShipmentsScreen() {
   const load = useCallback(async () => {
     if (!activeBrandId) return;
     setLoading(true);
-    const qs = new URLSearchParams({ per_page: '50' });
+    const qs = new URLSearchParams({ per_page: '200' });
     if (status !== 'all') qs.set('status', status);
     if (paymentStatus !== 'all') qs.set('payment_status', paymentStatus);
     if (carrierFilter !== 'all') qs.set('delivery_company_id', carrierFilter);
