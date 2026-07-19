@@ -30,6 +30,7 @@ import type {
   SettingsCenterSection,
   WhatsappModel,
   WhatsappPhoneNumber,
+  SavedWhatsappNumber,
 } from '../lib/settingsCenterApi';
 import { mergeSidebarVisibility, notifySidebarNavUpdated } from '../lib/sidebarNavCatalog';
 import { cn } from '../lib/utils';
@@ -200,6 +201,42 @@ export function SettingsScreen() {
     return numbers;
   }
 
+  async function listSavedWhatsappNumbers(): Promise<SavedWhatsappNumber[]> {
+    const res = await api.get<{ numbers: SavedWhatsappNumber[] }>('whatsapp/numbers');
+    if (!res.ok || !res.data) {
+      toast.error(res.message || 'Impossible de charger les numéros importés.');
+      throw new Error(res.message);
+    }
+    return res.data.numbers ?? [];
+  }
+
+  async function addWhatsappNumber(n: WhatsappPhoneNumber): Promise<boolean> {
+    const res = await api.post('whatsapp/numbers', {
+      phone_id: n.id,
+      display_number: n.display_phone_number,
+      verified_name: n.verified_name,
+      label: n.display_phone_number || n.verified_name || n.id,
+      waba_id: model && 'connection' in model ? (model as WhatsappModel).connection.businessAccountId : undefined,
+    });
+    if (res.ok) toast.success(res.message);
+    else toast.error(res.message);
+    return res.ok;
+  }
+
+  async function setDefaultWhatsappNumber(id: number): Promise<boolean> {
+    const res = await api.patch(`whatsapp/numbers/${id}`, { is_default: true });
+    if (res.ok) toast.success(res.message);
+    else toast.error(res.message);
+    return res.ok;
+  }
+
+  async function deleteWhatsappNumber(id: number): Promise<boolean> {
+    const res = await api.del(`whatsapp/numbers/${id}`);
+    if (res.ok) toast.success(res.message);
+    else toast.error(res.message);
+    return res.ok;
+  }
+
   async function connectFacebook() {
     if (!activeBrandId || activeBrandId === "all") {
       toast.error("Veuillez sélectionner une marque spécifique.");
@@ -359,6 +396,10 @@ export function SettingsScreen() {
                   onTestWhatsapp={canUpdate ? () => void runConnectionTest('whatsapp') : undefined}
                   whatsappTesting={testLoading === 'whatsapp'}
                   onFetchNumbers={canUpdate ? fetchWhatsappNumbers : undefined}
+                  onListSavedNumbers={listSavedWhatsappNumbers}
+                  onAddNumber={canUpdate ? addWhatsappNumber : undefined}
+                  onSetDefault={canUpdate ? setDefaultWhatsappNumber : undefined}
+                  onDeleteNumber={canUpdate ? deleteWhatsappNumber : undefined}
                 />
               )}
               {section === 'meta' && (

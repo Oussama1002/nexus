@@ -143,6 +143,23 @@ export type WhatsappPhoneNumber = {
   quality_rating: string;
 };
 
+/** A WhatsApp number saved (imported) under a brand — multi-number support. */
+export type SavedWhatsappNumber = {
+  id: number;
+  brand_id: number;
+  phone_id: string;
+  waba_id: string | null;
+  display_number: string | null;
+  verified_name: string | null;
+  label: string | null;
+  api_token_configured: boolean;
+  api_base_url: string | null;
+  is_active: boolean;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type MetaModel = {
   credentials: {
     appId: string;

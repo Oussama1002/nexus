@@ -11,6 +11,7 @@ class Conversation extends Model
 
     protected $fillable = [
         'brand_id',
+        'whatsapp_number_id',
         'customer_id',
         'lead_id',
         'assigned_user_id',
@@ -27,6 +28,11 @@ class Conversation extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function whatsappNumber()
+    {
+        return $this->belongsTo(WhatsAppNumber::class, 'whatsapp_number_id');
     }
 
     public function customer()

@@ -29,7 +29,21 @@ type ApiConversation = {
   lead?: { id: number } | null;
   brand?: { id: number; name: string } | null;
   assigned_user?: { id: number; name: string } | null;
+  whatsapp_number_id?: number | null;
+  whatsapp_number?: { id: number; label: string | null; display_number: string | null; phone_id: string } | null;
 };
+
+type WaNumber = {
+  id: number;
+  label: string | null;
+  display_number: string | null;
+  phone_id: string;
+  is_default: boolean;
+};
+
+function waNumberLabel(n: Pick<WaNumber, 'label' | 'display_number' | 'phone_id'>): string {
+  return n.display_number || n.label || `Phone ID ${n.phone_id}`;
+}
 
 type ApiUser = { id: number; name: string; email: string; roles?: { id: number; slug: string }[] };
 
@@ -91,6 +105,9 @@ export function WhatsAppWorkspaceScreen({
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('');
+  const [numbers, setNumbers] = useState<WaNumber[]>([]);
+  const [numberFilter, setNumberFilter] = useState<string>('');
+  const [newNumberId, setNewNumberId] = useState<string>('');
   const [emojiOpen, setEmojiOpen] = useState(false);
   const emojiRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,6 +124,25 @@ export function WhatsAppWorkspaceScreen({
     setSelectedId(null);
     setMessages([]);
     setConversations([]);
+    setNumberFilter('');
+  }, [activeBrandId]);
+
+  // Load the brand's imported WhatsApp numbers (for separate inboxes).
+  useEffect(() => {
+    if (!activeBrandId) {
+      setNumbers([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const res = await api.get<{ numbers: WaNumber[] }>('whatsapp/numbers');
+      if (cancelled) return;
+      if (res.ok && res.data) setNumbers(res.data.numbers ?? []);
+      else setNumbers([]);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [activeBrandId]);
 
   const loadConversations = useCallback(async (silent = false) => {
@@ -118,6 +154,7 @@ export function WhatsAppWorkspaceScreen({
     if (!silent) setLoading(true);
     const params = new URLSearchParams({ per_page: '100' });
     if (agentFilter) params.set('assigned_user_id', agentFilter);
+    if (numberFilter) params.set('whatsapp_number_id', numberFilter);
     const res = await api.get<LaravelPaginator<ApiConversation>>(`conversations?${params.toString()}`);
     if (!silent) setLoading(false);
     if (!res.ok) {
@@ -126,7 +163,7 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setConversations(isPaginator<ApiConversation>(res.data) ? res.data.data : []);
-  }, [activeBrandId, agentFilter, toast]);
+  }, [activeBrandId, agentFilter, numberFilter, toast]);
 
   useEffect(() => {
     void loadConversations();
@@ -164,6 +201,17 @@ export function WhatsAppWorkspaceScreen({
     const timer = window.setInterval(() => { void loadMessages(selectedId, true); }, 3000);
     return () => window.clearInterval(timer);
   }, [selectedId, loadMessages]);
+
+  // Default the new-conversation number picker: current inbox filter, else brand default.
+  useEffect(() => {
+    if (!newOpen) return;
+    if (numbers.length === 0) {
+      setNewNumberId('');
+      return;
+    }
+    const preferred = numberFilter || String(numbers.find((n) => n.is_default)?.id ?? numbers[0].id);
+    setNewNumberId(preferred);
+  }, [newOpen, numbers, numberFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -254,11 +302,16 @@ export function WhatsAppWorkspaceScreen({
 
   async function createConversation() {
     if (!newCustomerId) return;
+    if (numbers.length > 0 && !newNumberId) {
+      toast.error('Veuillez choisir le numéro WhatsApp expéditeur.');
+      return;
+    }
     const res = await api.post<ApiConversation>('conversations', {
       customer_id: Number(newCustomerId),
       channel: 'whatsapp',
       status: 'open',
       assigned_user_id: user ? Number(user.id) : null,
+      whatsapp_number_id: newNumberId ? Number(newNumberId) : undefined,
     });
     if (!res.ok) {
       toast.error(res.message);
@@ -346,6 +399,34 @@ export function WhatsAppWorkspaceScreen({
         <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[calc(100dvh-13rem)] lg:max-h-[calc(100dvh-13rem)] overflow-hidden">
           <aside className="lg:col-span-4 flex flex-col min-w-0 min-h-0 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-100/90 bg-zinc-50/30">
             <div className="p-5 sm:p-6 border-b border-zinc-100/90 space-y-4 shrink-0">
+              {numbers.length > 1 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setNumberFilter(''); setSelectedId(null); setMessages([]); }}
+                    className={cn(
+                      'px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide border transition',
+                      numberFilter === '' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
+                    )}
+                  >
+                    Tous
+                  </button>
+                  {numbers.map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => { setNumberFilter(String(n.id)); setSelectedId(null); setMessages([]); }}
+                      title={waNumberLabel(n)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wide border transition max-w-[10rem] truncate',
+                        numberFilter === String(n.id) ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
+                      )}
+                    >
+                      {waNumberLabel(n)}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input
@@ -396,6 +477,9 @@ export function WhatsAppWorkspaceScreen({
                           <div className="min-w-0">
                             <p className="text-sm font-black text-zinc-900 truncate">{name}</p>
                             {c.brand?.name && <p className="text-[10px] font-bold text-zinc-400 truncate">{c.brand.name}</p>}
+                            {numbers.length > 1 && numberFilter === '' && c.whatsapp_number && (
+                              <p className="text-[10px] font-bold text-primary-500 truncate">{waNumberLabel(c.whatsapp_number)}</p>
+                            )}
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <p className={cn('text-[10px] font-bold', c.unread_count ? 'text-primary-600' : 'text-zinc-400')}>{ts}</p>
@@ -658,16 +742,30 @@ export function WhatsAppWorkspaceScreen({
           </div>
         }
       >
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Client</label>
-          <select value={newCustomerId} onChange={(e) => setNewCustomerId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800">
-            <option value="">— Choisir —</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.full_name} — {c.phone}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Client</label>
+            <select value={newCustomerId} onChange={(e) => setNewCustomerId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800">
+              <option value="">— Choisir —</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name} — {c.phone}
+                </option>
+              ))}
+            </select>
+          </div>
+          {numbers.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro WhatsApp expéditeur</label>
+              <select value={newNumberId} onChange={(e) => setNewNumberId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800">
+                {numbers.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {waNumberLabel(n)}{n.is_default ? ' (par défaut)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

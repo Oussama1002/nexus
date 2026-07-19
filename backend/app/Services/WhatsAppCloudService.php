@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\Message;
 use App\Models\SystemSetting;
+use App\Models\WhatsAppNumber;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -101,9 +102,28 @@ class WhatsAppCloudService
         return $out;
     }
 
+    /** Resolve the stored WhatsApp number by incoming phone_number_id (Meta payload metadata). */
+    public function resolveNumberByPhoneId(string $phoneNumberId): ?WhatsAppNumber
+    {
+        if ($phoneNumberId === '') {
+            return null;
+        }
+
+        return WhatsAppNumber::query()
+            ->where('phone_id', $phoneNumberId)
+            ->orderBy('id')
+            ->first();
+    }
+
     /** Resolve brand by incoming phone_number_id (Meta payload metadata). */
     public function resolveBrandIdByPhoneId(string $phoneNumberId): ?int
     {
+        $number = $this->resolveNumberByPhoneId($phoneNumberId);
+        if ($number) {
+            return $number->brand_id;
+        }
+
+        // Legacy fallback: single-number config in system_settings.
         $row = SystemSetting::query()
             ->where('setting_key', 'wa_phone_id')
             ->where('setting_value', $phoneNumberId)
@@ -111,6 +131,17 @@ class WhatsAppCloudService
             ->first();
 
         return $row?->brand_id;
+    }
+
+    /** The brand's default (or first active) WhatsApp number, if any. */
+    public function defaultNumberForBrand(int $brandId): ?WhatsAppNumber
+    {
+        return WhatsAppNumber::query()
+            ->where('brand_id', $brandId)
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->first();
     }
 
     /** Resolve verify token across all brands (used by GET webhook verification). */
@@ -150,14 +181,15 @@ class WhatsAppCloudService
                     continue;
                 }
 
-                $brandId = $this->resolveBrandIdByPhoneId($phoneId);
+                $number = $this->resolveNumberByPhoneId($phoneId);
+                $brandId = $number?->brand_id ?? $this->resolveBrandIdByPhoneId($phoneId);
                 if (! $brandId) {
                     Log::warning('whatsapp.webhook.unknown_phone_id', ['phone_id' => $phoneId]);
                     continue;
                 }
 
                 foreach ($value['messages'] ?? [] as $msg) {
-                    if ($this->storeInboundMessage($brandId, $value, $msg)) {
+                    if ($this->storeInboundMessage($brandId, $number, $value, $msg)) {
                         $stored++;
                     }
                 }
@@ -167,7 +199,7 @@ class WhatsAppCloudService
         return $stored;
     }
 
-    private function storeInboundMessage(int $brandId, array $value, array $msg): bool
+    private function storeInboundMessage(int $brandId, ?WhatsAppNumber $number, array $value, array $msg): bool
     {
         $externalId = (string) ($msg['id'] ?? '');
         if ($externalId !== '' && Message::query()->where('external_message_id', $externalId)->exists()) {
@@ -184,7 +216,7 @@ class WhatsAppCloudService
         $profileName = $value['contacts'][0]['profile']['name'] ?? null;
 
         $customer = $this->findOrCreateCustomer($brandId, $fromWaId, $profileName);
-        $conversation = $this->findOrCreateConversation($brandId, $customer, $fromWaId);
+        $conversation = $this->findOrCreateConversation($brandId, $number, $customer, $fromWaId);
 
         Message::query()->create([
             'conversation_id' => $conversation->id,
@@ -264,20 +296,35 @@ class WhatsAppCloudService
         return $customer;
     }
 
-    private function findOrCreateConversation(int $brandId, Customer $customer, string $waId): Conversation
+    private function findOrCreateConversation(int $brandId, ?WhatsAppNumber $number, Customer $customer, string $waId): Conversation
     {
+        $numberId = $number?->id;
+
         $conversation = Conversation::query()
             ->where('brand_id', $brandId)
             ->where('channel', self::CHANNEL)
             ->where('external_thread_id', $waId)
+            ->when(
+                $numberId !== null,
+                fn ($q) => $q->where(fn ($w) => $w->where('whatsapp_number_id', $numberId)->orWhereNull('whatsapp_number_id')),
+            )
+            ->orderByRaw('whatsapp_number_id IS NULL') // prefer an already-tagged thread
             ->first();
 
         if ($conversation) {
+            // Tag a legacy/untagged thread with the resolved number so future
+            // routing and the per-number inbox work correctly.
+            if ($numberId !== null && $conversation->whatsapp_number_id === null) {
+                $conversation->whatsapp_number_id = $numberId;
+                $conversation->save();
+            }
+
             return $conversation;
         }
 
         return Conversation::query()->create([
             'brand_id' => $brandId,
+            'whatsapp_number_id' => $numberId,
             'customer_id' => $customer->id,
             'channel' => self::CHANNEL,
             'external_thread_id' => $waId,
@@ -287,16 +334,44 @@ class WhatsAppCloudService
     }
 
     /**
+     * Resolve the phone_id / token / base_url to send from. When a specific
+     * WhatsApp number is given (e.g. the conversation's number), use it; otherwise
+     * fall back to the brand default number, then the legacy single-number config.
+     *
+     * @return array{base_url: string, token: string, phone_id: string}
+     */
+    private function resolveSendConfig(int $brandId, ?WhatsAppNumber $number): array
+    {
+        $brandCfg = $this->config($brandId);
+
+        $number ??= $this->defaultNumberForBrand($brandId);
+
+        if ($number) {
+            $token = trim((string) ($number->api_token ?? '')) ?: $brandCfg['token'];
+            $baseUrl = rtrim((string) ($number->api_base_url ?? ''), '/') ?: $brandCfg['base_url'];
+
+            return [
+                'base_url' => $baseUrl,
+                'token' => $token,
+                'phone_id' => trim((string) $number->phone_id),
+            ];
+        }
+
+        return $brandCfg;
+    }
+
+    /**
      * Send a plain text WhatsApp message. Returns external message id on success.
+     * Optionally send from a specific WhatsApp number (per-number routing).
      *
      * @throws \RuntimeException
      */
-    public function sendText(int $brandId, string $toWaId, string $body): string
+    public function sendText(int $brandId, string $toWaId, string $body, ?WhatsAppNumber $number = null): string
     {
-        $cfg = $this->config($brandId);
+        $cfg = $this->resolveSendConfig($brandId, $number);
 
         if ($cfg['token'] === '' || $cfg['phone_id'] === '') {
-            throw new \RuntimeException('WhatsApp credentials missing for this brand.');
+            throw new \RuntimeException('Identifiants WhatsApp manquants pour ce numéro/cette marque.');
         }
 
         $url = sprintf('%s/%s/messages', $cfg['base_url'], $cfg['phone_id']);

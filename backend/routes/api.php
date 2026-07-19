@@ -493,6 +493,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('settings/center/test/smtp', [SettingsCenterController::class, 'testSmtp'])->middleware('permission:settings.update');
     Route::post('settings/center/test/whatsapp', [SettingsCenterController::class, 'testWhatsapp'])->middleware('permission:settings.update');
     Route::get('whatsapp/phone-numbers', [WhatsAppController::class, 'phoneNumbers'])->middleware('permission:settings.update');
+    Route::get('whatsapp/numbers', [WhatsAppController::class, 'listNumbers'])->middleware('permission:conversations.view');
+    Route::post('whatsapp/numbers', [WhatsAppController::class, 'addNumber'])->middleware('permission:settings.update');
+    Route::patch('whatsapp/numbers/{id}', [WhatsAppController::class, 'updateNumber'])->whereNumber('id')->middleware('permission:settings.update');
+    Route::delete('whatsapp/numbers/{id}', [WhatsAppController::class, 'deleteNumber'])->whereNumber('id')->middleware('permission:settings.update');
     Route::post('settings/center/test/meta', [SettingsCenterController::class, 'testMeta'])->middleware('permission:settings.update');
     Route::post('settings/center/test/delivery', [SettingsCenterController::class, 'testDelivery'])->middleware('permission:settings.update');
     Route::post('settings/center/upload/logo', [SettingsCenterController::class, 'uploadLogo'])->middleware('permission:settings.update');

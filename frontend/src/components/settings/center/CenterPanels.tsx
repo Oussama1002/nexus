@@ -9,6 +9,7 @@ import type {
   SecurityModel,
   WhatsappModel,
   WhatsappPhoneNumber,
+  SavedWhatsappNumber,
 } from '../../../lib/settingsCenterApi';
 import { SIDEBAR_NAV_CATALOG, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
 import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TagListField, TextField, ToggleRow } from './SettingsUi';
@@ -326,6 +327,189 @@ export function DeliveryPanel({
   );
 }
 
+function WhatsappNumbersManager({
+  disabled,
+  onFetchNumbers,
+  onListSavedNumbers,
+  onAddNumber,
+  onSetDefault,
+  onDeleteNumber,
+}: {
+  disabled: boolean;
+  onFetchNumbers?: () => Promise<WhatsappPhoneNumber[]>;
+  onListSavedNumbers?: () => Promise<SavedWhatsappNumber[]>;
+  onAddNumber?: (n: WhatsappPhoneNumber) => Promise<boolean>;
+  onSetDefault?: (id: number) => Promise<boolean>;
+  onDeleteNumber?: (id: number) => Promise<boolean>;
+}) {
+  const [saved, setSaved] = React.useState<SavedWhatsappNumber[]>([]);
+  const [live, setLive] = React.useState<WhatsappPhoneNumber[] | null>(null);
+  const [importing, setImporting] = React.useState(false);
+  const [busyId, setBusyId] = React.useState<string | number | null>(null);
+
+  const refresh = React.useCallback(async () => {
+    if (!onListSavedNumbers) return;
+    try {
+      setSaved(await onListSavedNumbers());
+    } catch {
+      // caller shows the error toast
+    }
+  }, [onListSavedNumbers]);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const importNumbers = async () => {
+    if (!onFetchNumbers) return;
+    setImporting(true);
+    try {
+      setLive(await onFetchNumbers());
+    } catch {
+      setLive(null);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const addNumber = async (n: WhatsappPhoneNumber) => {
+    if (!onAddNumber) return;
+    setBusyId(n.id);
+    try {
+      if (await onAddNumber(n)) await refresh();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const setDefault = async (id: number) => {
+    if (!onSetDefault) return;
+    setBusyId(id);
+    try {
+      if (await onSetDefault(id)) await refresh();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const removeNumber = async (id: number) => {
+    if (!onDeleteNumber) return;
+    setBusyId(id);
+    try {
+      if (await onDeleteNumber(id)) await refresh();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const savedPhoneIds = new Set(saved.map((s) => s.phone_id));
+
+  return (
+    <SectionCard
+      title="Numéros WhatsApp de cette marque"
+      description="Importez un ou plusieurs numéros depuis Meta. Chaque numéro a sa propre boîte de réception dans les conversations."
+      actions={
+        onFetchNumbers ? (
+          <button
+            type="button"
+            onClick={() => void importNumbers()}
+            disabled={disabled || importing}
+            className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-primary-700 transition hover:bg-primary-100 disabled:opacity-50"
+          >
+            {importing ? 'Importation…' : 'Importer depuis Meta'}
+          </button>
+        ) : null
+      }
+    >
+      {saved.length === 0 ? (
+        <p className="mb-4 text-sm text-zinc-500">Aucun numéro importé pour l’instant. Cliquez sur « Importer depuis Meta ».</p>
+      ) : (
+        <div className="mb-5 space-y-2">
+          {saved.map((s) => (
+            <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <span className="font-bold text-zinc-900">{s.display_number || s.label || s.phone_id}</span>
+                {s.verified_name ? <span className="ml-2 text-zinc-500">{s.verified_name}</span> : null}
+                {s.is_default ? (
+                  <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">Par défaut</span>
+                ) : null}
+                <span className="ml-2 block text-[11px] text-zinc-400">Phone ID: {s.phone_id}</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {!s.is_default && onSetDefault ? (
+                  <button
+                    type="button"
+                    onClick={() => void setDefault(s.id)}
+                    disabled={disabled || busyId === s.id}
+                    className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-bold uppercase text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    Définir par défaut
+                  </button>
+                ) : null}
+                {onDeleteNumber ? (
+                  <button
+                    type="button"
+                    onClick={() => void removeNumber(s.id)}
+                    disabled={disabled || busyId === s.id}
+                    className="rounded-md border border-rose-200 px-2 py-1 text-[11px] font-bold uppercase text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                  >
+                    Supprimer
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {live ? (
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3">
+          <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+            Numéros disponibles sous ce WABA — cliquez sur « Ajouter »
+          </p>
+          {live.length === 0 ? (
+            <p className="text-sm text-zinc-500">
+              Aucun numéro trouvé. Vérifiez le WABA et le jeton API (permission whatsapp_business_management).
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {live.map((n) => {
+                const already = savedPhoneIds.has(n.id);
+                return (
+                  <div
+                    key={n.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-bold text-zinc-900">{n.display_phone_number || n.id}</span>
+                      {n.verified_name ? <span className="ml-2 text-zinc-500">{n.verified_name}</span> : null}
+                      <span className="ml-2 block text-[11px] text-zinc-400">Phone ID: {n.id}</span>
+                    </span>
+                    {already ? (
+                      <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase text-zinc-500">
+                        Importé
+                      </span>
+                    ) : onAddNumber ? (
+                      <button
+                        type="button"
+                        onClick={() => void addNumber(n)}
+                        disabled={disabled || busyId === n.id}
+                        className="shrink-0 rounded-md border border-primary-200 bg-primary-50 px-2 py-1 text-[11px] font-bold uppercase text-primary-700 transition hover:bg-primary-100 disabled:opacity-50"
+                      >
+                        Ajouter
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </SectionCard>
+  );
+}
+
 export function WhatsappPanel({
   value,
   onChange,
@@ -334,6 +518,10 @@ export function WhatsappPanel({
   onTestWhatsapp,
   whatsappTesting,
   onFetchNumbers,
+  onListSavedNumbers,
+  onAddNumber,
+  onSetDefault,
+  onDeleteNumber,
 }: {
   value: WhatsappModel;
   onChange: (v: WhatsappModel) => void;
@@ -342,100 +530,37 @@ export function WhatsappPanel({
   onTestWhatsapp?: () => void;
   whatsappTesting?: boolean;
   onFetchNumbers?: () => Promise<WhatsappPhoneNumber[]>;
+  onListSavedNumbers?: () => Promise<SavedWhatsappNumber[]>;
+  onAddNumber?: (n: WhatsappPhoneNumber) => Promise<boolean>;
+  onSetDefault?: (id: number) => Promise<boolean>;
+  onDeleteNumber?: (id: number) => Promise<boolean>;
 }) {
   const p = (patch: Partial<WhatsappModel>) => onChange({ ...value, ...patch });
   const sec = !disabled && isAdmin;
-  const [importing, setImporting] = React.useState(false);
-  const [numbers, setNumbers] = React.useState<WhatsappPhoneNumber[] | null>(null);
-
-  const importNumbers = async () => {
-    if (!onFetchNumbers) return;
-    setImporting(true);
-    try {
-      const list = await onFetchNumbers();
-      setNumbers(list);
-    } catch {
-      // Error toast is shown by the caller; keep the list hidden so we don't
-      // display a misleading "no numbers found" message on API failure.
-      setNumbers(null);
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const selectNumber = (n: WhatsappPhoneNumber) => {
-    onChange({
-      ...value,
-      connection: {
-        ...value.connection,
-        phoneId: n.id,
-        businessNumber: n.display_phone_number || value.connection.businessNumber,
-      },
-    });
-  };
 
   return (
     <div className="space-y-8">
+      {onListSavedNumbers ? (
+        <WhatsappNumbersManager
+          disabled={disabled}
+          onFetchNumbers={onFetchNumbers}
+          onListSavedNumbers={onListSavedNumbers}
+          onAddNumber={onAddNumber}
+          onSetDefault={onSetDefault}
+          onDeleteNumber={onDeleteNumber}
+        />
+      ) : null}
       <SectionCard
         title="Connexion"
-        description="Identifiants API WhatsApp Business."
+        description="Jeton API et paramètres par défaut de la marque (utilisés si un numéro n’a pas son propre jeton)."
         actions={
           <div className="flex gap-2">
-            {onFetchNumbers ? (
-              <button
-                type="button"
-                onClick={() => void importNumbers()}
-                disabled={disabled || importing}
-                className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-primary-700 transition hover:bg-primary-100 disabled:opacity-50"
-              >
-                {importing ? 'Importation…' : 'Importer les numéros'}
-              </button>
-            ) : null}
             {onTestWhatsapp ? (
               <ConnectionTestButton label="Tester WhatsApp" onClick={onTestWhatsapp} disabled={disabled} loading={whatsappTesting} />
             ) : null}
           </div>
         }
       >
-        {numbers ? (
-          <div className="mb-5 rounded-xl border border-zinc-200 bg-zinc-50/70 p-3">
-            <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-zinc-500">
-              Numéros trouvés sous ce WABA — cliquez pour remplir le Phone ID
-            </p>
-            {numbers.length === 0 ? (
-              <p className="text-sm text-zinc-500">
-                Aucun numéro trouvé. Vérifiez le WABA et le jeton API (permission whatsapp_business_management).
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {numbers.map((n) => {
-                  const selected = value.connection.phoneId === n.id;
-                  return (
-                    <button
-                      key={n.id}
-                      type="button"
-                      onClick={() => selectNumber(n)}
-                      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
-                        selected ? 'border-primary-500 bg-primary-50' : 'border-zinc-200 bg-white hover:bg-zinc-50'
-                      }`}
-                    >
-                      <span>
-                        <span className="font-bold text-zinc-900">{n.display_phone_number || n.id}</span>
-                        {n.verified_name ? <span className="ml-2 text-zinc-500">{n.verified_name}</span> : null}
-                        <span className="ml-2 text-[11px] text-zinc-400">Phone ID: {n.id}</span>
-                      </span>
-                      {n.quality_rating ? (
-                        <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase text-zinc-500">
-                          {n.quality_rating}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ) : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <TextField label="Fournisseur" value={value.connection.provider} onChange={(v) => p({ connection: { ...value.connection, provider: v } })} disabled={disabled} />
           <TextField label="URL de base API" hint="https://graph.facebook.com/…" value={value.connection.apiBaseUrl} onChange={(v) => p({ connection: { ...value.connection, apiBaseUrl: v } })} disabled={disabled} />

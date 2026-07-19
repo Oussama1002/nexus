@@ -21,6 +21,7 @@ class StoreConversationRequest extends FormRequest
             'customer_id' => ['nullable', 'exists:customers,id'],
             'lead_id' => ['nullable', 'exists:leads,id'],
             'assigned_user_id' => ['nullable', 'exists:users,id'],
+            'whatsapp_number_id' => ['nullable', 'exists:whatsapp_numbers,id'],
             'channel' => ['nullable', Rule::in(['whatsapp', 'instagram', 'facebook', 'tiktok', 'other'])],
             'external_thread_id' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in([

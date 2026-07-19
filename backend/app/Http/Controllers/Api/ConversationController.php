@@ -31,7 +31,7 @@ class ConversationController extends Controller
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
 
-        $q = Conversation::query()->with(['customer', 'lead', 'assignedUser', 'brand:id,name', 'latestMessage'])
+        $q = Conversation::query()->with(['customer', 'lead', 'assignedUser', 'brand:id,name', 'whatsappNumber:id,label,display_number,phone_id', 'latestMessage'])
             ->withMax(['messages as last_inbound_at' => fn ($mq) => $mq->where('direction', 'inbound')], 'sent_at')
             ->withMax(['messages as last_outbound_at' => fn ($mq) => $mq->where('direction', 'outbound')], 'sent_at')
             ->orderByDesc('last_message_at')
@@ -46,6 +46,12 @@ class ConversationController extends Controller
         $agentFilter = $request->query('assigned_user_id');
         if ($agentFilter && $user->canViewAllConversations()) {
             $q->where('assigned_user_id', (int) $agentFilter);
+        }
+
+        // Separate inbox per WhatsApp number.
+        $numberFilter = $request->query('whatsapp_number_id');
+        if ($numberFilter !== null && $numberFilter !== '') {
+            $q->where('whatsapp_number_id', (int) $numberFilter);
         }
 
         if ($search) {
@@ -115,6 +121,9 @@ class ConversationController extends Controller
         }
         if (! empty($data['lead_id'])) {
             $this->assertLeadBrand((int) $data['lead_id'], $brandId);
+        }
+        if (! empty($data['whatsapp_number_id'])) {
+            $this->assertWhatsappNumberBrand((int) $data['whatsapp_number_id'], $brandId);
         }
 
         $conversation = Conversation::query()->create($data);
@@ -187,9 +196,14 @@ class ConversationController extends Controller
             && $conversation->external_thread_id
             && empty($externalId)) {
             try {
-                $externalId = $wa->sendText($conversation->brand_id, $conversation->external_thread_id, $body) ?: null;
+                $externalId = $wa->sendText(
+                    $conversation->brand_id,
+                    $conversation->external_thread_id,
+                    $body,
+                    $conversation->whatsappNumber,
+                ) ?: null;
             } catch (\Throwable $e) {
-                return ApiResponse::error('WhatsApp send failed: ' . $e->getMessage(), null, 502);
+                return ApiResponse::error('Échec de l’envoi WhatsApp : ' . $e->getMessage(), null, 502);
             }
         }
 
@@ -292,6 +306,13 @@ class ConversationController extends Controller
     {
         if (! Lead::query()->whereKey($leadId)->where('brand_id', $brandId)->exists()) {
             abort(422, 'Lead does not belong to this brand.');
+        }
+    }
+
+    protected function assertWhatsappNumberBrand(int $numberId, int $brandId): void
+    {
+        if (! \App\Models\WhatsAppNumber::query()->whereKey($numberId)->where('brand_id', $brandId)->exists()) {
+            abort(422, 'Ce numéro WhatsApp n’appartient pas à cette marque.');
         }
     }
 }
