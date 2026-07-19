@@ -243,14 +243,17 @@ export function ShipmentsScreen() {
         setEvents([]);
         return;
       }
-      const res = await api.get<ShipmentEventRow[]>(`shipments/${selectedId}/events`);
+      const res = await api.get<ShipmentEventRow[]>(
+        `shipments/${selectedId}/events`,
+        activeBrandId === 'all' ? { brandId: '' } : undefined,
+      );
       if (cancel || !res.ok || !Array.isArray(res.data)) return;
       setEvents(res.data as ShipmentEventRow[]);
     })();
     return () => {
       cancel = true;
     };
-  }, [selectedId]);
+  }, [activeBrandId, selectedId]);
 
   async function createShipment() {
     if (!orderId) {
