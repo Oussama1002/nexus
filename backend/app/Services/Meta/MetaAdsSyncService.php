@@ -42,17 +42,48 @@ class MetaAdsSyncService
     }
 
     /**
+     * Fetch ad accounts visible to the connected Business Manager.
+     *
+     * Meta separates accounts the business OWNS (`owned_ad_accounts`) from
+     * accounts a CLIENT has shared with the business (`client_ad_accounts`,
+     * i.e. agency / partner access). We merge both so client accounts import
+     * correctly even when you don't own them.
+     *
      * @return list<array<string, mixed>>
      */
     public function fetchAdAccounts(int $brandId): array
     {
-        $cfg = $this->config->forBrand($brandId);
-        $path = $cfg['business_id'].'/owned_ad_accounts';
+        $businessId = $this->config->forBrand($brandId)['business_id'];
+        if ($businessId === '') {
+            throw new MetaApiException('Meta Business ID manquant. Configurez-le dans Paramètres → Meta.');
+        }
 
-        return $this->graph->paginate($brandId, $path, [
-            'fields' => self::AD_ACCOUNT_FIELDS,
-            'limit' => 100,
-        ]);
+        $merged = [];
+        $errors = [];
+
+        foreach (['owned_ad_accounts', 'client_ad_accounts'] as $edge) {
+            try {
+                $rows = $this->graph->paginate($brandId, $businessId.'/'.$edge, [
+                    'fields' => self::AD_ACCOUNT_FIELDS,
+                    'limit' => 100,
+                ]);
+                foreach ($rows as $row) {
+                    $key = $this->normalizeAdAccountId($row);
+                    if ($key !== '') {
+                        $merged[$key] = $row;
+                    }
+                }
+            } catch (MetaApiException $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+
+        // Only surface an error if BOTH edges failed and nothing was collected.
+        if ($merged === [] && $errors !== []) {
+            throw new MetaApiException($errors[0]);
+        }
+
+        return array_values($merged);
     }
 
     /**

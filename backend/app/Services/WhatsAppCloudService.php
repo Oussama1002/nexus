@@ -37,6 +37,69 @@ class WhatsAppCloudService
         ];
     }
 
+    /**
+     * Fetch the WhatsApp Business phone numbers registered under the brand's WABA
+     * (developers.facebook.com). Uses the WABA id (`wa_business_account_id`) + API
+     * token (`wa_api_token`). The token needs the `whatsapp_business_management`
+     * permission.
+     *
+     * @return list<array{id: string, display_phone_number: string, verified_name: string, quality_rating: string}>
+     */
+    public function fetchPhoneNumbers(int $brandId): array
+    {
+        $rows = SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->whereIn('setting_key', [
+                'wa_api_base_url', 'wa_api_token', 'wa_business_account_id', 'whatsapp_api_token',
+            ])
+            ->pluck('setting_value', 'setting_key')
+            ->all();
+
+        $baseUrl = rtrim((string) ($rows['wa_api_base_url'] ?? 'https://graph.facebook.com/v25.0'), '/');
+        $token = trim((string) ($rows['wa_api_token'] ?? $rows['whatsapp_api_token'] ?? ''));
+        $wabaId = trim((string) ($rows['wa_business_account_id'] ?? ''));
+
+        if ($token === '' || preg_match('/^\*+$/', $token)) {
+            throw new \RuntimeException('Jeton API WhatsApp manquant. Renseignez-le dans Paramètres → WhatsApp.');
+        }
+        if ($wabaId === '') {
+            throw new \RuntimeException('WhatsApp Business Account ID (WABA) manquant. Renseignez-le dans Paramètres → WhatsApp.');
+        }
+
+        $res = Http::withToken($token)
+            ->acceptJson()
+            ->timeout(20)
+            ->get("{$baseUrl}/{$wabaId}/phone_numbers", [
+                'fields' => 'id,display_phone_number,verified_name,quality_rating',
+                'limit' => 100,
+            ]);
+
+        if (! $res->successful()) {
+            $err = $res->json('error.message') ?? $res->body();
+            Log::warning('whatsapp.phone_numbers.failed', ['brand_id' => $brandId, 'status' => $res->status(), 'body' => $res->body()]);
+            throw new \RuntimeException('Erreur Meta API: '.$err);
+        }
+
+        $out = [];
+        foreach ((array) $res->json('data', []) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $id = (string) ($row['id'] ?? '');
+            if ($id === '') {
+                continue;
+            }
+            $out[] = [
+                'id' => $id,
+                'display_phone_number' => (string) ($row['display_phone_number'] ?? ''),
+                'verified_name' => (string) ($row['verified_name'] ?? ''),
+                'quality_rating' => (string) ($row['quality_rating'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
     /** Resolve brand by incoming phone_number_id (Meta payload metadata). */
     public function resolveBrandIdByPhoneId(string $phoneNumberId): ?int
     {

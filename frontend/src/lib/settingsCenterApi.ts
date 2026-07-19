@@ -136,6 +136,13 @@ export type WhatsappModel = {
   };
 };
 
+export type WhatsappPhoneNumber = {
+  id: string;
+  display_phone_number: string;
+  verified_name: string;
+  quality_rating: string;
+};
+
 export type MetaModel = {
   credentials: {
     appId: string;

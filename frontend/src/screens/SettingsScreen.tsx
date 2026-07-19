@@ -29,6 +29,7 @@ import type {
   SecurityModel,
   SettingsCenterSection,
   WhatsappModel,
+  WhatsappPhoneNumber,
 } from '../lib/settingsCenterApi';
 import { mergeSidebarVisibility, notifySidebarNavUpdated } from '../lib/sidebarNavCatalog';
 import { cn } from '../lib/utils';
@@ -184,6 +185,17 @@ export function SettingsScreen() {
     setTestLoading(null);
     if (res.ok) toast.success(res.message);
     else toast.error(res.message);
+  }
+
+  async function fetchWhatsappNumbers(): Promise<WhatsappPhoneNumber[]> {
+    const res = await api.get<{ numbers: WhatsappPhoneNumber[] }>('whatsapp/phone-numbers');
+    if (!res.ok || !res.data) {
+      toast.error(res.message || 'Impossible de récupérer les numéros WhatsApp.');
+      return [];
+    }
+    const numbers = res.data.numbers ?? [];
+    toast.success(res.message);
+    return numbers;
   }
 
   async function connectFacebook() {
@@ -344,6 +356,7 @@ export function SettingsScreen() {
                   isAdmin={isAdmin}
                   onTestWhatsapp={canUpdate ? () => void runConnectionTest('whatsapp') : undefined}
                   whatsappTesting={testLoading === 'whatsapp'}
+                  onFetchNumbers={canUpdate ? fetchWhatsappNumbers : undefined}
                 />
               )}
               {section === 'meta' && (

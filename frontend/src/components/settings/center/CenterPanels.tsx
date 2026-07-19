@@ -8,6 +8,7 @@ import type {
   MetaModel,
   SecurityModel,
   WhatsappModel,
+  WhatsappPhoneNumber,
 } from '../../../lib/settingsCenterApi';
 import { SIDEBAR_NAV_CATALOG, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
 import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TagListField, TextField, ToggleRow } from './SettingsUi';
@@ -332,6 +333,7 @@ export function WhatsappPanel({
   isAdmin,
   onTestWhatsapp,
   whatsappTesting,
+  onFetchNumbers,
 }: {
   value: WhatsappModel;
   onChange: (v: WhatsappModel) => void;
@@ -339,20 +341,94 @@ export function WhatsappPanel({
   isAdmin: boolean;
   onTestWhatsapp?: () => void;
   whatsappTesting?: boolean;
+  onFetchNumbers?: () => Promise<WhatsappPhoneNumber[]>;
 }) {
   const p = (patch: Partial<WhatsappModel>) => onChange({ ...value, ...patch });
   const sec = !disabled && isAdmin;
+  const [importing, setImporting] = React.useState(false);
+  const [numbers, setNumbers] = React.useState<WhatsappPhoneNumber[] | null>(null);
+
+  const importNumbers = async () => {
+    if (!onFetchNumbers) return;
+    setImporting(true);
+    const list = await onFetchNumbers();
+    setImporting(false);
+    setNumbers(list);
+  };
+
+  const selectNumber = (n: WhatsappPhoneNumber) => {
+    onChange({
+      ...value,
+      connection: {
+        ...value.connection,
+        phoneId: n.id,
+        businessNumber: n.display_phone_number || value.connection.businessNumber,
+      },
+    });
+  };
+
   return (
     <div className="space-y-8">
       <SectionCard
         title="Connexion"
         description="Identifiants API WhatsApp Business."
         actions={
-          onTestWhatsapp ? (
-            <ConnectionTestButton label="Tester WhatsApp" onClick={onTestWhatsapp} disabled={disabled} loading={whatsappTesting} />
-          ) : undefined
+          <div className="flex gap-2">
+            {onFetchNumbers ? (
+              <button
+                type="button"
+                onClick={() => void importNumbers()}
+                disabled={disabled || importing}
+                className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-primary-700 transition hover:bg-primary-100 disabled:opacity-50"
+              >
+                {importing ? 'Importation…' : 'Importer les numéros'}
+              </button>
+            ) : null}
+            {onTestWhatsapp ? (
+              <ConnectionTestButton label="Tester WhatsApp" onClick={onTestWhatsapp} disabled={disabled} loading={whatsappTesting} />
+            ) : null}
+          </div>
         }
       >
+        {numbers ? (
+          <div className="mb-5 rounded-xl border border-zinc-200 bg-zinc-50/70 p-3">
+            <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              Numéros trouvés sous ce WABA — cliquez pour remplir le Phone ID
+            </p>
+            {numbers.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                Aucun numéro trouvé. Vérifiez le WABA et le jeton API (permission whatsapp_business_management).
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {numbers.map((n) => {
+                  const selected = value.connection.phoneId === n.id;
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => selectNumber(n)}
+                      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                        selected ? 'border-primary-500 bg-primary-50' : 'border-zinc-200 bg-white hover:bg-zinc-50'
+                      }`}
+                    >
+                      <span>
+                        <span className="font-bold text-zinc-900">{n.display_phone_number || n.id}</span>
+                        {n.verified_name ? <span className="ml-2 text-zinc-500">{n.verified_name}</span> : null}
+                        <span className="ml-2 text-[11px] text-zinc-400">Phone ID: {n.id}</span>
+                      </span>
+                      {n.quality_rating ? (
+                        <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase text-zinc-500">
+                          {n.quality_rating}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <TextField label="Fournisseur" value={value.connection.provider} onChange={(v) => p({ connection: { ...value.connection, provider: v } })} disabled={disabled} />
           <TextField label="URL de base API" hint="https://graph.facebook.com/…" value={value.connection.apiBaseUrl} onChange={(v) => p({ connection: { ...value.connection, apiBaseUrl: v } })} disabled={disabled} />

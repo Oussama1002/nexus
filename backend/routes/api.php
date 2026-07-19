@@ -66,6 +66,7 @@ use App\Http\Controllers\Api\SystemSettingController;
 use App\Http\Controllers\Api\HrAttendanceController;
 use App\Http\Controllers\Api\InternalChatController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
@@ -491,6 +492,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/center/audit-history', [SettingsCenterController::class, 'auditHistory'])->middleware('permission:settings.view');
     Route::post('settings/center/test/smtp', [SettingsCenterController::class, 'testSmtp'])->middleware('permission:settings.update');
     Route::post('settings/center/test/whatsapp', [SettingsCenterController::class, 'testWhatsapp'])->middleware('permission:settings.update');
+    Route::get('whatsapp/phone-numbers', [WhatsAppController::class, 'phoneNumbers'])->middleware('permission:settings.update');
     Route::post('settings/center/test/meta', [SettingsCenterController::class, 'testMeta'])->middleware('permission:settings.update');
     Route::post('settings/center/test/delivery', [SettingsCenterController::class, 'testDelivery'])->middleware('permission:settings.update');
     Route::post('settings/center/upload/logo', [SettingsCenterController::class, 'uploadLogo'])->middleware('permission:settings.update');
