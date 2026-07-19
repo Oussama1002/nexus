@@ -39,6 +39,31 @@ class PhoneNormalizer
     }
 
     /**
+     * Convert a stored phone number to a WhatsApp recipient id: full international
+     * number, digits only, no leading "+" (e.g. "0712345678" → "212712345678").
+     * Morocco-aware; numbers already in international form are returned as-is.
+     */
+    public static function toWhatsAppId(string $phone): string
+    {
+        $digits = preg_replace('/\D/', '', trim($phone)) ?? '';
+        if ($digits === '') {
+            return '';
+        }
+
+        // "00" international prefix → drop it.
+        if (str_starts_with($digits, '00')) {
+            return substr($digits, 2);
+        }
+
+        // Morocco local "0XXXXXXXXX" (10 digits) → "212XXXXXXXXX".
+        if (str_starts_with($digits, '0') && strlen($digits) === 10) {
+            return '212' . substr($digits, 1);
+        }
+
+        return $digits;
+    }
+
+    /**
      * Check if a customer with any variant of this phone already exists for the brand.
      */
     public static function existsForBrand(int $brandId, string $phone): bool

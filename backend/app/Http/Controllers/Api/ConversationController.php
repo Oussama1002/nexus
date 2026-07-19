@@ -190,18 +190,48 @@ class ConversationController extends Controller
         $body = $data['content'] ?? null;
         $externalId = $data['external_message_id'] ?? null;
 
+        // Recipient: the thread id if we have one (inbound-started conversation),
+        // otherwise derive it from the customer's phone so manually-created
+        // conversations can actually send (not just store locally).
+        $recipient = $conversation->external_thread_id;
+        if (! $recipient && $conversation->channel === WhatsAppCloudService::CHANNEL) {
+            $conversation->loadMissing('customer');
+            $phone = $conversation->customer?->phone;
+            if ($phone) {
+                $recipient = \App\Services\PhoneNormalizer::toWhatsAppId($phone);
+            }
+        }
+
         if ($direction === 'outbound'
             && $conversation->channel === WhatsAppCloudService::CHANNEL
             && $body
-            && $conversation->external_thread_id
+            && ! $recipient
+            && empty($externalId)) {
+            return ApiResponse::error(
+                'Impossible de déterminer le numéro WhatsApp du destinataire. Vérifiez que le client a un numéro de téléphone valide.',
+                null,
+                422,
+            );
+        }
+
+        if ($direction === 'outbound'
+            && $conversation->channel === WhatsAppCloudService::CHANNEL
+            && $body
+            && $recipient
             && empty($externalId)) {
             try {
                 $externalId = $wa->sendText(
                     $conversation->brand_id,
-                    $conversation->external_thread_id,
+                    $recipient,
                     $body,
                     $conversation->whatsappNumber,
                 ) ?: null;
+
+                // Persist the resolved thread id so replies/webhooks match this thread.
+                if (! $conversation->external_thread_id) {
+                    $conversation->external_thread_id = $recipient;
+                    $conversation->save();
+                }
             } catch (\Throwable $e) {
                 return ApiResponse::error('Échec de l’envoi WhatsApp : ' . $e->getMessage(), null, 502);
             }
