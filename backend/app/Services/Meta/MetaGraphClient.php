@@ -41,7 +41,10 @@ class MetaGraphClient
                 'message' => $message,
             ]);
 
-            throw new MetaApiException($message ?: 'Erreur Meta Graph API.', is_int($code) ? $code : null, is_string($type) ? $type : null);
+            $graphCode = is_int($code) ? $code : null;
+            $french = MetaErrorTranslator::toFrench($message ?: 'Erreur Meta Graph API.', $graphCode);
+
+            throw new MetaApiException($french, $graphCode, is_string($type) ? $type : null);
         }
 
         $data = $response->json();

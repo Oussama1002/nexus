@@ -75,9 +75,10 @@ class WhatsAppCloudService
             ]);
 
         if (! $res->successful()) {
-            $err = $res->json('error.message') ?? $res->body();
+            $err = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
             Log::warning('whatsapp.phone_numbers.failed', ['brand_id' => $brandId, 'status' => $res->status(), 'body' => $res->body()]);
-            throw new \RuntimeException('Erreur Meta API: '.$err);
+            throw new \RuntimeException(\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
         }
 
         $out = [];
@@ -315,7 +316,9 @@ class WhatsAppCloudService
                 'status' => $res->status(),
                 'body' => $res->body(),
             ]);
-            throw new \RuntimeException('WhatsApp send failed: ' . $res->status() . ' ' . $res->body());
+            $err = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
+            throw new \RuntimeException('Échec de l’envoi WhatsApp : '.\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
         }
 
         return (string) ($res->json('messages.0.id') ?? '');

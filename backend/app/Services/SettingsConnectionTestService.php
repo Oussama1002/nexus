@@ -82,11 +82,12 @@ class SettingsConnectionTestService
                 return ['success' => true, 'message' => "Connexion WhatsApp OK{$suffix}."];
             }
 
-            $errMsg = $res->json('error.message') ?? $res->body();
+            $errMsg = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
 
-            return ['success' => false, 'message' => "Erreur Meta API: {$errMsg}"];
+            return ['success' => false, 'message' => \App\Services\Meta\MetaErrorTranslator::toFrench($errMsg, is_int($code) ? $code : null)];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => 'Erreur de connexion: '.$e->getMessage()];
+            return ['success' => false, 'message' => 'Erreur de connexion : '.$e->getMessage()];
         }
     }
 
