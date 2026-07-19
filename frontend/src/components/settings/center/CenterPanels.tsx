@@ -351,9 +351,16 @@ export function WhatsappPanel({
   const importNumbers = async () => {
     if (!onFetchNumbers) return;
     setImporting(true);
-    const list = await onFetchNumbers();
-    setImporting(false);
-    setNumbers(list);
+    try {
+      const list = await onFetchNumbers();
+      setNumbers(list);
+    } catch {
+      // Error toast is shown by the caller; keep the list hidden so we don't
+      // display a misleading "no numbers found" message on API failure.
+      setNumbers(null);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const selectNumber = (n: WhatsappPhoneNumber) => {

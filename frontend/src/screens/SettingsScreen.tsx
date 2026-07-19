@@ -190,8 +190,10 @@ export function SettingsScreen() {
   async function fetchWhatsappNumbers(): Promise<WhatsappPhoneNumber[]> {
     const res = await api.get<{ numbers: WhatsappPhoneNumber[] }>('whatsapp/phone-numbers');
     if (!res.ok || !res.data) {
-      toast.error(res.message || 'Impossible de récupérer les numéros WhatsApp.');
-      return [];
+      const msg = res.message || 'Impossible de récupérer les numéros WhatsApp.';
+      toast.error(msg);
+      // Throw so the panel does not show a misleading "Aucun numéro trouvé".
+      throw new Error(msg);
     }
     const numbers = res.data.numbers ?? [];
     toast.success(res.message);
