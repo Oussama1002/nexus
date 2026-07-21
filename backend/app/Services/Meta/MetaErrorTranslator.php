@@ -83,6 +83,25 @@ class MetaErrorTranslator
             return 'Configuration de l’application Meta invalide (App ID / App Secret). Vérifiez vos identifiants dans Paramètres → Meta.';
         }
 
+        // Numéro WhatsApp non enregistré sur Cloud API (#133010).
+        if (
+            $code === 133010
+            || str_contains($normalized, 'account not registered')
+            || str_contains($normalized, 'not registered')
+        ) {
+            return 'Ce numéro WhatsApp n’est pas encore enregistré sur l’API Cloud. Dans Meta → WhatsApp → Production setup, ouvrez le numéro, terminez « Register your WhatsApp phone number » (code PIN SMS), puis réessayez.';
+        }
+
+        // Fenêtre 24h / template requis.
+        if (
+            $code === 131047
+            || str_contains($normalized, 're-engagement')
+            || str_contains($normalized, 'outside of allowed window')
+            || str_contains($normalized, 'message undeliverable')
+        ) {
+            return 'Impossible d’envoyer un message libre : le client n’a pas écrit dans les dernières 24 h. Utilisez un modèle WhatsApp approuvé, ou attendez qu’il vous écrive d’abord.';
+        }
+
         // Repli : préfixe français conservant le détail Meta.
         return 'Erreur Meta : '.$raw;
     }

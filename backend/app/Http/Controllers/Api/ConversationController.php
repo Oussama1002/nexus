@@ -233,7 +233,8 @@ class ConversationController extends Controller
                     $conversation->save();
                 }
             } catch (\Throwable $e) {
-                return ApiResponse::error('Échec de l’envoi WhatsApp : ' . $e->getMessage(), null, 502);
+                // WhatsAppCloudService déjà préfixe le message en français.
+                return ApiResponse::error($e->getMessage(), null, 502);
             }
         }
 
