@@ -80,7 +80,9 @@ class OrderController extends Controller
                 if (! empty($data['lead_id'])) {
                     $this->assertLeadBrand((int) $data['lead_id'], $brandId);
                 }
-                $this->assertNoDuplicateActiveOrder($brandId, $data);
+                if (empty($data['skip_duplicate_check'])) {
+                    $this->assertNoDuplicateActiveOrder($brandId, $data);
+                }
                 $transfer = $this->resolveBankTransferFields($data);
 
                 $order = Order::query()->create([

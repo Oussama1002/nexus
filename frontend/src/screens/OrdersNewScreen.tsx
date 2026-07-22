@@ -179,7 +179,7 @@ export function OrdersNewScreen({
       cid = (cRes.data as { id: number }).id;
     }
 
-    const oRes = await api.post('orders', {
+    const orderPayload = {
       customer_id: cid,
       lead_id: leadId ?? null,
       assigned_user_id: user ? Number(user.id) : null,
@@ -199,7 +199,17 @@ export function OrdersNewScreen({
         quantity: l.qty,
         unit_price: l.price,
       })),
-    });
+    };
+
+    let oRes = await api.post('orders', orderPayload);
+    if (!oRes.ok && oRes.message && oRes.message.includes('doublon')) {
+      const confirmed = window.confirm(oRes.message + '\n\nVoulez-vous créer la commande quand même ?');
+      if (!confirmed) {
+        setSaving(false);
+        return;
+      }
+      oRes = await api.post('orders', { ...orderPayload, skip_duplicate_check: true });
+    }
     setSaving(false);
     if (!oRes.ok) {
       const rawErr = 'errors' in oRes ? oRes.errors : {};
