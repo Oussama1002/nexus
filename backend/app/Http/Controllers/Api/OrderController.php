@@ -324,7 +324,7 @@ class OrderController extends Controller
         $base = Order::query()
             ->with('customer:id,phone')
             ->where('brand_id', $brandId)
-            ->whereNotIn('status', ['delivered', 'cancelled', 'returned']);
+            ->whereIn('status', ['confirmed', 'prepared', 'shipped']);
 
         $duplicate = null;
         if ($customerId || $leadId) {
