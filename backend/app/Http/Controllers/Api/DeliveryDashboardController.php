@@ -30,10 +30,10 @@ class DeliveryDashboardController extends Controller
             $q->where('shipments.brand_id', (int) $brandFilter);
         }
         if ($from) {
-            $q->whereDate('shipments.created_at', '>=', $from);
+            $q->whereRaw('DATE(COALESCE(shipments.shipped_at, shipments.created_at)) >= ?', [$from]);
         }
         if ($to) {
-            $q->whereDate('shipments.created_at', '<=', $to);
+            $q->whereRaw('DATE(COALESCE(shipments.shipped_at, shipments.created_at)) <= ?', [$to]);
         }
         if ($dc) {
             $q->where('shipments.delivery_company_id', (int) $dc);
