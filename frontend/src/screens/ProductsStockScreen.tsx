@@ -114,6 +114,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
   const { hasPermission } = useAuth();
   const toast = useToast();
 
+  const [subTab, setSubTab] = useState<'products' | 'packs'>('products');
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [movements, setMovements] = useState<ApiMovementRow[]>([]);
@@ -214,6 +215,10 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     return products.filter((p) => {
+      const cat = p.category.toLowerCase().trim();
+      const isPackProduct = cat === 'packs' || cat === 'pack';
+      if (subTab === 'packs' && !isPackProduct) return false;
+      if (subTab === 'products' && isPackProduct) return false;
       const matchesQ =
         !query ||
         p.name.toLowerCase().includes(query) ||
@@ -224,16 +229,16 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       const matchesLow = onlyLowStock ? p.stock <= p.lowStockThreshold : true;
       return matchesQ && matchesBrand && matchesStatus && matchesLow;
     });
-  }, [products, q, brand, status, onlyLowStock]);
+  }, [products, q, brand, status, onlyLowStock, subTab]);
 
   const selected = useMemo(() => products.find((p) => p.id === selectedId) ?? null, [products, selectedId]);
 
   const kpis = useMemo(() => {
-    const total = products.length;
-    const low = products.filter((p) => p.stock <= p.lowStockThreshold).length;
-    const stockValue = products.reduce((s, p) => s + p.stock * p.cost, 0);
+    const total = filtered.length;
+    const low = filtered.filter((p) => p.stock <= p.lowStockThreshold).length;
+    const stockValue = filtered.reduce((s, p) => s + p.stock * p.cost, 0);
     return { total, low, stockValue };
-  }, [products]);
+  }, [filtered]);
 
   function openEditModal(p: Product) {
     setFormErr([]);
@@ -563,7 +568,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     <div className="space-y-6">
       <PageHeader
         title="Produits & Stock"
-        subtitle="Catalogue connecté à l’API (stock via mouvements)."
+        subtitle={"Catalogue connecté à l'API (stock via mouvements)."}
         right={
           hasPermission('products.create') ? (
             <button
@@ -574,7 +579,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                   name: '',
                   sku: '',
                   brand: activeBrand.name,
-                  category: '',
+                  category: subTab === 'packs' ? 'Packs' : '',
                   productType: '',
                   supplier: '—',
                   price: 0,
@@ -593,11 +598,28 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
               }}
               className="px-4 py-2 bg-primary-600 text-white rounded-2xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" /> Ajouter produit
+              <Plus className="w-4 h-4" /> {subTab === 'packs' ? 'Créer un pack' : 'Ajouter produit'}
             </button>
           ) : null
         }
       />
+
+      <div className="flex gap-1 border-b border-zinc-200">
+        <button
+          type="button"
+          onClick={() => setSubTab('products')}
+          className={`px-4 py-2 text-sm font-black border-b-2 transition-colors ${subTab === 'products' ? 'border-primary-600 text-primary-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+        >
+          Produits
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab('packs')}
+          className={`px-4 py-2 text-sm font-black border-b-2 transition-colors ${subTab === 'packs' ? 'border-primary-600 text-primary-600' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+        >
+          Packs
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card p-5">
@@ -650,7 +672,12 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       {loading ? (
         <div className="card p-10 text-center text-sm font-bold text-zinc-500">Chargement…</div>
       ) : (
-        <DataTable<Product> rows={filtered} columns={columns} emptyTitle="Aucun produit" emptyDescription="Ajoutez des produits pour démarrer le suivi stock." />
+        <DataTable<Product>
+          rows={filtered}
+          columns={columns}
+          emptyTitle={subTab === 'packs' ? 'Aucun pack' : 'Aucun produit'}
+          emptyDescription={subTab === 'packs' ? 'Créez un pack en cliquant sur « Créer un pack ».' : 'Ajoutez des produits pour démarrer le suivi stock.'}
+        />
       )}
 
       <Drawer
@@ -695,7 +722,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                 </div>
               </div>
             </div>
-            <p className="text-xs text-zinc-500 font-medium">Les ajustements de quantité se font via l’écran Stocks (mouvements).</p>
+            <p className="text-xs text-zinc-500 font-medium">Les ajustements de quantité se font via l'écran Stocks (mouvements).</p>
           </div>
         )}
       </Drawer>
