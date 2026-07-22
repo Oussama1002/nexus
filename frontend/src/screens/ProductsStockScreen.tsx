@@ -33,7 +33,10 @@ type ApiProductRow = {
   status: string;
   image?: string | null;
   description?: string | null;
+  pack_items?: { product_id: number; quantity: number }[] | null;
 };
+
+type PackItemRow = { product_id: number; quantity: number };
 
 type ApiMovementRow = {
   id: number;
@@ -142,6 +145,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [description, setDescription] = useState('');
+  const [packItems, setPackItems] = useState<PackItemRow[]>([]);
   const imgInputRef = useRef<HTMLInputElement>(null);
 
   // Product categories & types from settings
@@ -251,10 +255,18 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     setDescription('');
     setImageFile(null);
     setImagePreview(p.image ? resolvePublicAssetUrl(p.image) : '');
+    setPackItems([]);
     setSelectedId(p.id);
     setEditOpen(true);
+    void api.get<ApiProductRow>(`products/${p.apiId}`).then((res) => {
+      if (res.ok && res.data) {
+        if (res.data.description) setDescription(res.data.description);
+        if (Array.isArray(res.data.pack_items)) setPackItems(res.data.pack_items);
+      }
+    });
   }
 
+  const isPack = draft.category.toLowerCase().trim() === 'packs' || draft.category.toLowerCase().trim() === 'pack';
   const canEdit = hasPermission('products.update');
 
   const columns = useMemo<Column<Product>[]>(() => {
@@ -345,6 +357,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     fd.append('stock_quantity', String(draft.stock));
     if (description.trim()) fd.append('description', description.trim());
     if (imageFile) fd.append('image', imageFile);
+    if (isPack && packItems.length > 0) fd.append('pack_items', JSON.stringify(packItems));
     const res = await api.post('products', fd);
     setSaving(false);
     if (!res.ok) {
@@ -386,6 +399,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     fd.append('status', draft.status === 'Actif' ? 'active' : 'inactive');
     if (description.trim()) fd.append('description', description.trim());
     if (imageFile) fd.append('image', imageFile);
+    fd.append('pack_items', isPack && packItems.length > 0 ? JSON.stringify(packItems) : 'null');
     const res = await api.post(`products/${selected.apiId}`, fd);
     setSaving(false);
     if (!res.ok) {
@@ -574,6 +588,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                 setImageFile(null);
                 setImagePreview('');
                 setDescription('');
+                setPackItems([]);
                 setCreateOpen(true);
               }}
               className="px-4 py-2 bg-primary-600 text-white rounded-2xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
@@ -793,6 +808,47 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
               {productOptions.categories.map((c) => <option key={c} value={c} />)}
             </datalist>
           </div>
+          {isPack && (
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Produits du pack</label>
+              {packItems.map((pi, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <select
+                    value={pi.product_id || ''}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setPackItems((prev) => prev.map((item, i) => i === idx ? { ...item, product_id: val } : item));
+                    }}
+                    className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-sm font-bold"
+                  >
+                    <option value="">— Choisir un produit —</option>
+                    {products.filter((p) => p.category.toLowerCase() !== 'packs' && p.category.toLowerCase() !== 'pack').map((p) => (
+                      <option key={p.apiId} value={p.apiId}>{p.name} ({p.sku})</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={pi.quantity}
+                    onChange={(e) => {
+                      const val = Math.max(1, Number(e.target.value));
+                      setPackItems((prev) => prev.map((item, i) => i === idx ? { ...item, quantity: val } : item));
+                    }}
+                    className="w-20 px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-sm font-bold text-center"
+                    placeholder="Qté"
+                  />
+                  <button type="button" onClick={() => setPackItems((prev) => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-black text-lg px-2">×</button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPackItems((prev) => [...prev, { product_id: 0, quantity: 1 }])}
+                className="inline-flex items-center gap-1 text-sm font-bold text-primary-600 hover:underline"
+              >
+                <Plus className="w-4 h-4" /> Ajouter un produit au pack
+              </button>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit *</label>
             <input
@@ -925,6 +981,47 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
               {productOptions.categories.map((c) => <option key={c} value={c} />)}
             </datalist>
           </div>
+          {isPack && (
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Produits du pack</label>
+              {packItems.map((pi, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <select
+                    value={pi.product_id || ''}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setPackItems((prev) => prev.map((item, i) => i === idx ? { ...item, product_id: val } : item));
+                    }}
+                    className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-sm font-bold"
+                  >
+                    <option value="">— Choisir un produit —</option>
+                    {products.filter((p) => p.category.toLowerCase() !== 'packs' && p.category.toLowerCase() !== 'pack').map((p) => (
+                      <option key={p.apiId} value={p.apiId}>{p.name} ({p.sku})</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={pi.quantity}
+                    onChange={(e) => {
+                      const val = Math.max(1, Number(e.target.value));
+                      setPackItems((prev) => prev.map((item, i) => i === idx ? { ...item, quantity: val } : item));
+                    }}
+                    className="w-20 px-3 py-2 rounded-xl bg-zinc-50 border border-zinc-200 text-sm font-bold text-center"
+                    placeholder="Qté"
+                  />
+                  <button type="button" onClick={() => setPackItems((prev) => prev.filter((_, i) => i !== idx))} className="text-rose-500 font-black text-lg px-2">×</button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPackItems((prev) => [...prev, { product_id: 0, quantity: 1 }])}
+                className="inline-flex items-center gap-1 text-sm font-bold text-primary-600 hover:underline"
+              >
+                <Plus className="w-4 h-4" /> Ajouter un produit au pack
+              </button>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit</label>
             <input

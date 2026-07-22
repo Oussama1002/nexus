@@ -49,7 +49,11 @@ class ProductController extends Controller
         $data['cost'] = $data['cost'] ?? 0;
         $data['status'] = $data['status'] ?? 'active';
         $initial = (int) ($data['stock_quantity'] ?? 0);
-        unset($data['stock_quantity']);
+        unset($data['stock_quantity'], $data['pack_items_array']);
+
+        if (isset($data['pack_items']) && is_string($data['pack_items'])) {
+            $data['pack_items'] = json_decode($data['pack_items'], true);
+        }
 
         if ($request->hasFile('image')) {
             $data['image'] = '/storage/' . $request->file('image')->store('products', 'public');
@@ -91,7 +95,12 @@ class ProductController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $product = Product::query()->where('brand_id', $brandId)->findOrFail($id);
         $before = $product->toArray();
-        $product->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['pack_items_array']);
+        if (isset($validated['pack_items']) && is_string($validated['pack_items'])) {
+            $validated['pack_items'] = json_decode($validated['pack_items'], true);
+        }
+        $product->fill($validated);
 
         if ($request->hasFile('image')) {
             if ($product->getOriginal('image')) {

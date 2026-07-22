@@ -15,6 +15,7 @@ class Product extends Model
         'name',
         'sku',
         'description',
+        'pack_items',
         'image',
         'category',
         'product_type',
@@ -24,6 +25,10 @@ class Product extends Model
         'reserved_quantity',
         'low_stock_threshold',
         'status',
+    ];
+
+    protected $casts = [
+        'pack_items' => 'array',
     ];
 
     public function brand()
