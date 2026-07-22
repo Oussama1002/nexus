@@ -189,6 +189,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('shipments', [ShipmentController::class, 'store'])->middleware('permission:shipments.create');
     Route::patch('shipments/{id}/status', [ShipmentController::class, 'patchStatus'])->whereNumber('id')->middleware('permission:shipments.status');
     Route::post('shipments/{id}/sync', [ShipmentController::class, 'sync'])->whereNumber('id')->middleware('permission:shipments.sync');
+    Route::post('shipments/{id}/dispatch', [ShipmentController::class, 'dispatch'])->whereNumber('id')->middleware('permission:shipments.create');
     Route::post('shipments/{id}/cancel', [ShipmentController::class, 'cancel'])->whereNumber('id')->middleware('permission:shipments.update');
     Route::get('shipments/{id}/label', [ShipmentController::class, 'label'])->whereNumber('id')->middleware('permission:shipments.label');
     Route::get('shipments/{id}/events', [ShipmentEventController::class, 'indexForShipment'])->whereNumber('id')->middleware('permission:shipments.view');

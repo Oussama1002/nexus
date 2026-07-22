@@ -6,9 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\PatchShipmentStatusRequest;
 use App\Http\Requests\Api\StoreShipmentRequest;
 use App\Http\Requests\Api\UpdateShipmentRequest;
+use App\Models\DeliveryCompany;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\AuditLogger;
+use App\Services\Delivery\DeliveryCarrierResolver;
+use App\Services\Delivery\Providers\AmeexDeliveryProvider;
+use App\Services\Delivery\Providers\SenditDeliveryProvider;
 use App\Services\Delivery\ShipmentSyncService;
 use App\Services\ShipmentOperationsService;
 use App\Support\ApiBrandContext;
@@ -95,7 +99,7 @@ class ShipmentController extends Controller
             $shipment = $this->shipmentOperationsService->createFromOrder(
                 $order,
                 $request->user(),
-                collect($data)->except(['order_id'])->all()
+                collect($data)->except(['order_id', 'send_to_carrier', 'products'])->all()
             );
         } catch (RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), null, 422);
@@ -103,7 +107,113 @@ class ShipmentController extends Controller
 
         AuditLogger::log($request, 'shipments.create', $shipment, null, $shipment->toArray());
 
-        return ApiResponse::success($shipment, 'Shipment created successfully.', 201);
+        $dispatchResult = null;
+        if ($request->boolean('send_to_carrier') && $shipment->delivery_company_id) {
+            $dispatchResult = $this->dispatchToCarrier($shipment, $brandId, $request->input('products'));
+        }
+
+        $shipment->refresh();
+        $shipment->load(['order.customer', 'deliveryCompany']);
+
+        $message = 'Expédition créée.';
+        if ($dispatchResult) {
+            $message .= ' ' . ($dispatchResult['message'] ?? '');
+        }
+
+        return ApiResponse::success([
+            'shipment' => $shipment,
+            'carrier_result' => $dispatchResult,
+        ], $message, 201);
+    }
+
+    public function dispatch(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $shipment = Shipment::query()->where('brand_id', $brandId)->with('deliveryCompany')->findOrFail($id);
+
+        if (! $shipment->delivery_company_id) {
+            return ApiResponse::error('Aucun transporteur assigné à cette expédition.', null, 422);
+        }
+
+        if ($shipment->external_tracking_id) {
+            return ApiResponse::error('Cette expédition a déjà été envoyée au transporteur.', null, 422);
+        }
+
+        $result = $this->dispatchToCarrier($shipment, $brandId, $request->input('products'));
+
+        if (! ($result['ok'] ?? false)) {
+            return ApiResponse::error($result['message'] ?? 'Échec envoi au transporteur.', $result, 422);
+        }
+
+        $shipment->refresh();
+        $shipment->load(['order.customer', 'deliveryCompany']);
+
+        return ApiResponse::success([
+            'shipment' => $shipment,
+            'carrier_result' => $result,
+        ], $result['message'] ?? 'Expédition envoyée au transporteur.');
+    }
+
+    protected function dispatchToCarrier(Shipment $shipment, int $brandId, ?string $products = null): array
+    {
+        $company = $shipment->deliveryCompany ?? DeliveryCompany::find($shipment->delivery_company_id);
+        if (! $company || ! $company->code) {
+            return ['ok' => false, 'message' => 'Transporteur non reconnu.'];
+        }
+
+        $resolver = app(DeliveryCarrierResolver::class);
+        $resolved = $resolver->resolve($company->code, $brandId);
+        if (! $resolved) {
+            return ['ok' => false, 'message' => 'Transporteur non configuré.'];
+        }
+
+        $provider = match ($company->code) {
+            'sendit' => new SenditDeliveryProvider($resolved),
+            'ameex' => new AmeexDeliveryProvider($resolved),
+            default => null,
+        };
+
+        if (! $provider) {
+            return ['ok' => false, 'message' => "Aucune intégration API pour {$company->name}."];
+        }
+
+        $shipment->loadMissing('order');
+
+        $payload = [
+            'reference' => $shipment->order?->order_number ?? $shipment->tracking_number,
+            'tracking_number' => $shipment->tracking_number,
+            'recipient_name' => $shipment->recipient_name,
+            'recipient_phone' => $shipment->recipient_phone,
+            'recipient_city' => $shipment->recipient_city ?? $shipment->city,
+            'recipient_address' => $shipment->recipient_address ?? $shipment->address,
+            'cod_amount' => (float) $shipment->cod_amount,
+            'notes' => $shipment->notes,
+            'comment' => $shipment->notes,
+            'products' => $products ?? '',
+        ];
+
+        $result = $provider->createShipment($payload);
+
+        if ($result['ok'] ?? false) {
+            $data = $result['data'] ?? [];
+            $tracking = $data['tracking_number'] ?? $data['external_tracking_id'] ?? null;
+            if ($tracking) {
+                $shipment->tracking_number = $tracking;
+                $shipment->external_tracking_id = $tracking;
+            }
+            $shipment->carrier_status = $data['carrier_status'] ?? 'created';
+            $shipment->carrier_response_json = $data['raw'] ?? null;
+            $shipment->carrier_last_sync_at = now();
+            $shipment->status = 'created';
+            $shipment->save();
+
+            $result['message'] = sprintf('Colis enregistré chez %s (suivi : %s).', $company->name, $tracking ?? '—');
+        } else {
+            $shipment->sync_error = $result['message'] ?? 'Échec envoi';
+            $shipment->save();
+        }
+
+        return $result;
     }
 
     public function show(Request $request, string $id): JsonResponse

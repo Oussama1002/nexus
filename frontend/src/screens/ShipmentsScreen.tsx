@@ -139,6 +139,8 @@ export function ShipmentsScreen() {
   const [insuranceFee, setInsuranceFee] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [products, setProducts] = useState('');
+  const [sendToCarrier, setSendToCarrier] = useState(true);
 
   const [events, setEvents] = useState<ShipmentEventRow[]>([]);
 
@@ -276,25 +278,36 @@ export function ShipmentsScreen() {
       recipient_phone: recipientPhone.trim(),
       recipient_city: recipientCity.trim(),
       recipient_address: recipientAddress.trim(),
+      send_to_carrier: sendToCarrier,
     };
     if (codAmount.trim()) body.cod_amount = parseFloat(codAmount);
     if (deliveryFee.trim()) body.delivery_fee = parseFloat(deliveryFee);
     if (insuranceFee.trim()) body.insurance_fee = parseFloat(insuranceFee);
     if (pickupDate) body.pickup_date = pickupDate;
     if (notes.trim()) body.notes = notes.trim();
+    if (products.trim()) body.products = products.trim();
 
-    const res = await api.post<ApiShipment>('shipments', body);
+    const res = await api.post<{ shipment: ApiShipment; carrier_result?: { ok?: boolean; message?: string } }>('shipments', body);
     if (!res.ok) {
       const rawErr = 'errors' in res ? res.errors : {};
       const fe = flattenFieldErrors(rawErr as Record<string, unknown>);
       toast.error(fe.length ? fe.join(' ') : res.message);
       return;
     }
-    toast.success('Expédition créée.');
+    const carrierOk = res.data?.carrier_result?.ok;
+    const carrierMsg = res.data?.carrier_result?.message;
+    if (sendToCarrier && carrierOk === false) {
+      toast.error(`Expédition créée mais échec envoi transporteur : ${carrierMsg ?? 'Erreur inconnue'}`);
+    } else if (sendToCarrier && carrierOk) {
+      toast.success(carrierMsg ?? 'Expédition créée et envoyée au transporteur.');
+    } else {
+      toast.success('Expédition créée.');
+    }
     setCreateOpen(false);
     setOrderId('');
     setDeliveryCompanyId('');
     setNotes('');
+    setProducts('');
     void load();
   }
 
@@ -798,12 +811,24 @@ export function ShipmentsScreen() {
             <input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold" />
           </div>
           <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase text-zinc-400">Produits</label>
+            <input value={products} onChange={(e) => setProducts(e.target.value)} placeholder="Description des produits" className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold" />
+          </div>
+          <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase text-zinc-400">Notes</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold min-h-[64px]" />
           </div>
 
+          <label className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 cursor-pointer hover:bg-zinc-50">
+            <input type="checkbox" checked={sendToCarrier} onChange={(e) => setSendToCarrier(e.target.checked)} className="w-5 h-5 rounded accent-primary-600" />
+            <div>
+              <p className="text-sm font-black text-zinc-900">Envoyer au transporteur via API</p>
+              <p className="text-xs text-zinc-500">Le colis sera créé automatiquement chez Sendit / Ameex et vous recevrez le numéro de suivi.</p>
+            </div>
+          </label>
+
           <button type="button" onClick={() => void createShipment()} className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black">
-            Créer l&apos;expédition
+            {sendToCarrier ? 'Créer et envoyer au transporteur' : 'Créer l\'expédition'}
           </button>
         </div>
       </Modal>

@@ -30,6 +30,8 @@ class StoreShipmentRequest extends FormRequest
             'address' => ['nullable', 'string'],
             'pickup_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
+            'products' => ['nullable', 'string'],
+            'send_to_carrier' => ['nullable', 'boolean'],
             'status' => ['nullable', Rule::in(ShipmentOperationsService::STATUSES)],
             'payment_status' => ['nullable', Rule::in(ShipmentOperationsService::PAYMENT_STATUSES)],
         ];
