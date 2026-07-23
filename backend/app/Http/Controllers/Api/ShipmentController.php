@@ -220,7 +220,7 @@ class ShipmentController extends Controller
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
         $q = Shipment::query()
-            ->with(['order.lines.product', 'order.customer', 'deliveryCompany', 'events.actor'])
+            ->with(['order.lines.product', 'order.customer', 'deliveryCompany', 'events.actor', 'brand'])
             ->where('brand_id', $brandId);
 
         if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {

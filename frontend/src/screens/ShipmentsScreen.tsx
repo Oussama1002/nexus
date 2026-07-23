@@ -42,8 +42,14 @@ type ApiShipment = {
   returned_at?: string | null;
   notes?: string | null;
   created_at?: string | null;
-  order?: { id: number; order_number: string; total?: string; status?: string; assigned_user_id?: number | null } | null;
+  products?: string | null;
+  order?: {
+    id: number; order_number: string; total?: string; status?: string; assigned_user_id?: number | null;
+    customer?: { full_name?: string | null; phone?: string | null; city?: string | null; address?: string | null } | null;
+    lines?: { id: number; quantity: number; unit_price?: string; product?: { id: number; name: string; sku?: string; image?: string | null } | null }[];
+  } | null;
   delivery_company?: { id: number; name: string; code?: string | null } | null;
+  brand?: { id: number; name: string; code?: string | null } | null;
 };
 
 type ApiOrderLite = { id: number; order_number: string; status: string };
@@ -614,23 +620,28 @@ export function ShipmentsScreen() {
         {selected && (() => {
           const d = detail ?? selected;
           const fmtDate = (v?: string | null) => v ? new Date(v).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+          const apiBase = (import.meta.env.VITE_API_BASE_URL as string || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
           return (
           <div className="space-y-4">
-            <div className="card-muted p-4 space-y-2">
-              <p className="text-xs font-black uppercase text-zinc-400">Statut</p>
+            {/* Header: tracking + status chips */}
+            <div className="card-muted p-4 space-y-3">
+              <div className="flex items-center gap-2 text-lg font-black text-zinc-900">
+                {d.tracking_number ?? '-'}
+                {d.recipient_city && <span className="text-zinc-500 font-medium text-sm">- {d.recipient_city ?? d.city}</span>}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <StatusChip tone={toneForStatus(d.status)}>{statusFr(d.status)}</StatusChip>
+                {d.payment_status && (
+                  <StatusChip tone={d.payment_status === 'cod_collected' ? 'success' : d.payment_status === 'cod_pending' ? 'warning' : 'neutral'}>{statusFr(d.payment_status)}</StatusChip>
+                )}
                 {d.carrier_status && d.carrier_status !== d.status && (
                   <StatusChip tone="neutral">{d.carrier_status}</StatusChip>
-                )}
-                {d.payment_status && (
-                  <StatusChip tone={d.payment_status === 'cod_pending' ? 'warning' : 'neutral'}>{statusFr(d.payment_status)}</StatusChip>
                 )}
               </div>
               {d.sync_error && <p className="text-xs text-rose-600 font-bold">Erreur sync : {d.sync_error}</p>}
               {d.failure_reason && <p className="text-xs text-rose-600 font-bold">Motif echec : {d.failure_reason}</p>}
               {d.return_reason && <p className="text-xs text-amber-600 font-bold">Motif retour : {d.return_reason}</p>}
-              <div className="flex flex-wrap gap-2 pt-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {hasPermission('shipments.sync') && (
                   <button type="button" onClick={() => void runSync(selected.id)} className="px-3 py-2 rounded-xl bg-zinc-900 text-white text-xs font-black">Synchroniser</button>
                 )}
@@ -643,89 +654,147 @@ export function ShipmentsScreen() {
               </div>
             </div>
 
-            <div className="card-muted p-4 space-y-1">
-              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Destinataire</p>
-              <p className="text-sm font-black text-zinc-900">{d.recipient_name ?? '-'}</p>
-              <p className="text-sm text-zinc-700">{d.recipient_phone ?? '-'}</p>
-              <p className="text-sm text-zinc-700">{d.recipient_city ?? d.city ?? '-'}</p>
-              <p className="text-sm text-zinc-600">{d.recipient_address ?? d.address ?? '-'}</p>
-            </div>
-
+            {/* Infos Colis section */}
             <div className="card-muted p-4">
-              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Suivi & Transporteur</p>
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                <span className="text-zinc-500">Transporteur</span>
-                <span className="font-bold text-zinc-900">{d.delivery_company?.name ?? '-'}</span>
-                <span className="text-zinc-500">N suivi</span>
-                <span className="font-bold text-zinc-900">{d.tracking_number ?? '-'}</span>
-                {d.external_tracking_id && d.external_tracking_id !== d.tracking_number && (<>
-                  <span className="text-zinc-500">ID externe</span>
-                  <span className="font-bold text-zinc-900">{d.external_tracking_id}</span>
+              <p className="text-xs font-black uppercase text-zinc-400 mb-3">Infos Colis</p>
+
+              {/* Expediteur */}
+              <div className="mb-4">
+                <p className="text-xs font-bold text-primary-600 uppercase mb-1">Expediteur</p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                  <span className="text-zinc-500">Nom :</span>
+                  <span className="font-bold text-zinc-900">{d.brand?.name ?? '-'}</span>
+                  <span className="text-zinc-500">Transporteur :</span>
+                  <span className="font-bold text-zinc-900">{d.delivery_company?.name ?? '-'}</span>
+                </div>
+              </div>
+
+              <hr className="border-zinc-100 my-3" />
+
+              {/* Destinataire */}
+              <div className="mb-4">
+                <p className="text-xs font-bold text-primary-600 uppercase mb-1">Destinataire</p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                  <span className="text-zinc-500">Nom :</span>
+                  <span className="font-bold text-zinc-900">{d.recipient_name ?? d.order?.customer?.full_name ?? '-'}</span>
+                  <span className="text-zinc-500">Telephone :</span>
+                  <span className="font-bold text-zinc-900">{d.recipient_phone ?? d.order?.customer?.phone ?? '-'}</span>
+                  <span className="text-zinc-500">Ville :</span>
+                  <span className="font-bold text-zinc-900">{d.recipient_city ?? d.city ?? d.order?.customer?.city ?? '-'}</span>
+                  <span className="text-zinc-500">Adresse :</span>
+                  <span className="font-bold text-zinc-900">{d.recipient_address ?? d.address ?? '-'}</span>
+                </div>
+              </div>
+
+              <hr className="border-zinc-100 my-3" />
+
+              {/* CRBT & details */}
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                <span className="text-zinc-500">CRBT :</span>
+                <span className="font-black text-zinc-900 text-base">{formatCurrency(parseFloat(d.cod_amount || '0'))}</span>
+                {d.delivery_fee && (<>
+                  <span className="text-zinc-500">Frais livraison :</span>
+                  <span className="font-bold text-zinc-900">{formatCurrency(parseFloat(d.delivery_fee))}</span>
                 </>)}
-                <span className="text-zinc-500">Statut transporteur</span>
-                <span className="font-bold text-zinc-900">{d.carrier_status ?? '-'}</span>
-                <span className="text-zinc-500">Derniere sync</span>
-                <span className="font-bold text-zinc-900">{fmtDate(d.carrier_last_sync_at) ?? '-'}</span>
+                {d.insurance_fee && (<>
+                  <span className="text-zinc-500">Assurance :</span>
+                  <span className="font-bold text-zinc-900">{formatCurrency(parseFloat(d.insurance_fee))}</span>
+                </>)}
+                {d.notes && (<>
+                  <span className="text-zinc-500">Commentaire :</span>
+                  <span className="font-bold text-zinc-900">{d.notes}</span>
+                </>)}
+                {d.products && (<>
+                  <span className="text-zinc-500">Produit :</span>
+                  <span className="font-bold text-zinc-900">{d.products}</span>
+                </>)}
               </div>
             </div>
 
-            <div className="card-muted p-4">
-              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Montants</p>
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                <span className="text-zinc-500">COD</span>
-                <span className="font-black text-zinc-900">{formatCurrency(parseFloat(d.cod_amount || '0'))}</span>
-                <span className="text-zinc-500">Frais livraison</span>
-                <span className="font-bold text-zinc-900">{d.delivery_fee ? formatCurrency(parseFloat(d.delivery_fee)) : '-'}</span>
-                <span className="text-zinc-500">Assurance</span>
-                <span className="font-bold text-zinc-900">{d.insurance_fee ? formatCurrency(parseFloat(d.insurance_fee)) : '-'}</span>
+            {/* Produits from order */}
+            {d.order?.lines && d.order.lines.length > 0 && (
+              <div className="card-muted p-4">
+                <p className="text-xs font-black uppercase text-zinc-400 mb-3">Produits</p>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-100">
+                      <th className="text-left py-1 text-zinc-500 font-medium">Image</th>
+                      <th className="text-left py-1 text-zinc-500 font-medium">Ref</th>
+                      <th className="text-left py-1 text-zinc-500 font-medium">Designation</th>
+                      <th className="text-right py-1 text-zinc-500 font-medium">Qte</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.order.lines.map((line) => (
+                      <tr key={line.id} className="border-b border-zinc-50">
+                        <td className="py-2">
+                          {line.product?.image ? (
+                            <img src={`${apiBase}${line.product.image}`} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 text-[10px]">N/A</div>
+                          )}
+                        </td>
+                        <td className="py-2 font-bold text-zinc-700">{line.product?.sku ?? '-'}</td>
+                        <td className="py-2 font-bold text-zinc-900">{line.product?.name ?? '-'}</td>
+                        <td className="py-2 text-right font-black text-zinc-900">{line.quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            )}
 
+            {/* Commande */}
             {d.order && (
               <div className="card-muted p-4">
                 <p className="text-xs font-black uppercase text-zinc-400 mb-2">Commande</p>
-                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                  <span className="text-zinc-500">N commande</span>
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                  <span className="text-zinc-500">N commande :</span>
                   <span className="font-bold text-zinc-900">{d.order.order_number}</span>
-                  <span className="text-zinc-500">Total</span>
+                  <span className="text-zinc-500">Total :</span>
                   <span className="font-bold text-zinc-900">{d.order.total ? formatCurrency(parseFloat(d.order.total)) : '-'}</span>
-                  <span className="text-zinc-500">Statut commande</span>
+                  <span className="text-zinc-500">Statut :</span>
                   <span className="font-bold text-zinc-900">{d.order.status ? statusFr(d.order.status) : '-'}</span>
                 </div>
               </div>
             )}
 
+            {/* Suivi & Dates */}
             <div className="card-muted p-4">
-              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Dates</p>
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                <span className="text-zinc-500">Creation</span>
+              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Suivi</p>
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                <span className="text-zinc-500">N suivi :</span>
+                <span className="font-bold text-zinc-900">{d.tracking_number ?? '-'}</span>
+                {d.external_tracking_id && d.external_tracking_id !== d.tracking_number && (<>
+                  <span className="text-zinc-500">ID externe :</span>
+                  <span className="font-bold text-zinc-900">{d.external_tracking_id}</span>
+                </>)}
+                <span className="text-zinc-500">Statut transporteur :</span>
+                <span className="font-bold text-zinc-900">{d.carrier_status ?? '-'}</span>
+                <span className="text-zinc-500">Derniere sync :</span>
+                <span className="font-bold text-zinc-900">{fmtDate(d.carrier_last_sync_at) ?? '-'}</span>
+                <span className="text-zinc-500">Creation :</span>
                 <span className="font-bold text-zinc-900">{fmtDate(d.created_at) ?? '-'}</span>
                 {d.pickup_date && (<>
-                  <span className="text-zinc-500">Enlevement</span>
+                  <span className="text-zinc-500">Enlevement :</span>
                   <span className="font-bold text-zinc-900">{fmtDate(d.pickup_date)}</span>
                 </>)}
                 {d.shipped_at && (<>
-                  <span className="text-zinc-500">Expedition</span>
+                  <span className="text-zinc-500">Expedition :</span>
                   <span className="font-bold text-zinc-900">{fmtDate(d.shipped_at)}</span>
                 </>)}
                 {d.delivered_at && (<>
-                  <span className="text-zinc-500">Livraison</span>
+                  <span className="text-zinc-500">Livraison :</span>
                   <span className="font-bold text-zinc-900">{fmtDate(d.delivered_at)}</span>
                 </>)}
                 {d.returned_at && (<>
-                  <span className="text-zinc-500">Retour</span>
+                  <span className="text-zinc-500">Retour :</span>
                   <span className="font-bold text-zinc-900">{fmtDate(d.returned_at)}</span>
                 </>)}
               </div>
             </div>
 
-            {d.notes && (
-              <div className="card-muted p-4">
-                <p className="text-xs font-black uppercase text-zinc-400 mb-1">Notes</p>
-                <p className="text-sm text-zinc-700">{d.notes}</p>
-              </div>
-            )}
-
+            {/* Historique */}
             <div>
               <p className="text-xs font-black uppercase text-zinc-400 mb-2">Historique</p>
               <div className="space-y-2">
