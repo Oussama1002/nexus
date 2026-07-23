@@ -294,12 +294,10 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             )}
             <div className="space-y-0.5 min-w-0">
               <p className="text-sm font-black text-zinc-900 truncate">{p.name}</p>
-              <p className="text-[11px] font-medium text-zinc-500">SKU {p.sku}</p>
             </div>
           </div>
         ),
       },
-      { key: 'brand', header: 'Marque', cell: (p) => <span className="text-sm font-bold text-zinc-700">{p.brand}</span> },
       { key: 'status', header: 'Statut', cell: (p) => <StatusChip tone={toneForProductStatus(p.status)}>{p.status}</StatusChip> },
       {
         key: 'stock',
@@ -683,7 +681,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       <Drawer
         open={!!selected}
         title={selected ? selected.name : ''}
-        subtitle={selected ? `SKU ${selected.sku} • ${selected.brand}` : undefined}
+        subtitle={selected ? selected.brand : undefined}
         onClose={() => setSelectedId(null)}
         footer={
           selected && hasPermission('products.update') ? (
@@ -990,10 +988,6 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
               className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               placeholder="Description du produit (optionnel)"
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">SKU</label>
-            <input value={draft.sku} onChange={(e) => setDraft((d) => ({ ...d, sku: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</label>
