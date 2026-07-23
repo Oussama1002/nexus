@@ -133,22 +133,22 @@ class ProductController extends Controller
         return ApiResponse::success(null, 'Product deleted successfully.');
     }
 
-    /**
-     * Generate a unique SKU: PRD-{brandId}-{sequence}.
-     */
     private function generateSku(int $brandId): string
     {
+        $brand = \App\Models\Brand::find($brandId);
+        $prefix = $brand && $brand->code ? strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $brand->code), 0, 6)) : 'PRD';
+
         $last = Product::query()
             ->where('brand_id', $brandId)
-            ->where('sku', 'like', "PRD-{$brandId}-%")
+            ->where('sku', 'like', "{$prefix}-%")
             ->orderByDesc('id')
             ->value('sku');
 
         $seq = 1;
-        if ($last && preg_match('/PRD-\d+-(\d+)$/', $last, $m)) {
+        if ($last && preg_match('/-(\d+)$/', $last, $m)) {
             $seq = ((int) $m[1]) + 1;
         }
 
-        return sprintf('PRD-%d-%04d', $brandId, $seq);
+        return sprintf('%s-%04d', $prefix, $seq);
     }
 }
