@@ -444,6 +444,19 @@ export function ShipmentsScreen() {
         cell: (s) => <span className="text-sm font-black">{formatCurrency(parseFloat(s.cod_amount))}</span>,
       },
       {
+        key: 'date',
+        header: 'Date',
+        cell: (s) => {
+          const pick = s.status === 'delivered' ? s.delivered_at
+            : s.status === 'returned' ? s.returned_at
+            : s.status === 'in_transit' || s.status === 'shipped' ? s.shipped_at
+            : s.created_at;
+          if (!pick) return <span className="text-xs text-zinc-400">—</span>;
+          const d = new Date(pick);
+          return <span className="text-xs text-zinc-600 font-medium">{d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} {d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>;
+        },
+      },
+      {
         key: 'go',
         header: '',
         className: 'text-right',
