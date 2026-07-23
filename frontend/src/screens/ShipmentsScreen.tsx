@@ -18,15 +18,30 @@ import { flattenFieldErrors } from '../lib/formErrors';
 type ApiShipment = {
   id: number;
   tracking_number: string | null;
+  external_tracking_id?: string | null;
   status: string;
+  carrier_status?: string | null;
   payment_status?: string | null;
   cod_amount: string;
+  delivery_fee?: string | null;
+  insurance_fee?: string | null;
   recipient_name?: string | null;
   recipient_phone?: string | null;
   recipient_city?: string | null;
+  recipient_address?: string | null;
   city?: string | null;
+  address?: string | null;
   carrier_label_url?: string | null;
+  carrier_last_sync_at?: string | null;
   sync_error?: string | null;
+  failure_reason?: string | null;
+  return_reason?: string | null;
+  pickup_date?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
+  returned_at?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
   order?: { id: number; order_number: string; total?: string; status?: string; assigned_user_id?: number | null } | null;
   delivery_company?: { id: number; name: string; code?: string | null } | null;
 };
@@ -143,6 +158,7 @@ export function ShipmentsScreen() {
   const [sendToCarrier, setSendToCarrier] = useState(true);
 
   const [events, setEvents] = useState<ShipmentEventRow[]>([]);
+  const [detail, setDetail] = useState<ApiShipment | null>(null);
 
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState<string>('in_transit');
@@ -243,14 +259,17 @@ export function ShipmentsScreen() {
     (async () => {
       if (!selectedId) {
         setEvents([]);
+        setDetail(null);
         return;
       }
-      const res = await api.get<ShipmentEventRow[]>(
-        `shipments/${selectedId}/events`,
-        activeBrandId === 'all' ? { brandId: '' } : undefined,
-      );
-      if (cancel || !res.ok || !Array.isArray(res.data)) return;
-      setEvents(res.data as ShipmentEventRow[]);
+      const numId = Number(selectedId);
+      const [evRes, detailRes] = await Promise.all([
+        api.get<ShipmentEventRow[]>(`shipments/${numId}/events`, activeBrandId === 'all' ? { brandId: '' } : undefined),
+        api.get<ApiShipment>(`shipments/${numId}`),
+      ]);
+      if (cancel) return;
+      if (evRes.ok && Array.isArray(evRes.data)) setEvents(evRes.data as ShipmentEventRow[]);
+      if (detailRes.ok && detailRes.data) setDetail(detailRes.data as ApiShipment);
     })();
     return () => {
       cancel = true;
@@ -591,58 +610,126 @@ export function ShipmentsScreen() {
         </>
       )}
 
-      <Drawer open={!!selected} onClose={() => setSelectedId(null)} title={selected?.tracking_number ?? ''}>
-        {selected && (
+      <Drawer open={!!selected} onClose={() => { setSelectedId(null); setDetail(null); }} title={selected?.tracking_number ?? ''}>
+        {selected && (() => {
+          const d = detail ?? selected;
+          const fmtDate = (v?: string | null) => v ? new Date(v).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+          return (
           <div className="space-y-4">
             <div className="card-muted p-4 space-y-2">
-              <p className="text-xs font-black uppercase text-zinc-400">Statut expédition</p>
+              <p className="text-xs font-black uppercase text-zinc-400">Statut</p>
               <div className="flex flex-wrap gap-2">
-                <StatusChip tone={toneForStatus(selected.status)}>{statusFr(selected.status)}</StatusChip>
-                {selected.payment_status && (
-                  <StatusChip tone="neutral">{statusFr(selected.payment_status)}</StatusChip>
+                <StatusChip tone={toneForStatus(d.status)}>{statusFr(d.status)}</StatusChip>
+                {d.carrier_status && d.carrier_status !== d.status && (
+                  <StatusChip tone="neutral">{d.carrier_status}</StatusChip>
+                )}
+                {d.payment_status && (
+                  <StatusChip tone={d.payment_status === 'cod_pending' ? 'warning' : 'neutral'}>{statusFr(d.payment_status)}</StatusChip>
                 )}
               </div>
-              {selected.sync_error && (
-                <p className="text-xs text-rose-600 font-bold">Sync : {selected.sync_error}</p>
-              )}
+              {d.sync_error && <p className="text-xs text-rose-600 font-bold">Erreur sync : {d.sync_error}</p>}
+              {d.failure_reason && <p className="text-xs text-rose-600 font-bold">Motif echec : {d.failure_reason}</p>}
+              {d.return_reason && <p className="text-xs text-amber-600 font-bold">Motif retour : {d.return_reason}</p>}
               <div className="flex flex-wrap gap-2 pt-2">
                 {hasPermission('shipments.sync') && (
-                  <button
-                    type="button"
-                    onClick={() => void runSync(selected.id)}
-                    className="px-3 py-2 rounded-xl bg-zinc-900 text-white text-xs font-black"
-                  >
-                    Synchroniser
-                  </button>
+                  <button type="button" onClick={() => void runSync(selected.id)} className="px-3 py-2 rounded-xl bg-zinc-900 text-white text-xs font-black">Synchroniser</button>
                 )}
                 {hasPermission('shipments.label') && (
-                  <button
-                    type="button"
-                    onClick={() => void fetchLabelMeta(selected.id)}
-                    className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-xs font-black inline-flex items-center gap-1"
-                  >
-                    <Barcode className="w-4 h-4" /> Étiquette
-                  </button>
+                  <button type="button" onClick={() => void fetchLabelMeta(selected.id)} className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-xs font-black inline-flex items-center gap-1"><Barcode className="w-4 h-4" /> Etiquette</button>
                 )}
                 {hasPermission('shipments.status') && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNextStatus('in_transit');
-                      setStatusModalOpen(true);
-                    }}
-                    className="px-3 py-2 rounded-xl bg-primary-600 text-white text-xs font-black"
-                  >
-                    Mettre à jour le statut
-                  </button>
+                  <button type="button" onClick={() => { setNextStatus('in_transit'); setStatusModalOpen(true); }} className="px-3 py-2 rounded-xl bg-primary-600 text-white text-xs font-black">Mettre a jour le statut</button>
                 )}
               </div>
             </div>
 
+            <div className="card-muted p-4 space-y-1">
+              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Destinataire</p>
+              <p className="text-sm font-black text-zinc-900">{d.recipient_name ?? '-'}</p>
+              <p className="text-sm text-zinc-700">{d.recipient_phone ?? '-'}</p>
+              <p className="text-sm text-zinc-700">{d.recipient_city ?? d.city ?? '-'}</p>
+              <p className="text-sm text-zinc-600">{d.recipient_address ?? d.address ?? '-'}</p>
+            </div>
+
+            <div className="card-muted p-4">
+              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Suivi & Transporteur</p>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                <span className="text-zinc-500">Transporteur</span>
+                <span className="font-bold text-zinc-900">{d.delivery_company?.name ?? '-'}</span>
+                <span className="text-zinc-500">N suivi</span>
+                <span className="font-bold text-zinc-900">{d.tracking_number ?? '-'}</span>
+                {d.external_tracking_id && d.external_tracking_id !== d.tracking_number && (<>
+                  <span className="text-zinc-500">ID externe</span>
+                  <span className="font-bold text-zinc-900">{d.external_tracking_id}</span>
+                </>)}
+                <span className="text-zinc-500">Statut transporteur</span>
+                <span className="font-bold text-zinc-900">{d.carrier_status ?? '-'}</span>
+                <span className="text-zinc-500">Derniere sync</span>
+                <span className="font-bold text-zinc-900">{fmtDate(d.carrier_last_sync_at) ?? '-'}</span>
+              </div>
+            </div>
+
+            <div className="card-muted p-4">
+              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Montants</p>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                <span className="text-zinc-500">COD</span>
+                <span className="font-black text-zinc-900">{formatCurrency(parseFloat(d.cod_amount || '0'))}</span>
+                <span className="text-zinc-500">Frais livraison</span>
+                <span className="font-bold text-zinc-900">{d.delivery_fee ? formatCurrency(parseFloat(d.delivery_fee)) : '-'}</span>
+                <span className="text-zinc-500">Assurance</span>
+                <span className="font-bold text-zinc-900">{d.insurance_fee ? formatCurrency(parseFloat(d.insurance_fee)) : '-'}</span>
+              </div>
+            </div>
+
+            {d.order && (
+              <div className="card-muted p-4">
+                <p className="text-xs font-black uppercase text-zinc-400 mb-2">Commande</p>
+                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                  <span className="text-zinc-500">N commande</span>
+                  <span className="font-bold text-zinc-900">{d.order.order_number}</span>
+                  <span className="text-zinc-500">Total</span>
+                  <span className="font-bold text-zinc-900">{d.order.total ? formatCurrency(parseFloat(d.order.total)) : '-'}</span>
+                  <span className="text-zinc-500">Statut commande</span>
+                  <span className="font-bold text-zinc-900">{d.order.status ? statusFr(d.order.status) : '-'}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="card-muted p-4">
+              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Dates</p>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                <span className="text-zinc-500">Creation</span>
+                <span className="font-bold text-zinc-900">{fmtDate(d.created_at) ?? '-'}</span>
+                {d.pickup_date && (<>
+                  <span className="text-zinc-500">Enlevement</span>
+                  <span className="font-bold text-zinc-900">{fmtDate(d.pickup_date)}</span>
+                </>)}
+                {d.shipped_at && (<>
+                  <span className="text-zinc-500">Expedition</span>
+                  <span className="font-bold text-zinc-900">{fmtDate(d.shipped_at)}</span>
+                </>)}
+                {d.delivered_at && (<>
+                  <span className="text-zinc-500">Livraison</span>
+                  <span className="font-bold text-zinc-900">{fmtDate(d.delivered_at)}</span>
+                </>)}
+                {d.returned_at && (<>
+                  <span className="text-zinc-500">Retour</span>
+                  <span className="font-bold text-zinc-900">{fmtDate(d.returned_at)}</span>
+                </>)}
+              </div>
+            </div>
+
+            {d.notes && (
+              <div className="card-muted p-4">
+                <p className="text-xs font-black uppercase text-zinc-400 mb-1">Notes</p>
+                <p className="text-sm text-zinc-700">{d.notes}</p>
+              </div>
+            )}
+
             <div>
               <p className="text-xs font-black uppercase text-zinc-400 mb-2">Historique</p>
               <div className="space-y-2">
-                {events.length === 0 && <p className="text-sm text-zinc-500">Aucun événement.</p>}
+                {events.length === 0 && <p className="text-sm text-zinc-500">Aucun evenement.</p>}
                 {events.map((ev) => (
                   <div key={ev.id} className="card-muted p-3 text-sm border-l-4 border-primary-500">
                     <p className="font-black text-zinc-900">{ev.event_type}</p>
@@ -656,7 +743,8 @@ export function ShipmentsScreen() {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </Drawer>
 
       <Modal open={statusModalOpen} onClose={() => setStatusModalOpen(false)} title="Mise à jour du statut">
