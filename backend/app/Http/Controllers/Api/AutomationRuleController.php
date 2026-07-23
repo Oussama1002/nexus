@@ -49,7 +49,7 @@ class AutomationRuleController extends Controller
     public function store(Request $request): JsonResponse
     {
         $this->requirePermission($request, 'automations.create');
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -70,9 +70,7 @@ class AutomationRuleController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $this->requirePermission($request, 'automations.view');
-        $brandId = ApiBrandContext::resolveBrandId($request);
         $rule = AutomationRule::query()
-            ->where('brand_id', $brandId)
             ->with(['createdBy:id,name', 'updatedBy:id,name'])
             ->findOrFail($id);
 
@@ -82,8 +80,7 @@ class AutomationRuleController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $this->requirePermission($request, 'automations.update');
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $rule = AutomationRule::query()->where('brand_id', $brandId)->findOrFail($id);
+        $rule = AutomationRule::query()->findOrFail($id);
         $before = $rule->toArray();
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
@@ -104,8 +101,7 @@ class AutomationRuleController extends Controller
     public function destroy(Request $request, string $id): JsonResponse
     {
         $this->requirePermission($request, 'automations.delete');
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $rule = AutomationRule::query()->where('brand_id', $brandId)->findOrFail($id);
+        $rule = AutomationRule::query()->findOrFail($id);
         $before = $rule->toArray();
         $rule->delete();
         AuditService::log($request, 'automations.delete', null, $before, null);
@@ -116,8 +112,7 @@ class AutomationRuleController extends Controller
     public function test(Request $request, string $id): JsonResponse
     {
         $this->requirePermission($request, 'automations.run');
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $rule = AutomationRule::query()->where('brand_id', $brandId)->findOrFail($id);
+        $rule = AutomationRule::query()->findOrFail($id);
         $data = $request->validate([
             'event_payload' => ['required', 'array'],
         ]);
@@ -129,14 +124,14 @@ class AutomationRuleController extends Controller
     public function runs(Request $request): JsonResponse
     {
         $this->requirePermission($request, 'automations.view');
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 50), 1), 200);
         $ruleId = $request->query('rule_id');
 
         $q = AutomationRun::query()
-            ->where('brand_id', $brandId)
             ->with('rule:id,name,trigger_key')
             ->orderByDesc('id');
+        ApiBrandContext::scopeBrand($q, $brandId);
 
         if ($ruleId) {
             $q->where('automation_rule_id', (int) $ruleId);
