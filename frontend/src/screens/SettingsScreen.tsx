@@ -93,7 +93,7 @@ export function SettingsScreen() {
   const dirty = model !== null && JSON.stringify(model) !== baseline;
 
   useEffect(() => {
-    if (!activeBrandId || activeBrandId === "all" || !canView) return;
+    if (!activeBrandId || !canView) return;
     let cancelled = false;
     setLoading(true);
     void (async () => {
@@ -130,7 +130,7 @@ export function SettingsScreen() {
   }, [activeBrandId, canView, section, toast, reloadToken]);
 
   async function save() {
-    if (!canUpdate || !activeBrandId || activeBrandId === "all" || model === null) return;
+    if (!canUpdate || !activeBrandId || model === null) return;
     if (section === 'security' && !isAdmin) {
       toast.error('La section Sécurité est réservée aux administrateurs.');
       return;
@@ -238,10 +238,6 @@ export function SettingsScreen() {
   }
 
   async function connectFacebook() {
-    if (!activeBrandId || activeBrandId === "all") {
-      toast.error("Veuillez sélectionner une marque spécifique.");
-      return;
-    }
     setConnectingFb(true);
     const res = await api.get<{ url: string }>('meta/oauth/url');
     setConnectingFb(false);
@@ -286,13 +282,6 @@ export function SettingsScreen() {
     );
   }
 
-  if (!activeBrandId || activeBrandId === "all") {
-    return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center text-sm font-medium text-zinc-600 shadow-sm">
-        {"Sélectionnez une marque spécifique pour configurer le centre de paramètres."}
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-[calc(100vh-6rem)] pb-32">
