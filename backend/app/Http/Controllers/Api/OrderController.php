@@ -42,7 +42,7 @@ class OrderController extends Controller
 
         $assigned = $request->query('assigned_user_id');
 
-        $q = Order::query()->with(['customer', 'lines']);
+        $q = Order::query()->with(['customer', 'lines', 'shipment:id,order_id,tracking_number,status,carrier_status,delivery_company_id', 'shipment.deliveryCompany:id,name']);
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('id');
 
@@ -145,7 +145,7 @@ class OrderController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
-        $order = Order::query()->with(['lines.product', 'customer', 'events.actor'])->where('brand_id', $brandId)->findOrFail($id);
+        $order = Order::query()->with(['lines.product', 'customer', 'events.actor', 'shipment.deliveryCompany'])->where('brand_id', $brandId)->findOrFail($id);
 
         return ApiResponse::success($order, 'Order retrieved successfully.');
     }

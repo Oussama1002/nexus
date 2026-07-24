@@ -35,6 +35,7 @@ type ApiOrderRow = {
   created_at: string;
   customer?: { full_name: string; phone: string; city?: string | null } | null;
   lines?: { product_name: string; quantity: number; unit_price: string }[];
+  shipment?: { id: number; tracking_number: string | null; status: string; carrier_status?: string | null; delivery_company?: { id: number; name: string } | null } | null;
 };
 
 function statusFr(s: string): OrderStatus {
@@ -133,6 +134,7 @@ function mapOrder(o: ApiOrderRow, brandName: string): Order {
       })) ?? [],
     notes: o.notes ?? undefined,
     cancellationReason: o.cancellation_reason ?? undefined,
+    shipment: o.shipment ? { tracking: o.shipment.tracking_number, status: o.shipment.status, carrier: o.shipment.delivery_company?.name ?? '-' } : null,
   };
 }
 
@@ -315,6 +317,22 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
         key: 'payment',
         header: 'Paiement',
         cell: (o) => <StatusChip tone={toneForPayment(o.payment)}>{o.payment}</StatusChip>,
+      },
+      {
+        key: 'colis',
+        header: 'Colis',
+        cell: (o) => {
+          if (!o.shipment) return <span className="text-xs text-zinc-400">—</span>;
+          const tones: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'neutral'> = { pending: 'warning', in_transit: 'info', shipped: 'info', delivered: 'success', returned: 'danger', cancelled: 'danger' };
+          const lbl: Record<string, string> = { pending: 'En attente', in_transit: 'En transit', shipped: 'Expédié', delivered: 'Livré', returned: 'Retourné', cancelled: 'Annulé' };
+          return (
+            <div className="space-y-1">
+              <StatusChip tone={tones[o.shipment.status] ?? 'neutral'}>{lbl[o.shipment.status] ?? o.shipment.status}</StatusChip>
+              {o.shipment.tracking && <p className="text-[10px] text-zinc-500 font-mono">{o.shipment.tracking}</p>}
+              {o.shipment.carrier !== '-' && <p className="text-[10px] text-zinc-400">{o.shipment.carrier}</p>}
+            </div>
+          );
+        },
       },
       {
         key: 'total',
