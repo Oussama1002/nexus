@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Shipment;
 use App\Models\StockMovement;
 use App\Services\DashboardNotificationService;
+use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,54 +26,61 @@ class DashboardController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $from = $request->query('date_from');
         $to = $request->query('date_to');
 
         $ordersScope = Order::query()
             ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to));
+        ApiBrandContext::scopeBrand($ordersScope, $brandId);
 
-        $leadsCount = Lead::query()
+        $leadsScope = Lead::query()
             ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to))
-            ->count();
+            ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to));
+        ApiBrandContext::scopeBrand($leadsScope, $brandId);
 
         $shipmentsScope = Shipment::query()
             ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to));
+        ApiBrandContext::scopeBrand($shipmentsScope, $brandId);
 
-        $productsSoldQty = (int) OrderLine::query()
-            ->whereHas('order', function ($q) use ($from, $to) {
+        $productsSoldScope = OrderLine::query()
+            ->whereHas('order', function ($q) use ($from, $to, $brandId) {
                 $q->when($from, fn ($qq) => $qq->whereDate('created_at', '>=', $from))
                     ->when($to, fn ($qq) => $qq->whereDate('created_at', '<=', $to));
-            })
-            ->sum('quantity');
+                ApiBrandContext::scopeBrand($q, $brandId);
+            });
+        $productsSoldQty = (int) $productsSoldScope->sum('quantity');
 
+        $leadsCount = (clone $leadsScope)->count();
         $ordersCount = (clone $ordersScope)->count();
-        $revenue = (float) (clone $ordersScope)->sum('total');
+        $orderRevenue = (float) (clone $ordersScope)->sum('total');
+        $shipmentRevenue = (float) (clone $shipmentsScope)->where('status', 'delivered')->sum('cod_amount');
+        $revenue = $orderRevenue > 0 ? $orderRevenue : $shipmentRevenue;
         $confirmedOrders = (clone $ordersScope)->where('status', 'confirmed')->count();
         $deliveredShipments = (clone $shipmentsScope)->where('status', 'delivered')->count();
         $totalShipments = (clone $shipmentsScope)->count();
 
-        // Leads by status for conversion rate
-        $leadsConfirmed = Lead::query()
-            ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to))
-            ->where('status', 'confirmed')
-            ->count();
+        $leadsConfirmed = (clone $leadsScope)->where('status', 'confirmed')->count();
 
-        $productsCount = Product::query()->count();
-        $lowStockCount = Product::query()
+        $productsScope = Product::query();
+        ApiBrandContext::scopeBrand($productsScope, $brandId);
+        $productsCount = (clone $productsScope)->count();
+        $lowStockCount = (clone $productsScope)
             ->whereColumn('stock_quantity', '<=', 'low_stock_threshold')
             ->where('status', 'active')
             ->count();
+
+        $customersScope = Customer::query();
+        ApiBrandContext::scopeBrand($customersScope, $brandId);
 
         return ApiResponse::success([
             'counts' => [
                 'brands' => Brand::query()->count(),
                 'leads' => $leadsCount,
                 'orders' => $ordersCount,
-                'customers' => Customer::query()->count(),
+                'customers' => $customersScope->count(),
                 'shipments' => $totalShipments,
                 'products_sold_qty' => $productsSoldQty,
                 'revenue' => $revenue,

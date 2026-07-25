@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { pathForView } from '../lib/appPaths';
 import { useBrand } from '../context/BrandContext';
 
-type Range = "Aujourd'hui" | 'Semaine' | 'Mois' | 'Année';
+type Range = 'Tout' | "Aujourd'hui" | 'Semaine' | 'Mois' | 'Année';
 
 type DashboardPayload = {
   counts: {
@@ -36,6 +36,7 @@ type DashboardPayload = {
 };
 
 function dateRangeParams(range: Range): { date_from?: string; date_to?: string } {
+  if (range === 'Tout') return {};
   const pad = (n: number) => String(n).padStart(2, '0');
   const isoLocal = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const now = new Date();
@@ -116,7 +117,7 @@ function KpiCard({
 export function DashboardScreen() {
   const navigate = useNavigate();
   const { activeBrandId } = useBrand();
-  const [range, setRange] = useState<Range>("Aujourd'hui");
+  const [range, setRange] = useState<Range>('Tout');
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +160,7 @@ export function DashboardScreen() {
         }
         right={
           <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-2xl p-1">
-            {(["Aujourd'hui", 'Semaine', 'Mois', 'Année'] as Range[]).map((r) => (
+            {(['Tout', "Aujourd'hui", 'Semaine', 'Mois', 'Année'] as Range[]).map((r) => (
               <button
                 key={r}
                 type="button"
