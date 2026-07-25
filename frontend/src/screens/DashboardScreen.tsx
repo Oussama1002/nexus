@@ -57,13 +57,19 @@ function dateRangeParams(range: Range): { date_from?: string; date_to?: string }
   return { date_from: isoLocal(start), date_to: isoLocal(now) };
 }
 
+const STATUS_FR: Record<string, string> = {
+  confirmed: 'Confirmé', pending: 'En attente', shipped: 'Expédié', delivered: 'Livré',
+  cancelled: 'Annulé', returned: 'Retourné', new: 'Nouveau', in_transit: 'En transit',
+  created: 'Créé', picked_up: 'Ramassé', failed: 'Échoué',
+};
+
 function breakdownRecord(rec: Record<string, number> | undefined, limit = 6) {
   if (!rec || Object.keys(rec).length === 0) return [];
   return Object.entries(rec)
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([label, value]) => ({
-      label,
+      label: STATUS_FR[label] ?? label,
       value: String(value),
       tone: 'neutral' as const,
     }));
