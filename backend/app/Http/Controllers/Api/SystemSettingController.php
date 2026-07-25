@@ -9,6 +9,7 @@ use App\Http\Requests\Api\UpdateSystemSettingRequest;
 use App\Models\SystemSetting;
 use App\Services\AuditService;
 use App\Support\ApiBrandContext;
+use App\Models\Brand;
 use App\Support\ApiResponse;
 use App\Support\SystemSettingRegistry;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +22,7 @@ class SystemSettingController extends Controller
     public function index(Request $request): JsonResponse
     {
         $this->requireSettingsView($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 500);
         $group = $request->query('setting_group');
         $search = $request->query('search');
@@ -58,7 +59,7 @@ class SystemSettingController extends Controller
     public function syncGroup(SyncSystemSettingsGroupRequest $request): JsonResponse
     {
         $this->requireSettingsUpdate($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $validated = $request->validated();
         $group = $validated['setting_group'];
         /** @var array<string, string|null> $settings */
@@ -133,7 +134,7 @@ class SystemSettingController extends Controller
     {
         $this->requireSettingsCreate($request);
         $data = $request->validated();
-        $data['brand_id'] = ApiBrandContext::resolveBrandId($request);
+        $data['brand_id'] = $this->resolveSettingsBrand($request);
         $data['setting_group'] = $data['setting_group'] ?? 'general';
         $data['is_sensitive'] = $data['is_sensitive'] ?? false;
 
@@ -163,7 +164,7 @@ class SystemSettingController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $this->requireSettingsView($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $row = SystemSetting::query()->where('brand_id', $brandId)->findOrFail($id);
 
         return ApiResponse::success(SystemSetting::maskSensitiveArray($row->toArray()), 'Setting retrieved successfully.');
@@ -172,7 +173,7 @@ class SystemSettingController extends Controller
     public function update(UpdateSystemSettingRequest $request, string $id): JsonResponse
     {
         $this->requireSettingsUpdate($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $row = SystemSetting::query()->where('brand_id', $brandId)->findOrFail($id);
         $before = $row->toArray();
         $data = $request->validated();
@@ -206,7 +207,7 @@ class SystemSettingController extends Controller
     public function destroy(Request $request, string $id): JsonResponse
     {
         $this->requireSettingsDelete($request);
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $row = SystemSetting::query()->where('brand_id', $brandId)->findOrFail($id);
         $before = SystemSetting::maskSensitiveArray($row->toArray());
         $row->delete();
@@ -214,6 +215,16 @@ class SystemSettingController extends Controller
         AuditService::log($request, 'settings.delete', null, $before, null);
 
         return ApiResponse::success(null, 'Setting deleted successfully.');
+    }
+
+    private function resolveSettingsBrand(Request $request): int
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        if ($brandId !== null) {
+            return $brandId;
+        }
+
+        return (int) Brand::query()->orderBy('id')->value('id');
     }
 
     private function requireSettingsView(Request $request): void

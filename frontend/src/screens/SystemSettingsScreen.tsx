@@ -183,13 +183,6 @@ export function SystemSettingsScreen({
     );
   }
 
-  if (!activeBrandId) {
-    return (
-      <div className="card p-8 text-center text-sm font-bold text-zinc-600">
-        Sélectionnez une <strong className="text-zinc-900">marque active</strong> dans l’en-tête pour charger les paramètres stockés pour cette marque.
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
