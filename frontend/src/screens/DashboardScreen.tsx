@@ -321,9 +321,10 @@ export function DashboardScreen() {
                 const entries = Object.entries(payload.orders_by_status).sort((a, b) => b[1] - a[1]);
                 const max = Math.max(...entries.map(([, v]) => v), 1);
                 const colors: Record<string, string> = { confirmed: 'bg-emerald-500', pending: 'bg-amber-500', shipped: 'bg-blue-500', delivered: 'bg-primary-600', cancelled: 'bg-rose-500', returned: 'bg-zinc-400', new: 'bg-cyan-500' };
+                const orderLbl: Record<string, string> = { confirmed: 'Confirmé', pending: 'En attente', shipped: 'Expédié', delivered: 'Livré', cancelled: 'Annulé', returned: 'Retourné', new: 'Nouveau' };
                 return entries.map(([label, value]) => (
                   <div key={label} className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-zinc-600 w-24 text-right capitalize">{label}</span>
+                    <span className="text-xs font-bold text-zinc-600 w-24 text-right">{orderLbl[label] ?? label}</span>
                     <div className="flex-1 h-7 bg-zinc-100 rounded-lg overflow-hidden">
                       <div
                         className={cn('h-full rounded-lg transition-all duration-500', colors[label] ?? 'bg-primary-400')}
@@ -350,10 +351,11 @@ export function DashboardScreen() {
               {(() => {
                 const entries = Object.entries(payload.shipments_by_status).sort((a, b) => b[1] - a[1]);
                 const max = Math.max(...entries.map(([, v]) => v), 1);
-                const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-blue-500', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-cyan-500' };
+                const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-blue-500', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-cyan-500', picked_up: 'bg-indigo-500', failed: 'bg-red-500', shipped: 'bg-blue-400' };
+                const shipLbl: Record<string, string> = { delivered: 'Livré', in_transit: 'En transit', pending: 'En attente', returned: 'Retourné', cancelled: 'Annulé', created: 'Créé', picked_up: 'Ramassé', failed: 'Échoué', shipped: 'Expédié' };
                 return entries.map(([label, value]) => (
                   <div key={label} className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-zinc-600 w-20 text-right capitalize">{label.replace(/_/g, ' ')}</span>
+                    <span className="text-xs font-bold text-zinc-600 w-20 text-right">{shipLbl[label] ?? label}</span>
                     <div className="flex-1 h-7 bg-zinc-100 rounded-lg overflow-hidden">
                       <div
                         className={cn('h-full rounded-lg transition-all duration-500', colors[label] ?? 'bg-primary-400')}
