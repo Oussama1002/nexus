@@ -2,6 +2,8 @@
 
 namespace App\Services\Delivery;
 
+use App\Models\Customer;
+use App\Models\Order;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\User;
@@ -246,6 +248,10 @@ class SenditInboundSyncService
                 $shipment = Shipment::query()->create($payload);
             }
 
+            if ($created && $shipment->order_id === null) {
+                $this->createOrderForShipment($shipment);
+            }
+
             $eventCount = 0;
 
             if ($created) {
@@ -304,6 +310,61 @@ class SenditInboundSyncService
 
             return ['created' => $created, 'events' => $eventCount];
         });
+    }
+
+    protected function createOrderForShipment(Shipment $shipment): void
+    {
+        $customer = null;
+        $phone = $shipment->recipient_phone;
+        $name = $shipment->recipient_name;
+
+        if ($phone) {
+            $customer = Customer::query()
+                ->where('brand_id', $shipment->brand_id)
+                ->where(function ($q) use ($phone) {
+                    $q->where('phone', $phone)->orWhere('phone_secondary', $phone);
+                })
+                ->first();
+        }
+
+        if (! $customer && ($name || $phone)) {
+            $customer = Customer::query()->create([
+                'brand_id' => $shipment->brand_id,
+                'full_name' => $name ?? 'Client inconnu',
+                'phone' => $phone ?? '',
+                'city' => $shipment->recipient_city ?? $shipment->city ?? '',
+                'address' => $shipment->recipient_address ?? $shipment->address ?? '',
+                'client_source' => 'carrier_import',
+                'status' => 'active',
+            ]);
+        }
+
+        $statusMap = [
+            'delivered' => 'delivered', 'returned' => 'returned', 'cancelled' => 'cancelled',
+            'in_transit' => 'confirmed', 'shipped' => 'confirmed', 'picked_up' => 'confirmed',
+            'out_for_delivery' => 'confirmed', 'created' => 'pending', 'pending' => 'pending', 'failed' => 'pending',
+        ];
+
+        $order = Order::query()->create([
+            'brand_id' => $shipment->brand_id,
+            'customer_id' => $customer?->id,
+            'order_number' => Order::generateUniqueOrderNumber(),
+            'source' => 'carrier_import',
+            'status' => $statusMap[$shipment->status] ?? 'pending',
+            'payment_method' => 'cod',
+            'payment_state' => $shipment->status === 'delivered' ? 'paid' : 'cod_pending',
+            'subtotal' => $shipment->cod_amount ?? 0,
+            'shipping_fee' => $shipment->delivery_fee ?? 0,
+            'discount' => 0,
+            'total' => $shipment->cod_amount ?? 0,
+            'shipping_address' => trim(($shipment->recipient_address ?? $shipment->address ?? '') . ' ' . ($shipment->recipient_city ?? $shipment->city ?? '')),
+            'notes' => $shipment->notes,
+            'confirmed_at' => in_array($shipment->status, ['delivered', 'in_transit', 'shipped', 'picked_up', 'out_for_delivery']) ? ($shipment->shipped_at ?? $shipment->created_at) : null,
+            'delivered_at' => $shipment->delivered_at,
+        ]);
+
+        $shipment->order_id = $order->id;
+        $shipment->save();
     }
 
     /**
