@@ -113,7 +113,9 @@ export function LogoUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const preview = resolvePublicAssetUrl(value);
+  const [cacheBust, setCacheBust] = useState('');
+  const resolvedUrl = resolvePublicAssetUrl(value);
+  const preview = resolvedUrl ? resolvedUrl + (cacheBust ? '?t=' + cacheBust : '') : '';
 
   const uploadFile = async (file: File) => {
     setError(null);
@@ -126,7 +128,8 @@ export function LogoUploadField({
       setError(res.message);
       return;
     }
-    onChange(res.data.logoUrl + '?t=' + Date.now());
+    setCacheBust(String(Date.now()));
+    onChange(res.data.logoUrl);
     onUploaded?.(res.data.logoUrl);
   };
 
