@@ -345,8 +345,9 @@ export function SettingsScreen() {
                       setBaseline(JSON.stringify(next));
                       return next;
                     });
+                    window.dispatchEvent(new CustomEvent('nexus:logo-updated', { detail: logoUrl }));
                     toast.success('Logo enregistré.');
-                  }}
+                  }
                 />
               )}
               {section === 'catalogue' && (

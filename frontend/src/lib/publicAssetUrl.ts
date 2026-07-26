@@ -2,9 +2,8 @@
 export function resolvePublicAssetUrl(url: string): string {
   const s = url.trim();
   if (!s) return '';
-  // Use the actual browser origin — storage files are served by the same server
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  // Full URL with /storage/ path — extract path and rebuild with correct origin
+  const apiBase = (import.meta.env.VITE_API_BASE_URL as string) ?? '';
+  const origin = apiBase ? apiBase.replace(/\/api\/?$/, '') : (typeof window !== 'undefined' ? window.location.origin : '');
   if (/^https?:\/\//i.test(s)) {
     const storageIdx = s.indexOf('/storage/');
     if (storageIdx !== -1) {

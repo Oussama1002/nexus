@@ -270,6 +270,15 @@ export function MainApp() {
   }, []);
 
   useEffect(() => {
+    const handler = (e: Event) => {
+      const url = (e as CustomEvent).detail;
+      if (typeof url === 'string') setBrandLogoUrl(url + '?t=' + Date.now());
+    };
+    window.addEventListener('nexus:logo-updated', handler);
+    return () => window.removeEventListener('nexus:logo-updated', handler);
+  }, []);
+
+  useEffect(() => {
     trackSession({ name: 'session.start', ts: Date.now(), meta: { userId: currentUser.id, role: currentUser.role } });
   }, [currentUser.id, currentUser.role]);
 
