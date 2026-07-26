@@ -55,12 +55,28 @@ type EntryApi = {
   brand?: { id: number; name: string } | null;
 };
 
+type BusinessSummary = {
+  revenue: number;
+  order_revenue: number;
+  delivered_cod: number;
+  total_orders: number;
+  delivered_orders: number;
+  returned_orders: number;
+  total_shipments: number;
+  delivered_shipments: number;
+  returned_shipments: number;
+  delivery_fees: number;
+  cod_collected: number;
+  cod_pending: number;
+};
+
 type SummaryApi = {
   total_debit: number;
   total_credit: number;
   balance: number;
   entry_count: number;
   account_count: number;
+  business?: BusinessSummary;
 };
 
 function fmtDate(iso: string): string {
@@ -364,13 +380,42 @@ export function AccountingScreen() {
         </div>
       )}
 
+      {summary?.business && (
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="card p-5 overflow-hidden">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Chiffre d'affaires</p>
+            <p className="mt-2 text-lg md:text-xl font-black text-emerald-700 truncate">{formatCurrency(summary.business.revenue)}</p>
+          </div>
+          <div className="card p-5 overflow-hidden">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">COD encaissé</p>
+            <p className="mt-2 text-lg md:text-xl font-black text-emerald-600 truncate">{formatCurrency(summary.business.cod_collected)}</p>
+          </div>
+          <div className="card p-5 overflow-hidden">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">COD en cours</p>
+            <p className="mt-2 text-lg md:text-xl font-black text-amber-600 truncate">{formatCurrency(summary.business.cod_pending)}</p>
+          </div>
+          <div className="card p-5 overflow-hidden">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Frais livraison</p>
+            <p className="mt-2 text-lg md:text-xl font-black text-rose-600 truncate">{formatCurrency(summary.business.delivery_fees)}</p>
+          </div>
+          <div className="card p-5 overflow-hidden">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Colis livrés</p>
+            <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{summary.business.delivered_shipments} <span className="text-xs font-medium text-zinc-400">/ {summary.business.total_shipments}</span></p>
+          </div>
+          <div className="card p-5 overflow-hidden">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Retours</p>
+            <p className="mt-2 text-lg md:text-xl font-black text-rose-700 truncate">{summary.business.returned_shipments}</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Debit</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Débit</p>
           <p className="mt-2 text-lg md:text-xl font-black text-rose-700 truncate">{formatCurrency(summary?.total_debit ?? 0)}</p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Credit</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Crédit</p>
           <p className="mt-2 text-lg md:text-xl font-black text-emerald-700 truncate">{formatCurrency(summary?.total_credit ?? 0)}</p>
         </div>
         <div className="card p-5 overflow-hidden">
@@ -380,7 +425,7 @@ export function AccountingScreen() {
           </p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Ecritures</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Écritures</p>
           <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{summary?.entry_count ?? 0}</p>
         </div>
         <div className="card p-5 overflow-hidden">

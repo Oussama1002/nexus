@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AccountingAccount;
 use App\Models\AccountingEntry;
+use App\Models\Order;
+use App\Models\Shipment;
 use App\Services\AuditLogger;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
@@ -223,12 +225,49 @@ class AccountingController extends Controller
             ->where('is_active', true)
             ->count();
 
+        $ordersQ = Order::query();
+        ApiBrandContext::scopeBrand($ordersQ, $brandId);
+        if ($from) { $ordersQ->whereDate('created_at', '>=', $from); }
+        if ($to) { $ordersQ->whereDate('created_at', '<=', $to); }
+
+        $shipmentsQ = Shipment::query();
+        ApiBrandContext::scopeBrand($shipmentsQ, $brandId);
+        if ($from) { $shipmentsQ->whereDate('created_at', '>=', $from); }
+        if ($to) { $shipmentsQ->whereDate('created_at', '<=', $to); }
+
+        $orderRevenue = (float) (clone $ordersQ)->sum('total');
+        $deliveredCod = (float) (clone $shipmentsQ)->where('status', 'delivered')->sum('cod_amount');
+        $revenue = $orderRevenue > 0 ? $orderRevenue : $deliveredCod;
+        $totalOrders = (clone $ordersQ)->count();
+        $deliveredOrders = (clone $ordersQ)->where('status', 'delivered')->count();
+        $returnedOrders = (clone $ordersQ)->where('status', 'returned')->count();
+        $totalShipments = (clone $shipmentsQ)->count();
+        $deliveredShipments = (clone $shipmentsQ)->where('status', 'delivered')->count();
+        $returnedShipments = (clone $shipmentsQ)->where('status', 'returned')->count();
+        $deliveryFees = (float) (clone $shipmentsQ)->sum('delivery_fee');
+        $codCollected = (float) (clone $shipmentsQ)->where('status', 'delivered')->sum('cod_amount');
+        $codPending = (float) (clone $shipmentsQ)->whereNotIn('status', ['delivered', 'returned', 'cancelled'])->sum('cod_amount');
+
         return ApiResponse::success([
             'total_debit' => round((float) $totalDebit, 2),
             'total_credit' => round((float) $totalCredit, 2),
             'balance' => round((float) $totalDebit - (float) $totalCredit, 2),
             'entry_count' => $entryCount,
             'account_count' => $accountCount,
+            'business' => [
+                'revenue' => round($revenue, 2),
+                'order_revenue' => round($orderRevenue, 2),
+                'delivered_cod' => round($deliveredCod, 2),
+                'total_orders' => $totalOrders,
+                'delivered_orders' => $deliveredOrders,
+                'returned_orders' => $returnedOrders,
+                'total_shipments' => $totalShipments,
+                'delivered_shipments' => $deliveredShipments,
+                'returned_shipments' => $returnedShipments,
+                'delivery_fees' => round($deliveryFees, 2),
+                'cod_collected' => round($codCollected, 2),
+                'cod_pending' => round($codPending, 2),
+            ],
         ], 'Accounting summary.');
     }
 
