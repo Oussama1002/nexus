@@ -126,7 +126,7 @@ export function LogoUploadField({
       setError(res.message);
       return;
     }
-    onChange(res.data.logoUrl);
+    onChange(res.data.logoUrl + '?t=' + Date.now());
     onUploaded?.(res.data.logoUrl);
   };
 
