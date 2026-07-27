@@ -381,30 +381,30 @@ export function AccountingScreen() {
       )}
 
       {summary?.business && (
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
-          <div className="card p-5 overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="card p-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Chiffre d'affaires</p>
-            <p className="mt-2 text-lg md:text-xl font-black text-emerald-700 truncate">{formatCurrency(summary.business.revenue)}</p>
+            <p className="mt-2 text-sm md:text-base font-black text-emerald-700 break-all">{formatCurrency(summary.business.revenue)}</p>
           </div>
-          <div className="card p-5 overflow-hidden">
+          <div className="card p-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">COD encaissé</p>
-            <p className="mt-2 text-lg md:text-xl font-black text-emerald-600 truncate">{formatCurrency(summary.business.cod_collected)}</p>
+            <p className="mt-2 text-sm md:text-base font-black text-emerald-600 break-all">{formatCurrency(summary.business.cod_collected)}</p>
           </div>
-          <div className="card p-5 overflow-hidden">
+          <div className="card p-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">COD en cours</p>
-            <p className="mt-2 text-lg md:text-xl font-black text-amber-600 truncate">{formatCurrency(summary.business.cod_pending)}</p>
+            <p className="mt-2 text-sm md:text-base font-black text-amber-600 break-all">{formatCurrency(summary.business.cod_pending)}</p>
           </div>
-          <div className="card p-5 overflow-hidden">
+          <div className="card p-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Frais livraison</p>
-            <p className="mt-2 text-lg md:text-xl font-black text-rose-600 truncate">{formatCurrency(summary.business.delivery_fees)}</p>
+            <p className="mt-2 text-sm md:text-base font-black text-rose-600 break-all">{formatCurrency(summary.business.delivery_fees)}</p>
           </div>
-          <div className="card p-5 overflow-hidden">
+          <div className="card p-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Colis livrés</p>
-            <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{summary.business.delivered_shipments} <span className="text-xs font-medium text-zinc-400">/ {summary.business.total_shipments}</span></p>
+            <p className="mt-2 text-sm md:text-base font-black text-zinc-900">{summary.business.delivered_shipments} <span className="text-xs font-medium text-zinc-400">/ {summary.business.total_shipments}</span></p>
           </div>
-          <div className="card p-5 overflow-hidden">
+          <div className="card p-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Retours</p>
-            <p className="mt-2 text-lg md:text-xl font-black text-rose-700 truncate">{summary.business.returned_shipments}</p>
+            <p className="mt-2 text-sm md:text-base font-black text-rose-700">{summary.business.returned_shipments}</p>
           </div>
         </div>
       )}
