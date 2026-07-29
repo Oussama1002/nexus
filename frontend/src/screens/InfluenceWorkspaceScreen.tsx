@@ -60,7 +60,7 @@ const PF = [
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1">
-      <span className="text-[10px] font-bold uppercase text-zinc-400">{label}</span>
+      <span className="text-[11px] font-bold uppercase text-zinc-700">{label}</span>
       {children}
     </label>
   );
@@ -103,7 +103,7 @@ function influencerLabel(row: Record<string, unknown>): string {
   return String(inf.full_name ?? inf.username ?? inf.handle ?? `#${String(row.influencer_id ?? '—')}`);
 }
 
-const selClass = 'w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold bg-white';
+const selClass = 'w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold bg-white text-zinc-900';
 
 export function InfluenceWorkspaceScreen() {
   const { activeBrandId } = useBrand();
@@ -237,7 +237,11 @@ export function InfluenceWorkspaceScreen() {
     niche: '',
     audience_size: '',
     engagement_rate: '',
-    pricing_json: '',
+    pricing_story: '',
+    pricing_reel: '',
+    pricing_post: '',
+    pricing_video: '',
+    pricing_live: '',
     contact_phone: '',
     contact_email: '',
     status: 'lead',
@@ -248,7 +252,8 @@ export function InfluenceWorkspaceScreen() {
     setInfId(id);
     setInfForm({
       full_name: '', username: '', platform: '', niche: '',
-      audience_size: '', engagement_rate: '', pricing_json: '',
+      audience_size: '', engagement_rate: '',
+      pricing_story: '', pricing_reel: '', pricing_post: '', pricing_video: '', pricing_live: '',
       contact_phone: '', contact_email: '', status: 'lead',
     });
     if (id) void loadInfluencer(id);
@@ -259,6 +264,7 @@ export function InfluenceWorkspaceScreen() {
     const r = await api.get<Record<string, unknown>>(`influencers/${id}`);
     if (!r.ok) return errToast(r);
     const d = r.data;
+    const pj = (typeof d.pricing_json === 'object' && d.pricing_json) ? d.pricing_json as Record<string, unknown> : {};
     setInfForm({
       full_name: String(d.full_name ?? ''),
       username: String(d.username ?? ''),
@@ -266,7 +272,11 @@ export function InfluenceWorkspaceScreen() {
       niche: String(d.niche ?? ''),
       audience_size: d.audience_size != null ? String(d.audience_size) : '',
       engagement_rate: d.engagement_rate != null ? String(d.engagement_rate) : '',
-      pricing_json: d.pricing_json ? JSON.stringify(d.pricing_json, null, 2) : '',
+      pricing_story: pj.story != null ? String(pj.story) : '',
+      pricing_reel: pj.reel != null ? String(pj.reel) : '',
+      pricing_post: pj.post != null ? String(pj.post) : '',
+      pricing_video: pj.video != null ? String(pj.video) : '',
+      pricing_live: pj.live != null ? String(pj.live) : '',
       contact_phone: String(d.contact_phone ?? ''),
       contact_email: String(d.contact_email ?? ''),
       status: String(d.status ?? 'lead'),
@@ -274,15 +284,12 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const saveInfluencer = async () => {
-    let pricing: unknown = null;
-    if (infForm.pricing_json.trim()) {
-      try {
-        pricing = JSON.parse(infForm.pricing_json) as unknown;
-      } catch {
-        toast.error('JSON pricing invalide.');
-        return;
-      }
-    }
+    const pricing: Record<string, number> = {};
+    if (infForm.pricing_story.trim()) pricing.story = Number(infForm.pricing_story);
+    if (infForm.pricing_reel.trim()) pricing.reel = Number(infForm.pricing_reel);
+    if (infForm.pricing_post.trim()) pricing.post = Number(infForm.pricing_post);
+    if (infForm.pricing_video.trim()) pricing.video = Number(infForm.pricing_video);
+    if (infForm.pricing_live.trim()) pricing.live = Number(infForm.pricing_live);
     const body: Record<string, unknown> = {
       full_name: infForm.full_name,
       username: infForm.username || null,
@@ -290,7 +297,7 @@ export function InfluenceWorkspaceScreen() {
       niche: infForm.niche || null,
       audience_size: infForm.audience_size ? Number(infForm.audience_size) : null,
       engagement_rate: infForm.engagement_rate ? Number(infForm.engagement_rate) : null,
-      pricing_json: pricing,
+      pricing_json: Object.keys(pricing).length > 0 ? pricing : null,
       contact_phone: infForm.contact_phone || null,
       contact_email: infForm.contact_email || null,
       status: infForm.status,
@@ -1375,14 +1382,59 @@ export function InfluenceWorkspaceScreen() {
               />
             </Field>
           </div>
-          <Field label="Tarifs (JSON)">
-            <textarea
-              className={`${selClass} font-mono text-xs min-h-[60px]`}
-              placeholder='{"story": 500, "reel": 1500, "post": 800}'
-              value={infForm.pricing_json}
-              onChange={(e) => setInfForm({ ...infForm, pricing_json: e.target.value })}
-            />
-          </Field>
+          <p className="text-[11px] font-bold uppercase text-zinc-700 pt-1">Tarifs (MAD)</p>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="Story">
+              <input
+                type="number"
+                min={0}
+                className={selClass}
+                placeholder="0"
+                value={infForm.pricing_story}
+                onChange={(e) => setInfForm({ ...infForm, pricing_story: e.target.value })}
+              />
+            </Field>
+            <Field label="Reel">
+              <input
+                type="number"
+                min={0}
+                className={selClass}
+                placeholder="0"
+                value={infForm.pricing_reel}
+                onChange={(e) => setInfForm({ ...infForm, pricing_reel: e.target.value })}
+              />
+            </Field>
+            <Field label="Post">
+              <input
+                type="number"
+                min={0}
+                className={selClass}
+                placeholder="0"
+                value={infForm.pricing_post}
+                onChange={(e) => setInfForm({ ...infForm, pricing_post: e.target.value })}
+              />
+            </Field>
+            <Field label="Vidéo">
+              <input
+                type="number"
+                min={0}
+                className={selClass}
+                placeholder="0"
+                value={infForm.pricing_video}
+                onChange={(e) => setInfForm({ ...infForm, pricing_video: e.target.value })}
+              />
+            </Field>
+            <Field label="Live">
+              <input
+                type="number"
+                min={0}
+                className={selClass}
+                placeholder="0"
+                value={infForm.pricing_live}
+                onChange={(e) => setInfForm({ ...infForm, pricing_live: e.target.value })}
+              />
+            </Field>
+          </div>
           <Field label="Statut">
             <select
               className={selClass}
