@@ -109,9 +109,48 @@ function statusFr(s: string): string {
     cancelled: 'Annulée',
     cod_pending: 'COD en attente',
     cod_received: 'COD reçu',
+    cod_collected: 'COD encaissé',
     reconciled: 'Réconcilié',
     disputed: 'Litige',
     not_applicable: 'N/A',
+    // Carrier-specific statuses (Sendit, Ameex, etc.)
+    UNREACHABLE: 'Injoignable',
+    DELIVERING: 'En cours de livraison',
+    POSTPONED: 'Reportée',
+    DISTRIBUTED: 'Distribuée',
+    WAREHOUSE: 'En entrepôt',
+    TOPICKUP: 'À enlever',
+    PICKUP: 'Enlevée',
+    SHIPPED: 'Expédiée',
+    RECEIVED: 'Reçue',
+    REFUSED: 'Refusée',
+    MISSING: 'Manquante',
+    DAMAGED: 'Endommagée',
+    RESCHEDULED: 'Reprogrammée',
+    PROCESSING: 'En traitement',
+    READY: 'Prête',
+    COLLECTED: 'Collectée',
+    CONFIRMED: 'Confirmée',
+    NEW: 'Nouvelle',
+    confirmed: 'Confirmée',
+    shipped: 'Expédiée',
+    new: 'Nouvelle',
+  };
+  return m[s] ?? m[s.toUpperCase()] ?? s;
+}
+
+function eventTypeFr(s: string): string {
+  const m: Record<string, string> = {
+    carrier_audit: 'Mise à jour transporteur',
+    imported: 'Importation',
+    status_change: 'Changement de statut',
+    created: 'Création',
+    manual: 'Mise à jour manuelle',
+    note: 'Note',
+    payment: 'Paiement',
+    delivery_attempt: 'Tentative de livraison',
+    pickup: 'Enlèvement',
+    return: 'Retour',
   };
   return m[s] ?? s;
 }
@@ -648,7 +687,7 @@ export function ShipmentsScreen() {
                   <StatusChip tone={d.payment_status === 'cod_collected' ? 'success' : d.payment_status === 'cod_pending' ? 'warning' : 'neutral'}>{statusFr(d.payment_status)}</StatusChip>
                 )}
                 {d.carrier_status && d.carrier_status !== d.status && (
-                  <StatusChip tone="neutral">{d.carrier_status}</StatusChip>
+                  <StatusChip tone="neutral">{statusFr(d.carrier_status)}</StatusChip>
                 )}
               </div>
               {d.sync_error && <p className="text-xs text-rose-600 font-bold">Erreur sync : {d.sync_error}</p>}
@@ -783,7 +822,7 @@ export function ShipmentsScreen() {
                   <span className="font-bold text-zinc-900">{d.external_tracking_id}</span>
                 </>)}
                 <span className="text-zinc-500">Statut transporteur :</span>
-                <span className="font-bold text-zinc-900">{d.carrier_status ?? '-'}</span>
+                <span className="font-bold text-zinc-900">{d.carrier_status ? statusFr(d.carrier_status) : '-'}</span>
                 <span className="text-zinc-500">Derniere sync :</span>
                 <span className="font-bold text-zinc-900">{fmtDate(d.carrier_last_sync_at) ?? '-'}</span>
                 <span className="text-zinc-500">Creation :</span>
@@ -809,19 +848,41 @@ export function ShipmentsScreen() {
 
             {/* Historique */}
             <div>
-              <p className="text-xs font-black uppercase text-zinc-400 mb-2">Historique</p>
-              <div className="space-y-2">
-                {events.length === 0 && <p className="text-sm text-zinc-500">Aucun evenement.</p>}
-                {events.map((ev) => (
-                  <div key={ev.id} className="card-muted p-3 text-sm border-l-4 border-primary-500">
-                    <p className="font-black text-zinc-900">{ev.event_type}</p>
-                    {ev.status && <p className="text-zinc-600">{statusFr(ev.status)}</p>}
-                    {ev.location && <p className="text-zinc-500 text-xs">{ev.location}</p>}
-                    {ev.description && <p className="text-zinc-600">{ev.description}</p>}
-                    {ev.note && <p className="text-zinc-500">{ev.note}</p>}
-                    <p className="text-[10px] text-zinc-400">{new Date(ev.event_at).toLocaleString()}</p>
-                  </div>
-                ))}
+              <p className="text-xs font-black uppercase text-zinc-400 mb-3">Historique</p>
+              {events.length === 0 && <p className="text-sm text-zinc-500">Aucun événement.</p>}
+              <div className="relative">
+                {events.length > 0 && <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-zinc-200" />}
+                <div className="space-y-0">
+                  {events.map((ev, idx) => {
+                    const isFirst = idx === 0;
+                    const dotColor = isFirst ? 'bg-primary-500 ring-primary-100' : 'bg-zinc-300 ring-zinc-100';
+                    return (
+                      <div key={ev.id} className="relative flex gap-4 pb-4 last:pb-0">
+                        <div className="relative z-10 mt-1.5 flex-shrink-0">
+                          <div className={cn('w-2.5 h-2.5 rounded-full ring-4', dotColor)} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className={cn('text-sm font-bold', isFirst ? 'text-zinc-900' : 'text-zinc-700')}>
+                              {statusFr(ev.status || '')}
+                            </span>
+                            <span className="text-[10px] font-semibold text-zinc-400 uppercase">
+                              {eventTypeFr(ev.event_type)}
+                            </span>
+                          </div>
+                          {ev.description && <p className="text-xs text-zinc-500 mt-0.5">{ev.description}</p>}
+                          {ev.note && ev.note !== ev.description && <p className="text-xs text-zinc-400 mt-0.5">{ev.note}</p>}
+                          {ev.location && <p className="text-[11px] text-zinc-400 mt-0.5">{ev.location}</p>}
+                          <p className="text-[10px] text-zinc-400 mt-1">
+                            {new Date(ev.event_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {' à '}
+                            {new Date(ev.event_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
