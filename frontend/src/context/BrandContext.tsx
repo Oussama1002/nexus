@@ -36,7 +36,10 @@ function apiBrandToUi(b: {
   whatsapp_number?: string[] | null;
 }): UiBrand {
   const code = b.code ?? String(b.id);
-  const initials = code.slice(0, 2).toUpperCase();
+  const words = b.name.trim().split(/\s+/);
+  const initials = words.length >= 2
+    ? (words[0][0] + words[1][0]).toUpperCase()
+    : b.name.slice(0, 2).toUpperCase();
   const palette = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6'];
   const color = palette[Math.abs(b.id) % palette.length];
   const statusFr: 'Actif' | 'Inactif' = b.status === 'active' ? 'Actif' : 'Inactif';
