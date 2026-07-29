@@ -7,7 +7,7 @@ import { Drawer } from '../components/ui/Drawer';
 import { Modal } from '../components/ui/Modal';
 import { StatusChip } from '../components/ui/StatusChip';
 import { EmptyState } from '../components/ui/EmptyState';
-import { formatCurrency } from '../lib/utils';
+import { cn, formatCurrency } from '../lib/utils';
 import { useBrand } from '../context/BrandContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
