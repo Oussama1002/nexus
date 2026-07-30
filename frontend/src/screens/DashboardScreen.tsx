@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Megaphone, TrendingUp, Users, Package, Truck, ShoppingCart, CheckCircle2, Percent, AlertTriangle, ArrowRight, Plus, BarChart3, MessageSquare, Settings, ClipboardList, DollarSign, Activity, PhoneCall, Boxes, PieChart, HeartPulse } from 'lucide-react';
+import { Megaphone, TrendingUp, Users, Package, Truck, ShoppingCart, CheckCircle2, Percent, AlertTriangle, ArrowRight, Plus, BarChart3, MessageSquare, Settings, ClipboardList, DollarSign, Activity, PhoneCall, Boxes, PieChart, HeartPulse, Target, Headset, FolderKanban, Warehouse, Share2, Briefcase } from 'lucide-react';
 import { DashboardNotificationsSection } from '../components/dashboard/DashboardNotificationsSection';
 import type { DashboardNotification } from '../components/dashboard/DashboardNotificationsSection';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -340,14 +340,15 @@ export function DashboardScreen() {
         <p className="text-sm font-black uppercase tracking-widest text-zinc-500">Accès rapide</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Nouvelle commande', icon: Plus, path: 'ordersNew', color: 'bg-primary-600' },
-            { label: 'Nouveau lead', icon: Megaphone, path: 'leads', color: 'bg-emerald-600' },
-            { label: 'Conversations', icon: MessageSquare, path: 'whatsapp', color: 'bg-blue-600' },
-            { label: 'Produits & Stock', icon: Package, path: 'products', color: 'bg-amber-600' },
-            { label: 'Reportings', icon: BarChart3, path: 'reporting', color: 'bg-violet-600' },
-            { label: 'Finance', icon: TrendingUp, path: 'finance', color: 'bg-rose-600' },
+            { label: 'Media Buying', icon: Target, path: 'mediaBuying', color: 'bg-violet-600' },
+            { label: 'Dashboard Confirmation', icon: Headset, path: 'confirmatrice', color: 'bg-emerald-600' },
+            { label: 'Dashboard Manager Call Center', icon: PhoneCall, path: 'deliveryDashboard', color: 'bg-blue-600' },
+            { label: 'Dashboard Project Manager', icon: FolderKanban, path: 'collabProjects', color: 'bg-indigo-600' },
+            { label: 'Finance', icon: DollarSign, path: 'finance', color: 'bg-rose-600' },
+            { label: 'Stock', icon: Warehouse, path: 'stock', color: 'bg-amber-600' },
             { label: 'Colis & expéditions', icon: Truck, path: 'trackingParcels', color: 'bg-teal-600' },
-            { label: 'Paramètres', icon: Settings, path: 'settings', color: 'bg-zinc-700' },
+            { label: 'Social Media Management', icon: Share2, path: 'socialMedia', color: 'bg-pink-600' },
+            { label: 'Ressources Humaines', icon: Briefcase, path: 'hr', color: 'bg-zinc-700' },
           ].map((item) => (
             <button
               key={item.path}
