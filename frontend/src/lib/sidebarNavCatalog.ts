@@ -3,10 +3,9 @@ import {
   BarChart3,
   Barcode,
   BookOpen,
-  BookOpenCheck,
-  Calculator,
   Bot,
   Briefcase,
+  Calculator,
   ClipboardList,
   Contact,
   DollarSign,
@@ -14,12 +13,10 @@ import {
   Headphones,
   History,
   Home,
-  LayoutGrid,
   Megaphone,
   MessageCircle,
   Package,
   PieChart,
-  ScrollText,
   Settings,
   Share2,
   ShieldUser,
@@ -43,55 +40,75 @@ export type SidebarNavCatalogEntry = {
   view: View;
   groupId: string;
   groupLabel: string;
+  groupIcon: LucideIcon;
   label: string;
-  /** Label when the logged-in user is a confirmatrice (confirmatrice item only). */
   confirmatriceLabel?: string;
   icon: LucideIcon;
-  /** Shown in settings; default true when not stored. */
   configurable: boolean;
 };
 
-/** All sidebar entries (order preserved within each group). */
 export const SIDEBAR_NAV_CATALOG: SidebarNavCatalogEntry[] = [
-  { key: 'dashboard', view: 'dashboard', groupId: 'commerce', groupLabel: 'Commerce', label: 'Dashboard', icon: Home, configurable: true },
-  { key: 'ordersNew', view: 'ordersNew', groupId: 'commerce', groupLabel: 'Commerce', label: 'Nouvelle commande', icon: ShoppingCart, configurable: true },
-  { key: 'orders', view: 'orders', groupId: 'commerce', groupLabel: 'Commerce', label: 'Commandes', icon: Package, configurable: true },
-  { key: 'whatsapp', view: 'whatsapp', groupId: 'commerce', groupLabel: 'Commerce', label: 'Conversations', icon: MessageCircle, configurable: true },
-  { key: 'academy', view: 'academy', groupId: 'commerce', groupLabel: 'Commerce', label: 'Brandna academy', icon: GraduationCap, configurable: true },
-  { key: 'clientPortal', view: 'clientPortal', groupId: 'commerce', groupLabel: 'Commerce', label: 'Espace client', icon: ShieldUser, configurable: true },
-  { key: 'collabProjects', view: 'collabProjects', groupId: 'commerce', groupLabel: 'Commerce', label: 'Projets collectifs', icon: UsersRound, configurable: true },
-  { key: 'mediaBuying', view: 'mediaBuying', groupId: 'commerce', groupLabel: 'Commerce', label: 'Media Buying', icon: Target, configurable: true },
-  { key: 'automations', view: 'automations', groupId: 'commerce', groupLabel: 'Commerce', label: 'Automatisations', icon: Bot, configurable: true },
+  // ── Tableau de bord ──
+  { key: 'dashboard', view: 'dashboard', groupId: 'dashboard', groupLabel: 'Tableau de bord', groupIcon: Home, label: 'Dashboard', icon: Home, configurable: true },
+
+  // ── Ventes ──
+  { key: 'ordersNew', view: 'ordersNew', groupId: 'ventes', groupLabel: 'Ventes', groupIcon: ShoppingCart, label: 'Nouvelle commande', icon: ShoppingCart, configurable: true },
+  { key: 'orders', view: 'orders', groupId: 'ventes', groupLabel: 'Ventes', groupIcon: ShoppingCart, label: 'Commandes', icon: Package, configurable: true },
+  { key: 'leads', view: 'leads', groupId: 'ventes', groupLabel: 'Ventes', groupIcon: ShoppingCart, label: 'Leads', icon: Users, configurable: true },
+  { key: 'customers', view: 'customers', groupId: 'ventes', groupLabel: 'Ventes', groupIcon: ShoppingCart, label: 'Clients', icon: Contact, configurable: true },
   {
     key: 'confirmatrice',
     view: 'confirmatrice',
-    groupId: 'commerce',
-    groupLabel: 'Commerce',
+    groupId: 'ventes',
+    groupLabel: 'Ventes',
+    groupIcon: ShoppingCart,
     label: 'Espace Confirmatrice',
     confirmatriceLabel: 'Votre espace',
     icon: Headphones,
     configurable: true,
   },
-  { key: 'leads', view: 'leads', groupId: 'commerce', groupLabel: 'Commerce', label: 'Gestion Leads', icon: Users, configurable: true },
-  { key: 'customers', view: 'customers', groupId: 'commerce', groupLabel: 'Commerce', label: 'Clients', icon: Contact, configurable: true },
-  { key: 'knowledgeBase', view: 'knowledgeBase', groupId: 'commerce', groupLabel: 'Commerce', label: 'Base marque', icon: BookOpen, configurable: true },
-  { key: 'brands', view: 'brands', groupId: 'commerce', groupLabel: 'Commerce', label: 'Mes Brands', icon: Store, configurable: true },
-  { key: 'socialMedia', view: 'socialMedia', groupId: 'social', groupLabel: 'Social & contenu', label: 'Réseaux & contenu', icon: Share2, configurable: true },
-  { key: 'ads', view: 'ads', groupId: 'operations', groupLabel: 'Opérations', label: 'Campagnes Ads', icon: Megaphone, configurable: true },
-  { key: 'products', view: 'products', groupId: 'operations', groupLabel: 'Opérations', label: 'Produits', icon: Barcode, configurable: true },
-  { key: 'stock', view: 'stock', groupId: 'operations', groupLabel: 'Opérations', label: 'Stocks', icon: Warehouse, configurable: true },
-  { key: 'delivery-kpi', view: 'deliveryDashboard', groupId: 'operations', groupLabel: 'Opérations', label: 'Livraison KPI', icon: BarChart3, configurable: true },
-  { key: 'trackingParcels', view: 'trackingParcels', groupId: 'operations', groupLabel: 'Opérations', label: 'Suivi colis', icon: Truck, configurable: true },
-  { key: 'suppliers', view: 'suppliers', groupId: 'operations', groupLabel: 'Opérations', label: 'Fournisseurs', icon: Tag, configurable: true },
-  { key: 'purchaseOrders', view: 'purchaseOrders', groupId: 'operations', groupLabel: 'Opérations', label: 'Commandes fournisseurs', icon: ClipboardList, configurable: true },
-  { key: 'influenceHub', view: 'influenceHub', groupId: 'influence', groupLabel: 'Influence', label: 'Studio Influence', icon: Sparkles, configurable: true },
-  { key: 'reporting', view: 'reporting', groupId: 'management', groupLabel: 'Management', label: 'Reportings', icon: PieChart, configurable: true },
-  { key: 'hr', view: 'hr', groupId: 'management', groupLabel: 'Management', label: 'Espace RH', icon: Briefcase, configurable: true },
-  { key: 'finance', view: 'finance', groupId: 'management', groupLabel: 'Management', label: 'Finance', icon: DollarSign, configurable: true },
-  { key: 'comptabilite', view: 'comptabilite', groupId: 'management', groupLabel: 'Management', label: 'Comptabilite', icon: Calculator, configurable: true },
-  { key: 'usersAdmin', view: 'usersAdmin', groupId: 'management', groupLabel: 'Management', label: 'Utilisateurs', icon: UserCog, configurable: true },
-  { key: 'settings', view: 'settings', groupId: 'management', groupLabel: 'Management', label: 'Paramètres', icon: Settings, configurable: true },
-  { key: 'tracking', view: 'tracking', groupId: 'management', groupLabel: 'Management', label: 'Historique', icon: History, configurable: true },
+
+  // ── Communication ──
+  { key: 'whatsapp', view: 'whatsapp', groupId: 'communication', groupLabel: 'Communication', groupIcon: MessageCircle, label: 'Conversations', icon: MessageCircle, configurable: true },
+  { key: 'socialMedia', view: 'socialMedia', groupId: 'communication', groupLabel: 'Communication', groupIcon: MessageCircle, label: 'Réseaux & contenu', icon: Share2, configurable: true },
+
+  // ── Marketing ──
+  { key: 'ads', view: 'ads', groupId: 'marketing', groupLabel: 'Marketing', groupIcon: Megaphone, label: 'Campagnes Ads', icon: Megaphone, configurable: true },
+  { key: 'mediaBuying', view: 'mediaBuying', groupId: 'marketing', groupLabel: 'Marketing', groupIcon: Megaphone, label: 'Media Buying', icon: Target, configurable: true },
+  { key: 'influenceHub', view: 'influenceHub', groupId: 'marketing', groupLabel: 'Marketing', groupIcon: Megaphone, label: 'Studio Influence', icon: Sparkles, configurable: true },
+
+  // ── Logistique ──
+  { key: 'delivery-kpi', view: 'deliveryDashboard', groupId: 'logistique', groupLabel: 'Logistique', groupIcon: Truck, label: 'Livraison KPI', icon: BarChart3, configurable: true },
+  { key: 'trackingParcels', view: 'trackingParcels', groupId: 'logistique', groupLabel: 'Logistique', groupIcon: Truck, label: 'Suivi colis', icon: Truck, configurable: true },
+
+  // ── Catalogue & Stock ──
+  { key: 'products', view: 'products', groupId: 'catalogue', groupLabel: 'Catalogue & Stock', groupIcon: Barcode, label: 'Produits', icon: Barcode, configurable: true },
+  { key: 'stock', view: 'stock', groupId: 'catalogue', groupLabel: 'Catalogue & Stock', groupIcon: Barcode, label: 'Stocks', icon: Warehouse, configurable: true },
+  { key: 'suppliers', view: 'suppliers', groupId: 'catalogue', groupLabel: 'Catalogue & Stock', groupIcon: Barcode, label: 'Fournisseurs', icon: Tag, configurable: true },
+  { key: 'purchaseOrders', view: 'purchaseOrders', groupId: 'catalogue', groupLabel: 'Catalogue & Stock', groupIcon: Barcode, label: 'Achats fournisseurs', icon: ClipboardList, configurable: true },
+
+  // ── Équipe & RH ──
+  { key: 'hr', view: 'hr', groupId: 'rh', groupLabel: 'Équipe & RH', groupIcon: Briefcase, label: 'Espace RH', icon: Briefcase, configurable: true },
+  { key: 'collabProjects', view: 'collabProjects', groupId: 'rh', groupLabel: 'Équipe & RH', groupIcon: Briefcase, label: 'Projets collectifs', icon: UsersRound, configurable: true },
+
+  // ── Finance ──
+  { key: 'finance', view: 'finance', groupId: 'finance', groupLabel: 'Finance', groupIcon: DollarSign, label: 'Finance', icon: DollarSign, configurable: true },
+  { key: 'comptabilite', view: 'comptabilite', groupId: 'finance', groupLabel: 'Finance', groupIcon: DollarSign, label: 'Comptabilité', icon: Calculator, configurable: true },
+
+  // ── Rapports ──
+  { key: 'reporting', view: 'reporting', groupId: 'rapports', groupLabel: 'Rapports', groupIcon: PieChart, label: 'Reportings', icon: PieChart, configurable: true },
+
+  // ── Marques & Savoir ──
+  { key: 'brands', view: 'brands', groupId: 'marques', groupLabel: 'Marques & Savoir', groupIcon: Store, label: 'Mes Brands', icon: Store, configurable: true },
+  { key: 'academy', view: 'academy', groupId: 'marques', groupLabel: 'Marques & Savoir', groupIcon: Store, label: 'Brandna Academy', icon: GraduationCap, configurable: true },
+  { key: 'knowledgeBase', view: 'knowledgeBase', groupId: 'marques', groupLabel: 'Marques & Savoir', groupIcon: Store, label: 'Base marque', icon: BookOpen, configurable: true },
+  { key: 'clientPortal', view: 'clientPortal', groupId: 'marques', groupLabel: 'Marques & Savoir', groupIcon: Store, label: 'Espace client', icon: ShieldUser, configurable: true },
+
+  // ── Administration ──
+  { key: 'automations', view: 'automations', groupId: 'admin', groupLabel: 'Administration', groupIcon: Settings, label: 'Automatisations', icon: Bot, configurable: true },
+  { key: 'usersAdmin', view: 'usersAdmin', groupId: 'admin', groupLabel: 'Administration', groupIcon: Settings, label: 'Utilisateurs', icon: UserCog, configurable: true },
+  { key: 'settings', view: 'settings', groupId: 'admin', groupLabel: 'Administration', groupIcon: Settings, label: 'Paramètres', icon: Settings, configurable: true },
+  { key: 'tracking', view: 'tracking', groupId: 'admin', groupLabel: 'Administration', groupIcon: Settings, label: 'Historique', icon: History, configurable: true },
 ];
 
 export function defaultSidebarVisibility(): Record<string, boolean> {

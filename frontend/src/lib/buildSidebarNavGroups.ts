@@ -29,7 +29,7 @@ export function buildSidebarNavGroups(opts: {
 
     let group = groupsMap.get(entry.groupId);
     if (!group) {
-      group = { id: entry.groupId, label: entry.groupLabel, items: [] };
+      group = { id: entry.groupId, label: entry.groupLabel, icon: entry.groupIcon, items: [] };
       groupsMap.set(entry.groupId, group);
     }
 
@@ -38,26 +38,21 @@ export function buildSidebarNavGroups(opts: {
         ? entry.confirmatriceLabel
         : entry.label;
 
-    if (entry.key === 'delivery-kpi') {
-      group.items.push({
-        id: entry.key,
-        label,
-        icon: entry.icon,
-        active: activeView === 'delivery' || activeView === 'deliveryDashboard',
-        onClick: () => {
-          if (canAccess('deliveryDashboard')) navigate(pathForView('deliveryDashboard'));
-          else navigate(pathForView('delivery'));
-        },
-      });
-      continue;
-    }
+    const path = entry.key === 'delivery-kpi'
+      ? (canAccess('deliveryDashboard') ? pathForView('deliveryDashboard') : pathForView('delivery'))
+      : pathForView(entry.view, entry.view === 'settings' ? 'center' : undefined);
+
+    const isActive = entry.key === 'delivery-kpi'
+      ? (activeView === 'delivery' || activeView === 'deliveryDashboard')
+      : activeView === entry.view;
 
     group.items.push({
       id: entry.key,
       label,
       icon: entry.icon,
-      active: activeView === entry.view,
-      onClick: () => navigate(pathForView(entry.view, entry.view === 'settings' ? 'center' : undefined)),
+      active: isActive,
+      path,
+      onClick: () => navigate(path),
     });
   }
 
@@ -65,7 +60,7 @@ export function buildSidebarNavGroups(opts: {
 
   if (userRole === 'confirmatrice') {
     groups = groups.map((g) => {
-      if (g.id !== 'commerce') return g;
+      if (g.id !== 'ventes') return g;
       const yours = g.items.find((i) => i.id === 'confirmatrice');
       const rest = g.items.filter((i) => i.id !== 'confirmatrice');
       return { ...g, items: yours ? [yours, ...rest] : g.items };
