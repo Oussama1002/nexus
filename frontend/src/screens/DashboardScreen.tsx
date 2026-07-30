@@ -1,5 +1,5 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Megaphone, TrendingUp, Users, Package, Truck, ShoppingCart, CheckCircle2, Percent, AlertTriangle, ArrowRight, Plus, BarChart3, MessageSquare, Settings, ClipboardList } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Megaphone, TrendingUp, Users, Package, Truck, ShoppingCart, CheckCircle2, Percent, AlertTriangle, ArrowRight, Plus, BarChart3, MessageSquare, Settings, ClipboardList, DollarSign, Activity, PhoneCall, Boxes, PieChart, HeartPulse } from 'lucide-react';
 import { DashboardNotificationsSection } from '../components/dashboard/DashboardNotificationsSection';
 import type { DashboardNotification } from '../components/dashboard/DashboardNotificationsSection';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -26,10 +26,18 @@ type DashboardPayload = {
     delivered_shipments: number;
     leads_confirmed: number;
     products: number;
+    packs: number;
     low_stock: number;
     avg_order_value: number;
     confirmation_rate: number;
     delivery_rate: number;
+    cogs: number;
+    pnl: number;
+    delivery_fees: number;
+    churn_rate: number;
+    follow_up_rate: number;
+    inventory_health_pct: number;
+    out_of_stock: number;
   };
   orders_by_status: Record<string, number>;
   shipments_by_status: Record<string, number>;
@@ -81,12 +89,14 @@ function KpiCard({
   icon: Icon,
   tone = 'primary',
   breakdown,
+  subtitle,
 }: {
   title: string;
   value: React.ReactNode;
   icon: React.ComponentType<{ className?: string }>;
-  tone?: 'primary' | 'success' | 'warning' | 'info';
+  tone?: 'primary' | 'success' | 'warning' | 'info' | 'danger';
   breakdown?: { label: string; value: string; tone?: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }[];
+  subtitle?: string;
 }) {
   const toneBg =
     tone === 'success'
@@ -95,7 +105,9 @@ function KpiCard({
         ? 'bg-amber-600'
         : tone === 'info'
           ? 'bg-blue-600'
-          : 'bg-primary-600';
+          : tone === 'danger'
+            ? 'bg-rose-600'
+            : 'bg-primary-600';
   return (
     <div className="card p-6">
       <div className="flex items-start justify-between gap-4">
@@ -105,6 +117,9 @@ function KpiCard({
       </div>
       <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[color:var(--color-text-2)]">{title}</p>
       <p className="mt-2 text-2xl font-black tracking-tight text-[color:var(--color-text-0)]">{value}</p>
+      {subtitle && (
+        <p className="mt-1 text-[11px] font-medium text-zinc-500">{subtitle}</p>
+      )}
       {breakdown && breakdown.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           {breakdown.map((b) => (
@@ -195,6 +210,7 @@ export function DashboardScreen() {
         <p className="text-sm font-bold text-zinc-500">Chargement des indicateurs…</p>
       ) : (
         <>
+          {/* Row 1: Revenue, Orders, Leads, Clients */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             <KpiCard
               title="Chiffre d'affaires"
@@ -203,8 +219,8 @@ export function DashboardScreen() {
               tone="primary"
             />
             <KpiCard
-              title="Commandes"
-              value={c ? c.orders.toLocaleString('fr-MA') : '—'}
+              title="Commandes / Colis"
+              value={c ? `${c.orders.toLocaleString('fr-MA')} / ${c.shipments.toLocaleString('fr-MA')}` : '—'}
               icon={ShoppingCart}
               tone="primary"
               breakdown={breakdownRecord(payload?.orders_by_status)}
@@ -214,6 +230,7 @@ export function DashboardScreen() {
               value={c ? c.leads.toLocaleString('fr-MA') : '—'}
               icon={Megaphone}
               tone="success"
+              subtitle={c ? `${c.leads_confirmed} confirmés` : undefined}
             />
             <KpiCard
               title="Clients"
@@ -223,6 +240,7 @@ export function DashboardScreen() {
             />
           </div>
 
+          {/* Row 2: Avg order, Confirmation rate, Delivery rate, Follow-up rate */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             <KpiCard
               title="Panier moyen"
@@ -234,41 +252,78 @@ export function DashboardScreen() {
               title="Taux de confirmation"
               value={c ? `${c.confirmation_rate}%` : '—'}
               icon={CheckCircle2}
-              tone="success"
+              tone={c && c.confirmation_rate >= 50 ? 'success' : 'warning'}
+              subtitle={c ? `${c.leads_confirmed} / ${c.leads} leads` : undefined}
             />
             <KpiCard
               title="Taux de livraison"
               value={c ? `${c.delivery_rate}%` : '—'}
               icon={Truck}
-              tone="warning"
+              tone={c && c.delivery_rate >= 50 ? 'success' : 'warning'}
+              subtitle={c ? `${c.delivered_shipments} / ${c.shipments} colis` : undefined}
             />
             <KpiCard
-              title="Colis"
-              value={c ? c.shipments.toLocaleString('fr-MA') : '—'}
-              icon={Truck}
-              tone="warning"
-              breakdown={breakdownRecord(payload?.shipments_by_status)}
+              title="Taux de follow-up"
+              value={c ? `${c.follow_up_rate}%` : '—'}
+              icon={PhoneCall}
+              tone={c && c.follow_up_rate >= 50 ? 'success' : 'warning'}
+              subtitle="Leads avec premier contact"
             />
           </div>
 
+          {/* Row 3: Products, Packs, COGS, P&L */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-            <KpiCard
-              title="Produits vendus"
-              value={c ? c.products_sold_qty.toLocaleString('fr-MA') : '—'}
-              icon={Package}
-              tone="info"
-            />
             <KpiCard
               title="Produits en catalogue"
               value={c ? c.products.toLocaleString('fr-MA') : '—'}
               icon={Package}
               tone="primary"
+              subtitle={c ? `${c.products_sold_qty} vendus` : undefined}
             />
             <KpiCard
-              title="Stock faible"
-              value={c ? c.low_stock.toLocaleString('fr-MA') : '—'}
-              icon={AlertTriangle}
-              tone={c && c.low_stock > 0 ? 'warning' : 'success'}
+              title="Packs en catalogue"
+              value={c ? c.packs.toLocaleString('fr-MA') : '—'}
+              icon={Boxes}
+              tone="info"
+            />
+            <KpiCard
+              title="COGS"
+              value={c ? formatCurrency(c.cogs) : '—'}
+              icon={DollarSign}
+              tone="warning"
+              subtitle={c ? `Frais livraison : ${formatCurrency(c.delivery_fees)}` : undefined}
+            />
+            <KpiCard
+              title="Profit & Pertes"
+              value={c ? formatCurrency(c.pnl) : '—'}
+              icon={Activity}
+              tone={c && c.pnl >= 0 ? 'success' : 'danger'}
+              subtitle="CA − COGS − Frais livraison"
+            />
+          </div>
+
+          {/* Row 4: Churn, Satisfaction, Inventory, Stock faible */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+            <KpiCard
+              title="Churn Rate"
+              value={c ? `${c.churn_rate}%` : '—'}
+              icon={HeartPulse}
+              tone={c && c.churn_rate <= 20 ? 'success' : c && c.churn_rate <= 50 ? 'warning' : 'danger'}
+              subtitle="Clients non revenus sur la période"
+            />
+            <KpiCard
+              title="Satisfaction client"
+              value="—"
+              icon={PieChart}
+              tone="info"
+              subtitle="Aucune donnée NPS disponible"
+            />
+            <KpiCard
+              title="Statut inventaire"
+              value={c ? `${c.inventory_health_pct}%` : '—'}
+              icon={BarChart3}
+              tone={c && c.inventory_health_pct >= 70 ? 'success' : c && c.inventory_health_pct >= 40 ? 'warning' : 'danger'}
+              subtitle={c ? `${c.out_of_stock} en rupture, ${c.low_stock} stock bas` : undefined}
             />
             <KpiCard
               title="Marques"
