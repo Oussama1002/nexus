@@ -30,7 +30,11 @@ class AutomationRuleController extends Controller
 
         $q = AutomationRule::query()
             ->with(['createdBy:id,name', 'updatedBy:id,name']);
-        ApiBrandContext::scopeBrand($q, $brandId);
+        if ($brandId !== null) {
+            $q->where(function ($w) use ($brandId) {
+                $w->where('brand_id', $brandId)->orWhereNull('brand_id');
+            });
+        }
         $q->orderByDesc('id');
         if ($trigger !== '') {
             $q->where('trigger_key', $trigger);
@@ -131,7 +135,11 @@ class AutomationRuleController extends Controller
         $q = AutomationRun::query()
             ->with('rule:id,name,trigger_key')
             ->orderByDesc('id');
-        ApiBrandContext::scopeBrand($q, $brandId);
+        if ($brandId !== null) {
+            $q->where(function ($w) use ($brandId) {
+                $w->where('brand_id', $brandId)->orWhereNull('brand_id');
+            });
+        }
 
         if ($ruleId) {
             $q->where('automation_rule_id', (int) $ruleId);
