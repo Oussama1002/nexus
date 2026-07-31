@@ -81,7 +81,7 @@ class MetaGraphClient
 
             $parsed = parse_url($next);
             $nextPath = ltrim((string) ($parsed['path'] ?? ''), '/');
-            $nextPath = preg_replace('#^/v\d+\.\d+/#', '', $nextPath) ?? $nextPath;
+            $nextPath = preg_replace('#^v\d+\.\d+/#', '', $nextPath) ?? $nextPath;
             parse_str((string) ($parsed['query'] ?? ''), $qs);
             unset($qs['access_token']);
             $nextQuery = $qs;

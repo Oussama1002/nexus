@@ -20,3 +20,8 @@ export function resolvePublicAssetUrl(url: string): string {
 export function isImageAssetUrl(url: string): boolean {
   return /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(url);
 }
+
+export function fileNameFromUrl(url: string): string {
+  const path = url.split('?')[0];
+  return path.split('/').pop() ?? url;
+}

@@ -79,7 +79,7 @@ class ShipmentOperationsService
                 'cod_amount' => $codAmount,
                 'delivery_fee' => $overrides['delivery_fee'] ?? 0,
                 'insurance_fee' => $overrides['insurance_fee'] ?? 0,
-                'payment_status' => $codAmount > 0 ? 'not_applicable' : 'not_applicable',
+                'payment_status' => $codAmount > 0 ? 'cod_pending' : 'not_applicable',
                 'recipient_name' => $recipientName,
                 'recipient_phone' => $recipientPhone,
                 'city' => $recipientCity,

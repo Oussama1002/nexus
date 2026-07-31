@@ -167,6 +167,10 @@ class SystemSettingController extends Controller
         $brandId = $this->resolveSettingsBrand($request);
         $row = SystemSetting::query()->where('brand_id', $brandId)->findOrFail($id);
 
+        if ($row->setting_group === 'security' && ! $request->user()?->isAdmin()) {
+            throw new AccessDeniedHttpException('Security settings are restricted to administrators.');
+        }
+
         return ApiResponse::success(SystemSetting::maskSensitiveArray($row->toArray()), 'Setting retrieved successfully.');
     }
 
@@ -175,6 +179,11 @@ class SystemSettingController extends Controller
         $this->requireSettingsUpdate($request);
         $brandId = $this->resolveSettingsBrand($request);
         $row = SystemSetting::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        if ($row->setting_group === 'security' && ! $request->user()?->isAdmin()) {
+            throw new AccessDeniedHttpException('Security settings are restricted to administrators.');
+        }
+
         $before = $row->toArray();
         $data = $request->validated();
 
@@ -209,6 +218,11 @@ class SystemSettingController extends Controller
         $this->requireSettingsDelete($request);
         $brandId = $this->resolveSettingsBrand($request);
         $row = SystemSetting::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        if ($row->setting_group === 'security' && ! $request->user()?->isAdmin()) {
+            throw new AccessDeniedHttpException('Security settings are restricted to administrators.');
+        }
+
         $before = SystemSetting::maskSensitiveArray($row->toArray());
         $row->delete();
 

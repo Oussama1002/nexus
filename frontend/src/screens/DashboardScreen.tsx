@@ -41,6 +41,7 @@ type DashboardPayload = {
   };
   orders_by_status: Record<string, number>;
   shipments_by_status: Record<string, number>;
+  notifications?: any;
 };
 
 function dateRangeParams(range: Range): { date_from?: string; date_to?: string } {
@@ -380,7 +381,7 @@ export function DashboardScreen() {
           {payload?.orders_by_status && Object.keys(payload.orders_by_status).length > 0 ? (
             <div className="space-y-2.5">
               {(() => {
-                const entries = Object.entries(payload.orders_by_status).sort((a, b) => b[1] - a[1]);
+                const entries = (Object.entries(payload.orders_by_status) as [string, number][]).sort((a, b) => b[1] - a[1]);
                 const max = Math.max(...entries.map(([, v]) => v), 1);
                 const colors: Record<string, string> = { confirmed: 'bg-emerald-500', pending: 'bg-amber-500', shipped: 'bg-blue-500', delivered: 'bg-primary-600', cancelled: 'bg-rose-500', returned: 'bg-zinc-400', new: 'bg-cyan-500' };
                 const orderLbl: Record<string, string> = { confirmed: 'Confirmé', pending: 'En attente', shipped: 'Expédié', delivered: 'Livré', cancelled: 'Annulé', returned: 'Retourné', new: 'Nouveau' };
@@ -411,7 +412,7 @@ export function DashboardScreen() {
           {payload?.shipments_by_status && Object.keys(payload.shipments_by_status).length > 0 ? (
             <div className="space-y-2.5">
               {(() => {
-                const entries = Object.entries(payload.shipments_by_status).sort((a, b) => b[1] - a[1]);
+                const entries = (Object.entries(payload.shipments_by_status) as [string, number][]).sort((a, b) => b[1] - a[1]);
                 const max = Math.max(...entries.map(([, v]) => v), 1);
                 const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-blue-500', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-cyan-500', picked_up: 'bg-indigo-500', failed: 'bg-red-500', shipped: 'bg-blue-400' };
                 const shipLbl: Record<string, string> = { delivered: 'Livré', in_transit: 'En transit', pending: 'En attente', returned: 'Retourné', cancelled: 'Annulé', created: 'Créé', picked_up: 'Ramassé', failed: 'Échoué', shipped: 'Expédié' };

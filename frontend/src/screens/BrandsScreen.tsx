@@ -49,7 +49,7 @@ function toUiBrand(b: ApiBrandRow): BrandExt {
     color,
     whatsappNumber: Array.isArray(b.whatsapp_number) ? b.whatsapp_number.join(', ') : (b.whatsapp_number ?? ''),
     status: statusFr,
-    code,
+    code: b.code,
     contact: '',
     note: '',
   };

@@ -37,7 +37,7 @@ class PermissionsSeeder extends Seeder
             'strategies' => ['view', 'create', 'update', 'delete', 'approve'],
             'content_calendar' => ['view', 'create', 'update', 'delete', 'approve'],
             'content_production' => ['view', 'create', 'update', 'delete', 'approve'],
-            'cm_tracking' => ['view', 'create', 'update', 'approve'],
+            'cm_tracking' => ['view', 'create', 'update', 'delete', 'approve'],
             'influence' => ['view', 'create', 'update', 'delete', 'manage'],
             'influencer_collaborations' => ['view', 'create', 'update', 'delete'],
             'influencer_performance' => ['view', 'create', 'update', 'delete'],

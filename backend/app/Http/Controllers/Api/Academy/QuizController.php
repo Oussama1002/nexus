@@ -212,7 +212,7 @@ class QuizController extends Controller
                     ];
 
                     if (!empty($questionData['id'])) {
-                        $question = QuizQuestion::query()->findOrFail($questionData['id']);
+                        $question = $quiz->questions()->findOrFail($questionData['id']);
                         $question->fill($questionAttrs);
                         $question->save();
                     } else {
@@ -240,7 +240,7 @@ class QuizController extends Controller
                             ];
 
                             if (!empty($answerData['id'])) {
-                                $answer = QuizAnswer::query()->findOrFail($answerData['id']);
+                                $answer = $question->answers()->findOrFail($answerData['id']);
                                 $answer->fill($answerAttrs);
                                 $answer->save();
                             } else {

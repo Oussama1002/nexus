@@ -412,7 +412,7 @@ class OrderController extends Controller
 
         $status = $verifiedStatusRaw;
         if (! in_array($status, ['pending', 'verified', 'failed', 'not_required'], true)) {
-            $status = $declared ? 'pending' : 'pending';
+            $status = $declared ? 'pending' : 'not_required';
         }
 
         if ($state === 'paid') {
