@@ -27,6 +27,8 @@ export type EmployeeDetail = {
   all_brands?: boolean;
   work_start_time?: string | null;
   work_end_time?: string | null;
+  lunch_start_time?: string | null;
+  lunch_end_time?: string | null;
   work_days_per_week?: number | null;
   work_days?: string[] | null;
   attendance_history?: AttendanceRecord[];
@@ -204,6 +206,7 @@ export function EmployeeFicheDrawer({
           <Section title="Horaires de travail">
             <Row label="Heure de début" value={fmtTime(emp.work_start_time)} />
             <Row label="Heure de fin" value={fmtTime(emp.work_end_time)} />
+            <Row label="Pause déjeuner" value={emp.lunch_start_time && emp.lunch_end_time ? `${fmtTime(emp.lunch_start_time)} - ${fmtTime(emp.lunch_end_time)}` : '—'} />
             <Row
               label="Jours de travail"
               value={

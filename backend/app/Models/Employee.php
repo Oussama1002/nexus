@@ -23,6 +23,8 @@ class Employee extends Model
         'salary',
         'work_start_time',
         'work_end_time',
+        'lunch_start_time',
+        'lunch_end_time',
         'work_days_per_week',
         'work_days',
     ];

@@ -51,6 +51,8 @@ type UserDetail = {
     department?: string | null;
     work_start_time?: string | null;
     work_end_time?: string | null;
+    lunch_start_time?: string | null;
+    lunch_end_time?: string | null;
     work_days?: string[] | null;
   } | null;
   attendance_history: AttendanceRecord[];
@@ -193,6 +195,9 @@ export function UserFicheDrawer({ userId, open, onClose }: Props) {
                 <Row label="Poste" value={user.employee.role_title} />
                 <Row label="Département" value={user.employee.department} />
                 <Row label="Horaires" value={`${fmtTime(user.employee.work_start_time)} - ${fmtTime(user.employee.work_end_time)}`} />
+                {user.employee.lunch_start_time && user.employee.lunch_end_time && (
+                  <Row label="Pause déjeuner" value={`${fmtTime(user.employee.lunch_start_time)} - ${fmtTime(user.employee.lunch_end_time)}`} />
+                )}
                 {user.employee.work_days && user.employee.work_days.length > 0 && (
                   <Row label="Jours" value={
                     <div className="flex flex-wrap gap-1">

@@ -56,6 +56,8 @@ function employeeToDraft(e: EmployeeRow | EmployeeDetail) {
     brand_ids: e.brands?.map((b) => b.id) ?? (e.brand?.id ? [e.brand.id] : []),
     work_start_time: (e as any).work_start_time ? String((e as any).work_start_time).slice(0, 5) : '',
     work_end_time: (e as any).work_end_time ? String((e as any).work_end_time).slice(0, 5) : '',
+    lunch_start_time: (e as any).lunch_start_time ? String((e as any).lunch_start_time).slice(0, 5) : '',
+    lunch_end_time: (e as any).lunch_end_time ? String((e as any).lunch_end_time).slice(0, 5) : '',
     work_days_per_week: (e as any).work_days_per_week != null ? String((e as any).work_days_per_week) : '',
     work_days: Array.isArray((e as any).work_days) ? (e as any).work_days as string[] : [],
   };
@@ -202,6 +204,8 @@ export function EmployeesManagementScreen() {
     brand_ids: [] as number[],
     work_start_time: '',
     work_end_time: '',
+    lunch_start_time: '',
+    lunch_end_time: '',
     work_days_per_week: '',
     work_days: [] as string[],
   });
@@ -339,6 +343,8 @@ export function EmployeesManagementScreen() {
           : [],
       work_start_time: '',
       work_end_time: '',
+      lunch_start_time: '',
+      lunch_end_time: '',
       work_days_per_week: '',
       work_days: [],
     });
@@ -441,6 +447,8 @@ export function EmployeesManagementScreen() {
       salary: draft.salary === '' ? undefined : Number(draft.salary),
       work_start_time: draft.work_start_time || undefined,
       work_end_time: draft.work_end_time || undefined,
+      lunch_start_time: draft.lunch_start_time || undefined,
+      lunch_end_time: draft.lunch_end_time || undefined,
       work_days: draft.work_days.length ? draft.work_days : undefined,
       work_days_per_week: draft.work_days.length || undefined,
       all_brands: draft.all_brands,
@@ -469,6 +477,8 @@ export function EmployeesManagementScreen() {
       brand_ids: [],
       work_start_time: '',
       work_end_time: '',
+      lunch_start_time: '',
+      lunch_end_time: '',
       work_days_per_week: '',
       work_days: [],
     });
@@ -946,6 +956,26 @@ export function EmployeesManagementScreen() {
                   type="time"
                   value={draft.work_end_time}
                   onChange={(e) => setDraft((d) => ({ ...d, work_end_time: e.target.value }))}
+                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className={EMPLOYEE_FIELD_LABEL}>
+                Pause déjeuner début
+                <input
+                  type="time"
+                  value={draft.lunch_start_time}
+                  onChange={(e) => setDraft((d) => ({ ...d, lunch_start_time: e.target.value }))}
+                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
+                />
+              </label>
+              <label className={EMPLOYEE_FIELD_LABEL}>
+                Pause déjeuner fin
+                <input
+                  type="time"
+                  value={draft.lunch_end_time}
+                  onChange={(e) => setDraft((d) => ({ ...d, lunch_end_time: e.target.value }))}
                   className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
                 />
               </label>
