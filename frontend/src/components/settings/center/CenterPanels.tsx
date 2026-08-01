@@ -447,11 +447,13 @@ function WhatsappNumbersManager({
             <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm">
               <div className="min-w-0">
                 <span className="font-bold text-zinc-900">{s.display_number || s.label || s.phone_id}</span>
+                {brandName ? <span className="ml-2 rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-bold text-primary-700">{brandName}</span> : null}
                 {s.verified_name ? <span className="ml-2 text-zinc-500">{s.verified_name}</span> : null}
                 {s.is_default ? (
                   <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">Par défaut</span>
                 ) : null}
-                <span className="ml-2 block text-[11px] text-zinc-400">Phone ID: {s.phone_id}</span>
+                {s.label ? <span className="ml-1 block text-[11px] text-zinc-500">{s.label}</span> : null}
+                <span className="block text-[11px] text-zinc-400">Phone ID: {s.phone_id}</span>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 {!s.is_default && onSetDefault ? (
