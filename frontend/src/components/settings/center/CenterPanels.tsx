@@ -329,6 +329,7 @@ export function DeliveryPanel({
 
 function WhatsappNumbersManager({
   disabled,
+  brandName,
   onFetchNumbers,
   onListSavedNumbers,
   onAddNumber,
@@ -336,6 +337,7 @@ function WhatsappNumbersManager({
   onDeleteNumber,
 }: {
   disabled: boolean;
+  brandName?: string;
   onFetchNumbers?: () => Promise<WhatsappPhoneNumber[]>;
   onListSavedNumbers?: () => Promise<SavedWhatsappNumber[]>;
   onAddNumber?: (n: WhatsappPhoneNumber) => Promise<boolean>;
@@ -346,6 +348,10 @@ function WhatsappNumbersManager({
   const [live, setLive] = React.useState<WhatsappPhoneNumber[] | null>(null);
   const [importing, setImporting] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | number | null>(null);
+  const [manualOpen, setManualOpen] = React.useState(false);
+  const [manualPhoneId, setManualPhoneId] = React.useState('');
+  const [manualDisplay, setManualDisplay] = React.useState('');
+  const [manualLabel, setManualLabel] = React.useState('');
 
   const refresh = React.useCallback(async () => {
     if (!onListSavedNumbers) return;
@@ -406,19 +412,31 @@ function WhatsappNumbersManager({
 
   return (
     <SectionCard
-      title="Numéros WhatsApp de cette marque"
-      description="Importez un ou plusieurs numéros depuis Meta. Chaque numéro a sa propre boîte de réception dans les conversations."
+      title={`Numéros WhatsApp${brandName ? ` de ${brandName}` : ''}`}
+      description="Importez un ou plusieurs numéros depuis Meta, ou ajoutez-en manuellement. Chaque numéro a sa propre boîte de réception dans les conversations."
       actions={
-        onFetchNumbers ? (
-          <button
-            type="button"
-            onClick={() => void importNumbers()}
-            disabled={disabled || importing}
-            className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-primary-700 transition hover:bg-primary-100 disabled:opacity-50"
-          >
-            {importing ? 'Importation…' : 'Importer depuis Meta'}
-          </button>
-        ) : null
+        <div className="flex gap-2">
+          {onAddNumber ? (
+            <button
+              type="button"
+              onClick={() => setManualOpen((v) => !v)}
+              disabled={disabled}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Ajouter manuellement
+            </button>
+          ) : null}
+          {onFetchNumbers ? (
+            <button
+              type="button"
+              onClick={() => void importNumbers()}
+              disabled={disabled || importing}
+              className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-primary-700 transition hover:bg-primary-100 disabled:opacity-50"
+            >
+              {importing ? 'Importation…' : 'Importer depuis Meta'}
+            </button>
+          ) : null}
+        </div>
       }
     >
       {saved.length === 0 ? (
@@ -459,6 +477,40 @@ function WhatsappNumbersManager({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {manualOpen && onAddNumber && (
+        <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-3">
+          <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500">Ajouter un numéro manuellement</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="text-xs font-bold text-zinc-900 block">
+              Phone Number ID <span className="text-rose-600">*</span>
+              <input value={manualPhoneId} onChange={(e) => setManualPhoneId(e.target.value)} placeholder="Ex: 123456789012345" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-900" />
+            </label>
+            <label className="text-xs font-bold text-zinc-900 block">
+              Numéro affiché
+              <input value={manualDisplay} onChange={(e) => setManualDisplay(e.target.value)} placeholder="Ex: +212 6 12 34 56 78" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-900" />
+            </label>
+            <label className="text-xs font-bold text-zinc-900 block">
+              Libellé
+              <input value={manualLabel} onChange={(e) => setManualLabel(e.target.value)} placeholder="Ex: Support, Commercial…" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-900" />
+            </label>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => { setManualOpen(false); setManualPhoneId(''); setManualDisplay(''); setManualLabel(''); }} className="px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-bold text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button
+              type="button"
+              disabled={!manualPhoneId.trim() || disabled}
+              onClick={async () => {
+                const ok = await onAddNumber({ id: manualPhoneId.trim(), display_phone_number: manualDisplay.trim() || manualPhoneId.trim(), verified_name: manualLabel.trim() || null, quality_rating: null });
+                if (ok) { setManualOpen(false); setManualPhoneId(''); setManualDisplay(''); setManualLabel(''); await refresh(); }
+              }}
+              className="px-4 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-bold disabled:opacity-50"
+            >
+              Ajouter
+            </button>
+          </div>
         </div>
       )}
 
@@ -515,6 +567,7 @@ export function WhatsappPanel({
   onChange,
   disabled,
   isAdmin,
+  brandName,
   onTestWhatsapp,
   whatsappTesting,
   onFetchNumbers,
@@ -527,6 +580,7 @@ export function WhatsappPanel({
   onChange: (v: WhatsappModel) => void;
   disabled: boolean;
   isAdmin: boolean;
+  brandName?: string;
   onTestWhatsapp?: () => void;
   whatsappTesting?: boolean;
   onFetchNumbers?: () => Promise<WhatsappPhoneNumber[]>;
@@ -543,6 +597,7 @@ export function WhatsappPanel({
       {onListSavedNumbers ? (
         <WhatsappNumbersManager
           disabled={disabled}
+          brandName={brandName}
           onFetchNumbers={onFetchNumbers}
           onListSavedNumbers={onListSavedNumbers}
           onAddNumber={onAddNumber}

@@ -66,7 +66,7 @@ const NAV: { id: SettingsCenterSection; label: string; description: string }[] =
 
 export function SettingsScreen() {
   const toast = useToast();
-  const { activeBrandId } = useBrand();
+  const { activeBrandId, activeBrand } = useBrand();
   const { hasPermission, isAdmin } = useAuth();
   const canView = hasPermission('settings.view');
   const canUpdate = hasPermission('settings.update');
@@ -383,6 +383,7 @@ export function SettingsScreen() {
                   onChange={setModel}
                   disabled={!canUpdate}
                   isAdmin={isAdmin}
+                  brandName={activeBrand?.name ?? ''}
                   onTestWhatsapp={canUpdate ? () => void runConnectionTest('whatsapp') : undefined}
                   whatsappTesting={testLoading === 'whatsapp'}
                   onFetchNumbers={canUpdate ? fetchWhatsappNumbers : undefined}
