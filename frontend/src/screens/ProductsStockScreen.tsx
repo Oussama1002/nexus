@@ -758,8 +758,8 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                 <FicheRow label="Nom" value={selected.name} />
                 <FicheRow label="SKU" value={selected.sku} />
                 <FicheRow label="Marque" value={d?.brand?.name ?? selected.brand} />
-                <FicheRow label="Catégorie" value={d?.category ?? selected.category || '—'} />
-                <FicheRow label="Type" value={d?.product_type ?? selected.productType || '—'} />
+                <FicheRow label="Catégorie" value={d?.category ?? (selected.category || '—')} />
+                <FicheRow label="Type" value={d?.product_type ?? (selected.productType || '—')} />
                 <FicheRow label="Fournisseur" value={d?.supplier?.name ?? '—'} />
                 <FicheRow label="Statut" value={
                   <StatusChip tone={toneForProductStatus(selected.status)}>{selected.status}</StatusChip>
