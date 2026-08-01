@@ -47,6 +47,14 @@ type ApiMovementRow = {
   moved_at: string;
   created_at?: string;
   product?: { name: string; sku: string };
+  actor?: { id: number; name: string } | null;
+};
+
+type ProductDetail = ApiProductRow & {
+  supplier?: { id: number; name: string; phone?: string | null; email?: string | null } | null;
+  brand?: { id: number; name: string } | null;
+  stock_movements?: (ApiMovementRow & { actor?: { id: number; name: string } | null })[];
+  created_at?: string;
 };
 
 function mapProduct(p: ApiProductRow, brandName: string): Product {
@@ -109,6 +117,15 @@ const REASON_FR: Record<string, string> = {
   correction: 'Correction',
 };
 
+function FicheRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-[minmax(9rem,36%)_1fr] gap-x-3 gap-y-0.5 text-sm border-b border-zinc-100/90 pb-2 last:border-0">
+      <span className="text-zinc-500 font-bold">{label}</span>
+      <span className="text-zinc-900 font-medium break-words">{value ?? '—'}</span>
+    </div>
+  );
+}
+
 export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock' }) {
   const { activeBrandId, activeBrand, brands } = useBrand();
   const { hasPermission } = useAuth();
@@ -124,6 +141,8 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
   const [onlyLowStock, setOnlyLowStock] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [productDetail, setProductDetail] = useState<ProductDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -232,6 +251,19 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
   }, [products, q, brand, status, onlyLowStock, subTab]);
 
   const selected = useMemo(() => products.find((p) => p.id === selectedId) ?? null, [products, selectedId]);
+
+  useEffect(() => {
+    if (!selected) { setProductDetail(null); return; }
+    let cancelled = false;
+    setDetailLoading(true);
+    void api.get<ProductDetail>(`products/${selected.apiId}`).then((res) => {
+      if (cancelled) return;
+      setDetailLoading(false);
+      if (res.ok && res.data) setProductDetail(res.data);
+      else setProductDetail(null);
+    });
+    return () => { cancelled = true; };
+  }, [selected]);
 
   const kpis = useMemo(() => {
     const total = filtered.length;
@@ -681,8 +713,9 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       <Drawer
         open={!!selected}
         title={selected ? selected.name : ''}
-        subtitle={selected ? selected.brand : undefined}
-        onClose={() => setSelectedId(null)}
+        subtitle={selected ? selected.sku : undefined}
+        onClose={() => { setSelectedId(null); setProductDetail(null); }}
+        widthClassName="w-[min(100vw,620px)]"
         footer={
           selected && hasPermission('products.update') ? (
             <button
@@ -695,34 +728,176 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           ) : undefined
         }
       >
-        {selected && (
-          <div className="space-y-6">
-            {selected.image && (
-              <img
-                src={resolvePublicAssetUrl(selected.image)}
-                alt={selected.name}
-                className="w-full h-48 object-contain rounded-xl border border-zinc-200 bg-zinc-50"
-              />
-            )}
-            <div className="card-muted p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</p>
-                <StatusChip tone={toneForProductStatus(selected.status)}>{selected.status}</StatusChip>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock dispo</p>
-                  <p className="mt-1 text-xl font-black text-zinc-900">{selected.stock} u</p>
+        {detailLoading && <p className="text-sm font-bold text-zinc-500">Chargement…</p>}
+        {!detailLoading && selected && (() => {
+          const d = productDetail;
+          const price = d ? Number(d.price) : selected.price;
+          const cost = d ? Number(d.cost) : selected.cost;
+          const margin = price - cost;
+          const marginPct = price > 0 ? ((margin / price) * 100).toFixed(1) : '—';
+          const stock = d ? d.stock_quantity : selected.stock;
+          const reserved = d ? d.reserved_quantity : selected.reserved;
+          const available = stock - reserved;
+          const threshold = d ? d.low_stock_threshold : selected.lowStockThreshold;
+          const isLow = stock <= threshold && threshold > 0;
+          const mvts = d?.stock_movements ?? [];
+
+          return (
+            <div className="space-y-4">
+              {selected.image && (
+                <img
+                  src={resolvePublicAssetUrl(selected.image)}
+                  alt={selected.name}
+                  className="w-full h-48 object-contain rounded-xl border border-zinc-200 bg-zinc-50"
+                />
+              )}
+
+              {/* Identité */}
+              <section className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 space-y-2">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">Identité</h3>
+                <FicheRow label="Nom" value={selected.name} />
+                <FicheRow label="SKU" value={selected.sku} />
+                <FicheRow label="Marque" value={d?.brand?.name ?? selected.brand} />
+                <FicheRow label="Catégorie" value={d?.category ?? selected.category || '—'} />
+                <FicheRow label="Type" value={d?.product_type ?? selected.productType || '—'} />
+                <FicheRow label="Fournisseur" value={d?.supplier?.name ?? '—'} />
+                <FicheRow label="Statut" value={
+                  <StatusChip tone={toneForProductStatus(selected.status)}>{selected.status}</StatusChip>
+                } />
+                {d?.description && (
+                  <FicheRow label="Description" value={
+                    <p className="text-xs text-zinc-700 whitespace-pre-line">{d.description}</p>
+                  } />
+                )}
+                {d?.created_at && (
+                  <FicheRow label="Créé le" value={new Date(d.created_at).toLocaleDateString('fr-FR', { dateStyle: 'medium' })} />
+                )}
+              </section>
+
+              {/* Prix & Marges */}
+              <section className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 space-y-2">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">Prix & Marges</h3>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400">Prix vente</p>
+                    <p className="text-lg font-black text-zinc-900">{formatCurrency(price)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400">Coût achat</p>
+                    <p className="text-lg font-black text-zinc-900">{formatCurrency(cost)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400">Marge</p>
+                    <p className={`text-lg font-black ${margin >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {formatCurrency(margin)}
+                    </p>
+                    <p className="text-[10px] font-bold text-zinc-400">{marginPct}%</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Réservé</p>
-                  <p className="mt-1 text-xl font-black text-zinc-900">{selected.reserved}</p>
+              </section>
+
+              {/* Stock */}
+              <section className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 space-y-2">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">Stock</h3>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400">Total</p>
+                    <p className="text-xl font-black text-zinc-900">{stock}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400">Réservé</p>
+                    <p className="text-xl font-black text-amber-700">{reserved}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-400">Disponible</p>
+                    <p className={`text-xl font-black ${available > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{available}</p>
+                  </div>
                 </div>
-              </div>
+                <FicheRow label="Seuil alerte" value={
+                  <span className="flex items-center gap-2">
+                    {threshold} unités
+                    {isLow && <span className="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 text-[10px] font-black uppercase">Stock bas</span>}
+                  </span>
+                } />
+                <FicheRow label="Valeur stock" value={formatCurrency(stock * cost)} />
+              </section>
+
+              {/* Pack items */}
+              {d?.pack_items && d.pack_items.length > 0 && (
+                <section className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 space-y-2">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">Composition du pack</h3>
+                  <div className="space-y-1">
+                    {d.pack_items.map((item, i) => {
+                      const packProduct = products.find((p) => p.apiId === item.product_id);
+                      return (
+                        <div key={i} className="flex items-center justify-between text-sm border-b border-zinc-100 pb-1.5 last:border-0">
+                          <span className="text-zinc-900 font-medium">{packProduct?.name ?? `Produit #${item.product_id}`}</span>
+                          <span className="text-zinc-500 font-bold">×{item.quantity}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Fournisseur */}
+              {d?.supplier && (
+                <section className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 space-y-2">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">Fournisseur</h3>
+                  <FicheRow label="Nom" value={d.supplier.name} />
+                  {d.supplier.phone && <FicheRow label="Téléphone" value={d.supplier.phone} />}
+                  {d.supplier.email && <FicheRow label="Email" value={d.supplier.email} />}
+                </section>
+              )}
+
+              {/* Historique mouvements */}
+              <section className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 space-y-2">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">Historique mouvements (30 derniers)</h3>
+                {mvts.length === 0 ? (
+                  <p className="text-xs text-zinc-500">Aucun mouvement enregistré.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-200">
+                          <th className="text-left py-1.5 font-black text-zinc-500">Date</th>
+                          <th className="text-left py-1.5 font-black text-zinc-500">Type</th>
+                          <th className="text-right py-1.5 font-black text-zinc-500">Qté</th>
+                          <th className="text-left py-1.5 font-black text-zinc-500">Motif</th>
+                          <th className="text-left py-1.5 font-black text-zinc-500">Par</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100">
+                        {mvts.map((m) => {
+                          const typeLabel = MOVEMENT_TYPE_FR[m.movement_type] ?? m.movement_type;
+                          const reasonLabel = m.reason ? (REASON_FR[m.reason] ?? m.reason) : '—';
+                          const isPositive = ['in', 'release', 'returned'].includes(m.movement_type);
+                          return (
+                            <tr key={m.id}>
+                              <td className="py-1.5 font-medium whitespace-nowrap">
+                                {new Date(m.moved_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                              </td>
+                              <td className="py-1.5">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                                  {typeLabel}
+                                </span>
+                              </td>
+                              <td className={`py-1.5 text-right font-bold ${isPositive ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                {isPositive ? '+' : '−'}{Math.abs(m.quantity ?? 0)}
+                              </td>
+                              <td className="py-1.5 text-zinc-500 max-w-[120px] truncate">{reasonLabel}</td>
+                              <td className="py-1.5 text-zinc-500 truncate">{m.actor?.name ?? '—'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             </div>
-            <p className="text-xs text-zinc-500 font-medium">Les ajustements de quantité se font via l'écran Stocks (mouvements).</p>
-          </div>
-        )}
+          );
+        })()}
       </Drawer>
 
       <Modal

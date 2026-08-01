@@ -85,7 +85,15 @@ class ProductController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
-        $product = Product::query()->where('brand_id', $brandId)->findOrFail($id);
+        $product = Product::query()
+            ->where('brand_id', $brandId)
+            ->with([
+                'supplier:id,name,phone,email',
+                'brand:id,name',
+                'stockMovements' => fn ($q) => $q->orderByDesc('moved_at')->limit(30),
+                'stockMovements.actor:id,name',
+            ])
+            ->findOrFail($id);
 
         return ApiResponse::success($product, 'Product retrieved successfully.');
     }
