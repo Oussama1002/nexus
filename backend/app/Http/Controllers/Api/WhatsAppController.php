@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\WhatsAppNumber;
 use App\Services\WhatsAppCloudService;
 use App\Support\ApiBrandContext;
@@ -13,6 +14,16 @@ use Illuminate\Support\Facades\DB;
 
 class WhatsAppController extends Controller
 {
+    private function resolveSettingsBrand(Request $request): int
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        if ($brandId !== null) {
+            return $brandId;
+        }
+
+        return (int) Brand::query()->orderBy('id')->value('id');
+    }
+
     public function __construct(
         private readonly WhatsAppCloudService $whatsapp,
     ) {}
@@ -24,7 +35,7 @@ class WhatsAppController extends Controller
     public function phoneNumbers(Request $request): JsonResponse
     {
         try {
-            $brandId = (int) ApiBrandContext::resolveBrandId($request);
+            $brandId = $this->resolveSettingsBrand($request);
             $numbers = $this->whatsapp->fetchPhoneNumbers($brandId);
 
             return ApiResponse::success(
@@ -39,7 +50,7 @@ class WhatsAppController extends Controller
     /** List the WhatsApp numbers already saved for the active brand. */
     public function listNumbers(Request $request): JsonResponse
     {
-        $brandId = (int) ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         $numbers = WhatsAppNumber::query()
             ->where('brand_id', $brandId)
@@ -55,7 +66,7 @@ class WhatsAppController extends Controller
     /** Save (import) a WhatsApp number to the active brand. */
     public function addNumber(Request $request): JsonResponse
     {
-        $brandId = (int) ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         $data = $request->validate([
             'phone_id' => ['required', 'string', 'max:191'],
@@ -107,7 +118,7 @@ class WhatsAppController extends Controller
     /** Update a saved WhatsApp number (label, active, default, token). */
     public function updateNumber(Request $request, string $id): JsonResponse
     {
-        $brandId = (int) ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $number = WhatsAppNumber::query()->where('brand_id', $brandId)->findOrFail($id);
 
         $data = $request->validate([
@@ -148,7 +159,7 @@ class WhatsAppController extends Controller
     /** Remove a saved WhatsApp number from the brand. */
     public function deleteNumber(Request $request, string $id): JsonResponse
     {
-        $brandId = (int) ApiBrandContext::resolveBrandId($request);
+        $brandId = $this->resolveSettingsBrand($request);
         $number = WhatsAppNumber::query()->where('brand_id', $brandId)->findOrFail($id);
         $wasDefault = $number->is_default;
         $number->delete();

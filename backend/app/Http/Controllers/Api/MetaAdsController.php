@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdAccount;
+use App\Models\Brand;
 use App\Services\Meta\MetaAdsSyncService;
 use App\Services\Meta\MetaApiException;
 use App\Support\ApiBrandContext;
@@ -17,10 +18,20 @@ class MetaAdsController extends Controller
         private readonly MetaAdsSyncService $sync,
     ) {}
 
+    private function resolveSettingsBrand(Request $request): int
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        if ($brandId !== null) {
+            return $brandId;
+        }
+
+        return (int) Brand::query()->orderBy('id')->value('id');
+    }
+
     public function previewAdAccounts(Request $request): JsonResponse
     {
         try {
-            $brandId = ApiBrandContext::resolveBrandId($request);
+            $brandId = $this->resolveSettingsBrand($request);
             $rows = $this->sync->fetchAdAccounts($brandId);
 
             return ApiResponse::success(['accounts' => $rows], 'Comptes publicitaires Meta récupérés.');
@@ -32,7 +43,7 @@ class MetaAdsController extends Controller
     public function syncAdAccounts(Request $request): JsonResponse
     {
         try {
-            $brandId = ApiBrandContext::resolveBrandId($request);
+            $brandId = $this->resolveSettingsBrand($request);
             $stats = $this->sync->syncAdAccounts($brandId);
 
             return ApiResponse::success($stats, sprintf(
@@ -53,7 +64,7 @@ class MetaAdsController extends Controller
         ]);
 
         try {
-            $brandId = ApiBrandContext::resolveBrandId($request);
+            $brandId = $this->resolveSettingsBrand($request);
             $account = AdAccount::query()
                 ->where('brand_id', $brandId)
                 ->where('platform', 'meta')
@@ -80,7 +91,7 @@ class MetaAdsController extends Controller
         ]);
 
         try {
-            $brandId = ApiBrandContext::resolveBrandId($request);
+            $brandId = $this->resolveSettingsBrand($request);
             $account = AdAccount::query()
                 ->where('brand_id', $brandId)
                 ->where('platform', 'meta')

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\SystemSetting;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
@@ -25,7 +26,8 @@ class MetaOAuthController extends Controller
 
     public function redirectUrl(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false)
+            ?? (int) Brand::query()->orderBy('id')->value('id');
 
         $appId = $this->getSetting($brandId, 'meta_app_id');
         if (! $appId) {
