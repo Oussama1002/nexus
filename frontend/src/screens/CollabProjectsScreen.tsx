@@ -263,27 +263,27 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
       >
         <div className="space-y-4 max-h-[calc(92vh-12rem)] overflow-y-auto pr-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label className="text-xs font-black uppercase text-zinc-500">Titre
-              <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
+            <label className="text-xs font-black uppercase text-zinc-900">Titre
+              <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
             </label>
-            <label className="text-xs font-black uppercase text-zinc-500">Statut
-              <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as ProjectStatus }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold">
+            <label className="text-xs font-black uppercase text-zinc-900">Statut
+              <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as ProjectStatus }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-bold">
                 <option value="draft">Brouillon</option><option value="in_progress">En cours</option><option value="blocked">Bloqué</option>
                 <option value="review">En révision</option><option value="published">Publié</option><option value="done">Terminé</option>
               </select>
             </label>
-            <label className="text-xs font-black uppercase text-zinc-500">Échéance
-              <input type="date" value={draft.due_date} onChange={(e) => setDraft((d) => ({ ...d, due_date: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
+            <label className="text-xs font-black uppercase text-zinc-900">Échéance
+              <input type="date" value={draft.due_date} onChange={(e) => setDraft((d) => ({ ...d, due_date: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
             </label>
-            <label className="text-xs font-black uppercase text-zinc-500">Lien assets
-              <input value={draft.asset_url} onChange={(e) => setDraft((d) => ({ ...d, asset_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
+            <label className="text-xs font-black uppercase text-zinc-900">Lien assets
+              <input value={draft.asset_url} onChange={(e) => setDraft((d) => ({ ...d, asset_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
             </label>
           </div>
-          <label className="text-xs font-black uppercase text-zinc-500 block">Objectif
-            <textarea value={draft.objective} onChange={(e) => setDraft((d) => ({ ...d, objective: e.target.value }))} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
+          <label className="text-xs font-black uppercase text-zinc-900 block">Objectif
+            <textarea value={draft.objective} onChange={(e) => setDraft((d) => ({ ...d, objective: e.target.value }))} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
           </label>
-          <label className="text-xs font-black uppercase text-zinc-500 block">Notes
-            <textarea value={draft.notes} onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))} rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
+          <label className="text-xs font-black uppercase text-zinc-900 block">Notes
+            <textarea value={draft.notes} onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))} rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
           </label>
 
           <div className="card-muted p-3 space-y-2">
@@ -298,15 +298,15 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
                 {draft.members.map((m, idx) => (
                   <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                     <select value={m.user_id} onChange={(e) => setDraft((d) => ({ ...d, members: d.members.map((x, i) => i === idx ? { ...x, user_id: e.target.value } : x) }))}
-                      className="md:col-span-5 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+                      className="md:col-span-5 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-900">
                       <option value="">— Utilisateur —</option>
                       {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                     <select value={m.project_role} onChange={(e) => setDraft((d) => ({ ...d, members: d.members.map((x, i) => i === idx ? { ...x, project_role: e.target.value as RoleType } : x) }))}
-                      className="md:col-span-4 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+                      className="md:col-span-4 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-900">
                       {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
-                    <label className="md:col-span-2 inline-flex items-center gap-2 text-xs font-bold text-zinc-700">
+                    <label className="md:col-span-2 inline-flex items-center gap-2 text-xs font-bold text-zinc-900">
                       <input type="checkbox" checked={m.is_lead} onChange={(e) => setDraft((d) => ({ ...d, members: d.members.map((x, i) => i === idx ? { ...x, is_lead: e.target.checked } : x) }))} />Resp.
                     </label>
                     <button type="button" onClick={() => setDraft((d) => ({ ...d, members: d.members.filter((_, i) => i !== idx) }))}
@@ -733,13 +733,13 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
         </div>
       }>
         <div className="space-y-4">
-          <label className="block text-xs font-black uppercase text-zinc-500">Titre
-            <input value={colDraft.title} onChange={(e) => setColDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Ex: À faire, En cours…" />
+          <label className="block text-xs font-black uppercase text-zinc-900">Titre
+            <input value={colDraft.title} onChange={(e) => setColDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-900" placeholder="Ex: À faire, En cours…" />
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Couleur
+          <label className="block text-xs font-black uppercase text-zinc-900">Couleur
             <div className="mt-1 flex items-center gap-3">
               <input type="color" value={colDraft.color} onChange={(e) => setColDraft((d) => ({ ...d, color: e.target.value }))} className="w-10 h-10 rounded-xl border border-zinc-200 cursor-pointer" />
-              <span className="text-sm font-bold text-zinc-600">{colDraft.color}</span>
+              <span className="text-sm font-bold text-zinc-900">{colDraft.color}</span>
             </div>
           </label>
         </div>
@@ -756,30 +756,30 @@ function KanbanBoard({ project, canUpdate, canDelete, toast, onBack }: {
         }
       >
         <div className="space-y-4">
-          <label className="block text-xs font-black uppercase text-zinc-500">Titre <span className="text-rose-600">*</span>
-            <input value={taskDraft.title} onChange={(e) => setTaskDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Titre de la tâche" />
+          <label className="block text-xs font-black uppercase text-zinc-900">Titre <span className="text-rose-600">*</span>
+            <input value={taskDraft.title} onChange={(e) => setTaskDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-900" placeholder="Titre de la tâche" />
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Description
-            <textarea value={taskDraft.description} onChange={(e) => setTaskDraft((d) => ({ ...d, description: e.target.value }))} rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+          <label className="block text-xs font-black uppercase text-zinc-900">Description
+            <textarea value={taskDraft.description} onChange={(e) => setTaskDraft((d) => ({ ...d, description: e.target.value }))} rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-900" />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">Colonne
-              <select value={taskDraft.column_id} onChange={(e) => setTaskDraft((d) => ({ ...d, column_id: Number(e.target.value) }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+            <label className="block text-xs font-black uppercase text-zinc-900">Colonne
+              <select value={taskDraft.column_id} onChange={(e) => setTaskDraft((d) => ({ ...d, column_id: Number(e.target.value) }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-900">
                 {columns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Priorité
-              <select value={taskDraft.priority} onChange={(e) => setTaskDraft((d) => ({ ...d, priority: e.target.value as Priority }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+            <label className="block text-xs font-black uppercase text-zinc-900">Priorité
+              <select value={taskDraft.priority} onChange={(e) => setTaskDraft((d) => ({ ...d, priority: e.target.value as Priority }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-900">
                 <option value="low">Basse</option><option value="medium">Moyenne</option><option value="high">Haute</option><option value="urgent">Urgente</option>
               </select>
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">Échéance
-              <input type="date" value={taskDraft.due_date} onChange={(e) => setTaskDraft((d) => ({ ...d, due_date: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+            <label className="block text-xs font-black uppercase text-zinc-900">Échéance
+              <input type="date" value={taskDraft.due_date} onChange={(e) => setTaskDraft((d) => ({ ...d, due_date: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-900" />
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Assigné à
-              <select value={taskDraft.assigned_to} onChange={(e) => setTaskDraft((d) => ({ ...d, assigned_to: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+            <label className="block text-xs font-black uppercase text-zinc-900">Assigné à
+              <select value={taskDraft.assigned_to} onChange={(e) => setTaskDraft((d) => ({ ...d, assigned_to: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-900">
                 <option value="">— Non assigné —</option>
                 {project.members.map((m) => <option key={m.user_id} value={m.user_id}>{m.user?.name ?? `Utilisateur #${m.user_id}`} · {ROLE_LABELS[m.project_role] ?? m.project_role}</option>)}
               </select>
