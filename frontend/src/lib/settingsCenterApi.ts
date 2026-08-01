@@ -147,6 +147,7 @@ export type WhatsappPhoneNumber = {
 export type SavedWhatsappNumber = {
   id: number;
   brand_id: number;
+  brand_name: string | null;
   phone_id: string;
   waba_id: string | null;
   display_number: string | null;

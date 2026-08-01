@@ -43,6 +43,7 @@ class WhatsAppNumber extends Model
         return [
             'id' => $this->id,
             'brand_id' => $this->brand_id,
+            'brand_name' => $this->relationLoaded('brand') ? ($this->brand->name ?? null) : null,
             'phone_id' => $this->phone_id,
             'waba_id' => $this->waba_id,
             'display_number' => $this->display_number,

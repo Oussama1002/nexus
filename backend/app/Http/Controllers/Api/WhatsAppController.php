@@ -47,20 +47,19 @@ class WhatsAppController extends Controller
         }
     }
 
-    /** List the WhatsApp numbers already saved for the active brand. */
+    /** List all saved WhatsApp numbers across all brands. */
     public function listNumbers(Request $request): JsonResponse
     {
-        $brandId = $this->resolveSettingsBrand($request);
-
         $numbers = WhatsAppNumber::query()
-            ->where('brand_id', $brandId)
+            ->with('brand:id,name')
             ->orderByDesc('is_default')
+            ->orderBy('brand_id')
             ->orderBy('id')
             ->get()
             ->map(fn (WhatsAppNumber $n) => $n->toSafeArray())
             ->all();
 
-        return ApiResponse::success(['numbers' => $numbers], 'Numéros WhatsApp de la marque.');
+        return ApiResponse::success(['numbers' => $numbers], 'Numéros WhatsApp.');
     }
 
     /** Save (import) a WhatsApp number to the active brand. */
