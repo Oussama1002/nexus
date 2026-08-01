@@ -26,7 +26,11 @@ class CollabProjectController extends Controller
         $user = $request->user();
 
         $q = CollabProject::query();
-        ApiBrandContext::scopeBrand($q, $brandId);
+        if ($brandId !== null) {
+            $q->where(function ($w) use ($brandId) {
+                $w->where('brand_id', $brandId)->orWhereNull('brand_id');
+            });
+        }
         $q
             ->with([
                 'createdBy:id,name',
@@ -64,14 +68,13 @@ class CollabProjectController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
         $data = $this->validateProject($request);
-        $data['brand_id'] = $brandId;
+        $data['brand_id'] = $request->has('brand_id') ? $request->input('brand_id') : ApiBrandContext::resolveBrandId($request, required: false);
         $data['created_by_user_id'] = $request->user()?->id;
         $members = $request->input('members', []);
 
         $project = CollabProject::query()->create($data);
-        $this->syncMembers($project, is_array($members) ? $members : [], $brandId, false);
+        $this->syncMembers($project, is_array($members) ? $members : [], $data['brand_id'], false);
 
         AuditLogger::log($request, 'collab_projects.create', $project, null, $project->toArray());
 
@@ -84,9 +87,7 @@ class CollabProjectController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
         $project = CollabProject::query()
-            ->where('brand_id', $brandId)
             ->with(['createdBy:id,name', 'members.user:id,name,email'])
             ->findOrFail($id);
 
@@ -95,14 +96,17 @@ class CollabProjectController extends Controller
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($id);
+        $project = CollabProject::query()->findOrFail($id);
         $before = $project->toArray();
         $data = $this->validateProject($request, true);
+        if ($request->has('brand_id')) {
+            $data['brand_id'] = $request->input('brand_id');
+        }
         $project->fill($data);
         $project->save();
+        $effectiveBrandId = $project->brand_id;
         if ($request->has('members') && is_array($request->input('members'))) {
-            $this->syncMembers($project, $request->input('members'), $brandId, true);
+            $this->syncMembers($project, $request->input('members'), $effectiveBrandId, true);
         }
 
         AuditLogger::log($request, 'collab_projects.update', $project, $before, $project->fresh()->toArray());
@@ -115,8 +119,7 @@ class CollabProjectController extends Controller
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($id);
+        $project = CollabProject::query()->findOrFail($id);
         $before = $project->toArray();
         $project->delete();
         AuditLogger::log($request, 'collab_projects.delete', null, $before, null);
@@ -126,9 +129,8 @@ class CollabProjectController extends Controller
 
     public function addMember(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($id);
-        $data = $this->validateMember($request, $brandId);
+        $project = CollabProject::query()->findOrFail($id);
+        $data = $this->validateMember($request, $project->brand_id);
 
         $member = CollabProjectMember::query()->updateOrCreate(
             [
@@ -151,8 +153,7 @@ class CollabProjectController extends Controller
 
     public function removeMember(Request $request, string $id, string $memberId): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($id);
+        $project = CollabProject::query()->findOrFail($id);
         $member = CollabProjectMember::query()
             ->where('project_id', $project->id)
             ->findOrFail($memberId);
@@ -175,6 +176,7 @@ class CollabProjectController extends Controller
 
         return $request->validate([
             'title' => [$prefix, 'string', 'max:255'],
+            'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'objective' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in(['draft', 'in_progress', 'blocked', 'review', 'published', 'done'])],
             'due_date' => ['nullable', 'date'],
@@ -190,7 +192,7 @@ class CollabProjectController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateMember(Request $request, int $brandId): array
+    private function validateMember(Request $request, ?int $brandId): array
     {
         $data = $request->validate([
             'user_id' => ['required', 'integer'],
@@ -198,10 +200,11 @@ class CollabProjectController extends Controller
             'is_lead' => ['nullable', 'boolean'],
         ]);
 
-        User::query()
-            ->whereKey((int) $data['user_id'])
-            ->whereHas('brands', fn ($q) => $q->where('brands.id', $brandId))
-            ->firstOrFail();
+        $uq = User::query()->whereKey((int) $data['user_id']);
+        if ($brandId !== null) {
+            $uq->whereHas('brands', fn ($q) => $q->where('brands.id', $brandId));
+        }
+        $uq->firstOrFail();
 
         return $data;
     }
@@ -209,7 +212,7 @@ class CollabProjectController extends Controller
     /**
      * @param  array<int, array<string, mixed>>  $members
      */
-    private function syncMembers(CollabProject $project, array $members, int $brandId, bool $replace): void
+    private function syncMembers(CollabProject $project, array $members, ?int $brandId, bool $replace): void
     {
         if ($replace) {
             $project->members()->delete();
@@ -222,10 +225,11 @@ class CollabProjectController extends Controller
             if (! isset($member['user_id'], $member['project_role'])) {
                 continue;
             }
-            User::query()
-                ->whereKey((int) $member['user_id'])
-                ->whereHas('brands', fn ($q) => $q->where('brands.id', $brandId))
-                ->firstOrFail();
+            $uq = User::query()->whereKey((int) $member['user_id']);
+            if ($brandId !== null) {
+                $uq->whereHas('brands', fn ($q) => $q->where('brands.id', $brandId));
+            }
+            $uq->firstOrFail();
             CollabProjectMember::query()->updateOrCreate(
                 [
                     'project_id' => $project->id,

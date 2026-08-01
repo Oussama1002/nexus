@@ -39,7 +39,7 @@ type UserOption = { id: number; name: string; email: string };
 type Member = { id: number; user_id: number; project_role: RoleType; is_lead: boolean; user?: { id: number; name: string; email: string } | null };
 type ProjectRow = { id: number; brand_id?: number | null; title: string; objective: string | null; status: ProjectStatus; due_date: string | null; asset_url: string | null; notes: string | null; members: Member[] };
 type DraftMember = { user_id: string; project_role: RoleType; is_lead: boolean };
-type Draft = { title: string; objective: string; status: ProjectStatus; due_date: string; asset_url: string; notes: string; members: DraftMember[] };
+type Draft = { title: string; brand_id: string; objective: string; status: ProjectStatus; due_date: string; asset_url: string; notes: string; members: DraftMember[] };
 
 type KanbanTask = { id: number; column_id: number; title: string; description: string | null; priority: Priority; due_date: string | null; sort_order: number; assigned_to: number | null; assignee_name: string | null };
 type KanbanColumn = { id: number; title: string; color: string; sort_order: number; tasks: KanbanTask[] };
@@ -65,10 +65,11 @@ const DEFAULT_COLUMNS = [
 
 /* ── helpers ── */
 
-function emptyDraft(): Draft { return { title: '', objective: '', status: 'draft', due_date: '', asset_url: '', notes: '', members: [] }; }
+function emptyDraft(): Draft { return { title: '', brand_id: '', objective: '', status: 'draft', due_date: '', asset_url: '', notes: '', members: [] }; }
 function toPayload(draft: Draft): Record<string, unknown> {
   return {
-    title: draft.title.trim(), objective: draft.objective.trim() || null, status: draft.status,
+    title: draft.title.trim(), brand_id: draft.brand_id ? Number(draft.brand_id) : null,
+    objective: draft.objective.trim() || null, status: draft.status,
     due_date: draft.due_date || null, asset_url: draft.asset_url.trim() || null, notes: draft.notes.trim() || null,
     members: draft.members.filter((m) => m.user_id).map((m) => ({ user_id: Number(m.user_id), project_role: m.project_role, is_lead: m.is_lead })),
   };
@@ -170,7 +171,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
   }
   function openEdit(row: ProjectRow) {
     setEditingId(row.id);
-    setDraft({ title: row.title, objective: row.objective ?? '', status: row.status, due_date: row.due_date ?? '', asset_url: row.asset_url ?? '', notes: row.notes ?? '',
+    setDraft({ title: row.title, brand_id: row.brand_id != null ? String(row.brand_id) : '', objective: row.objective ?? '', status: row.status, due_date: row.due_date ?? '', asset_url: row.asset_url ?? '', notes: row.notes ?? '',
       members: (row.members ?? []).map((m) => ({ user_id: String(m.user_id), project_role: m.project_role, is_lead: m.is_lead })),
     });
     setModalOpen(true);
@@ -266,6 +267,12 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
             <label className="text-xs font-black uppercase text-zinc-900">Titre
               <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
             </label>
+            <label className="text-xs font-black uppercase text-zinc-900">Marque
+              <select value={draft.brand_id} onChange={(e) => setDraft((d) => ({ ...d, brand_id: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-bold">
+                <option value="">Toutes les marques</option>
+                {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </label>
             <label className="text-xs font-black uppercase text-zinc-900">Statut
               <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as ProjectStatus }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-bold">
                 <option value="draft">Brouillon</option><option value="in_progress">En cours</option><option value="blocked">Bloqué</option>
@@ -275,7 +282,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
             <label className="text-xs font-black uppercase text-zinc-900">Échéance
               <input type="date" value={draft.due_date} onChange={(e) => setDraft((d) => ({ ...d, due_date: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
             </label>
-            <label className="text-xs font-black uppercase text-zinc-900">Lien assets
+            <label className="text-xs font-black uppercase text-zinc-900 md:col-span-2">Lien assets
               <input value={draft.asset_url} onChange={(e) => setDraft((d) => ({ ...d, asset_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-zinc-900 font-medium" />
             </label>
           </div>
