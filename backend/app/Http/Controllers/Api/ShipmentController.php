@@ -19,6 +19,7 @@ use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class ShipmentController extends Controller
@@ -45,7 +46,7 @@ class ShipmentController extends Controller
             ->with(['order.customer', 'deliveryCompany']);
         ApiBrandContext::scopeBrand($q, $brandId);
         $q
-            ->orderByDesc('id');
+            ->orderByDesc(DB::raw('COALESCE(shipped_at, created_at)'));
 
         if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
             $q->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));

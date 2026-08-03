@@ -17,6 +17,7 @@ type DashboardPayload = {
   delivery_rate: number;
   return_rate: number;
   cod_pending_amount: number;
+  cod_received_amount: number;
   cod_reconciled_amount: number;
   average_delivery_days: number | null;
   shipments_by_company: { delivery_company_id: number | null; count: number }[];
@@ -171,6 +172,7 @@ export function DeliveryDashboardScreen() {
       { label: 'Taux retour', value: `${data.return_rate}%` },
       { label: "Chiffre d'affaires", value: formatCurrency(data.revenue ?? 0) },
       { label: 'COD en attente', value: formatCurrency(data.cod_pending_amount) },
+      { label: 'COD reçu', value: formatCurrency(data.cod_received_amount ?? 0) },
       { label: 'COD réconcilié', value: formatCurrency(data.cod_reconciled_amount) },
       {
         label: 'Délai moyen (j)',

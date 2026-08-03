@@ -65,6 +65,7 @@ class DeliveryDashboardController extends Controller
         $returnRate = round(100 * $returned / $den, 2);
 
         $codPending = (clone $q)->where('payment_status', 'cod_pending')->sum('cod_amount');
+        $codReceived = (clone $q)->where('payment_status', 'cod_received')->sum('cod_amount');
         $codReconciled = (clone $q)->where('payment_status', 'reconciled')->sum('cod_amount');
 
         $deliveredRows = (clone $q)
@@ -125,6 +126,7 @@ class DeliveryDashboardController extends Controller
             'delivery_rate' => $deliveryRate,
             'return_rate' => $returnRate,
             'cod_pending_amount' => round((float) $codPending, 2),
+            'cod_received_amount' => round((float) $codReceived, 2),
             'cod_reconciled_amount' => round((float) $codReconciled, 2),
             'average_delivery_days' => $avgDays,
             'shipments_by_company' => $byCompany,
