@@ -490,6 +490,12 @@ export function ShipmentsScreen() {
         cell: (s) => <span className="text-sm font-black">{formatCurrency(parseFloat(s.cod_amount))}</span>,
       },
       {
+        key: 'delivery_fee',
+        header: 'Frais livraison',
+        className: 'text-right',
+        cell: (s) => <span className="text-sm font-bold text-zinc-700">{formatCurrency(parseFloat(s.delivery_fee ?? '0'))}</span>,
+      },
+      {
         key: 'date',
         header: 'Date',
         cell: (s) => {
