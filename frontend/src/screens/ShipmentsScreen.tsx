@@ -50,6 +50,7 @@ type ApiShipment = {
   } | null;
   delivery_company?: { id: number; name: string; code?: string | null } | null;
   brand?: { id: number; name: string; code?: string | null } | null;
+  events?: ShipmentEventRow[];
 };
 
 type ApiOrderLite = { id: number; order_number: string; status: string };
@@ -308,13 +309,15 @@ export function ShipmentsScreen() {
         return;
       }
       const numId = Number(selectedId);
-      const [evRes, detailRes] = await Promise.all([
-        api.get<ShipmentEventRow[]>(`shipments/${numId}/events`, activeBrandId === 'all' ? { brandId: '' } : undefined),
-        api.get<ApiShipment>(`shipments/${numId}`),
-      ]);
+      const detailRes = await api.get<ApiShipment>(`shipments/${numId}`);
       if (cancel) return;
-      if (evRes.ok && Array.isArray(evRes.data)) setEvents(evRes.data as ShipmentEventRow[]);
-      if (detailRes.ok && detailRes.data) setDetail(detailRes.data as ApiShipment);
+      if (detailRes.ok && detailRes.data) {
+        const ship = detailRes.data as ApiShipment;
+        setDetail(ship);
+        if (Array.isArray(ship.events)) {
+          setEvents(ship.events);
+        }
+      }
     })();
     return () => {
       cancel = true;
@@ -422,8 +425,12 @@ export function ShipmentsScreen() {
     void load();
     if (selectedId) {
       const sid = selectedId;
-      const evRes = await api.get<ShipmentEventRow[]>(`shipments/${sid}/events`);
-      if (evRes.ok && Array.isArray(evRes.data)) setEvents(evRes.data as ShipmentEventRow[]);
+      const detRes = await api.get<ApiShipment>(`shipments/${sid}`);
+      if (detRes.ok && detRes.data) {
+        const ship = detRes.data as ApiShipment;
+        setDetail(ship);
+        if (Array.isArray(ship.events)) setEvents(ship.events);
+      }
     }
   }
 

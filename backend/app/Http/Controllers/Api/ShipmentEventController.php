@@ -23,13 +23,14 @@ class ShipmentEventController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $shipmentId = (int) ($request->query('shipment_id') ?: $request->route('id', 0));
         if (! $shipmentId) {
             return ApiResponse::error('shipment_id query parameter is required.', null, 422);
         }
 
-        $sq = Shipment::query()->where('brand_id', $brandId)->whereKey($shipmentId);
+        $sq = Shipment::query()->whereKey($shipmentId);
+        ApiBrandContext::scopeBrand($sq, $brandId);
         if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
             $sq->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));
         }

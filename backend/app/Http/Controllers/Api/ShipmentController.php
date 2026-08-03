@@ -219,10 +219,10 @@ class ShipmentController extends Controller
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $q = Shipment::query()
-            ->with(['order.lines.product', 'order.customer', 'deliveryCompany', 'events.actor', 'brand'])
-            ->where('brand_id', $brandId);
+            ->with(['order.lines.product', 'order.customer', 'deliveryCompany', 'events.actor', 'brand']);
+        ApiBrandContext::scopeBrand($q, $brandId);
 
         if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
             $q->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));
