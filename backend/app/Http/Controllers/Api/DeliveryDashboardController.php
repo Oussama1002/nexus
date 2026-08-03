@@ -150,12 +150,12 @@ class DeliveryDashboardController extends Controller
 
     public function syncSendit(Request $request, SenditInboundSyncService $senditSync): JsonResponse
     {
-        set_time_limit(300);
+        set_time_limit(600);
 
         try {
             $brandIds = $this->resolveBrandIds($request);
-            $maxPages = count($brandIds) > 1 ? 20 : min(max((int) $request->input('max_pages', 5), 1), 20);
-            $startPage = count($brandIds) > 1 ? 1 : max((int) $request->input('start_page', 1), 1);
+            $maxPages = min(max((int) $request->input('max_pages', 50), 1), 200);
+            $startPage = max((int) $request->input('start_page', 1), 1);
 
             $merged = ['imported' => 0, 'updated' => 0, 'events' => 0, 'pages' => 0, 'total' => 0, 'errors' => [], 'has_more' => false, 'next_page' => 1];
 
@@ -167,6 +167,10 @@ class DeliveryDashboardController extends Controller
                 $merged['pages'] += $result['pages'];
                 $merged['total'] += $result['total'];
                 $merged['errors'] = array_merge($merged['errors'], $result['errors']);
+                if ($result['has_more']) {
+                    $merged['has_more'] = true;
+                    $merged['next_page'] = max($merged['next_page'], $result['next_page']);
+                }
             }
 
             $message = sprintf(
@@ -182,12 +186,12 @@ class DeliveryDashboardController extends Controller
 
     public function syncAmeex(Request $request, AmeexInboundSyncService $ameexSync): JsonResponse
     {
-        set_time_limit(300);
+        set_time_limit(600);
 
         try {
             $brandIds = $this->resolveBrandIds($request);
-            $maxPages = count($brandIds) > 1 ? 20 : min(max((int) $request->input('max_pages', 5), 1), 20);
-            $startPage = count($brandIds) > 1 ? 1 : max((int) $request->input('start_page', 1), 1);
+            $maxPages = min(max((int) $request->input('max_pages', 50), 1), 200);
+            $startPage = max((int) $request->input('start_page', 1), 1);
 
             $merged = ['imported' => 0, 'updated' => 0, 'events' => 0, 'pages' => 0, 'total' => 0, 'errors' => [], 'has_more' => false, 'next_page' => 1];
 
@@ -199,6 +203,10 @@ class DeliveryDashboardController extends Controller
                 $merged['pages'] += $result['pages'];
                 $merged['total'] += $result['total'];
                 $merged['errors'] = array_merge($merged['errors'], $result['errors']);
+                if ($result['has_more']) {
+                    $merged['has_more'] = true;
+                    $merged['next_page'] = max($merged['next_page'], $result['next_page']);
+                }
             }
 
             $message = sprintf(

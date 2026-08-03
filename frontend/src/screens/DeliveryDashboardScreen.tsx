@@ -74,7 +74,7 @@ export function DeliveryDashboardScreen() {
     let total = 0;
 
     while (true) {
-      const body: Record<string, unknown> = { start_page: startPage, max_pages: 5 };
+      const body: Record<string, unknown> = { start_page: startPage, max_pages: 50 };
       const res = await api.post<{
         imported: number;
         updated: number;
