@@ -46,7 +46,7 @@ class ShipmentController extends Controller
             ->with(['order.customer', 'deliveryCompany']);
         ApiBrandContext::scopeBrand($q, $brandId);
         $q
-            ->orderByDesc(DB::raw('COALESCE(shipped_at, created_at)'));
+            ->orderByDesc(DB::raw('GREATEST(COALESCE(delivered_at, created_at), COALESCE(shipped_at, created_at), COALESCE(returned_at, created_at), created_at)'));
 
         if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
             $q->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));
