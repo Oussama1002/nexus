@@ -45,6 +45,13 @@ class ShipmentStatusMapper
         'annule' => 'cancelled',
         'ramasse' => 'picked_up',
         'ramassé' => 'picked_up',
+        'facturé' => 'delivered',
+        'facture' => 'delivered',
+        'mise_en_distribution' => 'out_for_delivery',
+        'en_distribution' => 'out_for_delivery',
+        'en_cours_de_livraison' => 'out_for_delivery',
+        'non_payé' => 'delivered',
+        'payé' => 'delivered',
     ];
 
     /**

@@ -157,7 +157,13 @@ class AmeexInboundSyncService
             ];
 
             if (! $existing) {
-                $payload['payment_status'] = $cod > 0 ? 'cod_pending' : 'not_applicable';
+                if ($cod <= 0) {
+                    $payload['payment_status'] = 'not_applicable';
+                } elseif ($internalStatus === 'delivered') {
+                    $payload['payment_status'] = 'cod_received';
+                } else {
+                    $payload['payment_status'] = 'cod_pending';
+                }
             } elseif (! in_array($existing->payment_status, ['cod_received', 'reconciled'], true)) {
                 if ($internalStatus === 'delivered' && $cod > 0) {
                     $payload['payment_status'] = 'cod_received';
@@ -290,6 +296,12 @@ class AmeexInboundSyncService
         }
         if (str_starts_with($s, 'nouveau')) {
             return 'created';
+        }
+        if (str_starts_with($s, 'facturé') || str_starts_with($s, 'facture')) {
+            return 'delivered';
+        }
+        if (str_starts_with($s, 'mise en distribution') || str_starts_with($s, 'en distribution')) {
+            return 'out_for_delivery';
         }
         if (str_contains($s, 'pas de réponse') || str_contains($s, 'boîte vocale') || str_starts_with($s, 'relancer')) {
             return 'failed';

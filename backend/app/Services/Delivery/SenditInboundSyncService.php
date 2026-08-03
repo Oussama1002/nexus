@@ -229,7 +229,13 @@ class SenditInboundSyncService
             ];
 
             if (! $existing) {
-                $payload['payment_status'] = $amount > 0 ? 'cod_pending' : 'not_applicable';
+                if ($amount <= 0) {
+                    $payload['payment_status'] = 'not_applicable';
+                } elseif ($internalStatus === 'delivered') {
+                    $payload['payment_status'] = 'cod_received';
+                } else {
+                    $payload['payment_status'] = 'cod_pending';
+                }
             } elseif (! in_array($existing->payment_status, ['cod_received', 'reconciled'], true)) {
                 if ($internalStatus === 'delivered' && $amount > 0) {
                     $payload['payment_status'] = 'cod_received';
