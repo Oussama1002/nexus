@@ -62,9 +62,9 @@ class ShipmentController extends Controller
             $q->where('delivery_company_id', (int) $deliveryCompanyId);
         }
         if ($recipientCity) {
-            $city = (string) $recipientCity;
+            $city = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $recipientCity).'%';
             $q->where(function ($w) use ($city) {
-                $w->where('recipient_city', $city)->orWhere('city', $city);
+                $w->where('recipient_city', 'like', $city)->orWhere('city', 'like', $city);
             });
         }
         if ($orderId) {
@@ -87,6 +87,23 @@ class ShipmentController extends Controller
         }
 
         return ApiResponse::success($q->paginate($perPage), 'Shipments retrieved successfully.');
+    }
+
+    public function cities(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $q = Shipment::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+
+        $cities = $q
+            ->selectRaw('COALESCE(recipient_city, city) as city_name')
+            ->whereRaw("COALESCE(recipient_city, city) IS NOT NULL AND COALESCE(recipient_city, city) != ''")
+            ->groupBy(DB::raw('COALESCE(recipient_city, city)'))
+            ->orderBy('city_name')
+            ->pluck('city_name')
+            ->all();
+
+        return ApiResponse::success($cities, 'Cities retrieved.');
     }
 
     public function store(StoreShipmentRequest $request): JsonResponse

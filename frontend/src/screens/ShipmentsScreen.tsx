@@ -178,6 +178,7 @@ export function ShipmentsScreen() {
   const [paymentStatus, setPaymentStatus] = useState<string | 'all'>('all');
   const [carrierFilter, setCarrierFilter] = useState<string | 'all'>('all');
   const [cityFilter, setCityFilter] = useState('');
+  const [cities, setCities] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
@@ -245,15 +246,17 @@ export function ShipmentsScreen() {
     let c = false;
     (async () => {
       if (!activeBrandId) return;
-      const [oConf, oPrep, dcRes] = await Promise.all([
+      const [oConf, oPrep, dcRes, citiesRes] = await Promise.all([
         api.get<LaravelPaginator<ApiOrderLite>>('orders?status=confirmed&per_page=100'),
         api.get<LaravelPaginator<ApiOrderLite>>('orders?status=prepared&per_page=100'),
         api.get<LaravelPaginator<{ id: number; name: string }>>('delivery-companies?per_page=100'),
+        api.get<string[]>('shipments/cities'),
       ]);
       if (c) return;
       if (oConf.ok && isPaginator<ApiOrderLite>(oConf.data)) setOrdersConfirmed(oConf.data.data);
       if (oPrep.ok && isPaginator<ApiOrderLite>(oPrep.data)) setOrdersPrepared(oPrep.data.data);
       if (dcRes.ok && isPaginator<{ id: number; name: string }>(dcRes.data)) setCarriers(dcRes.data.data);
+      if (citiesRes.ok && Array.isArray(citiesRes.data)) setCities(citiesRes.data as string[]);
     })();
     return () => {
       c = true;
@@ -591,11 +594,15 @@ export function ShipmentsScreen() {
           ))}
         </select>
         <input
+          list="shipment-cities"
           placeholder="Ville destinataire"
           value={cityFilter}
           onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
           className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold w-40"
         />
+        <datalist id="shipment-cities">
+          {cities.map((c) => <option key={c} value={c} />)}
+        </datalist>
         <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" />
         <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" />
       </div>

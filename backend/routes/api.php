@@ -186,6 +186,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('purchase-order-lines/{id}', [PurchaseOrderLineController::class, 'destroy'])->whereNumber('id')->middleware('permission:purchase_orders.update');
 
     Route::get('shipments', [ShipmentController::class, 'index'])->middleware('permission:shipments.view');
+    Route::get('shipments/cities', [ShipmentController::class, 'cities'])->middleware('permission:shipments.view');
     Route::post('shipments', [ShipmentController::class, 'store'])->middleware('permission:shipments.create');
     Route::patch('shipments/{id}/status', [ShipmentController::class, 'patchStatus'])->whereNumber('id')->middleware('permission:shipments.status');
     Route::post('shipments/{id}/sync', [ShipmentController::class, 'sync'])->whereNumber('id')->middleware('permission:shipments.sync');
