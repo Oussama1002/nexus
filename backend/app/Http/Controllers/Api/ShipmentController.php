@@ -71,10 +71,10 @@ class ShipmentController extends Controller
             $q->where('order_id', (int) $orderId);
         }
         if ($from) {
-            $q->whereDate('created_at', '>=', $from);
+            $q->whereRaw('DATE(GREATEST(COALESCE(delivered_at, created_at), COALESCE(shipped_at, created_at), COALESCE(returned_at, created_at), created_at)) >= ?', [$from]);
         }
         if ($to) {
-            $q->whereDate('created_at', '<=', $to);
+            $q->whereRaw('DATE(GREATEST(COALESCE(delivered_at, created_at), COALESCE(shipped_at, created_at), COALESCE(returned_at, created_at), created_at)) <= ?', [$to]);
         }
         if ($search) {
             $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';
