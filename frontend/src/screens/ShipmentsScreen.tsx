@@ -508,7 +508,7 @@ export function ShipmentsScreen() {
             : s.created_at;
           if (!pick) return <span className="text-xs text-zinc-400">—</span>;
           const d = new Date(pick);
-          return <span className="text-xs text-zinc-600 font-medium">{d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', timeZone: 'UTC' })} {d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>;
+          return <span className="text-xs text-zinc-600 font-medium">{d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })} {d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>;
         },
       },
       {
