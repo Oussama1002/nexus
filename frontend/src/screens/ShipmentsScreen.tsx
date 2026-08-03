@@ -492,7 +492,7 @@ export function ShipmentsScreen() {
             : s.created_at;
           if (!pick) return <span className="text-xs text-zinc-400">—</span>;
           const d = new Date(pick);
-          return <span className="text-xs text-zinc-600 font-medium">{d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} {d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>;
+          return <span className="text-xs text-zinc-600 font-medium">{d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', timeZone: 'UTC' })} {d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>;
         },
       },
       {
@@ -671,7 +671,7 @@ export function ShipmentsScreen() {
       <Drawer open={!!selected} onClose={() => { setSelectedId(null); setDetail(null); }} title={selected?.tracking_number ?? ''}>
         {selected && (() => {
           const d = detail ?? selected;
-          const fmtDate = (v?: string | null) => v ? new Date(v).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+          const fmtDate = (v?: string | null) => v ? new Date(v).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : null;
           const apiBase = (import.meta.env.VITE_API_BASE_URL as string || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
           return (
           <div className="space-y-4">
@@ -874,9 +874,9 @@ export function ShipmentsScreen() {
                           {ev.note && ev.note !== ev.description && <p className="text-xs text-zinc-400 mt-0.5">{ev.note}</p>}
                           {ev.location && <p className="text-[11px] text-zinc-400 mt-0.5">{ev.location}</p>}
                           <p className="text-[10px] text-zinc-400 mt-1">
-                            {new Date(ev.event_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {new Date(ev.event_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })}
                             {' à '}
-                            {new Date(ev.event_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(ev.event_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                           </p>
                         </div>
                       </div>
