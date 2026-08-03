@@ -225,9 +225,16 @@ class SenditInboundSyncService
                 'address' => (string) ($delivery['address'] ?? ''),
                 'cod_amount' => $amount,
                 'delivery_fee' => $fee,
-                'payment_status' => $amount > 0 ? 'cod_pending' : 'not_applicable',
                 'notes' => (string) ($delivery['comment'] ?? ''),
             ];
+
+            if (! $existing) {
+                $payload['payment_status'] = $amount > 0 ? 'cod_pending' : 'not_applicable';
+            } elseif (! in_array($existing->payment_status, ['cod_received', 'reconciled'], true)) {
+                if ($internalStatus === 'delivered' && $amount > 0) {
+                    $payload['payment_status'] = 'cod_received';
+                }
+            }
 
             if ($createdAt) {
                 $payload['shipped_at'] = $payload['shipped_at'] ?? $createdAt;

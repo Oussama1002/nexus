@@ -126,6 +126,12 @@ class DeliveryPaymentController extends Controller
         $payment->fill($data);
         $payment->save();
 
+        if (isset($data['state']) && $data['state'] === 'received') {
+            $payment->shipments()
+                ->where('payment_status', 'cod_pending')
+                ->update(['payment_status' => 'cod_received']);
+        }
+
         if (isset($data['state']) && in_array($data['state'], ['received', 'disputed'], true)) {
             AuditLogger::log($request, 'delivery_payments.state', $payment, $before, $payment->fresh()->toArray());
         } else {

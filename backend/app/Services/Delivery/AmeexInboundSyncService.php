@@ -153,9 +153,16 @@ class AmeexInboundSyncService
                 'recipient_address' => $address,
                 'address' => $address,
                 'cod_amount' => $cod,
-                'payment_status' => $cod > 0 ? 'cod_pending' : 'not_applicable',
                 'notes' => (string) ($item['TBL_NOTE'] ?? ''),
             ];
+
+            if (! $existing) {
+                $payload['payment_status'] = $cod > 0 ? 'cod_pending' : 'not_applicable';
+            } elseif (! in_array($existing->payment_status, ['cod_received', 'reconciled'], true)) {
+                if ($internalStatus === 'delivered' && $cod > 0) {
+                    $payload['payment_status'] = 'cod_received';
+                }
+            }
 
             if ($createdAt) {
                 $payload['shipped_at'] = $pickupAt ?? $createdAt;

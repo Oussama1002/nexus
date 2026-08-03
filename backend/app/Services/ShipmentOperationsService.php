@@ -149,7 +149,7 @@ class ShipmentOperationsService
             if ($toStatus === 'delivered') {
                 $locked->delivered_at = now();
                 if ((float) $locked->cod_amount > 0) {
-                    $locked->payment_status = 'cod_pending';
+                    $locked->payment_status = 'cod_received';
                 } else {
                     $locked->payment_status = 'not_applicable';
                 }
