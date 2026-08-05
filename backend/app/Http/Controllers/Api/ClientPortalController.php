@@ -71,16 +71,28 @@ class ClientPortalController extends Controller
 
         $timeline = AuditLog::query()
             ->with('user:id,name')
-            ->whereIn('action', ['orders.create', 'orders.status', 'shipments.status', 'campaigns.create', 'campaigns.update'])
-            ->latest('id')
-            ->limit(12)
-            ->get()
-            ->map(fn (AuditLog $log) => [
-                'id' => $log->id,
-                'action' => $log->action,
-                'at' => $log->created_at?->toIso8601String(),
-                'actor' => $log->user?->name ?? 'Système',
+            ->whereIn('action', [
+                'orders.create', 'orders.status', 'orders.update',
+                'shipments.status', 'shipment_events.create',
+                'campaigns.create', 'campaigns.update',
+                'delivery_payments.state', 'delivery_payments.reconcile',
             ])
+            ->latest('id')
+            ->limit(20)
+            ->get()
+            ->map(function (AuditLog $log) {
+                $new = $log->new_values ?? [];
+                $old = $log->old_values ?? [];
+                $ref = $new['order_number'] ?? $new['tracking_number'] ?? $new['name'] ?? $log->entity_id;
+
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'label' => $this->translateAction($log->action, $ref, $old, $new),
+                    'at' => $log->created_at?->toIso8601String(),
+                    'actor' => $log->user?->name ?? 'Système',
+                ];
+            })
             ->values();
 
         $spend = (float) ($ads->spend ?? 0);
@@ -197,5 +209,36 @@ class ClientPortalController extends Controller
         if (! $request->user()?->hasPermissionSlug($slug)) {
             throw new AccessDeniedHttpException('Forbidden.');
         }
+    }
+
+    private function translateAction(string $action, mixed $ref, array $old, array $new): string
+    {
+        $statusFr = [
+            'pending' => 'en attente', 'confirmed' => 'confirmée', 'prepared' => 'préparée',
+            'shipped' => 'expédiée', 'delivered' => 'livrée', 'returned' => 'retournée',
+            'cancelled' => 'annulée', 'created' => 'créé', 'picked_up' => 'ramassé',
+            'in_transit' => 'en transit', 'out_for_delivery' => 'en livraison',
+            'failed' => 'échoué', 'cod_pending' => 'COD en attente',
+            'cod_received' => 'COD reçu', 'reconciled' => 'réconcilié',
+            'received' => 'reçu', 'disputed' => 'litige',
+        ];
+
+        return match ($action) {
+            'orders.create' => sprintf('Commande %s créée', $ref),
+            'orders.status' => sprintf('Commande %s → %s',
+                $ref,
+                $statusFr[$new['status'] ?? ''] ?? ($new['status'] ?? '?')),
+            'orders.update' => sprintf('Commande %s modifiée', $ref),
+            'shipments.status' => sprintf('Colis %s → %s',
+                $ref,
+                $statusFr[$new['status'] ?? ''] ?? ($new['status'] ?? '?')),
+            'shipment_events.create' => sprintf('Événement colis %s', $ref),
+            'campaigns.create' => sprintf('Campagne « %s » créée', $ref),
+            'campaigns.update' => sprintf('Campagne « %s » modifiée', $ref),
+            'delivery_payments.state' => sprintf('Paiement livraison → %s',
+                $statusFr[$new['state'] ?? ''] ?? ($new['state'] ?? '?')),
+            'delivery_payments.reconcile' => sprintf('Paiement livraison réconcilié'),
+            default => $action,
+        };
     }
 }

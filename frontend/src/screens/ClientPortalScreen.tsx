@@ -13,7 +13,7 @@ type ClientOverview = {
     delivery: { total: number; delivered: number; returned: number; in_progress: number };
     ads: { spend: number; revenue: number; leads: number; roas: number | null };
   };
-  timeline: { id: number; action: string; at: string; actor: string }[];
+  timeline: { id: number; action: string; label?: string; at: string; actor: string }[];
 };
 
 type AccessRow = {
@@ -153,9 +153,11 @@ export function ClientPortalScreen() {
           <div className="space-y-2">
             {overview.timeline.map((item) => (
               <div key={item.id} className="card-muted p-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm font-bold text-zinc-800">{item.action}</div>
-                <div className="text-xs text-zinc-500">{item.actor}</div>
-                <div className="text-xs text-zinc-500">{new Date(item.at).toLocaleString()}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-zinc-800">{item.label ?? item.action}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">par {item.actor}</p>
+                </div>
+                <div className="text-xs text-zinc-500 whitespace-nowrap">{new Date(item.at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</div>
               </div>
             ))}
             {overview.timeline.length === 0 ? (
