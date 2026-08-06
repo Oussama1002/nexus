@@ -100,8 +100,13 @@ export function WhatsAppWorkspaceScreen({
   const [nowTick, setNowTick] = useState(() => Date.now());
 
   const [newOpen, setNewOpen] = useState(false);
+  const [newTab, setNewTab] = useState<'existing' | 'new'>('existing');
   const [customers, setCustomers] = useState<ApiCustomer[]>([]);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [newCustomerId, setNewCustomerId] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('');
@@ -301,13 +306,42 @@ export function WhatsAppWorkspaceScreen({
   }
 
   async function createConversation() {
-    if (!newCustomerId) return;
     if (numbers.length > 0 && !newNumberId) {
       toast.error('Veuillez choisir le numéro WhatsApp expéditeur.');
       return;
     }
+
+    let customerId: number | null = null;
+
+    if (newTab === 'new') {
+      if (!newName.trim() || !newPhone.trim()) {
+        toast.error('Veuillez remplir le nom et le numéro de téléphone.');
+        return;
+      }
+      setCreatingCustomer(true);
+      const custRes = await api.post<ApiCustomer>('customers', {
+        full_name: newName.trim(),
+        phone: newPhone.trim(),
+        client_source: 'whatsapp',
+        status: 'active',
+      });
+      setCreatingCustomer(false);
+      if (!custRes.ok) {
+        toast.error(custRes.message);
+        return;
+      }
+      customerId = (custRes.data as any)?.id ?? null;
+      if (!customerId) {
+        toast.error('Erreur lors de la création du client.');
+        return;
+      }
+    } else {
+      if (!newCustomerId) return;
+      customerId = Number(newCustomerId);
+    }
+
     const res = await api.post<ApiConversation>('conversations', {
-      customer_id: Number(newCustomerId),
+      customer_id: customerId,
       channel: 'whatsapp',
       status: 'open',
       assigned_user_id: user ? Number(user.id) : null,
@@ -320,6 +354,9 @@ export function WhatsAppWorkspaceScreen({
     toast.success('Conversation créée.');
     setNewOpen(false);
     setNewCustomerId('');
+    setNewName('');
+    setNewPhone('');
+    setCustomerSearch('');
     await loadConversations();
   }
 
@@ -728,32 +765,111 @@ export function WhatsAppWorkspaceScreen({
 
       <Modal
         open={newOpen}
-        onClose={() => setNewOpen(false)}
+        onClose={() => { setNewOpen(false); setCustomerSearch(''); setNewName(''); setNewPhone(''); setNewCustomerId(''); }}
         title="Nouvelle conversation"
-        subtitle="Liée à un client existant."
+        subtitle={newTab === 'existing' ? 'Sélectionnez un client existant.' : 'Ajoutez un nouveau contact.'}
         footer={
           <div className="flex justify-between gap-3">
-            <button type="button" onClick={() => setNewOpen(false)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700">
+            <button type="button" onClick={() => { setNewOpen(false); setCustomerSearch(''); setNewName(''); setNewPhone(''); setNewCustomerId(''); }} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700">
               Annuler
             </button>
-            <button type="button" disabled={!newCustomerId} onClick={() => void createConversation()} className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black disabled:opacity-50">
-              Créer
+            <button
+              type="button"
+              disabled={newTab === 'existing' ? !newCustomerId : (!newName.trim() || !newPhone.trim()) || creatingCustomer}
+              onClick={() => void createConversation()}
+              className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black disabled:opacity-50"
+            >
+              {creatingCustomer ? 'Création…' : 'Créer'}
             </button>
           </div>
         }
       >
         <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Client</label>
-            <select value={newCustomerId} onChange={(e) => setNewCustomerId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800">
-              <option value="">— Choisir —</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.full_name} — {c.phone}
-                </option>
-              ))}
-            </select>
+          <div className="flex rounded-xl border border-zinc-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setNewTab('existing')}
+              className={cn('flex-1 px-4 py-2.5 text-xs font-black transition-colors', newTab === 'existing' ? 'bg-primary-600 text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50')}
+            >
+              Client existant
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewTab('new')}
+              className={cn('flex-1 px-4 py-2.5 text-xs font-black transition-colors', newTab === 'new' ? 'bg-primary-600 text-white' : 'bg-white text-zinc-600 hover:bg-zinc-50')}
+            >
+              Nouveau contact
+            </button>
           </div>
+
+          {newTab === 'existing' ? (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Rechercher un client</label>
+              <input
+                type="text"
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Nom ou numéro…"
+                className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800 text-sm"
+              />
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-zinc-100">
+                {customers
+                  .filter((c) => {
+                    if (!customerSearch.trim()) return true;
+                    const s = customerSearch.toLowerCase();
+                    return c.full_name.toLowerCase().includes(s) || c.phone.toLowerCase().includes(s);
+                  })
+                  .map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setNewCustomerId(String(c.id))}
+                      className={cn(
+                        'w-full text-left px-4 py-2.5 flex items-center justify-between hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-b-0',
+                        newCustomerId === String(c.id) && 'bg-primary-50 border-primary-100',
+                      )}
+                    >
+                      <div>
+                        <p className={cn('text-sm font-bold', newCustomerId === String(c.id) ? 'text-primary-700' : 'text-zinc-800')}>{c.full_name}</p>
+                        <p className="text-xs text-zinc-400">{c.phone}</p>
+                      </div>
+                      {newCustomerId === String(c.id) && <CheckCircle2 size={16} className="text-primary-600 shrink-0" />}
+                    </button>
+                  ))}
+                {customers.filter((c) => {
+                  if (!customerSearch.trim()) return true;
+                  const s = customerSearch.toLowerCase();
+                  return c.full_name.toLowerCase().includes(s) || c.phone.toLowerCase().includes(s);
+                }).length === 0 && (
+                  <p className="text-xs text-zinc-400 p-4 text-center">Aucun client trouvé.</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Nom complet</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Ex: Ahmed Benali"
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro de téléphone</label>
+                <input
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="Ex: 0600000000"
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800 text-sm"
+                />
+              </div>
+            </div>
+          )}
+
           {numbers.length > 0 && (
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro WhatsApp expéditeur</label>
