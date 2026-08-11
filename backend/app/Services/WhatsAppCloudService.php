@@ -399,4 +399,63 @@ class WhatsAppCloudService
         return (string) ($res->json('messages.0.id') ?? '');
     }
 
+    /**
+     * Send a template message (required to initiate conversations outside the 24h window).
+     *
+     * @param  array<string, string>  $parameters  Positional body parameters for the template
+     * @throws \RuntimeException
+     */
+    public function sendTemplate(
+        int $brandId,
+        string $toWaId,
+        string $templateName,
+        string $languageCode = 'en_US',
+        array $parameters = [],
+        ?WhatsAppNumber $number = null,
+    ): string {
+        $cfg = $this->resolveSendConfig($brandId, $number);
+
+        if ($cfg['token'] === '' || $cfg['phone_id'] === '') {
+            throw new \RuntimeException('Identifiants WhatsApp manquants pour ce numéro/cette marque.');
+        }
+
+        $url = sprintf('%s/%s/messages', $cfg['base_url'], $cfg['phone_id']);
+
+        $template = [
+            'name' => $templateName,
+            'language' => ['code' => $languageCode],
+        ];
+
+        if (count($parameters) > 0) {
+            $template['components'] = [[
+                'type' => 'body',
+                'parameters' => array_map(
+                    fn (string $val) => ['type' => 'text', 'text' => $val],
+                    array_values($parameters),
+                ),
+            ]];
+        }
+
+        $res = Http::withToken($cfg['token'])
+            ->acceptJson()
+            ->asJson()
+            ->post($url, [
+                'messaging_product' => 'whatsapp',
+                'to' => ltrim($toWaId, '+'),
+                'type' => 'template',
+                'template' => $template,
+            ]);
+
+        if (! $res->successful()) {
+            Log::error('whatsapp.send_template.failed', [
+                'status' => $res->status(),
+                'body' => $res->body(),
+            ]);
+            $err = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
+            throw new \RuntimeException('Échec de l\'envoi du template WhatsApp : '.\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
+        }
+
+        return (string) ($res->json('messages.0.id') ?? '');
+    }
 }

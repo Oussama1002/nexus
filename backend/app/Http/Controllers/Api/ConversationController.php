@@ -256,6 +256,65 @@ class ConversationController extends Controller
         return ApiResponse::success($message->fresh(['sender']), 'Message added successfully.', 201);
     }
 
+    public function sendTemplate(Request $request, string $id, WhatsAppCloudService $wa): JsonResponse
+    {
+        $conversation = $this->findConversationForUser($request, $id);
+        $data = $request->validate([
+            'template_name' => ['required', 'string', 'max:191'],
+            'language_code' => ['nullable', 'string', 'max:10'],
+        ]);
+
+        $recipient = $conversation->external_thread_id;
+        if (! $recipient && $conversation->channel === WhatsAppCloudService::CHANNEL) {
+            $conversation->loadMissing('customer');
+            $phone = $conversation->customer?->phone;
+            if ($phone) {
+                $recipient = \App\Services\PhoneNormalizer::toWhatsAppId($phone);
+            }
+        }
+
+        if (! $recipient) {
+            return ApiResponse::error(
+                'Impossible de déterminer le numéro WhatsApp du destinataire.',
+                null,
+                422,
+            );
+        }
+
+        try {
+            $externalId = $wa->sendTemplate(
+                $conversation->brand_id,
+                $recipient,
+                $data['template_name'],
+                $data['language_code'] ?? 'en_US',
+                [],
+                $conversation->whatsappNumber,
+            ) ?: null;
+
+            if (! $conversation->external_thread_id) {
+                $conversation->external_thread_id = $recipient;
+                $conversation->save();
+            }
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage(), null, 502);
+        }
+
+        $message = Message::query()->create([
+            'conversation_id' => $conversation->id,
+            'sender_user_id' => $request->user()->id,
+            'direction' => 'outbound',
+            'content' => '[Template: ' . $data['template_name'] . ']',
+            'message_type' => 'template',
+            'external_message_id' => $externalId,
+            'sent_at' => now(),
+        ]);
+
+        $conversation->last_message_at = now();
+        $conversation->save();
+
+        return ApiResponse::success($message->fresh(['sender']), 'Template envoyé.', 201);
+    }
+
     public function uploadAttachment(Request $request, string $id): JsonResponse
     {
         $conversation = $this->findConversationForUser($request, $id);

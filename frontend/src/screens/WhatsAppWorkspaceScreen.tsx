@@ -107,6 +107,7 @@ export function WhatsAppWorkspaceScreen({
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [creatingCustomer, setCreatingCustomer] = useState(false);
+  const [sendInitTemplate, setSendInitTemplate] = useState(true);
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('');
@@ -351,13 +352,29 @@ export function WhatsAppWorkspaceScreen({
       toast.error(res.message);
       return;
     }
+
+    const convId = (res.data as any)?.id;
+    if (convId && sendInitTemplate) {
+      const tplRes = await api.post(`conversations/${convId}/send-template`, {
+        template_name: 'hello_world',
+        language_code: 'en_US',
+      });
+      if (!tplRes.ok) {
+        toast.error(tplRes.message);
+      }
+    }
+
     toast.success('Conversation créée.');
     setNewOpen(false);
     setNewCustomerId('');
     setNewName('');
     setNewPhone('');
     setCustomerSearch('');
+    setSendInitTemplate(true);
     await loadConversations();
+    if (convId) {
+      setSelectedId(convId);
+    }
   }
 
   const isAdmin = roleSlugs.includes('admin');
@@ -882,6 +899,19 @@ export function WhatsAppWorkspaceScreen({
               </select>
             </div>
           )}
+
+          <label className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-100 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sendInitTemplate}
+              onChange={(e) => setSendInitTemplate(e.target.checked)}
+              className="accent-emerald-600 w-4 h-4"
+            />
+            <div>
+              <p className="text-xs font-bold text-emerald-800">Envoyer un message d'initiation</p>
+              <p className="text-[10px] text-emerald-600">Requis pour pouvoir envoyer des messages libres (ouvre la fenêtre 24h WhatsApp)</p>
+            </div>
+          </label>
         </div>
       </Modal>
     </div>

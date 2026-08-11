@@ -148,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('conversations/{id}/messages', [ConversationController::class, 'messages'])->whereNumber('id')->middleware('permission:conversations.view');
     Route::post('conversations/{id}/messages', [ConversationController::class, 'storeMessage'])->whereNumber('id')->middleware('permission:conversations.create');
     Route::post('conversations/{id}/upload', [ConversationController::class, 'uploadAttachment'])->whereNumber('id')->middleware('permission:conversations.create');
+    Route::post('conversations/{id}/send-template', [ConversationController::class, 'sendTemplate'])->whereNumber('id')->middleware('permission:conversations.create');
 
     Route::get('orders', [OrderController::class, 'index'])->middleware('permission:orders.view');
     Route::post('orders', [OrderController::class, 'store'])->middleware('permission:orders.create');
