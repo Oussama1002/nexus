@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Eye, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable } from '../components/ui/DataTable';
@@ -72,6 +72,7 @@ export function CustomersScreen() {
   const toast = useToast();
   const canCreate = hasPermission('customers.create');
   const canUpdate = hasPermission('customers.update');
+  const canDelete = hasPermission('customers.delete');
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<ApiCustomer[]>([]);
@@ -318,6 +319,39 @@ export function CustomersScreen() {
                 const name = c.assigned_user?.name ?? c.latest_conversation?.assigned_user?.name;
                 return <span className={`text-xs font-bold ${name ? 'text-zinc-700' : 'text-zinc-400'}`}>{name ?? '—'}</span>;
               },
+            },
+            {
+              key: 'actions',
+              header: '',
+              cell: (c) => (
+                <div className="flex items-center gap-1 justify-end">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setFicheId(c.id); }}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                    title="Voir détail"
+                  >
+                    <Eye size={15} />
+                  </button>
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm('Supprimer ce client définitivement ?')) return;
+                        const res = await api.del(`customers/${c.id}`);
+                        if (!res.ok) { toast.error(res.message); return; }
+                        toast.success('Client supprimé.');
+                        void load();
+                      }}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      title="Supprimer"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ),
             },
           ]}
           emptyTitle="Aucun client"

@@ -108,6 +108,7 @@ export function WhatsAppWorkspaceScreen({
   const [newPhone, setNewPhone] = useState('');
   const [creatingCustomer, setCreatingCustomer] = useState(false);
   const [sendInitTemplate, setSendInitTemplate] = useState(true);
+  const [newError, setNewError] = useState<string | null>(null);
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
   const [agentFilter, setAgentFilter] = useState<string>('');
@@ -307,8 +308,10 @@ export function WhatsAppWorkspaceScreen({
   }
 
   async function createConversation() {
+    setNewError(null);
+
     if (numbers.length > 0 && !newNumberId) {
-      toast.error('Veuillez choisir le numéro WhatsApp expéditeur.');
+      setNewError('Veuillez choisir le numéro WhatsApp expéditeur.');
       return;
     }
 
@@ -316,7 +319,7 @@ export function WhatsAppWorkspaceScreen({
 
     if (newTab === 'new') {
       if (!newName.trim() || !newPhone.trim()) {
-        toast.error('Veuillez remplir le nom et le numéro de téléphone.');
+        setNewError('Veuillez remplir le nom et le numéro de téléphone.');
         return;
       }
       setCreatingCustomer(true);
@@ -328,12 +331,12 @@ export function WhatsAppWorkspaceScreen({
       });
       setCreatingCustomer(false);
       if (!custRes.ok) {
-        toast.error(custRes.message);
+        setNewError(custRes.message);
         return;
       }
       customerId = (custRes.data as any)?.id ?? null;
       if (!customerId) {
-        toast.error('Erreur lors de la création du client.');
+        setNewError('Erreur lors de la création du client.');
         return;
       }
     } else {
@@ -349,7 +352,7 @@ export function WhatsAppWorkspaceScreen({
       whatsapp_number_id: newNumberId ? Number(newNumberId) : undefined,
     });
     if (!res.ok) {
-      toast.error(res.message);
+      setNewError(res.message);
       return;
     }
 
@@ -360,7 +363,7 @@ export function WhatsAppWorkspaceScreen({
         language_code: 'en_US',
       });
       if (!tplRes.ok) {
-        toast.error(tplRes.message);
+        setNewError(tplRes.message);
       }
     }
 
@@ -371,6 +374,7 @@ export function WhatsAppWorkspaceScreen({
     setNewPhone('');
     setCustomerSearch('');
     setSendInitTemplate(true);
+    setNewError(null);
     await loadConversations();
     if (convId) {
       setSelectedId(convId);
@@ -782,7 +786,7 @@ export function WhatsAppWorkspaceScreen({
 
       <Modal
         open={newOpen}
-        onClose={() => { setNewOpen(false); setCustomerSearch(''); setNewName(''); setNewPhone(''); setNewCustomerId(''); }}
+        onClose={() => { setNewOpen(false); setCustomerSearch(''); setNewName(''); setNewPhone(''); setNewCustomerId(''); setNewError(null); }}
         title="Nouvelle conversation"
         subtitle={newTab === 'existing' ? 'Sélectionnez un client existant.' : 'Ajoutez un nouveau contact.'}
         footer={
@@ -802,6 +806,11 @@ export function WhatsAppWorkspaceScreen({
         }
       >
         <div className="space-y-4">
+          {newError && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm font-bold text-red-700">
+              {newError}
+            </div>
+          )}
           <div className="flex rounded-xl border border-zinc-200 overflow-hidden">
             <button
               type="button"
