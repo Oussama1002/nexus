@@ -193,7 +193,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'parametres', label: 'Paramètres', level: 2, block: 'systeme', parentId: 'administration', order: 4, icon: Settings, view: 'settings' },
   { id: 'journal-audit', label: "Journal d'audit", level: 2, block: 'systeme', parentId: 'administration', order: 5, icon: History, view: 'tracking' },
   { id: 'bugs-incidents', label: 'Bugs & incidents', level: 2, block: 'systeme', parentId: 'administration', order: 6, icon: Bug, view: 'bugsIncidents' },
-  { id: 'integrations', label: 'Intégrations', level: 2, block: 'systeme', parentId: 'administration', order: 7, icon: Plug, view: 'integrations' },
+  { id: 'integrations', label: 'Intégrations', level: 2, block: 'systeme', parentId: 'administration', order: 7, icon: Plug, view: 'settings' },
 ];
 
 // ── Legacy compatibility helpers ──
