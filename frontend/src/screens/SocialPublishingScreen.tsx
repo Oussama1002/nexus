@@ -20,8 +20,8 @@ import {
 type CmTab = 'journee' | 'publications' | 'influenceurs' | 'moderation' | 'reclamations';
 
 type DailySummary = {
-  checklist_completion: number;
-  moderation_count: number;
+  checklist_completion_percent: number;
+  moderation_actions_today: number;
   pending_signals: number;
   publications_today: number;
 };
@@ -41,7 +41,7 @@ type Checklist = {
 
 type Signal = {
   id: number;
-  influencer?: { id: number; name: string };
+  influencer?: { id: number; full_name: string };
   influencer_id: number;
   signal_type: string;
   severity: string;
@@ -55,13 +55,13 @@ type ContentCalendarEntry = {
   title: string;
   platform: string;
   content_type: string;
-  scheduled_date: string;
+  planned_at: string;
   status: string;
 };
 
 type InfluencerContentLog = {
   id: number;
-  influencer?: { id: number; name: string };
+  influencer?: { id: number; full_name: string };
   influencer_id: number;
   content_type: string;
   platform: string;
@@ -84,14 +84,14 @@ type ModerationAction = {
 
 type Complaint = {
   id: number;
-  influencer?: { id: number; name: string };
+  influencer?: { id: number; full_name: string };
   subject: string;
   status: string;
   priority: string;
   created_at: string;
 };
 
-type Influencer = { id: number; name: string };
+type Influencer = { id: number; full_name: string };
 type SocialAccount = { id: number; platform: string; account_name: string };
 
 /* ------------------------------------------------------------------ */
@@ -158,11 +158,11 @@ const severityColor: Record<string, string> = {
 
 const signalStatusColor: Record<string, string> = {
   ouvert: 'bg-orange-50 text-orange-700',
-  'en_cours': 'bg-blue-50 text-blue-700',
+  en_traitement: 'bg-blue-50 text-blue-700',
   'résolu': 'bg-emerald-50 text-emerald-700',
   resolu: 'bg-emerald-50 text-emerald-700',
-  'fermé': 'bg-zinc-100 text-zinc-600',
-  ferme: 'bg-zinc-100 text-zinc-600',
+  'escaladé': 'bg-red-100 text-red-700',
+  escalade: 'bg-red-100 text-red-700',
 };
 
 const priorityColor: Record<string, string> = {
@@ -322,11 +322,11 @@ function TabJournee({ toast, userId }: { toast: (m: string, t: string) => void; 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Checklist complétée</p>
-          <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.checklist_completion ?? 0}%</p>
+          <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.checklist_completion_percent ?? 0}%</p>
         </div>
         <div className="card p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Modérations</p>
-          <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.moderation_count ?? 0}</p>
+          <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.moderation_actions_today ?? 0}</p>
         </div>
         <div className="card p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Signalements en attente</p>
@@ -385,11 +385,11 @@ function TabJournee({ toast, userId }: { toast: (m: string, t: string) => void; 
               <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border border-zinc-100">
                 <div>
                   <p className="text-sm font-medium text-zinc-700">{s.description}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">{s.influencer?.name ?? `#${s.influencer_id}`}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{s.influencer?.full_name ?? `#${s.influencer_id}`}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge value={s.severity} colorMap={severityColor} />
-                  <Badge value={s.signal_type} colorMap={{ comportement: 'bg-red-50 text-red-700', contenu: 'bg-yellow-50 text-yellow-700', performance: 'bg-blue-50 text-blue-700', contractuel: 'bg-purple-50 text-purple-700', autre: 'bg-zinc-100 text-zinc-600' }} />
+                  <Badge value={s.signal_type} colorMap={{ retard: 'bg-orange-50 text-orange-700', contenu_non_conforme: 'bg-yellow-50 text-yellow-700', injoignable: 'bg-red-50 text-red-700', comportement: 'bg-purple-50 text-purple-700', autre: 'bg-zinc-100 text-zinc-600' }} />
                 </div>
               </div>
             ))}
@@ -540,7 +540,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
                       <Badge value={r.platform} colorMap={platformColor} />
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{r.content_type}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-600">{r.scheduled_date ? new Date(r.scheduled_date).toLocaleDateString('fr-FR') : '—'}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{r.planned_at ? new Date(r.planned_at).toLocaleDateString('fr-FR') : '—'}</td>
                     <td className="px-4 py-3 text-sm">
                       <Badge value={pubStatusLabel[r.status] || r.status} colorMap={pubStatusColor} />
                     </td>
@@ -768,7 +768,7 @@ function TabInfluenceurs({ toast }: { toast: (m: string, t: string) => void }) {
                 <tbody>
                   {logs.map(r => (
                     <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                      <td className="px-4 py-3 text-sm font-medium text-zinc-700">{r.influencer?.name ?? `#${r.influencer_id}`}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-700">{r.influencer?.full_name ?? `#${r.influencer_id}`}</td>
                       <td className="px-4 py-3 text-sm"><Badge value={r.content_type} colorMap={{ post: 'bg-blue-50 text-blue-700', story: 'bg-pink-50 text-pink-700', reel: 'bg-purple-50 text-purple-700', video: 'bg-red-50 text-red-700', 'vidéo': 'bg-red-50 text-red-700', live: 'bg-emerald-50 text-emerald-700' }} /></td>
                       <td className="px-4 py-3 text-sm"><Badge value={r.platform} colorMap={platformColor} /></td>
                       <td className="px-4 py-3 text-sm text-zinc-600">{r.published_at ? new Date(r.published_at).toLocaleDateString('fr-FR') : '—'}</td>
@@ -830,8 +830,8 @@ function TabInfluenceurs({ toast }: { toast: (m: string, t: string) => void }) {
                 <tbody>
                   {signals.map(s => (
                     <tr key={s.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                      <td className="px-4 py-3 text-sm font-medium text-zinc-700">{s.influencer?.name ?? `#${s.influencer_id}`}</td>
-                      <td className="px-4 py-3 text-sm"><Badge value={s.signal_type} colorMap={{ comportement: 'bg-red-50 text-red-700', contenu: 'bg-yellow-50 text-yellow-700', performance: 'bg-blue-50 text-blue-700', contractuel: 'bg-purple-50 text-purple-700', autre: 'bg-zinc-100 text-zinc-600' }} /></td>
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-700">{s.influencer?.full_name ?? `#${s.influencer_id}`}</td>
+                      <td className="px-4 py-3 text-sm"><Badge value={s.signal_type} colorMap={{ retard: 'bg-orange-50 text-orange-700', contenu_non_conforme: 'bg-yellow-50 text-yellow-700', injoignable: 'bg-red-50 text-red-700', comportement: 'bg-purple-50 text-purple-700', autre: 'bg-zinc-100 text-zinc-600' }} /></td>
                       <td className="px-4 py-3 text-sm"><Badge value={s.severity} colorMap={severityColor} /></td>
                       <td className="px-4 py-3 text-sm text-zinc-600 max-w-[240px] truncate">{s.description}</td>
                       <td className="px-4 py-3 text-sm"><Badge value={s.status} colorMap={signalStatusColor} /></td>
@@ -869,7 +869,7 @@ function TabInfluenceurs({ toast }: { toast: (m: string, t: string) => void }) {
             <label className="block text-xs font-semibold text-zinc-500 mb-1">Influenceur *</label>
             <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.influencer_id} onChange={e => setLogForm(f => ({ ...f, influencer_id: e.target.value }))}>
               <option value="">Sélectionner...</option>
-              {influencers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              {influencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}
             </select>
           </div>
           <div>
@@ -925,17 +925,17 @@ function TabInfluenceurs({ toast }: { toast: (m: string, t: string) => void }) {
             <label className="block text-xs font-semibold text-zinc-500 mb-1">Influenceur *</label>
             <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.influencer_id} onChange={e => setSigForm(f => ({ ...f, influencer_id: e.target.value }))}>
               <option value="">Sélectionner...</option>
-              {influencers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              {influencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-zinc-500 mb-1">Type de signal *</label>
             <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.signal_type} onChange={e => setSigForm(f => ({ ...f, signal_type: e.target.value }))}>
               <option value="">Sélectionner...</option>
+              <option value="retard">Retard</option>
+              <option value="contenu_non_conforme">Contenu non conforme</option>
+              <option value="injoignable">Injoignable</option>
               <option value="comportement">Comportement</option>
-              <option value="contenu">Contenu</option>
-              <option value="performance">Performance</option>
-              <option value="contractuel">Contractuel</option>
               <option value="autre">Autre</option>
             </select>
           </div>
@@ -1021,6 +1021,7 @@ function TabModeration({ toast }: { toast: (m: string, t: string) => void }) {
       const res = await api.post('cm/moderation', {
         ...form,
         social_account_id: form.social_account_id ? Number(form.social_account_id) : null,
+        action_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
       });
       if (res.ok) {
         toast('Action de modération créée', 'success');
@@ -1231,7 +1232,7 @@ function TabReclamations({ toast, userId }: { toast: (m: string, t: string) => v
               <tbody>
                 {rows.map(r => (
                   <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                    <td className="px-4 py-3 text-sm font-medium text-zinc-700">{r.influencer?.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-zinc-700">{r.influencer?.full_name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{r.subject}</td>
                     <td className="px-4 py-3 text-sm"><Badge value={r.status} colorMap={complaintStatusColor} /></td>
                     <td className="px-4 py-3 text-sm"><Badge value={r.priority} colorMap={priorityColor} /></td>

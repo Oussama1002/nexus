@@ -244,7 +244,7 @@ class CommunityManagerController extends Controller
         $data = $request->validate([
             'influencer_id' => 'required|integer|exists:influencers,id',
             'collaboration_id' => 'nullable|integer|exists:influencer_collaborations,id',
-            'content_type' => 'required|string|in:story,post,reel,vidéo,live',
+            'content_type' => 'required|string|in:story,post,reel,video,vidéo,live',
             'platform' => 'required|string|max:50',
             'content_url' => 'nullable|string|max:500',
             'screenshot_url' => 'nullable|string|max:500',
