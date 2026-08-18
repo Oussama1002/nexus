@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\CollabProjectController;
 use App\Http\Controllers\Api\ConfirmatriceWorkspaceController;
 use App\Http\Controllers\Api\ChargeController;
 use App\Http\Controllers\Api\CmDailyTrackingController;
+use App\Http\Controllers\Api\CommunityManagerController;
 use App\Http\Controllers\Api\ContentCalendarController;
 use App\Http\Controllers\Api\ContentProductionController;
 use App\Http\Controllers\Api\ConversationController;
@@ -485,6 +486,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.view');
     Route::get('audit-logs/lookups', [AuditLogController::class, 'lookups'])->middleware('permission:audit_logs.view');
     Route::get('audit-logs/{id}', [AuditLogController::class, 'show'])->whereNumber('id')->middleware('permission:audit_logs.view');
+
+    // ── Community Manager Module ──
+    Route::prefix('cm')->group(function () {
+        Route::get('daily-summary', [CommunityManagerController::class, 'dailySummary'])->middleware('permission:cm_tracking.view');
+
+        Route::get('checklists', [CommunityManagerController::class, 'indexChecklists'])->middleware('permission:cm_tracking.view');
+        Route::post('checklists', [CommunityManagerController::class, 'storeChecklist'])->middleware('permission:cm_tracking.create');
+        Route::get('checklists/{id}', [CommunityManagerController::class, 'showChecklist'])->whereNumber('id')->middleware('permission:cm_tracking.view');
+        Route::put('checklists/{id}', [CommunityManagerController::class, 'updateChecklist'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+        Route::patch('checklists/{checklistId}/items/{itemId}/toggle', [CommunityManagerController::class, 'toggleChecklistItem'])->whereNumber('checklistId')->whereNumber('itemId')->middleware('permission:cm_tracking.update');
+
+        Route::get('moderation', [CommunityManagerController::class, 'indexModeration'])->middleware('permission:cm_tracking.view');
+        Route::post('moderation', [CommunityManagerController::class, 'storeModeration'])->middleware('permission:cm_tracking.create');
+        Route::get('moderation/{id}', [CommunityManagerController::class, 'showModeration'])->whereNumber('id')->middleware('permission:cm_tracking.view');
+
+        Route::get('influencer-content', [CommunityManagerController::class, 'indexInfluencerContent'])->middleware('permission:cm_tracking.view');
+        Route::post('influencer-content', [CommunityManagerController::class, 'storeInfluencerContent'])->middleware('permission:cm_tracking.create');
+        Route::patch('influencer-content/{id}/archive', [CommunityManagerController::class, 'archiveInfluencerContent'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+
+        Route::get('signals', [CommunityManagerController::class, 'indexSignals'])->middleware('permission:cm_tracking.view');
+        Route::post('signals', [CommunityManagerController::class, 'storeSignal'])->middleware('permission:cm_tracking.create');
+        Route::patch('signals/{id}/status', [CommunityManagerController::class, 'updateSignalStatus'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+    });
 
     // Lightweight endpoint: sidebar-nav visibility for ALL authenticated users (no settings.view required).
     Route::get('settings/sidebar-nav-visibility', [SettingsCenterController::class, 'sidebarNavVisibility']);
