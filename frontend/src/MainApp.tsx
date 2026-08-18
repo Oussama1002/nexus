@@ -52,6 +52,8 @@ import { MediaBuyingScreen } from './screens/MediaBuyingScreen';
 import { ClientPortalScreen } from './screens/ClientPortalScreen';
 import { CollabProjectsScreen } from './screens/CollabProjectsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { RolesPermissionsScreen } from './screens/RolesPermissionsScreen';
+import { IntegrationsScreen } from './screens/IntegrationsScreen';
 import { SearchModal } from './components/shell/SearchModal';
 import { NotificationPanel, type NotificationItem } from './components/shell/NotificationPanel';
 import { InternalChatModal } from './components/chat/InternalChatModal';
@@ -456,6 +458,10 @@ export function MainApp() {
         return <InfluenceWorkspaceScreen />;
       case 'profile':
         return <ProfileScreen />;
+      case 'rolesPermissions':
+        return <RolesPermissionsScreen />;
+      case 'integrations':
+        return <IntegrationsScreen />;
       case 'settings':
         return (
           <div className="space-y-6">
