@@ -458,6 +458,10 @@ export function MainApp() {
         return <InfluenceWorkspaceScreen />;
       case 'profile':
         return <ProfileScreen />;
+      case 'myTrainings':
+        return <AcademyScreen />;
+      case 'expenses':
+        return <FinanceScreen />;
       case 'rolesPermissions':
         return <RolesPermissionsScreen />;
       case 'integrations':
