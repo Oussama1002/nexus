@@ -188,7 +188,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // ═══════════════════════════════════════════
   { id: 'administration', label: 'Administration', level: 1, block: 'systeme', parentId: null, order: 1, icon: Settings },
   { id: 'utilisateurs', label: 'Utilisateurs', level: 2, block: 'systeme', parentId: 'administration', order: 1, icon: UserCog, view: 'usersAdmin' },
-  { id: 'roles-permissions', label: 'Rôles & permissions', level: 2, block: 'systeme', parentId: 'administration', order: 2, icon: ShieldAlert, view: 'rolesPermissions' },
+  { id: 'roles-permissions', label: 'Rôles & permissions', level: 2, block: 'systeme', parentId: 'administration', order: 2, icon: ShieldAlert, view: 'settings' },
   { id: 'automatisations', label: 'Automatisations', level: 2, block: 'systeme', parentId: 'administration', order: 3, icon: Bot, view: 'automations' },
   { id: 'parametres', label: 'Paramètres', level: 2, block: 'systeme', parentId: 'administration', order: 4, icon: Settings, view: 'settings' },
   { id: 'journal-audit', label: "Journal d'audit", level: 2, block: 'systeme', parentId: 'administration', order: 5, icon: History, view: 'tracking' },
