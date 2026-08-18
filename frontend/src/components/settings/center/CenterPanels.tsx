@@ -11,7 +11,7 @@ import type {
   WhatsappPhoneNumber,
   SavedWhatsappNumber,
 } from '../../../lib/settingsCenterApi';
-import { SIDEBAR_NAV_CATALOG, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
+import { NAV_CATALOG, NAV_BLOCKS, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
 import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TagListField, TextField, ToggleRow } from './SettingsUi';
 
 export function GeneralPanel({
@@ -85,7 +85,7 @@ export function GeneralPanel({
                   p({
                     navigation: {
                       items: mergeSidebarVisibility(
-                        Object.fromEntries(SIDEBAR_NAV_CATALOG.map((e) => [e.key, true])),
+                        Object.fromEntries(NAV_CATALOG.map((e) => [e.id, true])),
                       ),
                     },
                   })
@@ -100,7 +100,7 @@ export function GeneralPanel({
                   p({
                     navigation: {
                       items: mergeSidebarVisibility(
-                        Object.fromEntries(SIDEBAR_NAV_CATALOG.map((e) => [e.key, false])),
+                        Object.fromEntries(NAV_CATALOG.map((e) => [e.id, false])),
                       ),
                     },
                   })
@@ -113,30 +113,29 @@ export function GeneralPanel({
         }
       >
         <div className="space-y-6">
-          {Object.entries(
-            SIDEBAR_NAV_CATALOG.reduce<Record<string, (typeof SIDEBAR_NAV_CATALOG)[number][]>>((acc, entry) => {
-              (acc[entry.groupLabel] ??= []).push(entry);
-              return acc;
-            }, {}),
-          ).map(([groupLabel, entries]) => (
-            <div key={groupLabel}>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-1">{groupLabel}</p>
-              <div className="space-y-1">
-                {entries.map((entry) => (
-                  <ToggleRow
-                    key={entry.key}
-                    label={entry.label}
-                    checked={navItems[entry.key] !== false}
-                    onChange={(checked) => {
-                      const items = { ...navItems, [entry.key]: checked };
-                      p({ navigation: { items } });
-                    }}
-                    disabled={disabled}
-                  />
-                ))}
+          {NAV_BLOCKS.map((block) => {
+            const entries = NAV_CATALOG.filter((e) => e.block === block.id && e.view);
+            if (entries.length === 0) return null;
+            return (
+              <div key={block.id}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-1">{block.label}</p>
+                <div className="space-y-1">
+                  {entries.map((entry) => (
+                    <ToggleRow
+                      key={entry.id}
+                      label={entry.label}
+                      checked={navItems[entry.id] !== false}
+                      onChange={(checked) => {
+                        const items = { ...navItems, [entry.id]: checked };
+                        p({ navigation: { items } });
+                      }}
+                      disabled={disabled}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </SectionCard>
     </div>

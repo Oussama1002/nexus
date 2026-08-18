@@ -13,7 +13,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { User, View } from './types';
 import { useAuth } from './context/AuthContext';
 import { useBrand } from './context/BrandContext';
-import { buildSidebarNavGroups } from './lib/buildSidebarNavGroups';
+import { buildSidebarNav } from './lib/buildSidebarNavGroups';
 import { canAccessView } from './lib/navPermissions';
 import { useSidebarNavVisibility } from './hooks/useSidebarNavVisibility';
 import { initGlobalActions, registerAction } from './lib/actions';
@@ -64,35 +64,65 @@ const VIEW_LABELS_FR: Record<string, string> = {
   dashboard: 'Tableau de bord',
   ordersNew: 'Nouvelle commande',
   orders: 'Commandes',
-  whatsapp: 'WhatsApp',
+  whatsapp: 'Conversations',
   customers: 'Clients',
-  trackingParcels: 'Suivi colis',
+  trackingParcels: 'Expéditions & suivi',
   products: 'Produits',
-  finance: 'Finance',
-  comptabilite: 'Comptabilite',
-  brands: 'Marques',
+  finance: 'Tableau de bord financier',
+  comptabilite: 'Comptabilité',
+  brands: 'Mes marques',
   confirmatrice: 'Espace Confirmatrice',
   leads: 'Leads',
-  ads: 'Publicités',
-  knowledgeBase: 'Base de connaissances',
-  academy: 'Académie',
-  mediaBuying: 'Achat média',
+  ads: 'Campagnes Ads',
+  knowledgeBase: 'Base marque',
+  academy: 'Catalogue Academy',
+  mediaBuying: 'Media Buying',
   collabProjects: 'Projets collaboratifs',
   automations: 'Automatisations',
-  clientPortal: 'Portail client',
-  hr: 'Ressources humaines',
-  delivery: 'Livraison',
-  deliveryDashboard: 'Tableau livraison',
-  stock: 'Stock',
+  clientPortal: 'Espace client',
+  hr: 'Tableau de bord RH',
+  delivery: 'Transporteurs',
+  deliveryDashboard: 'Livraison KPI',
+  stock: 'Stocks',
   suppliers: 'Fournisseurs',
-  purchaseOrders: 'Bons d\'achat',
-  reporting: 'Reporting',
+  purchaseOrders: 'Achats & réceptions',
+  reporting: 'Rapports',
   settings: 'Paramètres',
-  tracking: 'Suivi',
+  tracking: "Journal d'audit",
   usersAdmin: 'Utilisateurs',
-  socialMedia: 'Réseaux sociaux',
-  influenceHub: 'Hub influence',
+  socialMedia: 'Stratégie & contenu',
+  influenceHub: 'Gestion des influenceurs',
   profile: 'Profil',
+  complaints: 'Réclamations',
+  teamPerformance: "Pilotage d'équipe",
+  socialPublishing: 'Publication & modération',
+  socialAccounts: 'Comptes sociaux',
+  deliveryFailures: 'Échecs de livraison',
+  returns: 'Retours',
+  stockMovements: 'Mouvements de stock',
+  employees: 'Fiches employés',
+  hrDocuments: 'Documents RH',
+  orgChart: 'Organigramme',
+  attendance: 'Présence & Pointage',
+  leaves: 'Congés & Absences',
+  payroll: 'Paie',
+  openPositions: 'Postes ouverts',
+  applications: 'Candidatures',
+  onboarding: 'Intégration',
+  training: 'Formation',
+  evaluations: 'Évaluation & Carrière',
+  discipline: 'Discipline',
+  internalComms: 'Communication interne',
+  treasury: 'Trésorerie',
+  budgets: 'Budgets',
+  budgetRequests: 'Demandes de budget',
+  expenses: 'Dépenses',
+  myTrainings: 'Mes formations',
+  learningPaths: 'Parcours',
+  contentManagement: 'Gestion des contenus',
+  rolesPermissions: 'Rôles & permissions',
+  bugsIncidents: 'Bugs & incidents',
+  integrations: 'Intégrations',
 };
 
 type ApiUserRow = {
@@ -286,9 +316,9 @@ export function MainApp() {
     trackSession({ name: 'nav.view', ts: Date.now(), meta: { view: activeView, userId: currentUser.id, role: currentUser.role } });
   }, [activeView, currentUser.id, currentUser.role]);
 
-  const navGroups = useMemo(
+  const navBlocks = useMemo(
     () =>
-      buildSidebarNavGroups({
+      buildSidebarNav({
         activeView,
         navigate,
         canAccess,
@@ -469,7 +499,7 @@ export function MainApp() {
     <>
     <AppShell
         sidebarOpen={sidebarOpen}
-        navGroups={navGroups}
+        navBlocks={navBlocks}
         sidebarHeader={
           <div className="flex items-center gap-3">
             {brandLogoUrl ? (

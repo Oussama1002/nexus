@@ -1,13 +1,13 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import { SidebarNav, type NavGroup } from './SidebarNav';
+import { SidebarNav, type NavBlock } from './SidebarNav';
 import { Topbar } from './Topbar';
 
 export function AppShell({
   sidebarOpen,
   sidebarHeader,
   sidebarFooter,
-  navGroups,
+  navBlocks,
   topbarLeft,
   topbarBrandPill,
   topbarRight,
@@ -21,7 +21,7 @@ export function AppShell({
   sidebarOpen: boolean;
   sidebarHeader: React.ReactNode;
   sidebarFooter: React.ReactNode;
-  navGroups: NavGroup[];
+  navBlocks: NavBlock[];
   topbarLeft?: React.ReactNode;
   topbarBrandPill?: React.ReactNode;
   topbarRight?: React.ReactNode;
@@ -34,7 +34,7 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-screen bg-zinc-50 overflow-hidden">
-      <SidebarNav open={sidebarOpen} header={sidebarHeader} footer={sidebarFooter} groups={navGroups} />
+      <SidebarNav open={sidebarOpen} header={sidebarHeader} footer={sidebarFooter} blocks={navBlocks} />
       <main className={cn('flex-1 flex flex-col min-w-0 max-h-screen overflow-hidden')}>
         <Topbar left={topbarLeft} brandPill={topbarBrandPill} onSearchClick={onSearchClick} onChatClick={onChatClick} unreadChatCount={unreadChatCount} onNotificationClick={onNotificationClick} notificationCount={notificationCount} right={topbarRight} />
         <div className="flex-1 overflow-y-auto px-5 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12 scrollbar-hide">

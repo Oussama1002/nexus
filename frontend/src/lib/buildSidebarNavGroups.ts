@@ -1,71 +1,115 @@
 import type { NavigateFunction } from 'react-router-dom';
-import type { NavGroup } from '../components/shell/SidebarNav';
+import type { NavBlock, NavTreeNode } from '../components/shell/SidebarNav';
 import { pathForView } from './appPaths';
-import { isSidebarNavVisible, SIDEBAR_NAV_CATALOG } from './sidebarNavCatalog';
-import type { View } from '../types';
-import type { User } from '../types';
+import { isSidebarNavVisible, NAV_BLOCKS, NAV_CATALOG } from './sidebarNavCatalog';
+import type { View, User } from '../types';
 
-export function buildSidebarNavGroups(opts: {
+export function buildSidebarNav(opts: {
   activeView: View;
   navigate: NavigateFunction;
   canAccess: (v: View) => boolean;
   userRole: User['role'];
   visibility: Record<string, boolean> | null;
-}): NavGroup[] {
+}): NavBlock[] {
   const { activeView, navigate, canAccess, userRole, visibility } = opts;
 
-  const canShowItem = (key: string, view: View): boolean => {
-    if (!isSidebarNavVisible(key, visibility)) return false;
-    if (key === 'delivery-kpi') {
-      return canAccess('delivery') || canAccess('deliveryDashboard');
-    }
-    return canAccess(view);
+  const isConfirmatrice = userRole === 'confirmatrice';
+
+  const canShowEntry = (id: string, view?: View): boolean => {
+    if (!isSidebarNavVisible(id, visibility)) return false;
+    if (view) return canAccess(view);
+    return true;
   };
 
-  const groupsMap = new Map<string, NavGroup>();
+  type TreeNode = NavTreeNode & { _children: TreeNode[] };
 
-  for (const entry of SIDEBAR_NAV_CATALOG) {
-    if (!canShowItem(entry.key, entry.view)) continue;
+  const nodeMap = new Map<string, TreeNode>();
+  const rootNodes: TreeNode[] = [];
 
-    let group = groupsMap.get(entry.groupId);
-    if (!group) {
-      group = { id: entry.groupId, label: entry.groupLabel, icon: entry.groupIcon, items: [] };
-      groupsMap.set(entry.groupId, group);
-    }
+  for (const entry of NAV_CATALOG) {
+    const resolvedView = isConfirmatrice && entry.confirmatriceView
+      ? entry.confirmatriceView
+      : entry.view;
 
-    const label =
-      entry.key === 'confirmatrice' && userRole === 'confirmatrice' && entry.confirmatriceLabel
-        ? entry.confirmatriceLabel
-        : entry.label;
+    const label = isConfirmatrice && entry.confirmatriceLabel
+      ? entry.confirmatriceLabel
+      : entry.label;
 
-    const path = entry.key === 'delivery-kpi'
-      ? (canAccess('deliveryDashboard') ? pathForView('deliveryDashboard') : pathForView('delivery'))
-      : pathForView(entry.view, entry.view === 'settings' ? 'center' : undefined);
+    const path = resolvedView
+      ? pathForView(resolvedView, resolvedView === 'settings' ? 'center' : undefined)
+      : undefined;
 
-    const isActive = entry.key === 'delivery-kpi'
-      ? (activeView === 'delivery' || activeView === 'deliveryDashboard')
-      : activeView === entry.view;
+    const isActive = resolvedView ? activeView === resolvedView : false;
 
-    group.items.push({
-      id: entry.key,
+    const node: TreeNode = {
+      id: entry.id,
       label,
       icon: entry.icon,
+      view: resolvedView,
+      level: entry.level,
       active: isActive,
       path,
-      onClick: () => navigate(path),
-    });
+      onClick: path ? () => navigate(path) : undefined,
+      children: [],
+      _children: [],
+    };
+
+    nodeMap.set(entry.id, node);
+
+    if (entry.parentId) {
+      const parent = nodeMap.get(entry.parentId);
+      if (parent) {
+        parent._children.push(node);
+      }
+    } else {
+      rootNodes.push(node);
+    }
   }
 
-  let groups = Array.from(groupsMap.values()).filter((g) => g.items.length > 0);
+  function pruneInaccessible(node: TreeNode): boolean {
+    node._children = node._children.filter((child) => pruneInaccessible(child));
+    node.children = node._children;
 
-  if (userRole === 'confirmatrice') {
-    groups = groups.map((g) => {
-      if (g.id !== 'ventes') return g;
-      const yours = g.items.find((i) => i.id === 'confirmatrice');
-      const rest = g.items.filter((i) => i.id !== 'confirmatrice');
-      return { ...g, items: yours ? [yours, ...rest] : g.items };
-    });
+    if (node.view) {
+      return canShowEntry(node.id, node.view);
+    }
+    return node._children.length > 0;
   }
 
-  return groups;
+  function markActiveAncestors(node: TreeNode): boolean {
+    let hasActive = node.active;
+    for (const child of node._children) {
+      if (markActiveAncestors(child)) hasActive = true;
+    }
+    if (hasActive && !node.view) node.active = true;
+    return hasActive;
+  }
+
+  const blocks: NavBlock[] = [];
+
+  for (const blockDef of NAV_BLOCKS) {
+    const l1Nodes = rootNodes
+      .filter((n) => {
+        const entry = NAV_CATALOG.find((e) => e.id === n.id);
+        return entry?.block === blockDef.id;
+      });
+
+    const visibleSections: NavTreeNode[] = [];
+
+    for (const l1 of l1Nodes) {
+      if (!pruneInaccessible(l1)) continue;
+      markActiveAncestors(l1);
+      visibleSections.push(l1);
+    }
+
+    if (visibleSections.length > 0) {
+      blocks.push({
+        id: blockDef.id,
+        label: blockDef.label,
+        sections: visibleSections,
+      });
+    }
+  }
+
+  return blocks;
 }
