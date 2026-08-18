@@ -56,7 +56,7 @@ export function LoginPage() {
               <Layers className="text-white w-6 h-6" />
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight text-white">Nexus</span>
+              <span className="text-xl font-black tracking-tight text-white">Brandna</span>
               <span className="text-xl font-light tracking-tight text-zinc-500 ml-1">CRM</span>
             </div>
           </div>
@@ -133,7 +133,7 @@ export function LoginPage() {
           <div className="mt-16 flex items-center gap-3">
             <div className="h-px flex-1 bg-zinc-800" />
             <p className="text-zinc-600 text-xs font-medium uppercase tracking-wider">
-              Nexus Omni CRM
+              Brandna CRM
             </p>
             <div className="h-px flex-1 bg-zinc-800" />
           </div>

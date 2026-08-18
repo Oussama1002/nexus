@@ -509,7 +509,7 @@ export function MainApp() {
                 <Layers className="text-white w-6 h-6" />
               </div>
             )}
-            {sidebarOpen && <span className="text-xl font-bold tracking-tight text-zinc-900 truncate">Nexus Omni</span>}
+            {sidebarOpen && <span className="text-xl font-bold tracking-tight text-zinc-900 truncate">Brandna</span>}
           </div>
         }
         sidebarFooter={
