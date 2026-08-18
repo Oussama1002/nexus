@@ -54,6 +54,32 @@ import { CollabProjectsScreen } from './screens/CollabProjectsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { RolesPermissionsScreen } from './screens/RolesPermissionsScreen';
 import { IntegrationsScreen } from './screens/IntegrationsScreen';
+import { ComplaintsScreen } from './screens/ComplaintsScreen';
+import { TeamPerformanceScreen } from './screens/TeamPerformanceScreen';
+import { DeliveryFailuresScreen } from './screens/DeliveryFailuresScreen';
+import { ReturnsScreen } from './screens/ReturnsScreen';
+import { StockMovementsScreen } from './screens/StockMovementsScreen';
+import { EmployeesScreen } from './screens/EmployeesScreen';
+import { HrDocumentsScreen } from './screens/HrDocumentsScreen';
+import { OrgChartScreen } from './screens/OrgChartScreen';
+import { AttendanceScreen } from './screens/AttendanceScreen';
+import { LeavesScreen } from './screens/LeavesScreen';
+import { PayrollScreen } from './screens/PayrollScreen';
+import { DisciplineScreen } from './screens/DisciplineScreen';
+import { InternalCommsScreen } from './screens/InternalCommsScreen';
+import { OpenPositionsScreen } from './screens/OpenPositionsScreen';
+import { ApplicationsScreen } from './screens/ApplicationsScreen';
+import { OnboardingScreen } from './screens/OnboardingScreen';
+import { TrainingScreen } from './screens/TrainingScreen';
+import { EvaluationsScreen } from './screens/EvaluationsScreen';
+import { SocialPublishingScreen } from './screens/SocialPublishingScreen';
+import { SocialAccountsScreen } from './screens/SocialAccountsScreen';
+import { TreasuryScreen } from './screens/TreasuryScreen';
+import { BudgetsScreen } from './screens/BudgetsScreen';
+import { BudgetRequestsScreen } from './screens/BudgetRequestsScreen';
+import { LearningPathsScreen } from './screens/LearningPathsScreen';
+import { ContentManagementScreen } from './screens/ContentManagementScreen';
+import { BugsIncidentsScreen } from './screens/BugsIncidentsScreen';
 import { SearchModal } from './components/shell/SearchModal';
 import { NotificationPanel, type NotificationItem } from './components/shell/NotificationPanel';
 import { InternalChatModal } from './components/chat/InternalChatModal';
@@ -466,6 +492,58 @@ export function MainApp() {
         return <RolesPermissionsScreen />;
       case 'integrations':
         return <IntegrationsScreen />;
+      case 'complaints':
+        return <ComplaintsScreen />;
+      case 'teamPerformance':
+        return <TeamPerformanceScreen />;
+      case 'deliveryFailures':
+        return <DeliveryFailuresScreen />;
+      case 'returns':
+        return <ReturnsScreen />;
+      case 'stockMovements':
+        return <StockMovementsScreen />;
+      case 'employees':
+        return <EmployeesScreen />;
+      case 'hrDocuments':
+        return <HrDocumentsScreen />;
+      case 'orgChart':
+        return <OrgChartScreen />;
+      case 'attendance':
+        return <AttendanceScreen />;
+      case 'leaves':
+        return <LeavesScreen />;
+      case 'payroll':
+        return <PayrollScreen />;
+      case 'discipline':
+        return <DisciplineScreen />;
+      case 'internalComms':
+        return <InternalCommsScreen />;
+      case 'openPositions':
+        return <OpenPositionsScreen />;
+      case 'applications':
+        return <ApplicationsScreen />;
+      case 'onboarding':
+        return <OnboardingScreen />;
+      case 'training':
+        return <TrainingScreen />;
+      case 'evaluations':
+        return <EvaluationsScreen />;
+      case 'socialPublishing':
+        return <SocialPublishingScreen />;
+      case 'socialAccounts':
+        return <SocialAccountsScreen />;
+      case 'treasury':
+        return <TreasuryScreen />;
+      case 'budgets':
+        return <BudgetsScreen />;
+      case 'budgetRequests':
+        return <BudgetRequestsScreen />;
+      case 'learningPaths':
+        return <LearningPathsScreen />;
+      case 'contentManagement':
+        return <ContentManagementScreen />;
+      case 'bugsIncidents':
+        return <BugsIncidentsScreen />;
       case 'settings':
         return (
           <div className="space-y-6">
