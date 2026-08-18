@@ -41,6 +41,9 @@ class InfluencerComplaintController extends Controller
         if ($to) {
             $q->whereDate('created_at', '<=', $to);
         }
+        if ($reportedBy = $request->query('reported_by')) {
+            $q->where('reported_by', (int) $reportedBy);
+        }
 
         return ApiResponse::success($q->paginate($perPage), 'Complaints retrieved successfully.');
     }

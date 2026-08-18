@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Modal } from '../components/ui/Modal';
@@ -7,10 +8,11 @@ import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { pathForView } from '../lib/appPaths';
 import {
   ClipboardCheck, FileText, Users, Shield, AlertTriangle,
   Plus, Search, ChevronLeft, ChevronRight, Loader2, Check, X,
-  Archive, Flag, Eye,
+  Archive, Flag, Eye, BookOpen, Send, CheckCircle, XCircle,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -36,6 +38,9 @@ type ChecklistItem = {
 type Checklist = {
   id: number;
   work_date: string;
+  status: string;
+  rejection_reason: string | null;
+  validated_by: number | null;
   items: ChecklistItem[];
 };
 
@@ -93,6 +98,36 @@ type Complaint = {
 
 type Influencer = { id: number; full_name: string };
 type SocialAccount = { id: number; platform: string; account_name: string };
+
+type ComplaintForm = {
+  influencer_id: string;
+  title: string;
+  category: string;
+  description: string;
+  severity: string;
+};
+
+const emptyComplaintForm: ComplaintForm = {
+  influencer_id: '', title: '', category: '', description: '', severity: '',
+};
+
+const checklistStatusColor: Record<string, string> = {
+  en_cours: 'bg-blue-50 text-blue-700',
+  soumis: 'bg-yellow-50 text-yellow-700',
+  'validé': 'bg-emerald-50 text-emerald-700',
+  valide: 'bg-emerald-50 text-emerald-700',
+  'rejeté': 'bg-red-50 text-red-700',
+  rejete: 'bg-red-50 text-red-700',
+};
+
+const checklistStatusLabel: Record<string, string> = {
+  en_cours: 'En cours',
+  soumis: 'Soumis',
+  'validé': 'Validé',
+  valide: 'Validé',
+  'rejeté': 'Rejeté',
+  rejete: 'Rejeté',
+};
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -205,12 +240,60 @@ function Spinner() {
 
 export function SocialPublishingScreen() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, hasPermission, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<CmTab>('journee');
+  const [showComplaint, setShowComplaint] = useState(false);
+  const [complaintForm, setComplaintForm] = useState<ComplaintForm>({ ...emptyComplaintForm });
+  const [complaintInfluencers, setComplaintInfluencers] = useState<Influencer[]>([]);
+  const [complaintSaving, setComplaintSaving] = useState(false);
+  const [complaintRefresh, setComplaintRefresh] = useState(0);
+  const canValidate = isAdmin || hasPermission('cm_tracking.update');
+
+  const openComplaintModal = async () => {
+    try {
+      const res = await api.get<Paginated<Influencer>>('influencers' + buildQuery({ per_page: 100 }));
+      if (res.ok) setComplaintInfluencers(res.data.data);
+    } catch { /* ignore */ }
+    setShowComplaint(true);
+  };
+
+  const submitComplaint = async () => {
+    if (!complaintForm.influencer_id || !complaintForm.title || !complaintForm.category || !complaintForm.severity) {
+      toast('Veuillez remplir tous les champs obligatoires', 'error'); return;
+    }
+    setComplaintSaving(true);
+    try {
+      const res = await api.post('influencer-complaints', {
+        ...complaintForm,
+        influencer_id: Number(complaintForm.influencer_id),
+        status: 'open',
+      });
+      if (res.ok) {
+        toast('Réclamation créée avec succès', 'success');
+        setShowComplaint(false);
+        setComplaintForm({ ...emptyComplaintForm });
+        setComplaintRefresh(n => n + 1);
+      } else {
+        toast('Erreur lors de la création', 'error');
+      }
+    } catch {
+      toast('Erreur lors de la création', 'error');
+    } finally {
+      setComplaintSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Community Manager" subtitle="Espace de travail CM" />
+      <PageHeader title="Community Manager" subtitle="Espace de travail CM">
+        <button
+          onClick={() => navigate(pathForView('academy'))}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+        >
+          <BookOpen size={16} /> Ressources CM
+        </button>
+      </PageHeader>
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-zinc-200 overflow-x-auto">
@@ -235,11 +318,63 @@ export function SocialPublishingScreen() {
       </div>
 
       {/* Panels */}
-      {activeTab === 'journee' && <TabJournee toast={toast} userId={user?.id} />}
+      {activeTab === 'journee' && <TabJournee toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} canValidate={canValidate} />}
       {activeTab === 'publications' && <TabPublications toast={toast} userId={user?.id} />}
-      {activeTab === 'influenceurs' && <TabInfluenceurs toast={toast} />}
+      {activeTab === 'influenceurs' && <TabInfluenceurs toast={toast} onNewComplaint={openComplaintModal} />}
       {activeTab === 'moderation' && <TabModeration toast={toast} />}
-      {activeTab === 'reclamations' && <TabReclamations toast={toast} userId={user?.id} />}
+      {activeTab === 'reclamations' && <TabReclamations toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} refreshToken={complaintRefresh} />}
+
+      {/* Complaint creation modal (shared across tabs) */}
+      <Modal open={showComplaint} onClose={() => setShowComplaint(false)} title="Créer une réclamation"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setShowComplaint(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button onClick={submitComplaint} disabled={complaintSaving} className="btn btn-primary flex items-center gap-2 text-sm">
+              {complaintSaving && <Loader2 size={14} className="animate-spin" />} Créer
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 mb-1">Influenceur *</label>
+            <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={complaintForm.influencer_id} onChange={e => setComplaintForm(f => ({ ...f, influencer_id: e.target.value }))}>
+              <option value="">Sélectionner...</option>
+              {complaintInfluencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 mb-1">Titre *</label>
+            <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="Sujet de la réclamation" value={complaintForm.title} onChange={e => setComplaintForm(f => ({ ...f, title: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 mb-1">Catégorie *</label>
+            <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={complaintForm.category} onChange={e => setComplaintForm(f => ({ ...f, category: e.target.value }))}>
+              <option value="">Sélectionner...</option>
+              <option value="delay">Retard</option>
+              <option value="bad_content">Contenu non conforme</option>
+              <option value="contract">Contractuel</option>
+              <option value="payment">Paiement</option>
+              <option value="quality">Qualité</option>
+              <option value="other">Autre</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 mb-1">Sévérité *</label>
+            <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={complaintForm.severity} onChange={e => setComplaintForm(f => ({ ...f, severity: e.target.value }))}>
+              <option value="">Sélectionner...</option>
+              <option value="low">Faible</option>
+              <option value="medium">Moyenne</option>
+              <option value="high">Élevée</option>
+              <option value="critical">Critique</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 mb-1">Description</label>
+            <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={complaintForm.description} onChange={e => setComplaintForm(f => ({ ...f, description: e.target.value }))} />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -248,7 +383,7 @@ export function SocialPublishingScreen() {
 /*  Tab 1 : Ma journée                                                  */
 /* ================================================================== */
 
-function TabJournee({ toast, userId }: { toast: (m: string, t: string) => void; userId?: number }) {
+function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m: string, t: string) => void; userId?: number; onNewComplaint: () => void; canValidate: boolean }) {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [signals, setSignals] = useState<Signal[]>([]);
@@ -256,6 +391,8 @@ function TabJournee({ toast, userId }: { toast: (m: string, t: string) => void; 
   const [showCreate, setShowCreate] = useState(false);
   const [newItems, setNewItems] = useState<{ label: string; category: string }[]>([{ label: '', category: 'publication' }]);
   const [saving, setSaving] = useState(false);
+  const [showReject, setShowReject] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -314,6 +451,24 @@ function TabJournee({ toast, userId }: { toast: (m: string, t: string) => void; 
     }
   };
 
+  const updateChecklistStatus = async (checklistId: number, status: string, rejectionReason?: string) => {
+    try {
+      const body: Record<string, string> = { status };
+      if (rejectionReason) body.rejection_reason = rejectionReason;
+      const res = await api.put(`cm/checklists/${checklistId}`, body);
+      if (res.ok) {
+        toast(status === 'soumis' ? 'Checklist soumise' : status === 'validé' ? 'Checklist validée' : 'Checklist rejetée', 'success');
+        setShowReject(null);
+        setRejectReason('');
+        load();
+      } else {
+        toast('Erreur lors de la mise à jour', 'error');
+      }
+    } catch {
+      toast('Erreur lors de la mise à jour', 'error');
+    }
+  };
+
   if (loading) return <Spinner />;
 
   return (
@@ -350,14 +505,68 @@ function TabJournee({ toast, userId }: { toast: (m: string, t: string) => void; 
           <p className="text-sm text-zinc-400 py-4 text-center">Aucune checklist pour aujourd'hui.</p>
         ) : (
           checklists.map(cl => (
-            <div key={cl.id} className="space-y-2">
+            <div key={cl.id} className="space-y-3">
+              {/* Status bar + actions */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-zinc-500">Statut :</span>
+                  <Badge value={checklistStatusLabel[cl.status] || cl.status} colorMap={checklistStatusColor} />
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* CM submits */}
+                  {cl.status === 'en_cours' && (
+                    <button
+                      onClick={() => updateChecklistStatus(cl.id, 'soumis')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700"
+                    >
+                      <Send size={12} /> Soumettre
+                    </button>
+                  )}
+                  {/* SMM/Admin validates or rejects */}
+                  {cl.status === 'soumis' && canValidate && (
+                    <>
+                      <button
+                        onClick={() => updateChecklistStatus(cl.id, 'validé')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
+                      >
+                        <CheckCircle size={12} /> Valider
+                      </button>
+                      <button
+                        onClick={() => setShowReject(cl.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700"
+                      >
+                        <XCircle size={12} /> Rejeter
+                      </button>
+                    </>
+                  )}
+                  {/* Rejected — CM can resubmit */}
+                  {cl.status === 'rejeté' && (
+                    <button
+                      onClick={() => updateChecklistStatus(cl.id, 'en_cours')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-semibold hover:bg-zinc-100"
+                    >
+                      Reprendre
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Rejection reason */}
+              {cl.status === 'rejeté' && cl.rejection_reason && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
+                  <span className="font-semibold">Motif du rejet :</span> {cl.rejection_reason}
+                </div>
+              )}
+
+              {/* Items */}
               {cl.items.map(item => (
                 <label key={item.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-50 cursor-pointer">
                   <button
                     onClick={() => toggleItem(cl.id, item.id)}
+                    disabled={cl.status === 'validé'}
                     className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
                       item.is_completed ? 'bg-primary-600 border-primary-600 text-white' : 'border-zinc-300'
-                    }`}
+                    } ${cl.status === 'validé' ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
                     {item.is_completed && <Check size={12} />}
                   </button>
@@ -372,11 +581,37 @@ function TabJournee({ toast, userId }: { toast: (m: string, t: string) => void; 
         )}
       </div>
 
-      {/* Alertes */}
+      {/* Reject reason modal */}
+      <Modal open={showReject !== null} onClose={() => { setShowReject(null); setRejectReason(''); }} title="Motif du rejet"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button onClick={() => { setShowReject(null); setRejectReason(''); }} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button
+              onClick={() => { if (showReject) updateChecklistStatus(showReject, 'rejeté', rejectReason); }}
+              disabled={!rejectReason.trim()}
+              className="btn btn-primary flex items-center gap-2 text-sm disabled:opacity-50"
+            >
+              Confirmer le rejet
+            </button>
+          </div>
+        }
+      >
+        <div>
+          <label className="block text-xs font-semibold text-zinc-500 mb-1">Raison du rejet *</label>
+          <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Expliquez pourquoi la checklist est rejetée..." />
+        </div>
+      </Modal>
+
+      {/* Alertes + Réclamation */}
       <div className="card p-4 space-y-3">
-        <h3 className="text-sm font-black text-zinc-900 flex items-center gap-2">
-          <AlertTriangle size={16} className="text-orange-500" /> Alertes
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+            <AlertTriangle size={16} className="text-orange-500" /> Alertes
+          </h3>
+          <button onClick={onNewComplaint} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-semibold text-zinc-600 hover:bg-zinc-50">
+            <Plus size={12} /> Nouvelle réclamation
+          </button>
+        </div>
         {signals.length === 0 ? (
           <p className="text-sm text-zinc-400 text-center py-4">Aucun signalement en attente.</p>
         ) : (
@@ -572,7 +807,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
 /*  Tab 3 : Suivi influenceurs                                         */
 /* ================================================================== */
 
-function TabInfluenceurs({ toast }: { toast: (m: string, t: string) => void }) {
+function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: string) => void; onNewComplaint: () => void }) {
   const [logs, setLogs] = useState<InfluencerContentLog[]>([]);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -806,9 +1041,14 @@ function TabInfluenceurs({ toast }: { toast: (m: string, t: string) => void }) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black text-zinc-900 flex items-center gap-2"><Flag size={16} className="text-orange-500" /> Signalements</h3>
-          <button onClick={openNewSignal} className="btn btn-primary flex items-center gap-2 text-sm">
-            <Plus size={16} /> Nouveau signalement
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={onNewComplaint} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">
+              <AlertTriangle size={14} /> Réclamation
+            </button>
+            <button onClick={openNewSignal} className="btn btn-primary flex items-center gap-2 text-sm">
+              <Plus size={16} /> Nouveau signalement
+            </button>
+          </div>
         </div>
 
         {signals.length === 0 ? (
@@ -1170,7 +1410,7 @@ function TabModeration({ toast }: { toast: (m: string, t: string) => void }) {
 /*  Tab 5 : Mes réclamations                                            */
 /* ================================================================== */
 
-function TabReclamations({ toast, userId }: { toast: (m: string, t: string) => void; userId?: number }) {
+function TabReclamations({ toast, userId, onNewComplaint, refreshToken }: { toast: (m: string, t: string) => void; userId?: number; onNewComplaint: () => void; refreshToken: number }) {
   const [rows, setRows] = useState<Complaint[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -1182,7 +1422,7 @@ function TabReclamations({ toast, userId }: { toast: (m: string, t: string) => v
       setLoading(true);
       try {
         const res = await api.get<Paginated<Complaint>>(
-          'influencer-complaints' + buildQuery({ created_by: userId, per_page: 25, page }),
+          'influencer-complaints' + buildQuery({ reported_by: userId, per_page: 25, page }),
         );
         if (res.ok) {
           setRows(res.data.data);
@@ -1198,14 +1438,14 @@ function TabReclamations({ toast, userId }: { toast: (m: string, t: string) => v
         setLoading(false);
       }
     })();
-  }, [page, userId, toast]);
+  }, [page, userId, toast, refreshToken]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black text-zinc-900">Mes réclamations</h3>
         <button
-          onClick={() => toast('Redirection vers le module réclamations...', 'success')}
+          onClick={onNewComplaint}
           className="btn btn-primary flex items-center gap-2 text-sm"
         >
           <Plus size={16} /> Nouvelle réclamation
