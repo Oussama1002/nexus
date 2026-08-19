@@ -14,7 +14,7 @@ import {
   Plus, Search, ChevronLeft, ChevronRight, Loader2, Check, X,
   Archive, Flag, Eye, BookOpen, Send, CheckCircle, XCircle,
   Calendar, Clock, ExternalLink, MessageSquare, ArrowLeft,
-  Link as LinkIcon,
+  Link as LinkIcon, Bell, Settings, Activity, Copy, Trash2,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -28,6 +28,7 @@ type DailySummary = {
   moderation_actions_today: number;
   pending_signals: number;
   publications_today: number;
+  unread_notifications?: number;
 };
 
 type ChecklistItem = {
@@ -35,6 +36,13 @@ type ChecklistItem = {
   label: string;
   category: string;
   is_completed: boolean;
+  task_type: string | null;
+  scheduled_time: string | null;
+  platform: string | null;
+  status: string | null;
+  delay_minutes: number | null;
+  justification: string | null;
+  comment: string | null;
 };
 
 type Checklist = {
@@ -44,6 +52,11 @@ type Checklist = {
   rejection_reason: string | null;
   validated_by: number | null;
   notes: string | null;
+  template_id: number | null;
+  completion_rate: number | null;
+  punctuality_rate: number | null;
+  closed_at: string | null;
+  closed_automatically: boolean;
   cm_user?: { id: number; name: string };
   items: ChecklistItem[];
 };
@@ -87,6 +100,11 @@ type InfluencerContentLog = {
   published_at: string;
   notes: string;
   is_archived: boolean;
+  live_duration_minutes: number | null;
+  live_viewers_count: number | null;
+  no_publication: boolean;
+  quantity: number | null;
+  archive_url: string | null;
 };
 
 type ModerationAction = {
@@ -97,6 +115,10 @@ type ModerationAction = {
   social_account?: { id: number; platform: string; account_name: string };
   social_account_id: number;
   screenshot_url: string;
+  account_handle: string | null;
+  public_comment_deleted: boolean;
+  message_sent: boolean;
+  complaint_id: number | null;
   created_at: string;
 };
 
@@ -124,6 +146,40 @@ type ThreadEntry = {
   author?: { id: number; name: string };
   entry_type: string;
   content: string;
+  created_at: string;
+};
+
+type CmNotification = {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+};
+
+type ChecklistTemplate = {
+  id: number;
+  name: string;
+  description: string | null;
+  items_json: { label: string; category: string; task_type?: string; scheduled_time?: string; platform?: string }[];
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+};
+
+type CmDecisionPoint = {
+  id: number;
+  cm_user_id: number | null;
+  decision_code: string;
+  decision_label: string;
+  context_type: string | null;
+  context_id: number | null;
+  input_data: Record<string, unknown> | null;
+  output_data: Record<string, unknown> | null;
+  result: string | null;
+  notes: string | null;
   created_at: string;
 };
 
@@ -161,6 +217,20 @@ const checklistStatusLabel: Record<string, string> = {
   valide: 'Validé',
   'rejeté': 'Rejeté',
   rejete: 'Rejeté',
+};
+
+const itemStatusColor: Record<string, string> = {
+  pending: 'bg-zinc-100 text-zinc-600',
+  done: 'bg-emerald-50 text-emerald-700',
+  late: 'bg-red-50 text-red-700',
+  skipped: 'bg-yellow-50 text-yellow-700',
+};
+
+const itemStatusLabel: Record<string, string> = {
+  pending: 'En attente',
+  done: 'Fait',
+  late: 'En retard',
+  skipped: 'Passé',
 };
 
 /* ------------------------------------------------------------------ */
@@ -277,6 +347,281 @@ function Spinner() {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Feature 5: Notifications Bell Panel                                */
+/* ------------------------------------------------------------------ */
+
+function NotificationsPanel({ toast, open, onClose }: { toast: (m: string, t: string) => void; open: boolean; onClose: () => void }) {
+  const [notifications, setNotifications] = useState<CmNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<Paginated<CmNotification>>('cm/notifications' + buildQuery({ per_page: 20, page }));
+      if (res.ok) { setNotifications(res.data.data); setLastPage(res.data.last_page); }
+    } catch { toast('Erreur lors du chargement des notifications', 'error'); }
+    finally { setLoading(false); }
+  }, [page, toast]);
+
+  useEffect(() => { if (open) load(); }, [open, load]);
+
+  const markRead = async (id: number) => {
+    try {
+      await api.patch(`cm/notifications/${id}`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n));
+    } catch {}
+  };
+
+  const markAllRead = async () => {
+    try {
+      await api.post('cm/notifications/mark-all-read', {});
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() })));
+      toast('Toutes les notifications marquées comme lues', 'success');
+    } catch { toast('Erreur', 'error'); }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Notifications CM"
+      footer={
+        <div className="flex items-center justify-between w-full">
+          <button onClick={markAllRead} className="text-xs font-semibold text-primary-600 hover:underline">Tout marquer comme lu</button>
+          <div className="flex items-center gap-2">
+            <button className="p-2 rounded-lg hover:bg-zinc-100 disabled:opacity-40" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} /></button>
+            <span className="text-sm font-medium">{page} / {lastPage}</span>
+            <button className="p-2 rounded-lg hover:bg-zinc-100 disabled:opacity-40" disabled={page >= lastPage} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
+          </div>
+        </div>
+      }
+    >
+      {loading ? <Spinner /> : notifications.length === 0 ? (
+        <p className="text-sm text-zinc-400 text-center py-6">Aucune notification.</p>
+      ) : (
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {notifications.map(n => (
+            <div key={n.id}
+              onClick={() => !n.is_read && markRead(n.id)}
+              className={`p-3 rounded-xl border cursor-pointer transition-colors ${n.is_read ? 'bg-white border-zinc-100' : 'bg-primary-50 border-primary-100'}`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-zinc-700">{n.title}</span>
+                {!n.is_read && <span className="w-2 h-2 rounded-full bg-primary-600 flex-shrink-0" />}
+              </div>
+              <p className="text-sm text-zinc-600">{n.body}</p>
+              <p className="text-[10px] text-zinc-400 mt-1">{new Date(n.created_at).toLocaleString('fr-FR')}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Feature 6: Decision Points Viewer                                  */
+/* ------------------------------------------------------------------ */
+
+function DecisionPointsPanel({ toast, open, onClose }: { toast: (m: string, t: string) => void; open: boolean; onClose: () => void }) {
+  const [points, setPoints] = useState<CmDecisionPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<Paginated<CmDecisionPoint>>('cm/decision-points' + buildQuery({ per_page: 20, page }));
+      if (res.ok) { setPoints(res.data.data); setTotal(res.data.total); setLastPage(res.data.last_page); }
+    } catch { toast('Erreur lors du chargement', 'error'); }
+    finally { setLoading(false); }
+  }, [page, toast]);
+
+  useEffect(() => { if (open) load(); }, [open, load]);
+
+  return (
+    <Modal open={open} onClose={onClose} title="Points de décision (Automations)"
+      footer={
+        <div className="flex items-center justify-between w-full">
+          <p className="text-sm text-zinc-500">{total} entrée{total > 1 ? 's' : ''}</p>
+          <div className="flex items-center gap-2">
+            <button className="p-2 rounded-lg hover:bg-zinc-100 disabled:opacity-40" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} /></button>
+            <span className="text-sm font-medium">{page} / {lastPage}</span>
+            <button className="p-2 rounded-lg hover:bg-zinc-100 disabled:opacity-40" disabled={page >= lastPage} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
+          </div>
+        </div>
+      }
+    >
+      {loading ? <Spinner /> : points.length === 0 ? (
+        <p className="text-sm text-zinc-400 text-center py-6">Aucun point de décision enregistré.</p>
+      ) : (
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {points.map(dp => (
+            <div key={dp.id} className="p-3 rounded-xl border border-zinc-100 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-700">{dp.decision_label}</span>
+                <span className="text-[10px] font-mono text-zinc-400">{dp.decision_code}</span>
+              </div>
+              {dp.result && (
+                <Badge value={dp.result} colorMap={{ executed: 'bg-emerald-50 text-emerald-700', skipped: 'bg-zinc-100 text-zinc-600', error: 'bg-red-50 text-red-700' }} />
+              )}
+              {dp.notes && <p className="text-sm text-zinc-600">{dp.notes}</p>}
+              {dp.context_type && (
+                <p className="text-[10px] text-zinc-400">Contexte : {dp.context_type} #{dp.context_id}</p>
+              )}
+              <p className="text-[10px] text-zinc-400">{new Date(dp.created_at).toLocaleString('fr-FR')}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Feature 2: Templates Management                                    */
+/* ------------------------------------------------------------------ */
+
+function TemplatesPanel({ toast, open, onClose, onCreateFromTemplate }: {
+  toast: (m: string, t: string) => void;
+  open: boolean;
+  onClose: () => void;
+  onCreateFromTemplate: (items: { label: string; category: string; task_type?: string; scheduled_time?: string; platform?: string }[]) => void;
+}) {
+  const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showNew, setShowNew] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: '', description: '', is_default: false });
+  const [formItems, setFormItems] = useState<{ label: string; category: string; task_type: string; scheduled_time: string; platform: string }[]>([
+    { label: '', category: 'publication', task_type: '', scheduled_time: '', platform: '' },
+  ]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<Paginated<ChecklistTemplate>>('cm/templates' + buildQuery({ per_page: 50 }));
+      if (res.ok) setTemplates(res.data.data);
+    } catch { toast('Erreur lors du chargement des templates', 'error'); }
+    finally { setLoading(false); }
+  }, [toast]);
+
+  useEffect(() => { if (open) load(); }, [open, load]);
+
+  const submit = async () => {
+    const validItems = formItems.filter(i => i.label.trim());
+    if (!form.name.trim() || !validItems.length) { toast('Nom et au moins un élément requis', 'error'); return; }
+    setSaving(true);
+    try {
+      const res = await api.post('cm/templates', { ...form, items_json: validItems });
+      if (res.ok) {
+        toast('Template créé', 'success');
+        setShowNew(false);
+        setForm({ name: '', description: '', is_default: false });
+        setFormItems([{ label: '', category: 'publication', task_type: '', scheduled_time: '', platform: '' }]);
+        load();
+      } else toast('Erreur', 'error');
+    } catch { toast('Erreur', 'error'); }
+    finally { setSaving(false); }
+  };
+
+  const deleteTemplate = async (id: number) => {
+    try {
+      const res = await api.del(`cm/templates/${id}`);
+      if (res.ok) { toast('Template supprimé', 'success'); load(); }
+      else toast('Erreur', 'error');
+    } catch { toast('Erreur', 'error'); }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Templates de checklist"
+      footer={
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Fermer</button>
+          <button onClick={() => setShowNew(true)} className="btn btn-primary flex items-center gap-2 text-sm"><Plus size={16} /> Nouveau template</button>
+        </div>
+      }
+    >
+      {loading ? <Spinner /> : templates.length === 0 ? (
+        <p className="text-sm text-zinc-400 text-center py-6">Aucun template. Créez-en un pour démarrer.</p>
+      ) : (
+        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+          {templates.map(t => (
+            <div key={t.id} className="p-3 rounded-xl border border-zinc-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-zinc-700">{t.name}</span>
+                  {t.is_default && <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase bg-primary-50 text-primary-700">Par défaut</span>}
+                  {!t.is_active && <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase bg-zinc-100 text-zinc-500">Inactif</span>}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => { onCreateFromTemplate(t.items_json); onClose(); }}
+                    className="p-1.5 rounded-lg hover:bg-zinc-100 text-primary-600" title="Créer checklist depuis ce template"><Copy size={14} /></button>
+                  <button onClick={() => deleteTemplate(t.id)}
+                    className="p-1.5 rounded-lg hover:bg-zinc-100 text-red-500" title="Supprimer"><Trash2 size={14} /></button>
+                </div>
+              </div>
+              {t.description && <p className="text-xs text-zinc-500">{t.description}</p>}
+              <p className="text-[10px] text-zinc-400">{t.items_json.length} tâche{t.items_json.length > 1 ? 's' : ''}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* New template sub-modal */}
+      <Modal open={showNew} onClose={() => setShowNew(false)} title="Nouveau template"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setShowNew(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button onClick={submit} disabled={saving} className="btn btn-primary flex items-center gap-2 text-sm">{saving && <Loader2 size={14} className="animate-spin" />} Enregistrer</button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 mb-1">Nom du template *</label>
+            <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 mb-1">Description</label>
+            <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          </div>
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <input type="checkbox" checked={form.is_default} onChange={e => setForm(f => ({ ...f, is_default: e.target.checked }))} className="rounded" />
+            Template par défaut
+          </label>
+          <div className="border-t border-zinc-100 pt-3">
+            <p className="text-xs font-semibold text-zinc-500 mb-2">Tâches du template</p>
+            {formItems.map((item, i) => (
+              <div key={i} className="flex gap-2 items-start mb-2">
+                <input className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Libellé" value={item.label}
+                  onChange={e => setFormItems(prev => prev.map((it, j) => j === i ? { ...it, label: e.target.value } : it))} />
+                <select className="px-2 py-2 rounded-xl border border-zinc-200 text-sm" value={item.category}
+                  onChange={e => setFormItems(prev => prev.map((it, j) => j === i ? { ...it, category: e.target.value } : it))}>
+                  <option value="publication">Publication</option><option value="modération">Modération</option><option value="veille">Veille</option><option value="reporting">Reporting</option>
+                </select>
+                <select className="px-2 py-2 rounded-xl border border-zinc-200 text-sm" value={item.task_type}
+                  onChange={e => setFormItems(prev => prev.map((it, j) => j === i ? { ...it, task_type: e.target.value } : it))}>
+                  <option value="">Type...</option><option value="publication">Publication</option><option value="moderation">Modération</option><option value="veille">Veille</option><option value="reporting">Reporting</option><option value="interaction">Interaction</option>
+                </select>
+                <input type="time" className="px-2 py-2 rounded-xl border border-zinc-200 text-sm" value={item.scheduled_time}
+                  onChange={e => setFormItems(prev => prev.map((it, j) => j === i ? { ...it, scheduled_time: e.target.value } : it))} title="Heure prévue" />
+                {formItems.length > 1 && (
+                  <button onClick={() => setFormItems(prev => prev.filter((_, j) => j !== i))} className="p-2 rounded-xl hover:bg-zinc-100 text-zinc-400"><X size={16} /></button>
+                )}
+              </div>
+            ))}
+            <button onClick={() => setFormItems(prev => [...prev, { label: '', category: 'publication', task_type: '', scheduled_time: '', platform: '' }])}
+              className="text-sm font-semibold text-primary-600 hover:underline flex items-center gap-1"><Plus size={14} /> Ajouter</button>
+          </div>
+        </div>
+      </Modal>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -291,6 +636,22 @@ export function SocialPublishingScreen() {
   const [complaintSaving, setComplaintSaving] = useState(false);
   const [complaintRefresh, setComplaintRefresh] = useState(0);
   const canValidate = isAdmin || hasPermission('cm_tracking.update');
+
+  // Feature 5: Notifications
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Feature 6: Decision Points
+  const [showDecisionPoints, setShowDecisionPoints] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get<DailySummary>('cm/daily-summary');
+        if (res.ok && res.data.unread_notifications !== undefined) setUnreadCount(res.data.unread_notifications);
+      } catch {}
+    })();
+  }, []);
 
   const openComplaintModal = () => {
     setShowComplaint(true);
@@ -322,12 +683,31 @@ export function SocialPublishingScreen() {
     <div className="space-y-6">
       <PageHeader title="Community Manager" subtitle="Espace de travail CM"
         right={
-          <button
-            onClick={() => navigate(pathForView('academy'))}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
-          >
-            <BookOpen size={16} /> Ressources CM
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Feature 5: Notifications bell */}
+            <button onClick={() => { setShowNotifications(true); setUnreadCount(0); }}
+              className="relative p-2.5 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50">
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+            {/* Feature 6: Decision Points (admin) */}
+            {(isAdmin || hasPermission('cm_tracking.view_decision_points')) && (
+              <button onClick={() => setShowDecisionPoints(true)}
+                className="flex items-center gap-1.5 p-2.5 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50" title="Points de décision">
+                <Activity size={18} />
+              </button>
+            )}
+            <button
+              onClick={() => navigate(pathForView('academy'))}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            >
+              <BookOpen size={16} /> Ressources CM
+            </button>
+          </div>
         }
       />
 
@@ -359,6 +739,12 @@ export function SocialPublishingScreen() {
       {activeTab === 'influenceurs' && <TabInfluenceurs toast={toast} onNewComplaint={openComplaintModal} />}
       {activeTab === 'moderation' && <TabModeration toast={toast} onNewComplaint={openComplaintModal} />}
       {activeTab === 'reclamations' && <TabReclamations toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} refreshToken={complaintRefresh} />}
+
+      {/* Feature 5: Notifications panel */}
+      <NotificationsPanel toast={toast} open={showNotifications} onClose={() => setShowNotifications(false)} />
+
+      {/* Feature 6: Decision Points panel */}
+      <DecisionPointsPanel toast={toast} open={showDecisionPoints} onClose={() => setShowDecisionPoints(false)} />
 
       {/* Complaint creation modal (E6 — Call Center Complaint) */}
       <Modal open={showComplaint} onClose={() => setShowComplaint(false)} title="Créer une réclamation"
@@ -444,7 +830,7 @@ export function SocialPublishingScreen() {
 }
 
 /* ================================================================== */
-/*  Tab 1 : Ma journée                                                  */
+/*  Tab 1 : Ma journée (Feature 1: enhanced checklist + Feature 2)     */
 /* ================================================================== */
 
 function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m: string, t: string) => void; userId?: number; onNewComplaint: () => void; canValidate: boolean }) {
@@ -453,10 +839,20 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [newItems, setNewItems] = useState<{ label: string; category: string }[]>([{ label: '', category: 'publication' }]);
+  const [newItems, setNewItems] = useState<{ label: string; category: string; task_type: string; scheduled_time: string; platform: string }[]>([
+    { label: '', category: 'publication', task_type: '', scheduled_time: '', platform: '' },
+  ]);
   const [saving, setSaving] = useState(false);
   const [showReject, setShowReject] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Feature 2: Templates
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  // Item detail edit
+  const [editItem, setEditItem] = useState<{ checklistId: number; item: ChecklistItem } | null>(null);
+  const [editItemForm, setEditItemForm] = useState({ justification: '', comment: '' });
+  const [editItemSaving, setEditItemSaving] = useState(false);
 
   // E2 — Historique
   const [showHistory, setShowHistory] = useState(false);
@@ -518,7 +914,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
       setChecklists(prev =>
         prev.map(cl =>
           cl.id === checklistId
-            ? { ...cl, items: cl.items.map(it => (it.id === itemId ? { ...it, is_completed: !it.is_completed } : it)) }
+            ? { ...cl, items: cl.items.map(it => (it.id === itemId ? { ...it, is_completed: !it.is_completed, status: !it.is_completed ? 'done' : 'pending' } : it)) }
             : cl,
         ),
       );
@@ -532,11 +928,18 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
     if (!valid.length) { toast('Ajoutez au moins un élément', 'error'); return; }
     setSaving(true);
     try {
-      const res = await api.post('cm/checklists', { work_date: today(), items: valid });
+      const items = valid.map(i => ({
+        label: i.label,
+        category: i.category,
+        task_type: i.task_type || undefined,
+        scheduled_time: i.scheduled_time || undefined,
+        platform: i.platform || undefined,
+      }));
+      const res = await api.post('cm/checklists', { work_date: today(), items });
       if (res.ok) {
         toast('Checklist créée', 'success');
         setShowCreate(false);
-        setNewItems([{ label: '', category: 'publication' }]);
+        setNewItems([{ label: '', category: 'publication', task_type: '', scheduled_time: '', platform: '' }]);
         load();
       } else {
         toast('Erreur lors de la création', 'error');
@@ -566,6 +969,34 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
     }
   };
 
+  const updateItem = async () => {
+    if (!editItem) return;
+    setEditItemSaving(true);
+    try {
+      const res = await api.put(`cm/checklists/${editItem.checklistId}/items/${editItem.item.id}`, {
+        justification: editItemForm.justification || undefined,
+        comment: editItemForm.comment || undefined,
+      });
+      if (res.ok) {
+        toast('Élément mis à jour', 'success');
+        setEditItem(null);
+        load();
+      } else toast('Erreur', 'error');
+    } catch { toast('Erreur', 'error'); }
+    finally { setEditItemSaving(false); }
+  };
+
+  const handleCreateFromTemplate = (items: { label: string; category: string; task_type?: string; scheduled_time?: string; platform?: string }[]) => {
+    setNewItems(items.map(i => ({
+      label: i.label,
+      category: i.category,
+      task_type: i.task_type || '',
+      scheduled_time: i.scheduled_time || '',
+      platform: i.platform || '',
+    })));
+    setShowCreate(true);
+  };
+
   if (loading) return <Spinner />;
 
   // ── E2: History detail view ──
@@ -582,6 +1013,19 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
             </h3>
             <Badge value={checklistStatusLabel[historyDetail.status] || historyDetail.status} colorMap={checklistStatusColor} />
           </div>
+          {historyDetail.completion_rate !== null && (
+            <div className="flex gap-4">
+              <div className="text-xs text-zinc-500">Complétion : <span className="font-bold text-zinc-700">{historyDetail.completion_rate}%</span></div>
+              {historyDetail.punctuality_rate !== null && (
+                <div className="text-xs text-zinc-500">Ponctualité : <span className="font-bold text-zinc-700">{historyDetail.punctuality_rate}%</span></div>
+              )}
+            </div>
+          )}
+          {historyDetail.closed_automatically && historyDetail.closed_at && (
+            <div className="p-2 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-700">
+              Clôturée automatiquement le {new Date(historyDetail.closed_at).toLocaleString('fr-FR')}
+            </div>
+          )}
           {historyDetail.rejection_reason && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
               <span className="font-semibold">Motif du rejet :</span> {historyDetail.rejection_reason}
@@ -597,10 +1041,13 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
                 }`}>
                   {item.is_completed && <Check size={12} />}
                 </div>
-                <span className={`text-sm ${item.is_completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+                <span className={`text-sm flex-1 ${item.is_completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
                   {item.label}
                 </span>
                 <Badge value={item.category} colorMap={{ publication: 'bg-blue-50 text-blue-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
+                {item.status && <Badge value={itemStatusLabel[item.status] || item.status} colorMap={itemStatusColor} />}
+                {item.scheduled_time && <span className="text-[10px] text-zinc-400 flex items-center gap-0.5"><Clock size={10} />{item.scheduled_time}</span>}
+                {item.delay_minutes !== null && item.delay_minutes > 0 && <span className="text-[10px] text-red-500 font-bold">+{item.delay_minutes}min</span>}
               </div>
             ))
           )}
@@ -642,6 +1089,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
                     <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Tâches</th>
                     <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Complétées</th>
                     <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Ponctualité</th>
                     <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
                     <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
                   </tr>
@@ -650,7 +1098,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
                   {historyChecklists.map(cl => {
                     const total = cl.items.length;
                     const done = cl.items.filter(i => i.is_completed).length;
-                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                    const pct = cl.completion_rate ?? (total > 0 ? Math.round((done / total) * 100) : 0);
                     return (
                       <tr key={cl.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                         <td className="px-4 py-3 text-sm font-medium text-zinc-700">{new Date(cl.work_date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</td>
@@ -664,6 +1112,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
                             <span className="text-xs font-bold text-zinc-500">{pct}%</span>
                           </div>
                         </td>
+                        <td className="px-4 py-3 text-sm text-zinc-600">{cl.punctuality_rate !== null ? `${cl.punctuality_rate}%` : '—'}</td>
                         <td className="px-4 py-3 text-sm"><Badge value={checklistStatusLabel[cl.status] || cl.status} colorMap={checklistStatusColor} /></td>
                         <td className="px-4 py-3 text-sm">
                           <button onClick={() => setHistoryDetail(cl)} className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600" title="Voir le détail">
@@ -718,6 +1167,9 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black text-zinc-900">Checklist du jour</h3>
           <div className="flex items-center gap-2">
+            <button onClick={() => setShowTemplates(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">
+              <Settings size={14} /> Templates
+            </button>
             <button onClick={() => setShowHistory(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">
               <Calendar size={14} /> Historique
             </button>
@@ -732,9 +1184,17 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
           checklists.map(cl => (
             <div key={cl.id} className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-100">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-zinc-500">Statut :</span>
-                  <Badge value={checklistStatusLabel[cl.status] || cl.status} colorMap={checklistStatusColor} />
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-zinc-500">Statut :</span>
+                    <Badge value={checklistStatusLabel[cl.status] || cl.status} colorMap={checklistStatusColor} />
+                  </div>
+                  {cl.completion_rate !== null && (
+                    <span className="text-xs text-zinc-500">Complétion : <span className="font-bold">{cl.completion_rate}%</span></span>
+                  )}
+                  {cl.punctuality_rate !== null && (
+                    <span className="text-xs text-zinc-500">Ponctualité : <span className="font-bold">{cl.punctuality_rate}%</span></span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {cl.status === 'en_cours' && (
@@ -771,21 +1231,42 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
               )}
 
               {cl.items.map(item => (
-                <label key={item.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-50 cursor-pointer">
+                <div key={item.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-50 group">
                   <button
                     onClick={() => toggleItem(cl.id, item.id)}
                     disabled={cl.status === 'validé'}
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                       item.is_completed ? 'bg-primary-600 border-primary-600 text-white' : 'border-zinc-300'
-                    } ${cl.status === 'validé' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    } ${cl.status === 'validé' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     {item.is_completed && <Check size={12} />}
                   </button>
-                  <span className={`text-sm ${item.is_completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
-                    {item.label}
-                  </span>
-                  <Badge value={item.category} colorMap={{ publication: 'bg-blue-50 text-blue-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
-                </label>
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-sm ${item.is_completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+                      {item.label}
+                    </span>
+                    {(item.justification || item.comment) && (
+                      <div className="flex gap-3 mt-0.5">
+                        {item.justification && <span className="text-[10px] text-amber-600">Justif: {item.justification}</span>}
+                        {item.comment && <span className="text-[10px] text-zinc-400">Note: {item.comment}</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Badge value={item.category} colorMap={{ publication: 'bg-blue-50 text-blue-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
+                    {item.task_type && <Badge value={item.task_type} colorMap={{ publication: 'bg-blue-50 text-blue-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700', interaction: 'bg-pink-50 text-pink-700' }} />}
+                    {item.platform && <Badge value={item.platform} colorMap={platformColor} />}
+                    {item.status && item.status !== 'pending' && <Badge value={itemStatusLabel[item.status] || item.status} colorMap={itemStatusColor} />}
+                    {item.scheduled_time && <span className="text-[10px] text-zinc-400 flex items-center gap-0.5"><Clock size={10} />{item.scheduled_time}</span>}
+                    {item.delay_minutes !== null && item.delay_minutes > 0 && <span className="text-[10px] text-red-500 font-bold">+{item.delay_minutes}min</span>}
+                    {cl.status !== 'validé' && (
+                      <button onClick={() => { setEditItem({ checklistId: cl.id, item }); setEditItemForm({ justification: item.justification || '', comment: item.comment || '' }); }}
+                        className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Modifier">
+                        <Eye size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           ))
@@ -843,7 +1324,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
         )}
       </div>
 
-      {/* Create checklist modal */}
+      {/* Create checklist modal (Feature 1: enhanced with new fields) */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Créer ma checklist"
         footer={
           <div className="flex justify-end gap-3">
@@ -856,27 +1337,88 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
       >
         <div className="space-y-3">
           {newItems.map((item, i) => (
-            <div key={i} className="flex gap-2 items-start">
-              <input className="flex-1 px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="Libellé de la tâche" value={item.label}
-                onChange={e => setNewItems(prev => prev.map((it, j) => (j === i ? { ...it, label: e.target.value } : it)))} />
-              <select className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={item.category}
-                onChange={e => setNewItems(prev => prev.map((it, j) => (j === i ? { ...it, category: e.target.value } : it)))}>
-                <option value="publication">Publication</option>
-                <option value="modération">Modération</option>
-                <option value="veille">Veille</option>
-                <option value="reporting">Reporting</option>
-              </select>
-              {newItems.length > 1 && (
-                <button onClick={() => setNewItems(prev => prev.filter((_, j) => j !== i))} className="p-2.5 rounded-xl hover:bg-zinc-100 text-zinc-400"><X size={16} /></button>
-              )}
+            <div key={i} className="p-3 rounded-xl border border-zinc-100 space-y-2">
+              <div className="flex gap-2 items-start">
+                <input className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="Libellé de la tâche" value={item.label}
+                  onChange={e => setNewItems(prev => prev.map((it, j) => (j === i ? { ...it, label: e.target.value } : it)))} />
+                <select className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-medium" value={item.category}
+                  onChange={e => setNewItems(prev => prev.map((it, j) => (j === i ? { ...it, category: e.target.value } : it)))}>
+                  <option value="publication">Publication</option>
+                  <option value="modération">Modération</option>
+                  <option value="veille">Veille</option>
+                  <option value="reporting">Reporting</option>
+                </select>
+                {newItems.length > 1 && (
+                  <button onClick={() => setNewItems(prev => prev.filter((_, j) => j !== i))} className="p-2 rounded-xl hover:bg-zinc-100 text-zinc-400"><X size={16} /></button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <select className="px-3 py-2 rounded-xl border border-zinc-200 text-sm" value={item.task_type}
+                  onChange={e => setNewItems(prev => prev.map((it, j) => (j === i ? { ...it, task_type: e.target.value } : it)))}>
+                  <option value="">Type de tâche...</option>
+                  <option value="publication">Publication</option>
+                  <option value="moderation">Modération</option>
+                  <option value="veille">Veille</option>
+                  <option value="reporting">Reporting</option>
+                  <option value="interaction">Interaction</option>
+                </select>
+                <input type="time" className="px-3 py-2 rounded-xl border border-zinc-200 text-sm" value={item.scheduled_time}
+                  onChange={e => setNewItems(prev => prev.map((it, j) => (j === i ? { ...it, scheduled_time: e.target.value } : it)))} title="Heure prévue" />
+                <select className="px-3 py-2 rounded-xl border border-zinc-200 text-sm" value={item.platform}
+                  onChange={e => setNewItems(prev => prev.map((it, j) => (j === i ? { ...it, platform: e.target.value } : it)))}>
+                  <option value="">Plateforme...</option>
+                  <option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option>
+                  <option value="twitter">Twitter</option><option value="youtube">YouTube</option>
+                </select>
+              </div>
             </div>
           ))}
-          <button onClick={() => setNewItems(prev => [...prev, { label: '', category: 'publication' }])}
+          <button onClick={() => setNewItems(prev => [...prev, { label: '', category: 'publication', task_type: '', scheduled_time: '', platform: '' }])}
             className="text-sm font-semibold text-primary-600 hover:underline flex items-center gap-1">
             <Plus size={14} /> Ajouter un élément
           </button>
         </div>
       </Modal>
+
+      {/* Edit item modal */}
+      <Modal open={editItem !== null} onClose={() => setEditItem(null)} title="Détail de la tâche"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setEditItem(null)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button onClick={updateItem} disabled={editItemSaving} className="btn btn-primary flex items-center gap-2 text-sm">
+              {editItemSaving && <Loader2 size={14} className="animate-spin" />} Enregistrer
+            </button>
+          </div>
+        }
+      >
+        {editItem && (
+          <div className="space-y-3">
+            <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 space-y-1">
+              <p className="text-sm font-bold text-zinc-700">{editItem.item.label}</p>
+              <div className="flex gap-2">
+                <Badge value={editItem.item.category} colorMap={{ publication: 'bg-blue-50 text-blue-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
+                {editItem.item.task_type && <Badge value={editItem.item.task_type} colorMap={{ publication: 'bg-blue-50 text-blue-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700', interaction: 'bg-pink-50 text-pink-700' }} />}
+                {editItem.item.status && <Badge value={itemStatusLabel[editItem.item.status] || editItem.item.status} colorMap={itemStatusColor} />}
+              </div>
+              {editItem.item.scheduled_time && <p className="text-xs text-zinc-500">Heure prévue : {editItem.item.scheduled_time}</p>}
+              {editItem.item.delay_minutes !== null && editItem.item.delay_minutes > 0 && <p className="text-xs text-red-500">Retard : +{editItem.item.delay_minutes} min</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-500 mb-1">Justification</label>
+              <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={2} value={editItemForm.justification}
+                onChange={e => setEditItemForm(f => ({ ...f, justification: e.target.value }))} placeholder="Justification en cas de retard ou non-complétion..." />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-500 mb-1">Commentaire</label>
+              <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={2} value={editItemForm.comment}
+                onChange={e => setEditItemForm(f => ({ ...f, comment: e.target.value }))} placeholder="Note libre..." />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Feature 2: Templates panel */}
+      <TemplatesPanel toast={toast} open={showTemplates} onClose={() => setShowTemplates(false)} onCreateFromTemplate={handleCreateFromTemplate} />
     </div>
   );
 }
@@ -1172,7 +1714,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
 }
 
 /* ================================================================== */
-/*  Tab 3 : Suivi influenceurs (E4)                                    */
+/*  Tab 3 : Suivi influenceurs (Feature 4: enhanced form)              */
 /* ================================================================== */
 
 function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: string) => void; onNewComplaint: () => void }) {
@@ -1192,7 +1734,10 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [saving, setSaving] = useState(false);
-  const [logForm, setLogForm] = useState({ influencer_id: '', content_type: '', platform: '', content_url: '', published_at: '', notes: '' });
+  const [logForm, setLogForm] = useState({
+    influencer_id: '', content_type: '', platform: '', content_url: '', published_at: '', notes: '',
+    live_duration_minutes: '', live_viewers_count: '', no_publication: false, quantity: '', archive_url: '',
+  });
   const [sigForm, setSigForm] = useState({ influencer_id: '', signal_type: '', severity: '', description: '' });
 
   const loadLogs = useCallback(async () => {
@@ -1225,9 +1770,27 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
     if (!logForm.influencer_id || !logForm.content_type || !logForm.platform) { toast('Veuillez remplir les champs obligatoires', 'error'); return; }
     setSaving(true);
     try {
-      const res = await api.post('cm/influencer-content', { ...logForm, influencer_id: Number(logForm.influencer_id) });
-      if (res.ok) { toast('Log créé avec succès', 'success'); setShowNewLog(false); setLogForm({ influencer_id: '', content_type: '', platform: '', content_url: '', published_at: '', notes: '' }); loadLogs(); }
-      else toast('Erreur lors de la création', 'error');
+      const payload: Record<string, unknown> = {
+        influencer_id: Number(logForm.influencer_id),
+        content_type: logForm.content_type,
+        platform: logForm.platform,
+        content_url: logForm.content_url || undefined,
+        published_at: logForm.published_at || undefined,
+        notes: logForm.notes || undefined,
+        no_publication: logForm.no_publication,
+      };
+      if (logForm.live_duration_minutes) payload.live_duration_minutes = Number(logForm.live_duration_minutes);
+      if (logForm.live_viewers_count) payload.live_viewers_count = Number(logForm.live_viewers_count);
+      if (logForm.quantity) payload.quantity = Number(logForm.quantity);
+      if (logForm.archive_url) payload.archive_url = logForm.archive_url;
+
+      const res = await api.post('cm/influencer-content', payload);
+      if (res.ok) {
+        toast('Log créé avec succès', 'success');
+        setShowNewLog(false);
+        setLogForm({ influencer_id: '', content_type: '', platform: '', content_url: '', published_at: '', notes: '', live_duration_minutes: '', live_viewers_count: '', no_publication: false, quantity: '', archive_url: '' });
+        loadLogs();
+      } else toast('Erreur lors de la création', 'error');
     } catch { toast('Erreur lors de la création', 'error'); } finally { setSaving(false); }
   };
 
@@ -1276,6 +1839,7 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Plateforme</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Qté</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Archivé</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
                 </tr></thead>
@@ -1283,9 +1847,15 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
                   {logs.map(r => (
                     <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                       <td className="px-4 py-3 text-sm font-medium text-zinc-700">{r.influencer?.full_name ?? `#${r.influencer_id}`}</td>
-                      <td className="px-4 py-3 text-sm"><Badge value={r.content_type} colorMap={{ post: 'bg-blue-50 text-blue-700', story: 'bg-pink-50 text-pink-700', reel: 'bg-purple-50 text-purple-700', video: 'bg-red-50 text-red-700', 'vidéo': 'bg-red-50 text-red-700', live: 'bg-emerald-50 text-emerald-700' }} /></td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Badge value={r.content_type} colorMap={{ post: 'bg-blue-50 text-blue-700', story: 'bg-pink-50 text-pink-700', reel: 'bg-purple-50 text-purple-700', video: 'bg-red-50 text-red-700', 'vidéo': 'bg-red-50 text-red-700', live: 'bg-emerald-50 text-emerald-700' }} />
+                          {r.no_publication && <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase bg-amber-50 text-amber-700">Pas publié</span>}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-sm"><Badge value={r.platform} colorMap={platformColor} /></td>
                       <td className="px-4 py-3 text-sm text-zinc-600">{r.published_at ? new Date(r.published_at).toLocaleDateString('fr-FR') : '—'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{r.quantity ?? '—'}</td>
                       <td className="px-4 py-3 text-sm">{r.is_archived ? <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase bg-zinc-100 text-zinc-600">Archivé</span> : <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700">Actif</span>}</td>
                       <td className="px-4 py-3 text-sm">{!r.is_archived && <button onClick={() => archiveLog(r.id)} className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600" title="Archiver"><Archive size={16} /></button>}</td>
                     </tr>
@@ -1352,7 +1922,7 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
         )}
       </div>
 
-      {/* New log modal */}
+      {/* New log modal (Feature 4: enhanced with live fields, no_publication, quantity, archive_url) */}
       <Modal open={showNewLog} onClose={() => setShowNewLog(false)} title="Nouveau log influenceur"
         footer={<div className="flex justify-end gap-3"><button onClick={() => setShowNewLog(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button><button onClick={submitLog} disabled={saving} className="btn btn-primary flex items-center gap-2 text-sm">{saving && <Loader2 size={14} className="animate-spin" />} Enregistrer</button></div>}>
         <div className="space-y-3">
@@ -1361,6 +1931,20 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Plateforme *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.platform} onChange={e => setLogForm(f => ({ ...f, platform: e.target.value }))}><option value="">Sélectionner...</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option></select></div>
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">URL du contenu</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={logForm.content_url} onChange={e => setLogForm(f => ({ ...f, content_url: e.target.value }))} /></div>
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Date de publication</label><input type="date" className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.published_at} onChange={e => setLogForm(f => ({ ...f, published_at: e.target.value }))} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Quantité</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="1" value={logForm.quantity} onChange={e => setLogForm(f => ({ ...f, quantity: e.target.value }))} /></div>
+            <div><label className="block text-xs font-semibold text-zinc-500 mb-1">URL d'archive</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={logForm.archive_url} onChange={e => setLogForm(f => ({ ...f, archive_url: e.target.value }))} /></div>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <input type="checkbox" checked={logForm.no_publication} onChange={e => setLogForm(f => ({ ...f, no_publication: e.target.checked }))} className="rounded" />
+            Pas de publication (contenu non publié)
+          </label>
+          {logForm.content_type === 'live' && (
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+              <div><label className="block text-xs font-semibold text-emerald-700 mb-1">Durée du live (min)</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 text-sm font-medium bg-white" value={logForm.live_duration_minutes} onChange={e => setLogForm(f => ({ ...f, live_duration_minutes: e.target.value }))} /></div>
+              <div><label className="block text-xs font-semibold text-emerald-700 mb-1">Nombre de viewers</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 text-sm font-medium bg-white" value={logForm.live_viewers_count} onChange={e => setLogForm(f => ({ ...f, live_viewers_count: e.target.value }))} /></div>
+            </div>
+          )}
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Notes</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} /></div>
         </div>
       </Modal>
@@ -1380,7 +1964,7 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
 }
 
 /* ================================================================== */
-/*  Tab 4 : Modération (E5)                                            */
+/*  Tab 4 : Modération (Feature 3: enhanced form)                      */
 /* ================================================================== */
 
 function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string) => void; onNewComplaint: () => void }) {
@@ -1395,8 +1979,12 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
   const [dateTo, setDateTo] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const [complaints, setComplaints] = useState<CallCenterComplaint[]>([]);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ platform: '', action_type: '', social_account_id: '', description: '', screenshot_url: '' });
+  const [form, setForm] = useState({
+    platform: '', action_type: '', social_account_id: '', description: '', screenshot_url: '',
+    account_handle: '', public_comment_deleted: false, message_sent: false, complaint_id: '',
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1411,7 +1999,14 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
   useEffect(() => { load(); }, [load]);
 
   const openNew = async () => {
-    try { const res = await api.get<Paginated<SocialAccount>>('social-accounts' + buildQuery({ per_page: 100 })); if (res.ok) setAccounts(res.data.data); } catch {}
+    try {
+      const [accRes, cmpRes] = await Promise.all([
+        api.get<Paginated<SocialAccount>>('social-accounts' + buildQuery({ per_page: 100 })),
+        api.get<Paginated<CallCenterComplaint>>('complaints' + buildQuery({ per_page: 50 })),
+      ]);
+      if (accRes.ok) setAccounts(accRes.data.data);
+      if (cmpRes.ok) setComplaints(cmpRes.data.data);
+    } catch {}
     setShowNew(true);
   };
 
@@ -1419,9 +2014,26 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
     if (!form.platform || !form.action_type || !form.description) { toast('Veuillez remplir les champs obligatoires', 'error'); return; }
     setSaving(true);
     try {
-      const res = await api.post('cm/moderation', { ...form, social_account_id: form.social_account_id ? Number(form.social_account_id) : null, action_date: new Date().toISOString().slice(0, 19).replace('T', ' ') });
-      if (res.ok) { toast('Action de modération créée', 'success'); setShowNew(false); setForm({ platform: '', action_type: '', social_account_id: '', description: '', screenshot_url: '' }); load(); }
-      else toast('Erreur lors de la création', 'error');
+      const payload: Record<string, unknown> = {
+        platform: form.platform,
+        action_type: form.action_type,
+        description: form.description,
+        social_account_id: form.social_account_id ? Number(form.social_account_id) : null,
+        action_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        account_handle: form.account_handle || undefined,
+        public_comment_deleted: form.public_comment_deleted,
+        message_sent: form.message_sent,
+        complaint_id: form.complaint_id ? Number(form.complaint_id) : undefined,
+      };
+      if (form.screenshot_url) payload.screenshot_url = form.screenshot_url;
+
+      const res = await api.post('cm/moderation', payload);
+      if (res.ok) {
+        toast('Action de modération créée', 'success');
+        setShowNew(false);
+        setForm({ platform: '', action_type: '', social_account_id: '', description: '', screenshot_url: '', account_handle: '', public_comment_deleted: false, message_sent: false, complaint_id: '' });
+        load();
+      } else toast('Erreur lors de la création', 'error');
     } catch { toast('Erreur lors de la création', 'error'); } finally { setSaving(false); }
   };
 
@@ -1453,6 +2065,7 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
               <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Plateforme</th>
               <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type d'action</th>
               <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Handle</th>
               <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Compte social</th>
               <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
             </tr></thead><tbody>
@@ -1461,6 +2074,7 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
                   <td className="px-4 py-3 text-sm"><Badge value={r.platform} colorMap={platformColor} /></td>
                   <td className="px-4 py-3 text-sm"><Badge value={r.action_type} colorMap={actionTypeColor} /></td>
                   <td className="px-4 py-3 text-sm text-zinc-600 max-w-[280px] truncate">{r.description}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-500">{r.account_handle || '—'}</td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{r.social_account?.account_name ?? '—'}</td>
                   <td className="px-4 py-3 text-sm text-zinc-600">{new Date(r.created_at).toLocaleDateString('fr-FR')}</td>
                 </tr>
@@ -1478,14 +2092,26 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
         </>
       )}
 
-      {/* New moderation modal */}
+      {/* New moderation modal (Feature 3: enhanced with account_handle, public_comment_deleted, message_sent, complaint_id) */}
       <Modal open={showNew} onClose={() => setShowNew(false)} title="Nouvelle action de modération"
         footer={<div className="flex justify-end gap-3"><button onClick={() => setShowNew(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button><button onClick={submit} disabled={saving} className="btn btn-primary flex items-center gap-2 text-sm">{saving && <Loader2 size={14} className="animate-spin" />} Enregistrer</button></div>}>
         <div className="space-y-3">
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Plateforme *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}><option value="">Sélectionner...</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option></select></div>
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Type d'action *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.action_type} onChange={e => setForm(f => ({ ...f, action_type: e.target.value }))}><option value="">Sélectionner...</option><option value="commentaire_supprimé">Commentaire supprimé</option><option value="commentaire_masqué">Commentaire masqué</option><option value="message_envoyé">Message envoyé</option><option value="avis_signalé">Avis signalé</option><option value="ban_utilisateur">Ban utilisateur</option><option value="autre">Autre</option></select></div>
+          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Handle du compte</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="@utilisateur" value={form.account_handle} onChange={e => setForm(f => ({ ...f, account_handle: e.target.value }))} /></div>
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Compte social</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.social_account_id} onChange={e => setForm(f => ({ ...f, social_account_id: e.target.value }))}><option value="">Sélectionner...</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({a.platform})</option>)}</select></div>
+          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Réclamation liée</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.complaint_id} onChange={e => setForm(f => ({ ...f, complaint_id: e.target.value }))}><option value="">Aucune</option>{complaints.map(c => <option key={c.id} value={c.id}>{c.reference} — {c.customer_name}</option>)}</select></div>
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Description *</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+              <input type="checkbox" checked={form.public_comment_deleted} onChange={e => setForm(f => ({ ...f, public_comment_deleted: e.target.checked }))} className="rounded" />
+              Commentaire public supprimé
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+              <input type="checkbox" checked={form.message_sent} onChange={e => setForm(f => ({ ...f, message_sent: e.target.checked }))} className="rounded" />
+              Message envoyé
+            </label>
+          </div>
           <div><label className="block text-xs font-semibold text-zinc-500 mb-1">URL capture d'écran</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={form.screenshot_url} onChange={e => setForm(f => ({ ...f, screenshot_url: e.target.value }))} /></div>
         </div>
       </Modal>
