@@ -23,11 +23,20 @@ class InfluencerContentLog extends Model
         'published_at',
         'is_archived',
         'notes',
+        'live_duration_minutes',
+        'live_viewers_count',
+        'no_publication',
+        'quantity',
+        'archive_url',
     ];
 
     protected $casts = [
         'published_at' => 'datetime',
         'is_archived' => 'boolean',
+        'no_publication' => 'boolean',
+        'live_duration_minutes' => 'integer',
+        'live_viewers_count' => 'integer',
+        'quantity' => 'integer',
     ];
 
     public function brand()

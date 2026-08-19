@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ChecklistTemplate;
+use App\Models\CmDecisionPoint;
+use App\Models\CmNotification;
 use App\Models\DailyChecklist;
 use App\Models\DailyChecklistItem;
 use App\Models\InfluencerContentLog;
 use App\Models\InfluencerSignal;
 use App\Models\ModerationAction;
 use App\Services\AuditLogger;
+use App\Services\CmAutomationService;
+use App\Services\CmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use App\Support\UserRoleHelper;
@@ -26,7 +31,7 @@ class CommunityManagerController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
 
-        $q = DailyChecklist::query()->with(['items', 'cmUser']);
+        $q = DailyChecklist::query()->with(['items', 'cmUser', 'template']);
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('work_date');
 
@@ -38,6 +43,9 @@ class CommunityManagerController extends Controller
         }
         if ($to = $request->query('date_to')) {
             $q->whereDate('work_date', '<=', $to);
+        }
+        if ($cmUserId = $request->query('cm_user_id')) {
+            $q->where('cm_user_id', (int) $cmUserId);
         }
 
         return ApiResponse::success($q->paginate($perPage));
@@ -51,9 +59,14 @@ class CommunityManagerController extends Controller
         $data = $request->validate([
             'work_date' => 'required|date',
             'notes' => 'nullable|string',
+            'template_id' => 'nullable|integer|exists:checklist_templates,id',
             'items' => 'required|array|min:1',
             'items.*.label' => 'required|string|max:255',
             'items.*.category' => 'nullable|string|max:100',
+            'items.*.task_type' => 'nullable|string|in:publication,moderation,veille,reporting,custom',
+            'items.*.scheduled_time' => 'nullable|date_format:H:i',
+            'items.*.platform' => 'nullable|string|max:50',
+            'items.*.content_item_id' => 'nullable|integer|exists:content_calendar,id',
             'items.*.notes' => 'nullable|string',
         ]);
 
@@ -63,12 +76,18 @@ class CommunityManagerController extends Controller
             'work_date' => $data['work_date'],
             'status' => 'en_cours',
             'notes' => $data['notes'] ?? null,
+            'template_id' => $data['template_id'] ?? null,
         ]);
 
         foreach ($data['items'] as $item) {
             $checklist->items()->create([
                 'label' => $item['label'],
                 'category' => $item['category'] ?? null,
+                'task_type' => $item['task_type'] ?? 'custom',
+                'scheduled_time' => $item['scheduled_time'] ?? null,
+                'platform' => $item['platform'] ?? null,
+                'content_item_id' => $item['content_item_id'] ?? null,
+                'status' => 'pending',
                 'notes' => $item['notes'] ?? null,
             ]);
         }
@@ -82,7 +101,7 @@ class CommunityManagerController extends Controller
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
         $checklist = DailyChecklist::query()
-            ->with(['items', 'cmUser', 'validatedByUser'])
+            ->with(['items.contentItem', 'cmUser', 'validatedByUser', 'closedByUser', 'template'])
             ->where('brand_id', $brandId)
             ->findOrFail($id);
 
@@ -115,9 +134,21 @@ class CommunityManagerController extends Controller
 
         $checklist->fill($data);
 
+        if ($newStatus === 'soumis' && $checklist->status !== $before['status']) {
+            $checklist->recalculateRates();
+            CmNotificationService::checklistSubmitted($brandId, $checklist->cm_user_id, $checklist->id, $user->name);
+        }
+
         if ($newStatus === 'validé') {
             $checklist->validated_by = $user->id;
             $checklist->validated_at = now();
+            $checklist->closed_at = now();
+            $checklist->closed_by_user_id = $user->id;
+            CmNotificationService::checklistValidated($brandId, $checklist->cm_user_id, $checklist->id, $user->name);
+        }
+
+        if ($newStatus === 'rejeté') {
+            CmNotificationService::checklistRejected($brandId, $checklist->cm_user_id, $checklist->id, $user->name, $data['rejection_reason'] ?? '');
         }
 
         $checklist->save();
@@ -145,7 +176,71 @@ class CommunityManagerController extends Controller
 
         $item->is_completed = ! $item->is_completed;
         $item->completed_at = $item->is_completed ? now() : null;
+
+        if ($item->is_completed) {
+            $item->status = 'completed';
+            if ($item->scheduled_time) {
+                $scheduled = Carbon::parse($item->scheduled_time);
+                $now = Carbon::now();
+                $delayMinutes = $scheduled->diffInMinutes($now, false);
+                $item->delay_minutes = max(0, (int) $delayMinutes);
+            }
+        } else {
+            $item->status = 'pending';
+            $item->delay_minutes = null;
+        }
+
         $item->save();
+
+        $checklist->recalculateRates();
+        $checklist->save();
+
+        return ApiResponse::success($item->fresh(), 'Item mis à jour.');
+    }
+
+    public function updateChecklistItem(Request $request, string $checklistId, string $itemId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $checklist = DailyChecklist::query()->where('brand_id', $brandId)->findOrFail($checklistId);
+
+        $user = $request->user();
+        if (UserRoleHelper::isCommunityManager($user) && ! UserRoleHelper::isAdmin($user)) {
+            if ((int) $checklist->cm_user_id !== (int) $user->id) {
+                throw new AccessDeniedHttpException('Vous ne pouvez modifier que vos propres items.');
+            }
+        }
+
+        $item = DailyChecklistItem::query()->where('daily_checklist_id', $checklistId)->findOrFail($itemId);
+
+        $data = $request->validate([
+            'status' => 'nullable|string|in:pending,in_progress,completed,skipped,late',
+            'justification' => 'nullable|string',
+            'comment' => 'nullable|string',
+        ]);
+
+        if (isset($data['status'])) {
+            $item->status = $data['status'];
+            if ($data['status'] === 'completed' && ! $item->is_completed) {
+                $item->is_completed = true;
+                $item->completed_at = now();
+            }
+            if ($data['status'] === 'skipped') {
+                $item->is_completed = false;
+                $item->completed_at = null;
+            }
+        }
+
+        if (isset($data['justification'])) {
+            $item->justification = $data['justification'];
+        }
+        if (isset($data['comment'])) {
+            $item->comment = $data['comment'];
+        }
+
+        $item->save();
+
+        $checklist->recalculateRates();
+        $checklist->save();
 
         return ApiResponse::success($item->fresh(), 'Item mis à jour.');
     }
@@ -157,7 +252,7 @@ class CommunityManagerController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
 
-        $q = ModerationAction::query()->with(['cmUser']);
+        $q = ModerationAction::query()->with(['cmUser', 'complaint']);
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('action_date');
 
@@ -187,6 +282,10 @@ class CommunityManagerController extends Controller
             'platform' => 'nullable|string|max:50',
             'action_type' => 'required|string|in:commentaire_supprimé,commentaire_masqué,message_envoyé,avis_signalé,ban_utilisateur,autre',
             'description' => 'nullable|string',
+            'account_handle' => 'nullable|string|max:255',
+            'public_comment_deleted' => 'nullable|boolean',
+            'message_sent' => 'nullable|boolean',
+            'complaint_id' => 'nullable|integer|exists:complaints,id',
             'screenshot_url' => 'nullable|string|max:500',
             'action_date' => 'required|date',
         ]);
@@ -205,7 +304,7 @@ class CommunityManagerController extends Controller
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
         $row = ModerationAction::query()
-            ->with(['cmUser', 'socialAccount'])
+            ->with(['cmUser', 'socialAccount', 'complaint'])
             ->where('brand_id', $brandId)
             ->findOrFail($id);
 
@@ -232,6 +331,9 @@ class CommunityManagerController extends Controller
         if ($contentType = $request->query('content_type')) {
             $q->where('content_type', $contentType);
         }
+        if ($request->query('no_publication') !== null) {
+            $q->where('no_publication', (bool) $request->query('no_publication'));
+        }
 
         return ApiResponse::success($q->paginate($perPage));
     }
@@ -250,6 +352,11 @@ class CommunityManagerController extends Controller
             'screenshot_url' => 'nullable|string|max:500',
             'published_at' => 'nullable|date',
             'notes' => 'nullable|string',
+            'live_duration_minutes' => 'nullable|integer|min:0',
+            'live_viewers_count' => 'nullable|integer|min:0',
+            'no_publication' => 'nullable|boolean',
+            'quantity' => 'nullable|integer|min:1',
+            'archive_url' => 'nullable|string|max:500',
         ]);
 
         $data['brand_id'] = $brandId;
@@ -321,6 +428,11 @@ class CommunityManagerController extends Controller
 
         AuditLogger::log($request, 'influencer_signal.create', $row, null, $row->toArray());
 
+        // CM-A4: auto-create complaint from critical signal
+        if ($data['severity'] === 'critique') {
+            CmAutomationService::autoComplaintFromCriticalSignal($brandId, $row);
+        }
+
         return ApiResponse::success($row->fresh()->load(['influencer', 'cmUser']), 'Signal créé.', 201);
     }
 
@@ -344,6 +456,15 @@ class CommunityManagerController extends Controller
         if ($data['status'] === 'résolu') {
             $row->resolved_by = $user->id;
             $row->resolved_at = now();
+        }
+
+        if ($data['status'] === 'escaladé') {
+            CmNotificationService::signalEscalated(
+                $brandId,
+                $row->id,
+                $row->influencer?->full_name ?? "Influenceur #{$row->influencer_id}",
+                $row->signal_type,
+            );
         }
 
         $row->save();
@@ -392,11 +513,201 @@ class CommunityManagerController extends Controller
             ->whereDate('published_at', $today)
             ->count();
 
+        $unreadNotifications = CmNotification::query()
+            ->where('brand_id', $brandId)
+            ->where('recipient_user_id', $user->id)
+            ->where('is_read', false)
+            ->count();
+
         return ApiResponse::success([
             'checklist_completion_percent' => $checklistCompletion,
             'moderation_actions_today' => $moderationCount,
             'pending_signals' => $pendingSignals,
             'publications_today' => $publicationsToday,
+            'unread_notifications' => $unreadNotifications,
         ]);
+    }
+
+    // ─── Notifications ───
+
+    public function indexNotifications(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $user = $request->user();
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
+
+        $q = CmNotification::query()
+            ->where('recipient_user_id', $user->id)
+            ->orderByDesc('created_at');
+
+        if ($brandId !== null) {
+            $q->where('brand_id', $brandId);
+        }
+
+        if ($request->query('unread_only') === '1') {
+            $q->where('is_read', false);
+        }
+
+        return ApiResponse::success($q->paginate($perPage));
+    }
+
+    public function markNotificationRead(Request $request, string $id): JsonResponse
+    {
+        $notification = CmNotification::query()
+            ->where('recipient_user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $notification->is_read = true;
+        $notification->read_at = now();
+        $notification->save();
+
+        return ApiResponse::success($notification, 'Notification lue.');
+    }
+
+    public function markAllNotificationsRead(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        CmNotification::query()
+            ->where('recipient_user_id', $request->user()->id)
+            ->where('brand_id', $brandId)
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
+
+        return ApiResponse::success(null, 'Toutes les notifications marquées comme lues.');
+    }
+
+    // ─── Templates ───
+
+    public function indexTemplates(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $templates = ChecklistTemplate::query()
+            ->where('brand_id', $brandId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return ApiResponse::success($templates);
+    }
+
+    public function storeTemplate(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        if (! UserRoleHelper::canValidateCmDaily($request->user())) {
+            throw new AccessDeniedHttpException('Seuls les SMM/Admin peuvent gérer les templates.');
+        }
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'items_json' => 'required|array|min:1',
+            'items_json.*.label' => 'required|string|max:255',
+            'items_json.*.category' => 'nullable|string|max:100',
+            'items_json.*.task_type' => 'nullable|string|in:publication,moderation,veille,reporting,custom',
+            'items_json.*.scheduled_time' => 'nullable|date_format:H:i',
+            'items_json.*.platform' => 'nullable|string|max:50',
+            'is_default' => 'nullable|boolean',
+        ]);
+
+        $data['brand_id'] = $brandId;
+
+        if (! empty($data['is_default'])) {
+            ChecklistTemplate::query()
+                ->where('brand_id', $brandId)
+                ->where('is_default', true)
+                ->update(['is_default' => false]);
+        }
+
+        $template = ChecklistTemplate::create($data);
+
+        return ApiResponse::success($template, 'Template créé.', 201);
+    }
+
+    public function updateTemplate(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        if (! UserRoleHelper::canValidateCmDaily($request->user())) {
+            throw new AccessDeniedHttpException('Seuls les SMM/Admin peuvent gérer les templates.');
+        }
+
+        $template = ChecklistTemplate::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'items_json' => 'nullable|array|min:1',
+            'items_json.*.label' => 'required|string|max:255',
+            'items_json.*.category' => 'nullable|string|max:100',
+            'items_json.*.task_type' => 'nullable|string|in:publication,moderation,veille,reporting,custom',
+            'items_json.*.scheduled_time' => 'nullable|date_format:H:i',
+            'items_json.*.platform' => 'nullable|string|max:50',
+            'is_default' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        if (! empty($data['is_default'])) {
+            ChecklistTemplate::query()
+                ->where('brand_id', $brandId)
+                ->where('id', '!=', $template->id)
+                ->where('is_default', true)
+                ->update(['is_default' => false]);
+        }
+
+        $template->fill($data);
+        $template->save();
+
+        return ApiResponse::success($template->fresh(), 'Template mis à jour.');
+    }
+
+    public function deleteTemplate(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        if (! UserRoleHelper::canValidateCmDaily($request->user())) {
+            throw new AccessDeniedHttpException('Seuls les SMM/Admin peuvent gérer les templates.');
+        }
+
+        $template = ChecklistTemplate::query()->where('brand_id', $brandId)->findOrFail($id);
+        $template->is_active = false;
+        $template->save();
+
+        return ApiResponse::success(null, 'Template désactivé.');
+    }
+
+    // ─── Decision Points ───
+
+    public function indexDecisionPoints(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $perPage = min(max((int) $request->query('per_page', 25), 1), 100);
+
+        $q = CmDecisionPoint::query()->with('cmUser:id,name');
+        if ($brandId !== null) {
+            $q->where('brand_id', $brandId);
+        }
+        $q->orderByDesc('created_at');
+
+        if ($code = $request->query('decision_code')) {
+            $q->where('decision_code', $code);
+        }
+
+        return ApiResponse::success($q->paginate($perPage));
+    }
+
+    // ─── Run automations (admin endpoint) ───
+
+    public function runAutomations(Request $request): JsonResponse
+    {
+        if (! UserRoleHelper::isAdmin($request->user())) {
+            throw new AccessDeniedHttpException('Admin uniquement.');
+        }
+
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $results = CmAutomationService::runAllScheduled($brandId);
+
+        return ApiResponse::success($results, 'Automatisations exécutées.');
     }
 }

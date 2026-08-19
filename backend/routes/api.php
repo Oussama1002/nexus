@@ -499,6 +499,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('checklists/{id}', [CommunityManagerController::class, 'showChecklist'])->whereNumber('id')->middleware('permission:cm_tracking.view');
         Route::put('checklists/{id}', [CommunityManagerController::class, 'updateChecklist'])->whereNumber('id')->middleware('permission:cm_tracking.update');
         Route::patch('checklists/{checklistId}/items/{itemId}/toggle', [CommunityManagerController::class, 'toggleChecklistItem'])->whereNumber('checklistId')->whereNumber('itemId')->middleware('permission:cm_tracking.update');
+        Route::put('checklists/{checklistId}/items/{itemId}', [CommunityManagerController::class, 'updateChecklistItem'])->whereNumber('checklistId')->whereNumber('itemId')->middleware('permission:cm_tracking.update');
 
         Route::get('moderation', [CommunityManagerController::class, 'indexModeration'])->middleware('permission:cm_tracking.view');
         Route::post('moderation', [CommunityManagerController::class, 'storeModeration'])->middleware('permission:cm_tracking.create');
@@ -511,6 +512,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('signals', [CommunityManagerController::class, 'indexSignals'])->middleware('permission:cm_tracking.view');
         Route::post('signals', [CommunityManagerController::class, 'storeSignal'])->middleware('permission:cm_tracking.create');
         Route::patch('signals/{id}/status', [CommunityManagerController::class, 'updateSignalStatus'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+
+        Route::get('notifications', [CommunityManagerController::class, 'indexNotifications'])->middleware('permission:cm_tracking.view');
+        Route::patch('notifications/{id}/read', [CommunityManagerController::class, 'markNotificationRead'])->whereNumber('id')->middleware('permission:cm_tracking.view');
+        Route::post('notifications/mark-all-read', [CommunityManagerController::class, 'markAllNotificationsRead'])->middleware('permission:cm_tracking.view');
+
+        Route::get('templates', [CommunityManagerController::class, 'indexTemplates'])->middleware('permission:cm_tracking.view');
+        Route::post('templates', [CommunityManagerController::class, 'storeTemplate'])->middleware('permission:cm_tracking.create');
+        Route::put('templates/{id}', [CommunityManagerController::class, 'updateTemplate'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+        Route::delete('templates/{id}', [CommunityManagerController::class, 'deleteTemplate'])->whereNumber('id')->middleware('permission:cm_tracking.delete');
+
+        Route::get('decision-points', [CommunityManagerController::class, 'indexDecisionPoints'])->middleware('permission:cm_tracking.view');
+        Route::post('run-automations', [CommunityManagerController::class, 'runAutomations'])->middleware('permission:cm_tracking.update');
     });
 
     // ── Call Center Complaints ──

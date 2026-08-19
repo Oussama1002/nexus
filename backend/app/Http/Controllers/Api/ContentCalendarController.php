@@ -12,6 +12,7 @@ use App\Services\AuditLogger;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use App\Support\SocialScope;
+use App\Services\CmNotificationService;
 use App\Support\UserRoleHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -246,6 +247,8 @@ class ContentCalendarController extends Controller
 
         AuditLogger::log($request, 'content_calendar.mark_published', $row, $before, $row->fresh()->toArray());
 
+        CmNotificationService::contentPublished($brandId, $request->user()->id, $row->id, $row->title);
+
         return ApiResponse::success(
             $row->fresh()->load(['socialAccount', 'strategy', 'assignee', 'validatedByUser:id,name,email']),
             'Contenu marqué comme publié.'
@@ -271,6 +274,8 @@ class ContentCalendarController extends Controller
         $row->save();
 
         AuditLogger::log($request, 'content_calendar.mark_not_published', $row, $before, $row->fresh()->toArray());
+
+        CmNotificationService::contentNotPublished($brandId, $request->user()->id, $row->id, $row->title, $data['not_published_reason']);
 
         return ApiResponse::success(
             $row->fresh()->load(['socialAccount', 'strategy', 'assignee', 'validatedByUser:id,name,email']),

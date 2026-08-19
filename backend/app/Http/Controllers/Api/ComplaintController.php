@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Complaint;
 use App\Models\ComplaintThreadEntry;
 use App\Services\AuditLogger;
+use App\Services\CmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use App\Support\UserRoleHelper;
@@ -69,6 +70,8 @@ class ComplaintController extends Controller
         $row = Complaint::create($data);
 
         AuditLogger::log($request, 'complaint.create', $row, null, $row->toArray());
+
+        CmNotificationService::complaintCreatedFromCm($brandId, $row->id, $row->reference, $row->customer_name);
 
         return ApiResponse::success(
             $row->fresh()->load(['brand', 'sourceUser:id,name,email']),
@@ -156,6 +159,10 @@ class ComplaintController extends Controller
         }
 
         AuditLogger::log($request, 'complaint.update', $row, $before, $row->fresh()->toArray());
+
+        if (isset($changedFields['status']) && $row->source_user_id) {
+            CmNotificationService::complaintStatusChanged($brandId, $row->source_user_id, $row->id, $row->reference, $newStatus);
+        }
 
         return ApiResponse::success(
             $row->fresh()->load(['brand', 'sourceUser:id,name,email', 'assignedUser:id,name,email']),

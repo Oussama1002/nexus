@@ -18,12 +18,18 @@ class ModerationAction extends Model
         'platform',
         'action_type',
         'description',
+        'account_handle',
+        'public_comment_deleted',
+        'message_sent',
+        'complaint_id',
         'screenshot_url',
         'action_date',
     ];
 
     protected $casts = [
         'action_date' => 'datetime',
+        'public_comment_deleted' => 'boolean',
+        'message_sent' => 'boolean',
     ];
 
     public function brand()
@@ -39,5 +45,10 @@ class ModerationAction extends Model
     public function socialAccount()
     {
         return $this->belongsTo(SocialAccount::class);
+    }
+
+    public function complaint()
+    {
+        return $this->belongsTo(Complaint::class);
     }
 }
