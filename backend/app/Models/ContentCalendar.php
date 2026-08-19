@@ -27,6 +27,8 @@ class ContentCalendar extends Model
         'validated_by',
         'validated_at',
         'status',
+        'published_url',
+        'not_published_reason',
     ];
 
     protected $casts = [

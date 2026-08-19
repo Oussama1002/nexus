@@ -225,6 +225,59 @@ class ContentCalendarController extends Controller
         );
     }
 
+    public function markPublished(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $row = ContentCalendar::query()->where('brand_id', $brandId)->findOrFail($id);
+        $before = $row->toArray();
+
+        if ($row->status !== 'approved') {
+            abort(422, 'Seul un contenu approuvé peut être marqué comme publié.');
+        }
+
+        $data = $request->validate([
+            'published_url' => 'required|string|max:500',
+        ]);
+
+        $row->status = 'published';
+        $row->published_at = now();
+        $row->published_url = $data['published_url'];
+        $row->save();
+
+        AuditLogger::log($request, 'content_calendar.mark_published', $row, $before, $row->fresh()->toArray());
+
+        return ApiResponse::success(
+            $row->fresh()->load(['socialAccount', 'strategy', 'assignee', 'validatedByUser:id,name,email']),
+            'Contenu marqué comme publié.'
+        );
+    }
+
+    public function markNotPublished(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $row = ContentCalendar::query()->where('brand_id', $brandId)->findOrFail($id);
+        $before = $row->toArray();
+
+        if (! in_array($row->status, ['approved', 'published'], true)) {
+            abort(422, 'Ce contenu ne peut pas être marqué comme non publié.');
+        }
+
+        $data = $request->validate([
+            'not_published_reason' => 'required|string',
+        ]);
+
+        $row->status = 'cancelled';
+        $row->not_published_reason = $data['not_published_reason'];
+        $row->save();
+
+        AuditLogger::log($request, 'content_calendar.mark_not_published', $row, $before, $row->fresh()->toArray());
+
+        return ApiResponse::success(
+            $row->fresh()->load(['socialAccount', 'strategy', 'assignee', 'validatedByUser:id,name,email']),
+            'Contenu marqué comme non publié.'
+        );
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */

@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\ConfirmatriceWorkspaceController;
 use App\Http\Controllers\Api\ChargeController;
 use App\Http\Controllers\Api\CmDailyTrackingController;
 use App\Http\Controllers\Api\CommunityManagerController;
+use App\Http\Controllers\Api\ComplaintController;
 use App\Http\Controllers\Api\ContentCalendarController;
 use App\Http\Controllers\Api\ContentProductionController;
 use App\Http\Controllers\Api\ConversationController;
@@ -317,6 +318,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('content-calendar/{id}/approve', [ContentCalendarController::class, 'approveContent'])->whereNumber('id')->middleware('permission:content_calendar.approve');
     Route::post('content-calendar/{id}/request-revision', [ContentCalendarController::class, 'requestRevision'])->whereNumber('id')->middleware('permission:content_calendar.approve');
     Route::post('content-calendar/{id}/reject', [ContentCalendarController::class, 'rejectContent'])->whereNumber('id')->middleware('permission:content_calendar.approve');
+    Route::post('content-calendar/{id}/mark-published', [ContentCalendarController::class, 'markPublished'])->whereNumber('id')->middleware('permission:content_calendar.update');
+    Route::post('content-calendar/{id}/mark-not-published', [ContentCalendarController::class, 'markNotPublished'])->whereNumber('id')->middleware('permission:content_calendar.update');
 
     Route::get('content-production', [ContentProductionController::class, 'index'])->middleware('permission:content_production.view');
     Route::post('content-production', [ContentProductionController::class, 'store'])->middleware('permission:content_production.create');
@@ -508,6 +511,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('signals', [CommunityManagerController::class, 'indexSignals'])->middleware('permission:cm_tracking.view');
         Route::post('signals', [CommunityManagerController::class, 'storeSignal'])->middleware('permission:cm_tracking.create');
         Route::patch('signals/{id}/status', [CommunityManagerController::class, 'updateSignalStatus'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+    });
+
+    // ── Call Center Complaints ──
+    Route::prefix('complaints')->group(function () {
+        Route::get('/', [ComplaintController::class, 'index'])->middleware('permission:cm_tracking.view');
+        Route::post('/', [ComplaintController::class, 'store'])->middleware('permission:cm_tracking.create');
+        Route::get('{id}', [ComplaintController::class, 'show'])->whereNumber('id')->middleware('permission:cm_tracking.view');
+        Route::put('{id}', [ComplaintController::class, 'update'])->whereNumber('id')->middleware('permission:cm_tracking.update');
+        Route::get('{id}/thread', [ComplaintController::class, 'threadEntries'])->whereNumber('id')->middleware('permission:cm_tracking.view');
+        Route::post('{id}/thread', [ComplaintController::class, 'addThreadEntry'])->whereNumber('id')->middleware('permission:cm_tracking.create');
     });
 
     // Lightweight endpoint: sidebar-nav visibility for ALL authenticated users (no settings.view required).
