@@ -42,8 +42,13 @@ use App\Http\Controllers\Api\FinanceSummaryController;
 use App\Http\Controllers\Api\InfluencerCollaborationController;
 use App\Http\Controllers\Api\InfluencerComplaintController;
 use App\Http\Controllers\Api\InfluencerController;
+use App\Http\Controllers\Api\InfluencerDeliverableController;
+use App\Http\Controllers\Api\InfluencerDocumentController;
 use App\Http\Controllers\Api\InfluencerMessageController;
+use App\Http\Controllers\Api\InfluencerPaymentController;
 use App\Http\Controllers\Api\InfluencerPerformanceController;
+use App\Http\Controllers\Api\InfluencerPublishedContentController;
+use App\Http\Controllers\Api\InfluencerShipmentController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MetaAdsController;
 use App\Http\Controllers\Api\MetaOAuthController;
@@ -338,20 +343,74 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('dashboards/social', [SocialInfluenceDashboardController::class, 'social'])->middleware('permission:social_accounts.view');
     Route::get('dashboards/influence', [SocialInfluenceDashboardController::class, 'influence'])->middleware('permission:influence.view');
 
+    // ─── Influencers ───
     Route::get('influencers', [InfluencerController::class, 'index'])->middleware('permission:influence.view');
     Route::post('influencers', [InfluencerController::class, 'store'])->middleware('permission:influence.create');
     Route::get('influencers/{id}', [InfluencerController::class, 'show'])->whereNumber('id')->middleware('permission:influence.view');
     Route::put('influencers/{id}', [InfluencerController::class, 'update'])->whereNumber('id')->middleware('permission:influence.update');
     Route::patch('influencers/{id}', [InfluencerController::class, 'update'])->whereNumber('id')->middleware('permission:influence.update');
+    Route::post('influencers/{id}/qualify', [InfluencerController::class, 'qualify'])->whereNumber('id')->middleware('permission:influence.manage');
+    Route::post('influencers/{id}/exclude', [InfluencerController::class, 'exclude'])->whereNumber('id')->middleware('permission:influence.manage');
+    Route::post('influencers/{id}/status', [InfluencerController::class, 'updateStatus'])->whereNumber('id')->middleware('permission:influence.update');
     Route::delete('influencers/{id}', [InfluencerController::class, 'destroy'])->whereNumber('id')->middleware('permission:influence.delete');
 
+    // ─── Influencer Collaborations ───
     Route::get('influencer-collaborations', [InfluencerCollaborationController::class, 'index'])->middleware('permission:influencer_collaborations.view');
     Route::post('influencer-collaborations', [InfluencerCollaborationController::class, 'store'])->middleware('permission:influencer_collaborations.create');
     Route::get('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_collaborations.view');
     Route::put('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
     Route::patch('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
+    Route::post('influencer-collaborations/{id}/status', [InfluencerCollaborationController::class, 'updateStatus'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
+    Route::post('influencer-collaborations/{id}/request-validation', [InfluencerCollaborationController::class, 'requestValidation'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
+    Route::post('influencer-collaborations/{id}/decide-validation', [InfluencerCollaborationController::class, 'decideValidation'])->whereNumber('id')->middleware('permission:influencer_collaborations.validate');
+    Route::post('influencer-collaborations/{id}/submit-review', [InfluencerCollaborationController::class, 'submitReview'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
     Route::delete('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_collaborations.delete');
 
+    // ─── Influencer Deliverables ───
+    Route::get('influencer-deliverables', [InfluencerDeliverableController::class, 'index'])->middleware('permission:influencer_deliverables.view');
+    Route::post('influencer-deliverables', [InfluencerDeliverableController::class, 'store'])->middleware('permission:influencer_deliverables.create');
+    Route::get('influencer-deliverables/{id}', [InfluencerDeliverableController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_deliverables.view');
+    Route::put('influencer-deliverables/{id}', [InfluencerDeliverableController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_deliverables.update');
+    Route::patch('influencer-deliverables/{id}', [InfluencerDeliverableController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_deliverables.update');
+    Route::delete('influencer-deliverables/{id}', [InfluencerDeliverableController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_deliverables.delete');
+
+    // ─── Influencer Published Contents ───
+    Route::get('influencer-published-contents', [InfluencerPublishedContentController::class, 'index'])->middleware('permission:influencer_deliverables.view');
+    Route::post('influencer-published-contents', [InfluencerPublishedContentController::class, 'store'])->middleware('permission:influencer_deliverables.create');
+    Route::get('influencer-published-contents/{id}', [InfluencerPublishedContentController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_deliverables.view');
+    Route::put('influencer-published-contents/{id}', [InfluencerPublishedContentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_deliverables.update');
+    Route::patch('influencer-published-contents/{id}', [InfluencerPublishedContentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_deliverables.update');
+    Route::delete('influencer-published-contents/{id}', [InfluencerPublishedContentController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_deliverables.delete');
+
+    // ─── Influencer Shipments ───
+    Route::get('influencer-shipments', [InfluencerShipmentController::class, 'index'])->middleware('permission:influencer_shipments.view');
+    Route::post('influencer-shipments', [InfluencerShipmentController::class, 'store'])->middleware('permission:influencer_shipments.create');
+    Route::get('influencer-shipments/{id}', [InfluencerShipmentController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_shipments.view');
+    Route::put('influencer-shipments/{id}', [InfluencerShipmentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_shipments.update');
+    Route::patch('influencer-shipments/{id}', [InfluencerShipmentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_shipments.update');
+    Route::delete('influencer-shipments/{id}', [InfluencerShipmentController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_shipments.delete');
+
+    // ─── Influencer Payments ───
+    Route::get('influencer-payments', [InfluencerPaymentController::class, 'index'])->middleware('permission:influencer_payments.view');
+    Route::post('influencer-payments', [InfluencerPaymentController::class, 'store'])->middleware('permission:influencer_payments.create');
+    Route::get('influencer-payments/{id}', [InfluencerPaymentController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_payments.view');
+    Route::put('influencer-payments/{id}', [InfluencerPaymentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_payments.update');
+    Route::patch('influencer-payments/{id}', [InfluencerPaymentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_payments.update');
+    Route::post('influencer-payments/{id}/submit-validation', [InfluencerPaymentController::class, 'submitForValidation'])->whereNumber('id')->middleware('permission:influencer_payments.update');
+    Route::post('influencer-payments/{id}/validate-n1', [InfluencerPaymentController::class, 'validateN1'])->whereNumber('id')->middleware('permission:influencer_payments.validate');
+    Route::post('influencer-payments/{id}/validate-n2', [InfluencerPaymentController::class, 'validateN2'])->whereNumber('id')->middleware('permission:influencer_payments.validate');
+    Route::post('influencer-payments/{id}/mark-paid', [InfluencerPaymentController::class, 'markPaid'])->whereNumber('id')->middleware('permission:influencer_payments.update');
+    Route::delete('influencer-payments/{id}', [InfluencerPaymentController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_payments.delete');
+
+    // ─── Influencer Documents ───
+    Route::get('influencer-documents', [InfluencerDocumentController::class, 'index'])->middleware('permission:influencer_documents.view');
+    Route::post('influencer-documents', [InfluencerDocumentController::class, 'store'])->middleware('permission:influencer_documents.create');
+    Route::get('influencer-documents/{id}', [InfluencerDocumentController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_documents.view');
+    Route::put('influencer-documents/{id}', [InfluencerDocumentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_documents.update');
+    Route::patch('influencer-documents/{id}', [InfluencerDocumentController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_documents.update');
+    Route::delete('influencer-documents/{id}', [InfluencerDocumentController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_documents.delete');
+
+    // ─── Influencer Performance (existing) ───
     Route::get('influencer-performance', [InfluencerPerformanceController::class, 'index'])->middleware('permission:influencer_performance.view');
     Route::post('influencer-performance', [InfluencerPerformanceController::class, 'store'])->middleware('permission:influencer_performance.create');
     Route::get('influencer-performance/{id}', [InfluencerPerformanceController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_performance.view');
@@ -359,6 +418,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('influencer-performance/{id}', [InfluencerPerformanceController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_performance.update');
     Route::delete('influencer-performance/{id}', [InfluencerPerformanceController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_performance.delete');
 
+    // ─── Influencer Messages (existing) ───
     Route::get('influencer-messages', [InfluencerMessageController::class, 'index'])->middleware('permission:influencer_messages.view');
     Route::post('influencer-messages', [InfluencerMessageController::class, 'store'])->middleware('permission:influencer_messages.create');
     Route::get('influencer-messages/{id}', [InfluencerMessageController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_messages.view');
@@ -366,6 +426,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('influencer-messages/{id}', [InfluencerMessageController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_messages.update');
     Route::delete('influencer-messages/{id}', [InfluencerMessageController::class, 'destroy'])->whereNumber('id')->middleware('permission:influencer_messages.delete');
 
+    // ─── Influencer Complaints (existing) ───
     Route::get('influencer-complaints', [InfluencerComplaintController::class, 'index'])->middleware('permission:influencer_complaints.view');
     Route::post('influencer-complaints', [InfluencerComplaintController::class, 'store'])->middleware('permission:influencer_complaints.create');
     Route::get('influencer-complaints/{id}', [InfluencerComplaintController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_complaints.view');
