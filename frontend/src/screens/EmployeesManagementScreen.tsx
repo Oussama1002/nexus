@@ -179,7 +179,9 @@ export function EmployeesManagementScreen() {
   const { hasPermission } = useAuth();
   const { brands, activeBrandId } = useBrand();
   const toast = useToast();
-  const [tab, setTab] = useState<'employees' | 'academy' | 'attendance' | 'payroll'>('employees');
+  const [tab, setTab] = useState<'dashboard' | 'employees' | 'academy' | 'attendance' | 'payroll'>('dashboard');
+  const [dash, setDash] = useState<any>(null);
+  const [dashLoading, setDashLoading] = useState(false);
 
   const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -267,6 +269,13 @@ export function EmployeesManagementScreen() {
   }, [canView, q, statusFilter]);
 
   useEffect(() => {
+    if (tab === 'dashboard') {
+      setDashLoading(true);
+      api.get<any>('hr/dashboard/summary').then((r) => {
+        if (r.ok) setDash(r.data);
+        setDashLoading(false);
+      });
+    }
     if (tab === 'employees' || tab === 'attendance') void load();
   }, [load, tab]);
 
@@ -630,6 +639,7 @@ export function EmployeesManagementScreen() {
 
       <div className="card p-3 flex flex-wrap items-center gap-2">
         {[
+          { id: 'dashboard', label: 'Tableau de bord' },
           { id: 'employees', label: 'Employes' },
           { id: 'academy', label: 'Brandna academy' },
           { id: 'attendance', label: 'Presences / absences / retards' },
@@ -652,6 +662,59 @@ export function EmployeesManagementScreen() {
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
           {error}
+        </div>
+      )}
+
+      {tab === 'dashboard' && (
+        <div className="space-y-4">
+          {dashLoading ? (
+            <div className="card p-10 text-center text-sm font-bold text-zinc-500">Chargement…</div>
+          ) : !dash ? (
+            <div className="card p-10 text-center text-sm font-bold text-zinc-500">Aucune donnée.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                {[
+                  { label: 'Employés actifs', value: dash.active_employees, cls: 'text-emerald-600' },
+                  { label: 'Onboarding en cours', value: dash.onboarding_in_progress, cls: 'text-amber-600' },
+                  { label: 'Congés en attente', value: dash.pending_leaves, cls: dash.pending_leaves > 0 ? 'text-orange-600' : 'text-zinc-700' },
+                  { label: 'Postes ouverts', value: dash.open_jobs, cls: 'text-blue-600' },
+                  { label: 'Candidats actifs', value: dash.active_candidates, cls: 'text-blue-600' },
+                  { label: 'Formations en cours', value: dash.ongoing_trainings, cls: 'text-violet-600' },
+                  { label: 'Évaluations en cours', value: dash.ongoing_evaluations, cls: 'text-violet-600' },
+                  { label: 'Dossiers discipline actifs', value: dash.active_discipline_cases, cls: dash.active_discipline_cases > 0 ? 'text-red-600' : 'text-emerald-600' },
+                  { label: 'Documents expirant (60 j)', value: dash.expiring_documents, cls: dash.expiring_documents > 0 ? 'text-orange-600' : 'text-emerald-600' },
+                  { label: 'Contrats se terminant (60 j)', value: dash.ending_contracts, cls: dash.ending_contracts > 0 ? 'text-orange-600' : 'text-emerald-600' },
+                ].map((k) => (
+                  <div key={k.label} className="card p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{k.label}</p>
+                    <p className={`text-2xl font-black mt-1 ${k.cls}`}>{k.value ?? 0}</p>
+                  </div>
+                ))}
+              </div>
+              {dash.current_payroll && (
+                <div className="card p-5">
+                  <h3 className="text-sm font-black text-zinc-900">Période de paie en cours</h3>
+                  <p className="text-sm text-zinc-600 mt-1">
+                    {String(dash.current_payroll.month).padStart(2, '0')}/{dash.current_payroll.year} — statut: <b>{dash.current_payroll.status}</b>
+                  </p>
+                </div>
+              )}
+              {Array.isArray(dash.by_department) && dash.by_department.length > 0 && (
+                <div className="card p-5">
+                  <h3 className="text-sm font-black text-zinc-900 mb-3">Répartition par département (actifs)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {dash.by_department.map((d: any) => (
+                      <div key={d.department ?? 'aucun'} className="rounded-xl border border-zinc-100 p-3">
+                        <p className="text-xs font-bold text-zinc-500 truncate">{d.department ?? '—'}</p>
+                        <p className="text-xl font-black text-zinc-900 mt-1">{d.count}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
