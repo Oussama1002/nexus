@@ -222,8 +222,8 @@ return new class extends Migration
                 $table->text('notes')->nullable();
                 $table->timestamps();
 
-                $table->index(['collaboration_id', 'deliverable_id']);
-                $table->index(['influencer_id', 'brand_id']);
+                $table->index(['collaboration_id', 'deliverable_id'], 'ipc_collab_deliv_idx');
+                $table->index(['influencer_id', 'brand_id'], 'ipc_influencer_brand_idx');
             });
         }
 
