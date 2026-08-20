@@ -71,6 +71,20 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SettingsCenterController;
 use App\Http\Controllers\Api\SystemSettingController;
 use App\Http\Controllers\Api\HrAttendanceController;
+use App\Http\Controllers\Api\HrCandidateController;
+use App\Http\Controllers\Api\HrCareerEventController;
+use App\Http\Controllers\Api\HrCommunicationController;
+use App\Http\Controllers\Api\HrDashboardController;
+use App\Http\Controllers\Api\HrDisciplineRecordController;
+use App\Http\Controllers\Api\HrDocumentController;
+use App\Http\Controllers\Api\HrEvaluationCampaignController;
+use App\Http\Controllers\Api\HrEvaluationController;
+use App\Http\Controllers\Api\HrJobOpeningController;
+use App\Http\Controllers\Api\HrLeaveRequestController;
+use App\Http\Controllers\Api\HrOnboardingController;
+use App\Http\Controllers\Api\HrPayrollBulletinController;
+use App\Http\Controllers\Api\HrPayrollPeriodController;
+use App\Http\Controllers\Api\HrTrainingRecordController;
 use App\Http\Controllers\Api\InternalChatController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -521,6 +535,124 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('hr/attendance/manager-mark', [HrAttendanceController::class, 'managerMark'])->middleware('permission:hr.update');
     Route::patch('hr/attendance/{id}/justify', [HrAttendanceController::class, 'justify'])->whereNumber('id');
     Route::get('hr/payroll-summary', [HrAttendanceController::class, 'payrollSummary'])->middleware('permission:hr.view');
+
+    // ─── HR Module Phase 2 ───
+    Route::get('hr/dashboard/summary', [HrDashboardController::class, 'summary'])->middleware('permission:hr.view');
+
+    // Leaves (Congés)
+    Route::get('hr/leaves', [HrLeaveRequestController::class, 'index'])->middleware('permission:hr_leaves.view');
+    Route::post('hr/leaves', [HrLeaveRequestController::class, 'store'])->middleware('permission:hr_leaves.create');
+    Route::get('hr/leaves/{id}', [HrLeaveRequestController::class, 'show'])->whereNumber('id')->middleware('permission:hr_leaves.view');
+    Route::put('hr/leaves/{id}', [HrLeaveRequestController::class, 'update'])->whereNumber('id')->middleware('permission:hr_leaves.update');
+    Route::patch('hr/leaves/{id}', [HrLeaveRequestController::class, 'update'])->whereNumber('id')->middleware('permission:hr_leaves.update');
+    Route::delete('hr/leaves/{id}', [HrLeaveRequestController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_leaves.update');
+    Route::post('hr/leaves/{id}/approve', [HrLeaveRequestController::class, 'approve'])->whereNumber('id')->middleware('permission:hr_leaves.approve');
+    Route::post('hr/leaves/{id}/refuse', [HrLeaveRequestController::class, 'refuse'])->whereNumber('id')->middleware('permission:hr_leaves.approve');
+
+    // Recruitment - Job openings
+    Route::get('hr/job-openings', [HrJobOpeningController::class, 'index'])->middleware('permission:hr_recruitment.view');
+    Route::post('hr/job-openings', [HrJobOpeningController::class, 'store'])->middleware('permission:hr_recruitment.create');
+    Route::get('hr/job-openings/{id}', [HrJobOpeningController::class, 'show'])->whereNumber('id')->middleware('permission:hr_recruitment.view');
+    Route::put('hr/job-openings/{id}', [HrJobOpeningController::class, 'update'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
+    Route::patch('hr/job-openings/{id}', [HrJobOpeningController::class, 'update'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
+    Route::delete('hr/job-openings/{id}', [HrJobOpeningController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_recruitment.delete');
+    Route::post('hr/job-openings/{id}/publish', [HrJobOpeningController::class, 'publish'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
+    Route::post('hr/job-openings/{id}/close', [HrJobOpeningController::class, 'close'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
+
+    // Recruitment - Candidates
+    Route::get('hr/candidates', [HrCandidateController::class, 'index'])->middleware('permission:hr_recruitment.view');
+    Route::post('hr/candidates', [HrCandidateController::class, 'store'])->middleware('permission:hr_recruitment.create');
+    Route::get('hr/candidates/{id}', [HrCandidateController::class, 'show'])->whereNumber('id')->middleware('permission:hr_recruitment.view');
+    Route::put('hr/candidates/{id}', [HrCandidateController::class, 'update'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
+    Route::patch('hr/candidates/{id}', [HrCandidateController::class, 'update'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
+    Route::delete('hr/candidates/{id}', [HrCandidateController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_recruitment.delete');
+    Route::post('hr/candidates/{id}/transition', [HrCandidateController::class, 'transition'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
+
+    // Onboarding
+    Route::get('hr/onboarding/items', [HrOnboardingController::class, 'index'])->middleware('permission:hr_onboarding.view');
+    Route::post('hr/onboarding/init', [HrOnboardingController::class, 'initChecklist'])->middleware('permission:hr_onboarding.create');
+    Route::post('hr/onboarding/items', [HrOnboardingController::class, 'addItem'])->middleware('permission:hr_onboarding.create');
+    Route::post('hr/onboarding/items/{id}/toggle', [HrOnboardingController::class, 'toggle'])->whereNumber('id')->middleware('permission:hr_onboarding.update');
+
+    // Payroll periods
+    Route::get('hr/payroll-periods', [HrPayrollPeriodController::class, 'index'])->middleware('permission:hr_payroll.view');
+    Route::post('hr/payroll-periods', [HrPayrollPeriodController::class, 'store'])->middleware('permission:hr_payroll.create');
+    Route::get('hr/payroll-periods/{id}', [HrPayrollPeriodController::class, 'show'])->whereNumber('id')->middleware('permission:hr_payroll.view');
+    Route::post('hr/payroll-periods/{id}/validate', [HrPayrollPeriodController::class, 'validate_'])->whereNumber('id')->middleware('permission:hr_payroll.validate');
+    Route::post('hr/payroll-periods/{id}/close', [HrPayrollPeriodController::class, 'close'])->whereNumber('id')->middleware('permission:hr_payroll.validate');
+
+    // Payroll bulletins
+    Route::get('hr/payroll-bulletins', [HrPayrollBulletinController::class, 'index'])->middleware('permission:hr_payroll.view');
+    Route::post('hr/payroll-bulletins', [HrPayrollBulletinController::class, 'store'])->middleware('permission:hr_payroll.create');
+    Route::get('hr/payroll-bulletins/{id}', [HrPayrollBulletinController::class, 'show'])->whereNumber('id')->middleware('permission:hr_payroll.view');
+    Route::put('hr/payroll-bulletins/{id}', [HrPayrollBulletinController::class, 'update'])->whereNumber('id')->middleware('permission:hr_payroll.update');
+    Route::patch('hr/payroll-bulletins/{id}', [HrPayrollBulletinController::class, 'update'])->whereNumber('id')->middleware('permission:hr_payroll.update');
+    Route::delete('hr/payroll-bulletins/{id}', [HrPayrollBulletinController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_payroll.update');
+    Route::post('hr/payroll-bulletins/{id}/validate', [HrPayrollBulletinController::class, 'validate_'])->whereNumber('id')->middleware('permission:hr_payroll.validate');
+
+    // Training
+    Route::get('hr/trainings', [HrTrainingRecordController::class, 'index'])->middleware('permission:hr_training.view');
+    Route::post('hr/trainings', [HrTrainingRecordController::class, 'store'])->middleware('permission:hr_training.create');
+    Route::get('hr/trainings/{id}', [HrTrainingRecordController::class, 'show'])->whereNumber('id')->middleware('permission:hr_training.view');
+    Route::put('hr/trainings/{id}', [HrTrainingRecordController::class, 'update'])->whereNumber('id')->middleware('permission:hr_training.update');
+    Route::patch('hr/trainings/{id}', [HrTrainingRecordController::class, 'update'])->whereNumber('id')->middleware('permission:hr_training.update');
+    Route::delete('hr/trainings/{id}', [HrTrainingRecordController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_training.delete');
+
+    // Evaluation campaigns
+    Route::get('hr/evaluation-campaigns', [HrEvaluationCampaignController::class, 'index'])->middleware('permission:hr_evaluations.view');
+    Route::post('hr/evaluation-campaigns', [HrEvaluationCampaignController::class, 'store'])->middleware('permission:hr_evaluations.create');
+    Route::get('hr/evaluation-campaigns/{id}', [HrEvaluationCampaignController::class, 'show'])->whereNumber('id')->middleware('permission:hr_evaluations.view');
+    Route::put('hr/evaluation-campaigns/{id}', [HrEvaluationCampaignController::class, 'update'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::patch('hr/evaluation-campaigns/{id}', [HrEvaluationCampaignController::class, 'update'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::delete('hr/evaluation-campaigns/{id}', [HrEvaluationCampaignController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::post('hr/evaluation-campaigns/{id}/launch', [HrEvaluationCampaignController::class, 'launch'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+
+    // Evaluations
+    Route::get('hr/evaluations', [HrEvaluationController::class, 'index'])->middleware('permission:hr_evaluations.view');
+    Route::post('hr/evaluations', [HrEvaluationController::class, 'store'])->middleware('permission:hr_evaluations.create');
+    Route::get('hr/evaluations/{id}', [HrEvaluationController::class, 'show'])->whereNumber('id')->middleware('permission:hr_evaluations.view');
+    Route::put('hr/evaluations/{id}', [HrEvaluationController::class, 'update'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::patch('hr/evaluations/{id}', [HrEvaluationController::class, 'update'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::delete('hr/evaluations/{id}', [HrEvaluationController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::post('hr/evaluations/{id}/sign-employee', [HrEvaluationController::class, 'signEmployee'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::post('hr/evaluations/{id}/sign-manager', [HrEvaluationController::class, 'signManager'])->whereNumber('id')->middleware('permission:hr_evaluations.update');
+    Route::post('hr/evaluations/{id}/finalize', [HrEvaluationController::class, 'finalize'])->whereNumber('id')->middleware('permission:hr_evaluations.finalize');
+
+    // Career events
+    Route::get('hr/career-events', [HrCareerEventController::class, 'index'])->middleware('permission:hr_career.view');
+    Route::post('hr/career-events', [HrCareerEventController::class, 'store'])->middleware('permission:hr_career.create');
+    Route::get('hr/career-events/{id}', [HrCareerEventController::class, 'show'])->whereNumber('id')->middleware('permission:hr_career.view');
+    Route::put('hr/career-events/{id}', [HrCareerEventController::class, 'update'])->whereNumber('id')->middleware('permission:hr_career.update');
+    Route::patch('hr/career-events/{id}', [HrCareerEventController::class, 'update'])->whereNumber('id')->middleware('permission:hr_career.update');
+    Route::delete('hr/career-events/{id}', [HrCareerEventController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_career.update');
+
+    // Discipline
+    Route::get('hr/discipline', [HrDisciplineRecordController::class, 'index'])->middleware('permission:hr_discipline.view');
+    Route::post('hr/discipline', [HrDisciplineRecordController::class, 'store'])->middleware('permission:hr_discipline.create');
+    Route::get('hr/discipline/{id}', [HrDisciplineRecordController::class, 'show'])->whereNumber('id')->middleware('permission:hr_discipline.view');
+    Route::put('hr/discipline/{id}', [HrDisciplineRecordController::class, 'update'])->whereNumber('id')->middleware('permission:hr_discipline.update');
+    Route::patch('hr/discipline/{id}', [HrDisciplineRecordController::class, 'update'])->whereNumber('id')->middleware('permission:hr_discipline.update');
+    Route::delete('hr/discipline/{id}', [HrDisciplineRecordController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_discipline.update');
+    Route::post('hr/discipline/{id}/transition', [HrDisciplineRecordController::class, 'transition'])->whereNumber('id')->middleware('permission:hr_discipline.update');
+    Route::post('hr/discipline/{id}/cancel', [HrDisciplineRecordController::class, 'cancel'])->whereNumber('id')->middleware('permission:hr_discipline.cancel');
+
+    // HR Documents
+    Route::get('hr/hr-documents', [HrDocumentController::class, 'index'])->middleware('permission:hr_documents.view');
+    Route::post('hr/hr-documents', [HrDocumentController::class, 'store'])->middleware('permission:hr_documents.create');
+    Route::get('hr/hr-documents/{id}', [HrDocumentController::class, 'show'])->whereNumber('id')->middleware('permission:hr_documents.view');
+    Route::put('hr/hr-documents/{id}', [HrDocumentController::class, 'update'])->whereNumber('id')->middleware('permission:hr_documents.update');
+    Route::patch('hr/hr-documents/{id}', [HrDocumentController::class, 'update'])->whereNumber('id')->middleware('permission:hr_documents.update');
+    Route::delete('hr/hr-documents/{id}', [HrDocumentController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_documents.delete');
+
+    // Internal communications
+    Route::get('hr/communications', [HrCommunicationController::class, 'index'])->middleware('permission:hr_communications.view');
+    Route::post('hr/communications', [HrCommunicationController::class, 'store'])->middleware('permission:hr_communications.create');
+    Route::get('hr/communications/{id}', [HrCommunicationController::class, 'show'])->whereNumber('id')->middleware('permission:hr_communications.view');
+    Route::put('hr/communications/{id}', [HrCommunicationController::class, 'update'])->whereNumber('id')->middleware('permission:hr_communications.update');
+    Route::patch('hr/communications/{id}', [HrCommunicationController::class, 'update'])->whereNumber('id')->middleware('permission:hr_communications.update');
+    Route::delete('hr/communications/{id}', [HrCommunicationController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_communications.update');
+    Route::post('hr/communications/{id}/publish', [HrCommunicationController::class, 'publish'])->whereNumber('id')->middleware('permission:hr_communications.publish');
+    Route::post('hr/communications/{id}/acknowledge', [HrCommunicationController::class, 'acknowledge'])->whereNumber('id');
     Route::get('automations/runs', [AutomationRuleController::class, 'runs'])->middleware('permission:automations.view');
     Route::post('automations/rules/{id}/test', [AutomationRuleController::class, 'test'])->whereNumber('id')->middleware('permission:automations.run');
     Route::get('automations/rules', [AutomationRuleController::class, 'index'])->middleware('permission:automations.view');
