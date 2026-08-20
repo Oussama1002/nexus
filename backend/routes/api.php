@@ -85,6 +85,18 @@ use App\Http\Controllers\Api\HrOnboardingController;
 use App\Http\Controllers\Api\HrPayrollBulletinController;
 use App\Http\Controllers\Api\HrPayrollPeriodController;
 use App\Http\Controllers\Api\HrTrainingRecordController;
+use App\Http\Controllers\Api\SmmAutomationController;
+use App\Http\Controllers\Api\SmmClientInsightController;
+use App\Http\Controllers\Api\SmmContentController;
+use App\Http\Controllers\Api\SmmDashboardController;
+use App\Http\Controllers\Api\SmmEventController;
+use App\Http\Controllers\Api\SmmExecutionCheckController;
+use App\Http\Controllers\Api\SmmLearningController;
+use App\Http\Controllers\Api\SmmMonthlyPlanController;
+use App\Http\Controllers\Api\SmmMonthlyReportController;
+use App\Http\Controllers\Api\SmmPerformanceController;
+use App\Http\Controllers\Api\SmmStrategyController;
+use App\Http\Controllers\Api\SmmVeilleController;
 use App\Http\Controllers\Api\InternalChatController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -653,6 +665,120 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('hr/communications/{id}', [HrCommunicationController::class, 'destroy'])->whereNumber('id')->middleware('permission:hr_communications.update');
     Route::post('hr/communications/{id}/publish', [HrCommunicationController::class, 'publish'])->whereNumber('id')->middleware('permission:hr_communications.publish');
     Route::post('hr/communications/{id}/acknowledge', [HrCommunicationController::class, 'acknowledge'])->whereNumber('id');
+
+    // ═══ SMM Module (Marketing → Réseaux sociaux → Stratégie & contenu) ═══
+    Route::get('smm/dashboard/summary', [SmmDashboardController::class, 'summary'])->middleware('permission:smm_strategy.view');
+
+    // Strategy
+    Route::get('smm/strategies', [SmmStrategyController::class, 'index'])->middleware('permission:smm_strategy.view');
+    Route::post('smm/strategies', [SmmStrategyController::class, 'store'])->middleware('permission:smm_strategy.create');
+    Route::get('smm/strategies/{id}', [SmmStrategyController::class, 'show'])->whereNumber('id')->middleware('permission:smm_strategy.view');
+    Route::put('smm/strategies/{id}', [SmmStrategyController::class, 'update'])->whereNumber('id')->middleware('permission:smm_strategy.update');
+    Route::patch('smm/strategies/{id}', [SmmStrategyController::class, 'update'])->whereNumber('id')->middleware('permission:smm_strategy.update');
+    Route::post('smm/strategies/{id}/submit', [SmmStrategyController::class, 'submit'])->whereNumber('id')->middleware('permission:smm_strategy.submit');
+    Route::post('smm/strategies/{id}/validate', [SmmStrategyController::class, 'validateAction'])->whereNumber('id')->middleware('permission:smm_strategy.validate');
+    Route::post('smm/strategies/{id}/reject', [SmmStrategyController::class, 'reject'])->whereNumber('id')->middleware('permission:smm_strategy.validate');
+    Route::post('smm/strategies/{id}/request-modification', [SmmStrategyController::class, 'requestModification'])->whereNumber('id')->middleware('permission:smm_strategy.validate');
+    Route::post('smm/strategies/{id}/solicit-contribution', [SmmStrategyController::class, 'solicitContribution'])->whereNumber('id')->middleware('permission:smm_strategy.submit');
+    Route::post('smm/strategies/{id}/contribute', [SmmStrategyController::class, 'recordContribution'])->whereNumber('id');
+    // Pillars nested under strategy
+    Route::post('smm/strategies/{strategyId}/pillars', [SmmStrategyController::class, 'storePillar'])->whereNumber('strategyId')->middleware('permission:smm_strategy.create');
+    Route::patch('smm/strategies/{strategyId}/pillars/{pillarId}', [SmmStrategyController::class, 'updatePillar'])->whereNumber('strategyId')->whereNumber('pillarId')->middleware('permission:smm_strategy.update');
+    Route::delete('smm/strategies/{strategyId}/pillars/{pillarId}', [SmmStrategyController::class, 'destroyPillar'])->whereNumber('strategyId')->whereNumber('pillarId')->middleware('permission:smm_strategy.update');
+
+    // Monthly plans
+    Route::get('smm/plans', [SmmMonthlyPlanController::class, 'index'])->middleware('permission:smm_plans.view');
+    Route::post('smm/plans', [SmmMonthlyPlanController::class, 'store'])->middleware('permission:smm_plans.create');
+    Route::get('smm/plans/{id}', [SmmMonthlyPlanController::class, 'show'])->whereNumber('id')->middleware('permission:smm_plans.view');
+    Route::put('smm/plans/{id}', [SmmMonthlyPlanController::class, 'update'])->whereNumber('id')->middleware('permission:smm_plans.update');
+    Route::patch('smm/plans/{id}', [SmmMonthlyPlanController::class, 'update'])->whereNumber('id')->middleware('permission:smm_plans.update');
+    Route::post('smm/plans/{id}/submit', [SmmMonthlyPlanController::class, 'submit'])->whereNumber('id')->middleware('permission:smm_plans.submit');
+    Route::post('smm/plans/{id}/validate', [SmmMonthlyPlanController::class, 'validateAction'])->whereNumber('id')->middleware('permission:smm_plans.validate');
+    Route::post('smm/plans/{id}/reject', [SmmMonthlyPlanController::class, 'reject'])->whereNumber('id')->middleware('permission:smm_plans.validate');
+    Route::post('smm/plans/{id}/request-modification', [SmmMonthlyPlanController::class, 'requestModification'])->whereNumber('id')->middleware('permission:smm_plans.validate');
+
+    // Contents (central pipeline)
+    Route::get('smm/contents', [SmmContentController::class, 'index'])->middleware('permission:smm_contents.view');
+    Route::post('smm/contents', [SmmContentController::class, 'store'])->middleware('permission:smm_contents.create');
+    Route::get('smm/contents/{id}', [SmmContentController::class, 'show'])->whereNumber('id')->middleware('permission:smm_contents.view');
+    Route::put('smm/contents/{id}', [SmmContentController::class, 'update'])->whereNumber('id')->middleware('permission:smm_contents.update');
+    Route::patch('smm/contents/{id}', [SmmContentController::class, 'update'])->whereNumber('id')->middleware('permission:smm_contents.update');
+    // Brief
+    Route::put('smm/contents/{id}/brief', [SmmContentController::class, 'upsertBrief'])->whereNumber('id')->middleware('permission:smm_briefs.update');
+    Route::post('smm/contents/{id}/mark-briefed', [SmmContentController::class, 'markBriefed'])->whereNumber('id')->middleware('permission:smm_contents.update');
+    Route::post('smm/contents/{id}/acknowledge-reception', [SmmContentController::class, 'acknowledgeReception'])->whereNumber('id');
+    // Versions & revisions
+    Route::post('smm/contents/{id}/versions', [SmmContentController::class, 'uploadVersion'])->whereNumber('id');
+    Route::post('smm/contents/{id}/revisions', [SmmContentController::class, 'addRevision'])->whereNumber('id')->middleware('permission:smm_contents.update');
+    // QC
+    Route::put('smm/contents/{id}/qc', [SmmContentController::class, 'runQc'])->whereNumber('id')->middleware('permission:smm_qc.run');
+    // Validation
+    Route::post('smm/contents/{id}/validate', [SmmContentController::class, 'validateAction'])->whereNumber('id')->middleware('permission:smm_contents.validate');
+    Route::post('smm/contents/{id}/direction-validate', [SmmContentController::class, 'directionValidate'])->whereNumber('id')->middleware('permission:smm_contents.validate');
+    // Publication slip
+    Route::put('smm/contents/{id}/slip', [SmmContentController::class, 'upsertSlip'])->whereNumber('id')->middleware('permission:smm_publication.update');
+    Route::post('smm/contents/{id}/transmit', [SmmContentController::class, 'transmit'])->whereNumber('id')->middleware('permission:smm_contents.transmit');
+    // Publication state (CM only, but permission gated at role level)
+    Route::post('smm/contents/{id}/set-published', [SmmContentController::class, 'setPublished'])->whereNumber('id');
+    Route::post('smm/contents/{id}/set-not-published', [SmmContentController::class, 'setNotPublished'])->whereNumber('id');
+    Route::post('smm/contents/{id}/cancel', [SmmContentController::class, 'cancel'])->whereNumber('id')->middleware('permission:smm_contents.update');
+
+    // Execution checks
+    Route::get('smm/execution-checks', [SmmExecutionCheckController::class, 'index'])->middleware('permission:smm_execution.view');
+    Route::post('smm/execution-checks', [SmmExecutionCheckController::class, 'store'])->middleware('permission:smm_execution.create');
+    Route::post('smm/execution-checks/{id}/correct', [SmmExecutionCheckController::class, 'correct'])->whereNumber('id')->middleware('permission:smm_execution.create');
+    Route::post('smm/execution-checks/{id}/escalate', [SmmExecutionCheckController::class, 'escalate'])->whereNumber('id')->middleware('permission:smm_execution.escalate');
+
+    // Veille
+    Route::get('smm/veille/notes', [SmmVeilleController::class, 'indexNotes'])->middleware('permission:smm_veille.view');
+    Route::post('smm/veille/notes', [SmmVeilleController::class, 'storeNote'])->middleware('permission:smm_veille.create');
+    Route::get('smm/veille/notes/{id}', [SmmVeilleController::class, 'showNote'])->whereNumber('id')->middleware('permission:smm_veille.view');
+    Route::patch('smm/veille/notes/{id}', [SmmVeilleController::class, 'updateNote'])->whereNumber('id')->middleware('permission:smm_veille.update');
+    Route::post('smm/veille/notes/{noteId}/trends', [SmmVeilleController::class, 'storeTrend'])->whereNumber('noteId')->middleware('permission:smm_veille.create');
+    Route::patch('smm/veille/notes/{noteId}/trends/{trendId}', [SmmVeilleController::class, 'updateTrend'])->whereNumber('noteId')->whereNumber('trendId')->middleware('permission:smm_veille.update');
+
+    // Events
+    Route::get('smm/events', [SmmEventController::class, 'index'])->middleware('permission:smm_events.view');
+    Route::post('smm/events', [SmmEventController::class, 'store'])->middleware('permission:smm_events.create');
+    Route::get('smm/events/{id}', [SmmEventController::class, 'show'])->whereNumber('id')->middleware('permission:smm_events.view');
+    Route::patch('smm/events/{id}', [SmmEventController::class, 'update'])->whereNumber('id')->middleware('permission:smm_events.update');
+    Route::post('smm/events/{id}/submit-retroplanning', [SmmEventController::class, 'submitRetroplanning'])->whereNumber('id')->middleware('permission:smm_events.update');
+    Route::post('smm/events/{id}/validate-retroplanning', [SmmEventController::class, 'validateRetroplanning'])->whereNumber('id')->middleware('permission:smm_events.validate');
+    Route::post('smm/events/{id}/validate-commercial-offer', [SmmEventController::class, 'validateCommercialOffer'])->whereNumber('id')->middleware('permission:smm_events.validate');
+
+    // Automations
+    Route::get('smm/automations', [SmmAutomationController::class, 'index'])->middleware('permission:smm_automations.view');
+    Route::post('smm/automations', [SmmAutomationController::class, 'store'])->middleware('permission:smm_automations.create');
+    Route::get('smm/automations/{id}', [SmmAutomationController::class, 'show'])->whereNumber('id')->middleware('permission:smm_automations.view');
+    Route::patch('smm/automations/{id}', [SmmAutomationController::class, 'update'])->whereNumber('id')->middleware('permission:smm_automations.update');
+    Route::post('smm/automations/{id}/record-test', [SmmAutomationController::class, 'recordTest'])->whereNumber('id')->middleware('permission:smm_automations.update');
+    Route::post('smm/automations/{id}/activate', [SmmAutomationController::class, 'activate'])->whereNumber('id')->middleware('permission:smm_automations.activate');
+    Route::post('smm/automations/{id}/suspend', [SmmAutomationController::class, 'suspend'])->whereNumber('id')->middleware('permission:smm_automations.suspend');
+    Route::post('smm/automations/{id}/archive', [SmmAutomationController::class, 'archive'])->whereNumber('id')->middleware('permission:smm_automations.update');
+
+    // Performance
+    Route::get('smm/performance', [SmmPerformanceController::class, 'index'])->middleware('permission:smm_contents.view');
+    Route::post('smm/performance', [SmmPerformanceController::class, 'upsert'])->middleware('permission:smm_contents.update');
+    Route::get('smm/performance/{contentId}/snapshots', [SmmPerformanceController::class, 'snapshots'])->whereNumber('contentId')->middleware('permission:smm_contents.view');
+
+    // Learnings
+    Route::get('smm/learnings', [SmmLearningController::class, 'index'])->middleware('permission:smm_learnings.view');
+    Route::post('smm/learnings', [SmmLearningController::class, 'store'])->middleware('permission:smm_learnings.create');
+    Route::patch('smm/learnings/{id}', [SmmLearningController::class, 'update'])->whereNumber('id')->middleware('permission:smm_learnings.update');
+    Route::post('smm/learnings/{id}/mark-communicated', [SmmLearningController::class, 'markCommunicated'])->whereNumber('id')->middleware('permission:smm_learnings.update');
+
+    // Monthly reports
+    Route::get('smm/reports', [SmmMonthlyReportController::class, 'index'])->middleware('permission:smm_reports.view');
+    Route::post('smm/reports', [SmmMonthlyReportController::class, 'store'])->middleware('permission:smm_reports.create');
+    Route::get('smm/reports/{id}', [SmmMonthlyReportController::class, 'show'])->whereNumber('id')->middleware('permission:smm_reports.view');
+    Route::patch('smm/reports/{id}', [SmmMonthlyReportController::class, 'update'])->whereNumber('id')->middleware('permission:smm_reports.update');
+    Route::post('smm/reports/{id}/diffuse', [SmmMonthlyReportController::class, 'diffuse'])->whereNumber('id')->middleware('permission:smm_reports.diffuse');
+
+    // Client insights
+    Route::get('smm/insights', [SmmClientInsightController::class, 'index'])->middleware('permission:smm_insights.view');
+    Route::post('smm/insights', [SmmClientInsightController::class, 'store'])->middleware('permission:smm_insights.create');
+    Route::post('smm/insights/{id}/qualify', [SmmClientInsightController::class, 'qualify'])->whereNumber('id')->middleware('permission:smm_insights.qualify');
+    Route::post('smm/insights/{id}/attach-content', [SmmClientInsightController::class, 'attachContent'])->whereNumber('id')->middleware('permission:smm_insights.update');
     Route::get('automations/runs', [AutomationRuleController::class, 'runs'])->middleware('permission:automations.view');
     Route::post('automations/rules/{id}/test', [AutomationRuleController::class, 'test'])->whereNumber('id')->middleware('permission:automations.run');
     Route::get('automations/rules', [AutomationRuleController::class, 'index'])->middleware('permission:automations.view');
