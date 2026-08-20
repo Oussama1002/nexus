@@ -191,7 +191,7 @@ export function SocialMediaWorkspaceScreen() {
       {!loading && space === 'events' && <EventsTab events={events} onReload={load} />}
       {!loading && space === 'automations' && <AutomationsTab automations={automations} onReload={load} />}
       {!loading && space === 'veille' && <VeilleTab notes={veilleNotes} onReload={load} />}
-      {!loading && space === 'performance' && <PerformanceTab performances={performances} contents={contents} />}
+      {!loading && space === 'performance' && <PerformanceTab performances={performances} contents={contents} onReload={load} />}
       {!loading && space === 'supervision' && <SupervisionTab checks={execChecks} contents={contents} onReload={load} />}
       {!loading && space === 'library' && <LibraryTab learnings={learnings} reports={reports} insights={insights} onReload={load} />}
     </div>
@@ -1244,12 +1244,42 @@ function VeilleTab({ notes, onReload }: { notes: R[]; onReload: () => void }) {
 }
 
 /* ─── PERFORMANCE ─── */
-function PerformanceTab({ performances, contents }: { performances: R[]; contents: R[] }) {
+function PerformanceTab({ performances, contents, onReload }: { performances: R[]; contents: R[]; onReload?: () => void }) {
+  const toast = useToast();
   const contentMap = new Map(contents.map((c) => [c.id, c]));
+  const [syncing, setSyncing] = useState(false);
+
+  const syncAll = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const r = await api.post<R>('smm/performance/sync-all', { stale_minutes: 0, limit: 100 });
+      if (!r.ok) { toast.error(r.message); return; }
+      toast.success('Synchronisation Meta lancée.');
+      onReload?.();
+    } finally { setSyncing(false); }
+  };
+
+  const syncOne = async (contentId: number) => {
+    const r = await api.post<R>(`smm/performance/sync-content/${contentId}`, {});
+    if (!r.ok) { toast.error(r.message); return; }
+    toast.success('Synchronisé.');
+    onReload?.();
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          onClick={syncAll}
+          disabled={syncing}
+          className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2 disabled:opacity-60"
+        >
+          <BarChart3 className="w-4 h-4" /> {syncing ? 'Synchronisation…' : 'Synchroniser depuis Meta'}
+        </button>
+      </div>
       {performances.length === 0 ? (
-        <EmptyState title="Aucune donnée de performance" description="Les données sont récupérées automatiquement depuis Meta et TikTok." />
+        <EmptyState title="Aucune donnée de performance" description="Les données sont récupérées automatiquement depuis Meta et TikTok. Configurez les identifiants Meta dans Paramètres → Meta puis cliquez sur « Synchroniser depuis Meta »." />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full">
@@ -1264,11 +1294,12 @@ function PerformanceTab({ performances, contents }: { performances: R[]; content
                 <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Partages</th>
                 <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Clics</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Dernière sync</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400"></th>
               </tr>
             </thead>
             <tbody>
               {performances.map((p) => (
-                <tr key={p.id} className="border-b border-zinc-50">
+                <tr key={p.id} className={`border-b border-zinc-50 ${p.sync_failed ? 'bg-red-50/40' : ''}`}>
                   <td className="px-4 py-3 text-sm font-bold text-zinc-900">{p.content?.title ?? contentMap.get(p.content_id)?.title ?? `#${p.content_id}`}</td>
                   <td className="px-4 py-3 text-xs uppercase text-zinc-600">{p.platform}</td>
                   <td className="px-4 py-3 text-sm text-right">{Number(p.reach).toLocaleString('fr-FR')}</td>
@@ -1277,7 +1308,15 @@ function PerformanceTab({ performances, contents }: { performances: R[]; content
                   <td className="px-4 py-3 text-sm text-right">{Number(p.comments_count).toLocaleString('fr-FR')}</td>
                   <td className="px-4 py-3 text-sm text-right">{Number(p.shares).toLocaleString('fr-FR')}</td>
                   <td className="px-4 py-3 text-sm text-right">{Number(p.clicks).toLocaleString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-xs text-zinc-500">{p.last_synced_at ? new Date(p.last_synced_at).toLocaleString('fr-FR') : '—'}{p.sync_failed && <span className="text-red-600 ml-1">⚠</span>}</td>
+                  <td className="px-4 py-3 text-xs text-zinc-500">
+                    {p.last_synced_at ? new Date(p.last_synced_at).toLocaleString('fr-FR') : '—'}
+                    {p.sync_failed && <div className="text-red-600 mt-0.5" title={p.sync_error}>⚠ {p.sync_error?.slice(0, 40) ?? 'Échec'}</div>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {['instagram', 'facebook'].includes(p.platform) && (
+                      <button onClick={() => syncOne(p.content_id)} className="text-xs font-bold text-primary-600 hover:underline">Sync</button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

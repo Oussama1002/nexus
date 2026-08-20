@@ -760,6 +760,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('smm/performance', [SmmPerformanceController::class, 'index'])->middleware('permission:smm_contents.view');
     Route::post('smm/performance', [SmmPerformanceController::class, 'upsert'])->middleware('permission:smm_contents.update');
     Route::get('smm/performance/{contentId}/snapshots', [SmmPerformanceController::class, 'snapshots'])->whereNumber('contentId')->middleware('permission:smm_contents.view');
+    Route::post('smm/performance/sync-content/{contentId}', [SmmPerformanceController::class, 'syncContent'])->whereNumber('contentId')->middleware('permission:smm_contents.update');
+    Route::post('smm/performance/sync-all', [SmmPerformanceController::class, 'syncAll'])->middleware('permission:smm_contents.update');
 
     // Learnings
     Route::get('smm/learnings', [SmmLearningController::class, 'index'])->middleware('permission:smm_learnings.view');

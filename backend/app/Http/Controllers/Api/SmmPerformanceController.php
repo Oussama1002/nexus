@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\SmmContent;
 use App\Models\SmmContentPerformance;
 use App\Models\SmmPerformanceSnapshot;
 use App\Services\AuditLogger;
+use App\Services\Meta\MetaContentInsightsService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 class SmmPerformanceController extends Controller
 {
@@ -73,5 +76,38 @@ class SmmPerformanceController extends Controller
             ->orderBy('snapshot_at');
         if ($platform = $request->query('platform')) $q->where('platform', $platform);
         return ApiResponse::success($q->get());
+    }
+
+    /**
+     * Trigger a Meta sync for one specific content (Instagram or Facebook).
+     */
+    public function syncContent(Request $request, string $contentId, MetaContentInsightsService $svc): JsonResponse
+    {
+        $content = SmmContent::query()->findOrFail($contentId);
+        $row = $svc->syncContent($content);
+        if (! $row) {
+            return ApiResponse::error('Contenu non éligible à la synchronisation Meta (statut, plateforme ou identifiant manquant).', null, 422);
+        }
+        if ($row->sync_failed) {
+            return ApiResponse::error($row->sync_error ?: 'Échec de synchronisation Meta.', null, 502);
+        }
+        AuditLogger::log($request, 'smm_perf.meta_sync_one', $row);
+        return ApiResponse::success($row, 'Performance synchronisée.');
+    }
+
+    /**
+     * Trigger a batch Meta sync for the current brand. Wraps the artisan command
+     * so the frontend can offer a "Sync now" button without needing SSH access.
+     */
+    public function syncAll(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $options = ['--stale-minutes' => (int) $request->input('stale_minutes', 0)];
+        if ($brandId !== null) $options['--brand'] = $brandId;
+        if ($limit = (int) $request->input('limit', 100)) $options['--limit'] = $limit;
+        Artisan::call('smm:sync-meta-performance', $options);
+        $output = trim(Artisan::output());
+        AuditLogger::log($request, 'smm_perf.meta_sync_all', null, null, ['brand_id' => $brandId, 'output' => $output]);
+        return ApiResponse::success(['output' => $output], 'Synchronisation Meta lancée.');
     }
 }
