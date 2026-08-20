@@ -1,179 +1,200 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
-import * as api from '../lib/api';
-import { buildQuery } from '../lib/pagination';
-import type { Paginated } from '../lib/pagination';
 import { useToast } from '../context/ToastContext';
-import { GraduationCap, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import * as api from '../lib/api';
+import { buildQuery, type Paginated } from '../lib/pagination';
 
-type Training = {
+type TrainingRow = {
   id: number;
+  employee?: { id: number; full_name: string; department: string | null };
   title: string;
-  category: string;
-  trainer: string;
-  duration_hours: number;
-  enrolled_count: number;
-  completion_rate: number;
-  next_session_at: string | null;
+  training_type: string;
+  provider: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  duration_hours: number | null;
   status: string;
+  result: string | null;
+  attestation_url: string | null;
 };
 
-const statusColor: Record<string, string> = {
-  Active: 'bg-emerald-50 text-emerald-700',
-  'Planifiée': 'bg-blue-50 text-blue-700',
-  'Terminée': 'bg-zinc-100 text-zinc-600',
-  'Archivée': 'bg-zinc-100 text-zinc-500',
+type EmpOpt = { id: number; full_name: string };
+
+const TYPES = [
+  { value: 'interne', label: 'Interne' },
+  { value: 'externe', label: 'Externe' },
+  { value: 'en_ligne', label: 'En ligne' },
+  { value: 'certification', label: 'Certification' },
+];
+
+const STATUSES: Record<string, { label: string; cls: string }> = {
+  planifiee: { label: 'Planifiée', cls: 'bg-blue-50 text-blue-700' },
+  en_cours: { label: 'En cours', cls: 'bg-amber-50 text-amber-700' },
+  terminee: { label: 'Terminée', cls: 'bg-emerald-50 text-emerald-700' },
+  annulee: { label: 'Annulée', cls: 'bg-zinc-100 text-zinc-500' },
 };
 
 export function TrainingScreen() {
-  const { toast } = useToast();
-  const [rows, setRows] = useState<Training[]>([]);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [lastPage, setLastPage] = useState(1);
+  const toast = useToast();
+  const [rows, setRows] = useState<TrainingRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [status, setStatus] = useState('');
-  const [stats, setStats] = useState({ active: 0, enrolled: 0, sessions: 0, completion: 0 });
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [employees, setEmployees] = useState<EmpOpt[]>([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({
+    employee_id: '', title: '', training_type: 'interne', provider: '',
+    start_date: '', end_date: '', duration_hours: '', description: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const res = await api.get<Paginated<TrainingRow>>('hr/trainings' + buildQuery({ per_page: 25, page }));
+    setLoading(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    setRows(res.data.data); setLastPage(res.data.last_page);
+  };
+  useEffect(() => { load(); }, [page]); // eslint-disable-line
 
   useEffect(() => {
     (async () => {
-      setLoading(true);
-      try {
-        const res = await api.get<Paginated<Training>>('trainings' + buildQuery({ per_page: 25, page }));
-        if (!res.ok) { setRows([]); return; }
-        setRows(res.data.data);
-        setTotal(res.data.total);
-        setLastPage(res.data.last_page);
-        const d = res.data.data;
-        setStats({
-          active: d.filter(r => r.status === 'Active').length,
-          enrolled: d.reduce((s, r) => s + r.enrolled_count, 0),
-          sessions: d.filter(r => r.next_session_at).length,
-          completion: d.length ? Math.round(d.reduce((s, r) => s + r.completion_rate, 0) / d.length) : 0,
-        });
-      } catch {
-        toast('Erreur lors du chargement des formations', 'error');
-        setRows([]);
-      } finally {
-        setLoading(false);
-      }
+      const res = await api.get<Paginated<EmpOpt>>('hr' + buildQuery({ per_page: 100 }));
+      if (res.ok) setEmployees(res.data.data.map((e: any) => ({ id: e.id, full_name: e.full_name })));
     })();
-  }, [page]);
+  }, []);
 
-  const filtered = rows.filter(r => {
-    if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !r.trainer.toLowerCase().includes(search.toLowerCase())) return false;
-    if (category && r.category !== category) return false;
-    if (status && r.status !== status) return false;
-    return true;
-  });
-
-  const categories = [...new Set(rows.map(r => r.category))];
+  const save = async () => {
+    if (!form.employee_id || !form.title.trim()) { toast.error('Employé et titre requis.'); return; }
+    setSaving(true);
+    const res = await api.post('hr/trainings', {
+      employee_id: Number(form.employee_id),
+      title: form.title,
+      training_type: form.training_type,
+      provider: form.provider || undefined,
+      start_date: form.start_date || undefined,
+      end_date: form.end_date || undefined,
+      duration_hours: form.duration_hours ? Number(form.duration_hours) : undefined,
+      description: form.description || undefined,
+    });
+    setSaving(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success('Formation ajoutée.');
+    setShowCreate(false);
+    setForm({ employee_id: '', title: '', training_type: 'interne', provider: '', start_date: '', end_date: '', duration_hours: '', description: '' });
+    load();
+  };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Formation" subtitle="Catalogue et suivi des formations internes">
-        <button className="btn btn-primary flex items-center gap-2">
-          <Plus size={16} /> Nouvelle formation
-        </button>
-      </PageHeader>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Formations actives</p>
-          <p className="text-2xl font-black text-zinc-900 mt-1">{stats.active}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Participants inscrits</p>
-          <p className="text-2xl font-black text-zinc-900 mt-1">{stats.enrolled}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sessions ce mois</p>
-          <p className="text-2xl font-black text-zinc-900 mt-1">{stats.sessions}</p>
-        </div>
-        <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux complétion</p>
-          <p className="text-2xl font-black text-zinc-900 mt-1">{stats.completion}%</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            className="pl-9 pr-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium w-full max-w-xs"
-            placeholder="Rechercher..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={category} onChange={e => setCategory(e.target.value)}>
-          <option value="">Toutes les catégories</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={status} onChange={e => setStatus(e.target.value)}>
-          <option value="">Tous les statuts</option>
-          <option value="Active">Active</option>
-          <option value="Planifiée">Planifiée</option>
-          <option value="Terminée">Terminée</option>
-          <option value="Archivée">Archivée</option>
-        </select>
-      </div>
+      <PageHeader
+        title="Formations"
+        subtitle="Suivi des formations et compétences"
+        right={
+          <button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Nouvelle formation
+          </button>
+        }
+      />
 
       {loading ? (
-        <div className="text-center py-12 text-zinc-400">Chargement...</div>
-      ) : filtered.length === 0 ? (
-        <EmptyState icon={GraduationCap} title="Aucune formation" description="Aucune formation ne correspond à vos critères." />
+        <div className="card p-10 text-center text-sm font-bold text-zinc-500">Chargement…</div>
+      ) : rows.length === 0 ? (
+        <EmptyState title="Aucune formation" description="Ajoutez une formation pour commencer." />
       ) : (
         <>
           <div className="card overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Employé</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Titre</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Formateur</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Prestataire</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Dates</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Durée</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Inscrits</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Complétion</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Prochaine session</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Attestation</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(r => (
-                  <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                    <td className="px-4 py-3 text-sm font-medium text-zinc-900">{r.title}</td>
-                    <td className="px-4 py-3 text-sm">{r.category}</td>
-                    <td className="px-4 py-3 text-sm">{r.trainer}</td>
-                    <td className="px-4 py-3 text-sm">{r.duration_hours} h</td>
-                    <td className="px-4 py-3 text-sm">{r.enrolled_count}</td>
-                    <td className="px-4 py-3 text-sm">{r.completion_rate}%</td>
-                    <td className="px-4 py-3 text-sm">{r.next_session_at ? new Date(r.next_session_at).toLocaleDateString('fr-FR') : '—'}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusColor[r.status] || 'bg-zinc-100 text-zinc-600'}`}>{r.status}</span>
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const s = STATUSES[r.status] ?? { label: r.status, cls: 'bg-zinc-100 text-zinc-600' };
+                  return (
+                    <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                      <td className="px-4 py-3 text-sm font-bold text-zinc-900">{r.employee?.full_name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-800">{r.title}</td>
+                      <td className="px-4 py-3 text-xs uppercase text-zinc-600">{r.training_type}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{r.provider ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs text-zinc-500">
+                        {r.start_date ? new Date(r.start_date).toLocaleDateString('fr-FR') : '—'}
+                        {r.end_date ? ` → ${new Date(r.end_date).toLocaleDateString('fr-FR')}` : ''}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{r.duration_hours ? `${r.duration_hours}h` : '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${s.cls}`}>{s.label}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm">{r.attestation_url ? <a href={r.attestation_url} target="_blank" rel="noreferrer" className="text-primary-600 font-bold">Voir</a> : '—'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-500">{total} résultat{total > 1 ? 's' : ''}</p>
-            <div className="flex items-center gap-2">
-              <button className="p-2 rounded-lg hover:bg-zinc-100 disabled:opacity-40" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-sm font-medium">{page} / {lastPage}</span>
-              <button className="p-2 rounded-lg hover:bg-zinc-100 disabled:opacity-40" disabled={page >= lastPage} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight size={16} />
-              </button>
+            <p className="text-sm font-medium text-zinc-500">Page {page} sur {lastPage}</p>
+            <div className="flex gap-2">
+              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold disabled:opacity-40">Précédent</button>
+              <button disabled={page >= lastPage} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 rounded-lg border border-zinc-200 text-sm font-bold disabled:opacity-40">Suivant</button>
             </div>
           </div>
         </>
+      )}
+
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-black text-zinc-900">Nouvelle formation</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Employé *
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
+                  <option value="">— sélectionner —</option>
+                  {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                </select>
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Titre *
+                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Type
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.training_type} onChange={(e) => setForm({ ...form, training_type: e.target.value })}>
+                  {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Prestataire
+                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Date début
+                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Date fin
+                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Durée (heures)
+                <input type="number" min="1" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_hours} onChange={(e) => setForm({ ...form, duration_hours: e.target.value })} />
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Description
+                <textarea className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+              <button onClick={save} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">{saving ? 'Envoi…' : 'Créer'}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
