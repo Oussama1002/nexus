@@ -54,7 +54,7 @@ import {
 } from '../lib/statusLabelsFr';
 
 /* ─────── Types ─────── */
-type Space = 'pilotage' | 'influenceuses' | 'collaborations' | 'livrables' | 'envois' | 'paiements';
+type Space = 'pilotage' | 'influenceuses' | 'collaborations' | 'livrables' | 'envois' | 'paiements' | 'documents';
 type R = Record<string, unknown>;
 
 const PLATFORMS = [
@@ -207,6 +207,8 @@ export function InfluenceWorkspaceScreen() {
   const [deliverables, setDeliverables] = useState<R[]>([]);
   const [shipments, setShipments] = useState<R[]>([]);
   const [payments, setPayments] = useState<R[]>([]);
+  const [publishedContents, setPublishedContents] = useState<R[]>([]);
+  const [documents, setDocuments] = useState<R[]>([]);
   const [campaigns, setCampaigns] = useState<{ id: number; name: string }[]>([]);
 
   /* ── Filters ── */
@@ -240,12 +242,16 @@ export function InfluenceWorkspaceScreen() {
         if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
         if (campR.ok && isPaginator(campR.data)) setCampaigns(campR.data.data);
       } else if (space === 'livrables') {
-        const [delR, colR] = await Promise.all([
+        const [delR, colR, pcR, infR] = await Promise.all([
           api.get<LaravelPaginator<R>>('influencer-deliverables?per_page=200'),
           api.get<LaravelPaginator<R>>('influencer-collaborations?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencer-published-contents?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencers?per_page=200'),
         ]);
         if (delR.ok && isPaginator(delR.data)) setDeliverables(delR.data.data);
         if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
+        if (pcR.ok && isPaginator(pcR.data)) setPublishedContents(pcR.data.data);
+        if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
       } else if (space === 'envois') {
         const [shipR, infR, colR] = await Promise.all([
           api.get<LaravelPaginator<R>>('influencer-shipments?per_page=200'),
@@ -262,6 +268,15 @@ export function InfluenceWorkspaceScreen() {
           api.get<LaravelPaginator<R>>('influencer-collaborations?per_page=200'),
         ]);
         if (payR.ok && isPaginator(payR.data)) setPayments(payR.data.data);
+        if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
+        if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
+      } else if (space === 'documents') {
+        const [docR, infR, colR] = await Promise.all([
+          api.get<LaravelPaginator<R>>('influencer-documents?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencers?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencer-collaborations?per_page=200'),
+        ]);
+        if (docR.ok && isPaginator(docR.data)) setDocuments(docR.data.data);
         if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
         if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
       }
@@ -753,6 +768,147 @@ export function InfluenceWorkspaceScreen() {
     void load();
   };
 
+  /* ──────────────────────── PUBLISHED CONTENT CRUD ──────────────────────── */
+  const [pcOpen, setPcOpen] = useState(false);
+  const [pcId, setPcId] = useState<number | undefined>();
+  const [pcForm, setPcForm] = useState({
+    deliverable_id: '', collaboration_id: '', influencer_id: '',
+    content_type: 'post', platform: '', content_url: '', screenshot_url: '',
+    published_at: '', quantity: '1', notes: '',
+    views: '', reach: '', impressions: '', likes: '', comments_count: '', shares: '', saves: '', clicks: '',
+  });
+  const [pcSaving, setPcSaving] = useState(false);
+
+  const openPc = (id?: number) => {
+    setPcId(id);
+    setPcForm({
+      deliverable_id: '', collaboration_id: '', influencer_id: '',
+      content_type: 'post', platform: '', content_url: '', screenshot_url: '',
+      published_at: '', quantity: '1', notes: '',
+      views: '', reach: '', impressions: '', likes: '', comments_count: '', shares: '', saves: '', clicks: '',
+    });
+    if (id) void loadPc(id);
+    setPcOpen(true);
+  };
+
+  const loadPc = async (id: number) => {
+    const r = await api.get<R>(`influencer-published-contents/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    const d = r.data;
+    setPcForm({
+      deliverable_id: d.deliverable_id ? String(d.deliverable_id) : '',
+      collaboration_id: d.collaboration_id ? String(d.collaboration_id) : '',
+      influencer_id: d.influencer_id ? String(d.influencer_id) : '',
+      content_type: String(d.content_type ?? 'post'), platform: String(d.platform ?? ''),
+      content_url: String(d.content_url ?? ''), screenshot_url: String(d.screenshot_url ?? ''),
+      published_at: d.published_at ? String(d.published_at).slice(0, 10) : '',
+      quantity: String(d.quantity ?? 1), notes: String(d.notes ?? ''),
+      views: d.views != null ? String(d.views) : '',
+      reach: d.reach != null ? String(d.reach) : '',
+      impressions: d.impressions != null ? String(d.impressions) : '',
+      likes: d.likes != null ? String(d.likes) : '',
+      comments_count: d.comments_count != null ? String(d.comments_count) : '',
+      shares: d.shares != null ? String(d.shares) : '',
+      saves: d.saves != null ? String(d.saves) : '',
+      clicks: d.clicks != null ? String(d.clicks) : '',
+    });
+  };
+
+  const savePc = async () => {
+    const body: R = {
+      deliverable_id: Number(pcForm.deliverable_id),
+      collaboration_id: Number(pcForm.collaboration_id),
+      influencer_id: Number(pcForm.influencer_id),
+      content_type: pcForm.content_type, platform: pcForm.platform || null,
+      content_url: pcForm.content_url || null, screenshot_url: pcForm.screenshot_url || null,
+      published_at: pcForm.published_at || null, quantity: Number(pcForm.quantity || 1),
+      notes: pcForm.notes || null,
+      views: pcForm.views ? Number(pcForm.views) : null,
+      reach: pcForm.reach ? Number(pcForm.reach) : null,
+      impressions: pcForm.impressions ? Number(pcForm.impressions) : null,
+      likes: pcForm.likes ? Number(pcForm.likes) : null,
+      comments_count: pcForm.comments_count ? Number(pcForm.comments_count) : null,
+      shares: pcForm.shares ? Number(pcForm.shares) : null,
+      saves: pcForm.saves ? Number(pcForm.saves) : null,
+      clicks: pcForm.clicks ? Number(pcForm.clicks) : null,
+    };
+    setPcSaving(true);
+    try {
+      const r = pcId
+        ? await api.patch(`influencer-published-contents/${pcId}`, body)
+        : await api.post('influencer-published-contents', body);
+      if (!r.ok) return errToast(toast, r);
+      toast.success(pcId ? 'Contenu mis à jour.' : 'Contenu enregistré.');
+      setPcOpen(false);
+      void load();
+    } finally { setPcSaving(false); }
+  };
+
+  const deletePc = async (id: number) => {
+    const r = await api.del(`influencer-published-contents/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Contenu supprimé.');
+    void load();
+  };
+
+  /* ──────────────────────── DOCUMENT CRUD ──────────────────────── */
+  const [docOpen, setDocOpen] = useState(false);
+  const [docId, setDocId] = useState<number | undefined>();
+  const [docForm, setDocForm] = useState({
+    influencer_id: '', collaboration_id: '', title: '',
+    document_type: 'autre', file_url: '', notes: '',
+  });
+  const [docSaving, setDocSaving] = useState(false);
+
+  const openDoc = (id?: number) => {
+    setDocId(id);
+    setDocForm({
+      influencer_id: '', collaboration_id: '', title: '',
+      document_type: 'autre', file_url: '', notes: '',
+    });
+    if (id) void loadDoc(id);
+    setDocOpen(true);
+  };
+
+  const loadDoc = async (id: number) => {
+    const r = await api.get<R>(`influencer-documents/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    const d = r.data;
+    setDocForm({
+      influencer_id: d.influencer_id ? String(d.influencer_id) : '',
+      collaboration_id: d.collaboration_id ? String(d.collaboration_id) : '',
+      title: String(d.title ?? ''),
+      document_type: String(d.document_type ?? 'autre'),
+      file_url: String(d.file_url ?? ''), notes: String(d.notes ?? ''),
+    });
+  };
+
+  const saveDoc = async () => {
+    const body: R = {
+      influencer_id: Number(docForm.influencer_id),
+      collaboration_id: docForm.collaboration_id ? Number(docForm.collaboration_id) : null,
+      title: docForm.title, document_type: docForm.document_type,
+      file_url: docForm.file_url, notes: docForm.notes || null,
+    };
+    setDocSaving(true);
+    try {
+      const r = docId
+        ? await api.patch(`influencer-documents/${docId}`, body)
+        : await api.post('influencer-documents', body);
+      if (!r.ok) return errToast(toast, r);
+      toast.success(docId ? 'Document mis à jour.' : 'Document ajouté.');
+      setDocOpen(false);
+      void load();
+    } finally { setDocSaving(false); }
+  };
+
+  const deleteDoc = async (id: number) => {
+    const r = await api.del(`influencer-documents/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Document supprimé.');
+    void load();
+  };
+
   /* ──────────────────────── Guard ──────────────────────── */
   if (!activeBrandId) {
     return (
@@ -774,6 +930,7 @@ export function InfluenceWorkspaceScreen() {
   const canShip = hasPermission('influencer_shipments.create');
   const canPay = hasPermission('influencer_payments.create');
   const canValidatePay = hasPermission('influencer_payments.validate');
+  const canDoc = hasPermission('influencer_documents.create');
 
   /* ──────────────────────── TABS ──────────────────────── */
   const spaces: { key: Space; label: string; icon: React.ReactNode }[] = [
@@ -783,6 +940,7 @@ export function InfluenceWorkspaceScreen() {
     { key: 'livrables', label: 'Livrables & Contenus', icon: <ClipboardList size={16} /> },
     { key: 'envois', label: 'Envois produits', icon: <Truck size={16} /> },
     { key: 'paiements', label: 'Paiements', icon: <DollarSign size={16} /> },
+    { key: 'documents', label: 'Documents', icon: <FileText size={16} /> },
   ];
 
   /* ──────────────────────── DASHBOARD STATS ──────────────────────── */
@@ -791,10 +949,12 @@ export function InfluenceWorkspaceScreen() {
     const infByStatus = (s: string) => influencers.filter(i => String(i.status) === s).length;
     return {
       totalInf: Number(dash.total_influencers ?? influencers.length),
-      activeCollabs: Number(dash.active_collabs ?? 0),
-      totalSpend: Number(dash.total_spend ?? 0),
-      totalRevenue: Number(dash.total_revenue ?? 0),
-      avgRoi: Number(dash.avg_roi ?? 0),
+      activeCollabs: Number(dash.active_collaborations ?? dash.active_collabs ?? 0),
+      totalSpend: Number(dash.influencer_spend_period ?? dash.total_spend ?? 0),
+      totalRevenue: Number(dash.revenue_attributed ?? dash.total_revenue ?? 0),
+      avgRoi: Number(dash.avg_roi_percent ?? dash.avg_roi ?? 0),
+      openComplaints: Number(dash.open_complaints ?? 0),
+      byPlatform: (dash.influencers_by_platform ?? {}) as Record<string, number>,
       pipeline: {
         reperee: infByStatus('reperee'),
         qualifiee: infByStatus('qualifiee'),
@@ -857,16 +1017,44 @@ export function InfluenceWorkspaceScreen() {
             </div>
           </div>
 
-          {dash?.top_influencers && Array.isArray(dash.top_influencers) && (
-            <div className="rounded-2xl border border-zinc-100 bg-white p-5">
-              <h3 className="mb-3 text-sm font-bold text-zinc-700">Top influenceuses par revenu</h3>
-              <div className="space-y-2">
-                {(dash.top_influencers as R[]).slice(0, 5).map((row, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2">
-                    <span className="text-sm font-semibold text-zinc-700">{String(row.full_name ?? row.username ?? '—')}</span>
-                    <span className="text-sm font-bold text-green-700">{formatCurrency(Number(row.total_revenue ?? 0))}</span>
-                  </div>
-                ))}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {dash?.top_influencers && Array.isArray(dash.top_influencers) && (dash.top_influencers as R[]).length > 0 && (
+              <div className="rounded-2xl border border-zinc-100 bg-white p-5">
+                <h3 className="mb-3 text-sm font-bold text-zinc-700">Top influenceuses par revenu</h3>
+                <div className="space-y-2">
+                  {(dash.top_influencers as R[]).slice(0, 5).map((row, i) => {
+                    const inf = (row.influencer as R | undefined) ?? row;
+                    return (
+                      <div key={i} className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2">
+                        <span className="text-sm font-semibold text-zinc-700">{String(inf.full_name ?? inf.username ?? '—')}</span>
+                        <span className="text-sm font-bold text-green-700">{formatCurrency(Number(row.total_rev ?? row.total_revenue ?? 0))}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {Object.keys(dashStats.byPlatform).length > 0 && (
+              <div className="rounded-2xl border border-zinc-100 bg-white p-5">
+                <h3 className="mb-3 text-sm font-bold text-zinc-700">Répartition par plateforme</h3>
+                <div className="space-y-2">
+                  {Object.entries(dashStats.byPlatform).sort((a, b) => Number(b[1]) - Number(a[1])).map(([platform, count]) => (
+                    <div key={platform} className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2">
+                      <span className="text-sm font-semibold text-zinc-700 capitalize">{platform}</span>
+                      <span className="text-sm font-bold text-zinc-900">{fmtNum(count)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {dashStats.openComplaints > 0 && (
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-amber-600" />
+                <span className="text-sm font-semibold text-amber-800">{dashStats.openComplaints} réclamation(s) ouverte(s)</span>
               </div>
             </div>
           )}
@@ -1050,6 +1238,42 @@ export function InfluenceWorkspaceScreen() {
               data={deliverables}
             />
           )}
+
+          {/* ── Contenus publiés ── */}
+          <div className="mt-8 border-t pt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h3 className="text-sm font-bold text-zinc-700">Contenus publiés & Métriques</h3>
+              {canDel && (
+                <button type="button" onClick={() => openPc()} className="flex items-center gap-1 rounded-xl bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700">
+                  <Plus size={12} /> Enregistrer un contenu
+                </button>
+              )}
+            </div>
+
+            {publishedContents.length === 0 && !loading ? (
+              <EmptyState title="Aucun contenu publié" description="Enregistrez les contenus publiés avec leurs métriques de performance." />
+            ) : (
+              <DataTable
+                columns={[
+                  { header: 'Influenceuse', accessor: (r: R) => infLabel(r) },
+                  { header: 'Type', accessor: (r: R) => String(r.content_type ?? '—') },
+                  { header: 'Plateforme', accessor: (r: R) => String(r.platform ?? '—') },
+                  { header: 'Publié le', accessor: (r: R) => r.published_at ? String(r.published_at).slice(0, 10) : '—' },
+                  { header: 'Vues', accessor: (r: R) => r.views != null ? fmtNum(r.views) : '—' },
+                  { header: 'Portée', accessor: (r: R) => r.reach != null ? fmtNum(r.reach) : '—' },
+                  { header: 'Likes', accessor: (r: R) => r.likes != null ? fmtNum(r.likes) : '—' },
+                  { header: 'Clics', accessor: (r: R) => r.clicks != null ? fmtNum(r.clicks) : '—' },
+                  { header: 'Actions', accessor: (r: R) => (
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => openPc(Number(r.id))} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>
+                      <button type="button" onClick={() => deletePc(Number(r.id))} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                    </div>
+                  )},
+                ]}
+                data={publishedContents}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -1145,6 +1369,46 @@ export function InfluenceWorkspaceScreen() {
                 }},
               ]}
               data={payments}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ═══════ DOCUMENTS ═══════ */}
+      {space === 'documents' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {canDoc && (
+              <button type="button" onClick={() => openDoc()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
+                <Plus size={14} /> Nouveau document
+              </button>
+            )}
+          </div>
+
+          {documents.length === 0 && !loading ? (
+            <EmptyState title="Aucun document" description="Ajoutez contrats, briefs, factures et autres documents." />
+          ) : (
+            <DataTable
+              columns={[
+                { header: 'Titre', accessor: (r: R) => String(r.title ?? '—') },
+                { header: 'Type', accessor: (r: R) => statusLabelFr(String(r.document_type ?? ''), DOCUMENT_TYPE_LABELS) },
+                { header: 'Influenceuse', accessor: (r: R) => infLabel(r) },
+                { header: 'Collaboration', accessor: (r: R) => r.collaboration_id ? collabLabel(r) : '—' },
+                { header: 'Ajouté par', accessor: (r: R) => {
+                  const u = r.uploaded_by_user as R | undefined;
+                  return u ? String(u.name ?? '—') : '—';
+                }},
+                { header: 'Fichier', accessor: (r: R) => r.file_url ? (
+                  <a href={String(r.file_url)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">Voir</a>
+                ) : '—' },
+                { header: 'Actions', accessor: (r: R) => (
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => openDoc(Number(r.id))} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>
+                    <button type="button" onClick={() => deleteDoc(Number(r.id))} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  </div>
+                )},
+              ]}
+              data={documents}
             />
           )}
         </div>
@@ -1505,6 +1769,118 @@ export function InfluenceWorkspaceScreen() {
           <button type="button" onClick={() => setPayOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
           <button type="button" onClick={savePay} disabled={paySaving || !payForm.collaboration_id || !payForm.influencer_id || !payForm.amount}
             className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{paySaving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </Modal>
+
+      {/* Published content modal */}
+      <Modal open={pcOpen} onClose={() => setPcOpen(false)} title={pcId ? 'Modifier contenu publié' : 'Enregistrer un contenu publié'}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Livrable *">
+            <select className={selClass} value={pcForm.deliverable_id} onChange={e => setPcForm(p => ({ ...p, deliverable_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {deliverables.map(d => <option key={String(d.id)} value={String(d.id)}>{String(d.title)}</option>)}
+            </select>
+          </Field>
+          <Field label="Collaboration *">
+            <select className={selClass} value={pcForm.collaboration_id} onChange={e => setPcForm(p => ({ ...p, collaboration_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
+            </select>
+          </Field>
+          <Field label="Influenceuse *">
+            <select className={selClass} value={pcForm.influencer_id} onChange={e => setPcForm(p => ({ ...p, influencer_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+            </select>
+          </Field>
+          <Field label="Type de contenu">
+            <select className={selClass} value={pcForm.content_type} onChange={e => setPcForm(p => ({ ...p, content_type: e.target.value }))}>
+              {CONTENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </Field>
+          <Field label="Plateforme">
+            <select className={selClass} value={pcForm.platform} onChange={e => setPcForm(p => ({ ...p, platform: e.target.value }))}>
+              <option value="">—</option>
+              {PLATFORMS.map(p => <option key={p.v} value={p.v}>{p.l}</option>)}
+            </select>
+          </Field>
+          <Field label="Date de publication">
+            <input type="date" className={inputClass} value={pcForm.published_at} onChange={e => setPcForm(p => ({ ...p, published_at: e.target.value }))} />
+          </Field>
+          <Field label="URL du contenu">
+            <input className={inputClass} value={pcForm.content_url} onChange={e => setPcForm(p => ({ ...p, content_url: e.target.value }))} placeholder="https://…" />
+          </Field>
+          <Field label="URL capture d'écran">
+            <input className={inputClass} value={pcForm.screenshot_url} onChange={e => setPcForm(p => ({ ...p, screenshot_url: e.target.value }))} />
+          </Field>
+          <div className="sm:col-span-2 border-t pt-3 mt-1">
+            <div className="text-xs font-bold uppercase text-zinc-500 mb-2">Métriques de performance</div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { k: 'views', l: 'Vues' }, { k: 'reach', l: 'Portée' },
+                { k: 'impressions', l: 'Impressions' }, { k: 'likes', l: 'Likes' },
+                { k: 'comments_count', l: 'Commentaires' }, { k: 'shares', l: 'Partages' },
+                { k: 'saves', l: 'Sauvegardes' }, { k: 'clicks', l: 'Clics' },
+              ].map(m => (
+                <Field key={m.k} label={m.l}>
+                  <input type="number" min="0" className={inputClass}
+                    value={(pcForm as R)[m.k] as string}
+                    onChange={e => setPcForm(p => ({ ...p, [m.k]: e.target.value }))} />
+                </Field>
+              ))}
+            </div>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Notes">
+              <textarea className={inputClass} rows={2} value={pcForm.notes} onChange={e => setPcForm(p => ({ ...p, notes: e.target.value }))} />
+            </Field>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setPcOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={savePc} disabled={pcSaving || !pcForm.deliverable_id || !pcForm.collaboration_id || !pcForm.influencer_id}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{pcSaving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </Modal>
+
+      {/* Document modal */}
+      <Modal open={docOpen} onClose={() => setDocOpen(false)} title={docId ? 'Modifier document' : 'Nouveau document'}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Influenceuse *">
+            <select className={selClass} value={docForm.influencer_id} onChange={e => setDocForm(p => ({ ...p, influencer_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+            </select>
+          </Field>
+          <Field label="Collaboration">
+            <select className={selClass} value={docForm.collaboration_id} onChange={e => setDocForm(p => ({ ...p, collaboration_id: e.target.value }))}>
+              <option value="">— Aucune —</option>
+              {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
+            </select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Titre *">
+              <input className={inputClass} value={docForm.title} onChange={e => setDocForm(p => ({ ...p, title: e.target.value }))} />
+            </Field>
+          </div>
+          <Field label="Type de document">
+            <select className={selClass} value={docForm.document_type} onChange={e => setDocForm(p => ({ ...p, document_type: e.target.value }))}>
+              {DOC_TYPES.map(t => <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>)}
+            </select>
+          </Field>
+          <Field label="URL du fichier *">
+            <input className={inputClass} value={docForm.file_url} onChange={e => setDocForm(p => ({ ...p, file_url: e.target.value }))} placeholder="https://…" />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Notes">
+              <textarea className={inputClass} rows={2} value={docForm.notes} onChange={e => setDocForm(p => ({ ...p, notes: e.target.value }))} />
+            </Field>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setDocOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveDoc} disabled={docSaving || !docForm.title.trim() || !docForm.influencer_id || !docForm.file_url.trim()}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{docSaving ? 'Enregistrement…' : 'Enregistrer'}</button>
         </div>
       </Modal>
     </div>
