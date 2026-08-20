@@ -1,15 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Archive,
   BarChart3,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardList,
+  DollarSign,
+  Eye,
+  FileText,
   Handshake,
   LayoutGrid,
-  MessageCircle,
+  Package,
+  Pause,
   Pencil,
   Plus,
   RefreshCw,
+  Send,
+  ShieldCheck,
   Sparkles,
+  Star,
   Trash2,
+  Truck,
+  UserCheck,
+  UserX,
+  X,
+  XCircle,
 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { DataTable } from '../components/ui/DataTable';
@@ -26,29 +42,22 @@ import {
   INFLUENCER_STATUS_LABELS,
   COLLAB_STATUS_LABELS,
   COLLAB_TYPE_LABELS,
+  DELIVERABLE_STATUS_LABELS,
+  SHIPMENT_STATUS_LABELS,
+  PAYMENT_NATURE_LABELS,
+  PAYMENT_STATUS_LABELS,
+  DOCUMENT_TYPE_LABELS,
   COMPLAINT_STATUS_LABELS,
   COMPLAINT_CATEGORY_LABELS,
   COMPLAINT_SEVERITY_LABELS,
   statusLabelFr,
 } from '../lib/statusLabelsFr';
 
-type Tab = 'dash' | 'influencers' | 'collabs' | 'perf' | 'messages' | 'complaints';
+/* ─────── Types ─────── */
+type Space = 'pilotage' | 'influenceuses' | 'collaborations' | 'livrables' | 'envois' | 'paiements';
+type R = Record<string, unknown>;
 
-type PerfDraft = {
-  influencer_id: string;
-  influencer_collaboration_id: string;
-  metric_date: string;
-  action_type: string;
-  planned_actions: string;
-  completed_actions: string;
-  manager_comment: string;
-  views: string;
-  reach: string;
-  likes: string;
-  revenue: string;
-};
-
-const PF = [
+const PLATFORMS = [
   { v: 'instagram', l: 'Instagram' },
   { v: 'facebook', l: 'Facebook' },
   { v: 'tiktok', l: 'TikTok' },
@@ -57,6 +66,27 @@ const PF = [
   { v: 'x', l: 'X' },
 ];
 
+const QUALIFICATION_DIMS = [
+  { key: 'pertinence', label: 'Pertinence' },
+  { key: 'autorite', label: 'Autorité' },
+  { key: 'engagement', label: 'Engagement' },
+  { key: 'regularite', label: 'Régularité' },
+  { key: 'homogeneite', label: 'Homogénéité' },
+  { key: 'saturation', label: 'Saturation' },
+  { key: 'reputation', label: 'Réputation' },
+  { key: 'creativite', label: 'Créativité' },
+];
+
+const INF_STATUSES = Object.keys(INFLUENCER_STATUS_LABELS);
+const COLLAB_STATUSES = Object.keys(COLLAB_STATUS_LABELS);
+const COLLAB_TYPES = Object.keys(COLLAB_TYPE_LABELS);
+const DELIVERABLE_STATUSES = Object.keys(DELIVERABLE_STATUS_LABELS);
+const SHIPMENT_STATUSES = Object.keys(SHIPMENT_STATUS_LABELS);
+const PAYMENT_NATURES = Object.keys(PAYMENT_NATURE_LABELS);
+const DOC_TYPES = Object.keys(DOCUMENT_TYPE_LABELS);
+const CONTENT_TYPES = ['story', 'reel', 'post', 'video', 'live', 'carousel', 'article', 'autre'];
+
+/* ─────── Helpers ─────── */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1">
@@ -66,210 +96,214 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function fmtPct(n: number | null | undefined) {
-  if (n == null || Number.isNaN(Number(n))) return '—';
-  return `${Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`;
+function Badge({ color, children }: { color: string; children: React.ReactNode }) {
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${color}`}>
+      {children}
+    </span>
+  );
 }
 
-function monthBounds(month: string): { from: string; to: string } {
-  const [y, m] = month.split('-').map(Number);
-  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
-    const now = new Date();
-    const year = now.getFullYear();
-    const mon = now.getMonth() + 1;
-    const last = new Date(year, mon, 0).getDate();
-    const mm = String(mon).padStart(2, '0');
-    return { from: `${year}-${mm}-01`, to: `${year}-${mm}-${String(last).padStart(2, '0')}` };
-  }
-  const mm = String(m).padStart(2, '0');
-  const last = new Date(y, m, 0).getDate();
-  return { from: `${y}-${mm}-01`, to: `${y}-${mm}-${String(last).padStart(2, '0')}` };
-}
-
-function asNumber(value: unknown): number {
-  const n = Number(value ?? 0);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function cleanNumberOrNull(v: string): number | null {
-  if (v.trim() === '') return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function influencerLabel(row: Record<string, unknown>): string {
-  const inf = (row.influencer as Record<string, unknown> | undefined) ?? null;
-  if (!inf) return `#${String(row.influencer_id ?? '—')}`;
-  return String(inf.full_name ?? inf.username ?? inf.handle ?? `#${String(row.influencer_id ?? '—')}`);
+function StatusBadge({ value, labels }: { value: string | null | undefined; labels: Record<string, string> }) {
+  if (!value) return <span className="text-zinc-400">—</span>;
+  const colors: Record<string, string> = {
+    reperee: 'bg-blue-50 text-blue-700',
+    qualifiee: 'bg-indigo-50 text-indigo-700',
+    contactee: 'bg-cyan-50 text-cyan-700',
+    en_discussion: 'bg-amber-50 text-amber-700',
+    en_negociation: 'bg-orange-50 text-orange-700',
+    active: 'bg-green-50 text-green-700',
+    inactive: 'bg-zinc-100 text-zinc-600',
+    ecartee: 'bg-red-50 text-red-600',
+    exclue: 'bg-red-100 text-red-800',
+    brouillon: 'bg-zinc-100 text-zinc-600',
+    en_attente_validation: 'bg-amber-50 text-amber-700',
+    refusee: 'bg-red-50 text-red-600',
+    en_preparation: 'bg-blue-50 text-blue-700',
+    en_cours: 'bg-cyan-50 text-cyan-700',
+    en_revue: 'bg-purple-50 text-purple-700',
+    en_pause: 'bg-amber-100 text-amber-800',
+    contractualisation_en_attente: 'bg-orange-50 text-orange-700',
+    contractualisee: 'bg-teal-50 text-teal-700',
+    terminee: 'bg-green-50 text-green-700',
+    arretee: 'bg-red-50 text-red-600',
+    a_produire: 'bg-zinc-100 text-zinc-600',
+    livre: 'bg-blue-50 text-blue-700',
+    valide: 'bg-green-50 text-green-700',
+    refuse: 'bg-red-50 text-red-600',
+    a_preparer: 'bg-zinc-100 text-zinc-600',
+    expedie: 'bg-blue-50 text-blue-700',
+    en_acheminement: 'bg-cyan-50 text-cyan-700',
+    recu: 'bg-green-50 text-green-700',
+    non_parvenu: 'bg-red-50 text-red-600',
+    en_attente_validation_n1: 'bg-amber-50 text-amber-700',
+    valide_n1: 'bg-blue-50 text-blue-700',
+    en_attente_validation_n2: 'bg-orange-50 text-orange-700',
+    valide_n2: 'bg-green-50 text-green-700',
+    paye: 'bg-emerald-50 text-emerald-700',
+    rejete: 'bg-red-50 text-red-600',
+  };
+  return <Badge color={colors[value] || 'bg-zinc-100 text-zinc-600'}>{labels[value] || value}</Badge>;
 }
 
 const selClass = 'w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold bg-white text-zinc-900';
+const inputClass = selClass;
 
+function fmtNum(n: unknown): string {
+  const v = Number(n ?? 0);
+  if (!Number.isFinite(v)) return '—';
+  return v.toLocaleString('fr-FR');
+}
+
+function fmtPct(n: unknown): string {
+  const v = Number(n ?? 0);
+  if (!Number.isFinite(v)) return '—';
+  return `${v.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`;
+}
+
+function infLabel(row: R): string {
+  const inf = (row.influencer as R | undefined) ?? null;
+  if (!inf) return `#${String(row.influencer_id ?? '—')}`;
+  return String(inf.full_name ?? inf.username ?? `#${String(row.influencer_id)}`);
+}
+
+function collabLabel(row: R): string {
+  const c = (row.collaboration as R | undefined) ?? null;
+  if (!c) return `#${String(row.collaboration_id ?? '—')}`;
+  return String(c.title ?? `#${String(row.collaboration_id)}`);
+}
+
+function errToast(toast: ReturnType<typeof useToast>, res: { message: string; errors?: unknown }) {
+  const fe = flattenFieldErrors((res.errors ?? {}) as Record<string, unknown>);
+  toast.error(fe.length ? fe.join(' ') : res.message);
+}
+
+/* ─────── Stat Card ─────── */
+function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+  return (
+    <div className="rounded-2xl border border-zinc-100 bg-white p-4">
+      <div className="text-[11px] font-bold uppercase text-zinc-500">{label}</div>
+      <div className="mt-1 text-2xl font-black text-zinc-900">{value}</div>
+      {sub && <div className="text-xs text-zinc-500">{sub}</div>}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   MAIN COMPONENT
+   ───────────────────────────────────────────────────────────────────── */
 export function InfluenceWorkspaceScreen() {
   const { activeBrandId } = useBrand();
   const { hasPermission } = useAuth();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>('dash');
-  const [loading, setLoading] = useState(false);
-  const [savingPerf, setSavingPerf] = useState(false);
-  const [dash, setDash] = useState<Record<string, unknown> | null>(null);
-  const [influencers, setInfluencers] = useState<Record<string, unknown>[]>([]);
-  const [collabs, setCollabs] = useState<Record<string, unknown>[]>([]);
-  const [perf, setPerf] = useState<Record<string, unknown>[]>([]);
-  const [messages, setMessages] = useState<Record<string, unknown>[]>([]);
-  const [complaints, setComplaints] = useState<Record<string, unknown>[]>([]);
-  const [perfMonth, setPerfMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [perfDraft, setPerfDraft] = useState<PerfDraft>(() => ({
-    influencer_id: '',
-    influencer_collaboration_id: '',
-    metric_date: new Date().toISOString().slice(0, 10),
-    action_type: 'video',
-    planned_actions: '1',
-    completed_actions: '0',
-    manager_comment: '',
-    views: '',
-    reach: '',
-    likes: '',
-    revenue: '',
-  }));
 
+  const [space, setSpace] = useState<Space>('pilotage');
+  const [loading, setLoading] = useState(false);
+
+  /* ── Data stores ── */
+  const [dash, setDash] = useState<R | null>(null);
+  const [influencers, setInfluencers] = useState<R[]>([]);
+  const [collabs, setCollabs] = useState<R[]>([]);
+  const [deliverables, setDeliverables] = useState<R[]>([]);
+  const [shipments, setShipments] = useState<R[]>([]);
+  const [payments, setPayments] = useState<R[]>([]);
   const [campaigns, setCampaigns] = useState<{ id: number; name: string }[]>([]);
 
-  const errToast = (res: { message: string; errors?: unknown }) => {
-    const fe = flattenFieldErrors((res.errors ?? {}) as Record<string, unknown>);
-    toast.error(fe.length ? fe.join(' ') : res.message);
-  };
+  /* ── Filters ── */
+  const [infStatusFilter, setInfStatusFilter] = useState('');
+  const [collabStatusFilter, setCollabStatusFilter] = useState('');
 
+  /* ── Load ── */
   const load = useCallback(async () => {
     if (!activeBrandId) return;
     setLoading(true);
     try {
-      if (tab === 'dash') {
-        const r = await api.get<Record<string, unknown>>('dashboards/influence');
-        if (r.ok) setDash(r.data);
-        else {
-          toast.error(r.message);
-          setDash(null);
-        }
-        return;
-      }
-      if (tab === 'influencers') {
-        const r = await api.get<LaravelPaginator<Record<string, unknown>>>('influencers?per_page=100');
+      if (space === 'pilotage') {
+        const [dashR, infR] = await Promise.all([
+          api.get<R>('dashboards/influence'),
+          api.get<LaravelPaginator<R>>('influencers?per_page=200'),
+        ]);
+        if (dashR.ok) setDash(dashR.data);
+        if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
+      } else if (space === 'influenceuses') {
+        const q = infStatusFilter ? `&status=${infStatusFilter}` : '';
+        const r = await api.get<LaravelPaginator<R>>(`influencers?per_page=200${q}`);
         if (r.ok && isPaginator(r.data)) setInfluencers(r.data.data);
-        else {
-          if (!r.ok) toast.error(r.message);
-          setInfluencers([]);
-        }
-        return;
-      }
-      if (tab === 'collabs') {
-        const [collabsRes, infRes, campRes] = await Promise.all([
-          api.get<LaravelPaginator<Record<string, unknown>>>('influencer-collaborations?per_page=100'),
-          api.get<LaravelPaginator<Record<string, unknown>>>('influencers?per_page=100'),
+      } else if (space === 'collaborations') {
+        const q = collabStatusFilter ? `&status=${collabStatusFilter}` : '';
+        const [colR, infR, campR] = await Promise.all([
+          api.get<LaravelPaginator<R>>(`influencer-collaborations?per_page=200${q}`),
+          api.get<LaravelPaginator<R>>('influencers?per_page=200'),
           api.get<LaravelPaginator<{ id: number; name: string }>>('campaigns?per_page=200'),
         ]);
-        if (collabsRes.ok && isPaginator(collabsRes.data)) setCollabs(collabsRes.data.data);
-        else {
-          if (!collabsRes.ok) toast.error(collabsRes.message);
-          setCollabs([]);
-        }
-        if (infRes.ok && isPaginator(infRes.data)) setInfluencers(infRes.data.data);
-        if (campRes.ok && isPaginator(campRes.data)) setCampaigns(campRes.data.data);
-        return;
-      }
-      if (tab === 'perf') {
-        const { from, to } = monthBounds(perfMonth);
-        const [perfRes, influencersRes, collabsRes] = await Promise.all([
-          api.get<LaravelPaginator<Record<string, unknown>>>(
-            `influencer-performance?per_page=200&date_from=${from}&date_to=${to}`,
-          ),
-          api.get<LaravelPaginator<Record<string, unknown>>>('influencers?per_page=100'),
-          api.get<LaravelPaginator<Record<string, unknown>>>('influencer-collaborations?per_page=100'),
+        if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
+        if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
+        if (campR.ok && isPaginator(campR.data)) setCampaigns(campR.data.data);
+      } else if (space === 'livrables') {
+        const [delR, colR] = await Promise.all([
+          api.get<LaravelPaginator<R>>('influencer-deliverables?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencer-collaborations?per_page=200'),
         ]);
-
-        if (perfRes.ok && isPaginator(perfRes.data)) setPerf(perfRes.data.data);
-        else {
-          if (!perfRes.ok) toast.error(perfRes.message);
-          setPerf([]);
-        }
-        if (influencersRes.ok && isPaginator(influencersRes.data)) setInfluencers(influencersRes.data.data);
-        if (collabsRes.ok && isPaginator(collabsRes.data)) setCollabs(collabsRes.data.data);
-        return;
-      }
-      if (tab === 'messages') {
-        const r = await api.get<LaravelPaginator<Record<string, unknown>>>('influencer-messages?per_page=100');
-        if (r.ok && isPaginator(r.data)) setMessages(r.data.data);
-        else {
-          if (!r.ok) toast.error(r.message);
-          setMessages([]);
-        }
-        return;
-      }
-      if (tab === 'complaints') {
-        const [compRes, infRes] = await Promise.all([
-          api.get<LaravelPaginator<Record<string, unknown>>>('influencer-complaints?per_page=100'),
-          api.get<LaravelPaginator<Record<string, unknown>>>('influencers?per_page=100'),
+        if (delR.ok && isPaginator(delR.data)) setDeliverables(delR.data.data);
+        if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
+      } else if (space === 'envois') {
+        const [shipR, infR, colR] = await Promise.all([
+          api.get<LaravelPaginator<R>>('influencer-shipments?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencers?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencer-collaborations?per_page=200'),
         ]);
-        if (compRes.ok && isPaginator(compRes.data)) setComplaints(compRes.data.data);
-        else {
-          if (!compRes.ok) toast.error(compRes.message);
-          setComplaints([]);
-        }
-        if (infRes.ok && isPaginator(infRes.data)) setInfluencers(infRes.data.data);
-        return;
+        if (shipR.ok && isPaginator(shipR.data)) setShipments(shipR.data.data);
+        if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
+        if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
+      } else if (space === 'paiements') {
+        const [payR, infR, colR] = await Promise.all([
+          api.get<LaravelPaginator<R>>('influencer-payments?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencers?per_page=200'),
+          api.get<LaravelPaginator<R>>('influencer-collaborations?per_page=200'),
+        ]);
+        if (payR.ok && isPaginator(payR.data)) setPayments(payR.data.data);
+        if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
+        if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
       }
     } finally {
       setLoading(false);
     }
-  }, [activeBrandId, perfMonth, tab, toast]);
+  }, [activeBrandId, space, infStatusFilter, collabStatusFilter, toast]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
-  /* ── Influencer CRUD ── */
+  /* ──────────────────────── INFLUENCER CRUD ──────────────────────── */
   const [infOpen, setInfOpen] = useState(false);
   const [infId, setInfId] = useState<number | undefined>();
   const [infForm, setInfForm] = useState({
-    full_name: '',
-    username: '',
-    platform: '',
-    niche: '',
-    audience_size: '',
-    engagement_rate: '',
-    pricing_story: '',
-    pricing_reel: '',
-    pricing_post: '',
-    pricing_video: '',
-    pricing_live: '',
-    contact_phone: '',
-    contact_email: '',
-    status: 'lead',
+    full_name: '', username: '', platform: '', niche: '', bio: '', city: '',
+    audience_size: '', engagement_rate: '',
+    pricing_story: '', pricing_reel: '', pricing_post: '', pricing_video: '', pricing_live: '',
+    contact_phone: '', contact_email: '', notes: '', source: '', status: 'reperee',
   });
   const [infSaving, setInfSaving] = useState(false);
 
-  const openInfluencer = (id?: number) => {
+  const openInf = (id?: number) => {
     setInfId(id);
     setInfForm({
-      full_name: '', username: '', platform: '', niche: '',
+      full_name: '', username: '', platform: '', niche: '', bio: '', city: '',
       audience_size: '', engagement_rate: '',
       pricing_story: '', pricing_reel: '', pricing_post: '', pricing_video: '', pricing_live: '',
-      contact_phone: '', contact_email: '', status: 'lead',
+      contact_phone: '', contact_email: '', notes: '', source: '', status: 'reperee',
     });
-    if (id) void loadInfluencer(id);
+    if (id) void loadInf(id);
     setInfOpen(true);
   };
 
-  const loadInfluencer = async (id: number) => {
-    const r = await api.get<Record<string, unknown>>(`influencers/${id}`);
-    if (!r.ok) return errToast(r);
+  const loadInf = async (id: number) => {
+    const r = await api.get<R>(`influencers/${id}`);
+    if (!r.ok) return errToast(toast, r);
     const d = r.data;
-    const pj = (typeof d.pricing_json === 'object' && d.pricing_json) ? d.pricing_json as Record<string, unknown> : {};
+    const pj = (typeof d.pricing_json === 'object' && d.pricing_json) ? d.pricing_json as R : {};
     setInfForm({
-      full_name: String(d.full_name ?? ''),
-      username: String(d.username ?? ''),
-      platform: String(d.platform ?? ''),
-      niche: String(d.niche ?? ''),
+      full_name: String(d.full_name ?? ''), username: String(d.username ?? ''),
+      platform: String(d.platform ?? ''), niche: String(d.niche ?? ''),
+      bio: String(d.bio ?? ''), city: String(d.city ?? ''),
       audience_size: d.audience_size != null ? String(d.audience_size) : '',
       engagement_rate: d.engagement_rate != null ? String(d.engagement_rate) : '',
       pricing_story: pj.story != null ? String(pj.story) : '',
@@ -277,296 +311,449 @@ export function InfluenceWorkspaceScreen() {
       pricing_post: pj.post != null ? String(pj.post) : '',
       pricing_video: pj.video != null ? String(pj.video) : '',
       pricing_live: pj.live != null ? String(pj.live) : '',
-      contact_phone: String(d.contact_phone ?? ''),
-      contact_email: String(d.contact_email ?? ''),
-      status: String(d.status ?? 'lead'),
+      contact_phone: String(d.contact_phone ?? ''), contact_email: String(d.contact_email ?? ''),
+      notes: String(d.notes ?? ''), source: String(d.source ?? ''),
+      status: String(d.status ?? 'reperee'),
     });
   };
 
-  const saveInfluencer = async () => {
+  const saveInf = async () => {
     const pricing: Record<string, number> = {};
     if (infForm.pricing_story.trim()) pricing.story = Number(infForm.pricing_story);
     if (infForm.pricing_reel.trim()) pricing.reel = Number(infForm.pricing_reel);
     if (infForm.pricing_post.trim()) pricing.post = Number(infForm.pricing_post);
     if (infForm.pricing_video.trim()) pricing.video = Number(infForm.pricing_video);
     if (infForm.pricing_live.trim()) pricing.live = Number(infForm.pricing_live);
-    const body: Record<string, unknown> = {
-      full_name: infForm.full_name,
-      username: infForm.username || null,
-      platform: infForm.platform || null,
-      niche: infForm.niche || null,
+    const body: R = {
+      full_name: infForm.full_name, username: infForm.username || null,
+      platform: infForm.platform || null, niche: infForm.niche || null,
+      bio: infForm.bio || null, city: infForm.city || null,
       audience_size: infForm.audience_size ? Number(infForm.audience_size) : null,
       engagement_rate: infForm.engagement_rate ? Number(infForm.engagement_rate) : null,
       pricing_json: Object.keys(pricing).length > 0 ? pricing : null,
-      contact_phone: infForm.contact_phone || null,
-      contact_email: infForm.contact_email || null,
+      contact_phone: infForm.contact_phone || null, contact_email: infForm.contact_email || null,
+      notes: infForm.notes || null, source: infForm.source || null,
       status: infForm.status,
     };
     setInfSaving(true);
     try {
-      const r = infId
-        ? await api.patch(`influencers/${infId}`, body)
-        : await api.post('influencers', body);
-      if (!r.ok) return errToast(r);
-      toast.success(infId ? 'Influenceur mis à jour.' : 'Influenceur créé.');
+      const r = infId ? await api.patch(`influencers/${infId}`, body) : await api.post('influencers', body);
+      if (!r.ok) return errToast(toast, r);
+      toast.success(infId ? 'Influenceuse mise à jour.' : 'Influenceuse créée.');
       setInfOpen(false);
       void load();
-    } finally {
-      setInfSaving(false);
-    }
+    } finally { setInfSaving(false); }
   };
 
-  const deleteInfluencer = async (id: number) => {
+  const deleteInf = async (id: number) => {
     const r = await api.del(`influencers/${id}`);
-    if (!r.ok) return errToast(r);
-    toast.success('Influenceur supprimé.');
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Influenceuse supprimée.');
     void load();
   };
 
-  /* ── Collaboration CRUD ── */
+  /* ── Qualification modal ── */
+  const [qualOpen, setQualOpen] = useState(false);
+  const [qualId, setQualId] = useState<number>(0);
+  const [qualScores, setQualScores] = useState<Record<string, number>>({});
+  const [qualSaving, setQualSaving] = useState(false);
+
+  const openQualify = (id: number, existing?: R) => {
+    setQualId(id);
+    const scores: Record<string, number> = {};
+    const qj = (existing?.qualification_json as R | undefined) ?? {};
+    QUALIFICATION_DIMS.forEach(d => { scores[d.key] = Number(qj[d.key] ?? 3); });
+    setQualScores(scores);
+    setQualOpen(true);
+  };
+
+  const saveQualify = async () => {
+    setQualSaving(true);
+    try {
+      const r = await api.post(`influencers/${qualId}/qualify`, { qualification_json: qualScores });
+      if (!r.ok) return errToast(toast, r);
+      toast.success('Qualification enregistrée.');
+      setQualOpen(false);
+      void load();
+    } finally { setQualSaving(false); }
+  };
+
+  /* ── Exclude modal ── */
+  const [exclOpen, setExclOpen] = useState(false);
+  const [exclId, setExclId] = useState<number>(0);
+  const [exclReason, setExclReason] = useState('');
+  const [exclSaving, setExclSaving] = useState(false);
+
+  const saveExclude = async () => {
+    if (!exclReason.trim()) { toast.error('Motif requis.'); return; }
+    setExclSaving(true);
+    try {
+      const r = await api.post(`influencers/${exclId}/exclude`, { exclusion_reason: exclReason });
+      if (!r.ok) return errToast(toast, r);
+      toast.success('Influenceuse exclue.');
+      setExclOpen(false);
+      void load();
+    } finally { setExclSaving(false); }
+  };
+
+  /* ── Status change ── */
+  const changeInfStatus = async (id: number, status: string) => {
+    const r = await api.post(`influencers/${id}/status`, { status });
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Statut mis à jour.');
+    void load();
+  };
+
+  /* ──────────────────────── COLLABORATION CRUD ──────────────────────── */
   const [colOpen, setColOpen] = useState(false);
   const [colId, setColId] = useState<number | undefined>();
   const [colForm, setColForm] = useState({
-    influencer_id: '',
-    campaign_id: '',
-    title: '',
-    collaboration_type: 'post',
-    status: 'draft',
-    deliverables: '',
-    contract_url: '',
-    agreed_amount: '',
-    start_date: '',
-    end_date: '',
+    influencer_id: '', campaign_id: '', title: '', description: '', objectives: '',
+    collaboration_type: 'post', deliverables: '', contract_url: '', brief_url: '',
+    agreed_amount: '', currency: 'MAD', start_date: '', end_date: '',
   });
   const [colSaving, setColSaving] = useState(false);
 
   const openCollab = (id?: number) => {
     setColId(id);
     setColForm({
-      influencer_id: '', campaign_id: '', title: '',
-      collaboration_type: 'post', status: 'draft', deliverables: '',
-      contract_url: '', agreed_amount: '', start_date: '', end_date: '',
+      influencer_id: '', campaign_id: '', title: '', description: '', objectives: '',
+      collaboration_type: 'post', deliverables: '', contract_url: '', brief_url: '',
+      agreed_amount: '', currency: 'MAD', start_date: '', end_date: '',
     });
     if (id) void loadCollab(id);
     setColOpen(true);
   };
 
   const loadCollab = async (id: number) => {
-    const r = await api.get<Record<string, unknown>>(`influencer-collaborations/${id}`);
-    if (!r.ok) return errToast(r);
+    const r = await api.get<R>(`influencer-collaborations/${id}`);
+    if (!r.ok) return errToast(toast, r);
     const d = r.data;
     setColForm({
       influencer_id: d.influencer_id ? String(d.influencer_id) : '',
       campaign_id: d.campaign_id ? String(d.campaign_id) : '',
-      title: String(d.title ?? ''),
+      title: String(d.title ?? ''), description: String(d.description ?? ''),
+      objectives: String(d.objectives ?? ''),
       collaboration_type: String(d.collaboration_type ?? 'post'),
-      status: String(d.status ?? 'draft'),
       deliverables: String(d.deliverables ?? ''),
-      contract_url: String(d.contract_url ?? ''),
+      contract_url: String(d.contract_url ?? ''), brief_url: String(d.brief_url ?? ''),
       agreed_amount: d.agreed_amount != null ? String(d.agreed_amount) : '',
+      currency: String(d.currency ?? 'MAD'),
       start_date: d.start_date ? String(d.start_date).slice(0, 10) : '',
       end_date: d.end_date ? String(d.end_date).slice(0, 10) : '',
     });
   };
 
   const saveCollab = async () => {
-    const body: Record<string, unknown> = {
+    const body: R = {
       influencer_id: Number(colForm.influencer_id),
       campaign_id: colForm.campaign_id ? Number(colForm.campaign_id) : null,
-      title: colForm.title,
+      title: colForm.title, description: colForm.description || null,
+      objectives: colForm.objectives || null,
       collaboration_type: colForm.collaboration_type,
-      status: colForm.status,
       deliverables: colForm.deliverables || null,
-      contract_url: colForm.contract_url || null,
+      contract_url: colForm.contract_url || null, brief_url: colForm.brief_url || null,
       agreed_amount: colForm.agreed_amount ? Number(colForm.agreed_amount) : 0,
-      start_date: colForm.start_date || null,
-      end_date: colForm.end_date || null,
+      currency: colForm.currency || 'MAD',
+      start_date: colForm.start_date || null, end_date: colForm.end_date || null,
     };
     setColSaving(true);
     try {
       const r = colId
         ? await api.patch(`influencer-collaborations/${colId}`, body)
         : await api.post('influencer-collaborations', body);
-      if (!r.ok) return errToast(r);
+      if (!r.ok) return errToast(toast, r);
       toast.success(colId ? 'Collaboration mise à jour.' : 'Collaboration créée.');
       setColOpen(false);
       void load();
-    } finally {
-      setColSaving(false);
-    }
+    } finally { setColSaving(false); }
   };
 
   const deleteCollab = async (id: number) => {
     const r = await api.del(`influencer-collaborations/${id}`);
-    if (!r.ok) return errToast(r);
+    if (!r.ok) return errToast(toast, r);
     toast.success('Collaboration supprimée.');
     void load();
   };
 
-  /* ── Complaint CRUD ── */
-  const [cmpOpen, setCmpOpen] = useState(false);
-  const [cmpId, setCmpId] = useState<number | undefined>();
-  const [cmpForm, setCmpForm] = useState({
-    influencer_id: '',
-    influencer_collaboration_id: '',
-    title: '',
-    category: 'other',
-    severity: 'medium',
-    description: '',
-    status: 'open',
-    resolution_notes: '',
-  });
-  const [cmpSaving, setCmpSaving] = useState(false);
-
-  const openComplaint = (id?: number) => {
-    setCmpId(id);
-    setCmpForm({
-      influencer_id: '', influencer_collaboration_id: '', title: '',
-      category: 'other', severity: 'medium', description: '',
-      status: 'open', resolution_notes: '',
-    });
-    if (id) void loadComplaint(id);
-    setCmpOpen(true);
-  };
-
-  const loadComplaint = async (id: number) => {
-    const r = await api.get<Record<string, unknown>>(`influencer-complaints/${id}`);
-    if (!r.ok) return errToast(r);
-    const d = r.data;
-    setCmpForm({
-      influencer_id: d.influencer_id ? String(d.influencer_id) : '',
-      influencer_collaboration_id: d.influencer_collaboration_id ? String(d.influencer_collaboration_id) : '',
-      title: String(d.title ?? ''),
-      category: String(d.category ?? 'other'),
-      severity: String(d.severity ?? 'medium'),
-      description: String(d.description ?? ''),
-      status: String(d.status ?? 'open'),
-      resolution_notes: String(d.resolution_notes ?? ''),
-    });
-  };
-
-  const saveComplaint = async () => {
-    const body: Record<string, unknown> = {
-      influencer_id: Number(cmpForm.influencer_id),
-      influencer_collaboration_id: cmpForm.influencer_collaboration_id
-        ? Number(cmpForm.influencer_collaboration_id)
-        : null,
-      title: cmpForm.title,
-      category: cmpForm.category,
-      severity: cmpForm.severity,
-      description: cmpForm.description || null,
-      status: cmpForm.status,
-      resolution_notes: cmpForm.resolution_notes || null,
-    };
-    setCmpSaving(true);
-    try {
-      const r = cmpId
-        ? await api.patch(`influencer-complaints/${cmpId}`, body)
-        : await api.post('influencer-complaints', body);
-      if (!r.ok) return errToast(r);
-      toast.success(cmpId ? 'Plainte mise à jour.' : 'Plainte créée.');
-      setCmpOpen(false);
-      void load();
-    } finally {
-      setCmpSaving(false);
-    }
-  };
-
-  const deleteComplaint = async (id: number) => {
-    const r = await api.del(`influencer-complaints/${id}`);
-    if (!r.ok) return errToast(r);
-    toast.success('Plainte supprimée.');
+  /* ── Collaboration validation ── */
+  const requestValidation = async (id: number, vType: string) => {
+    const r = await api.post(`influencer-collaborations/${id}/request-validation`, { validation_type: vType });
+    if (!r.ok) return errToast(toast, r);
+    toast.success(`Demande ${vType} envoyée.`);
     void load();
   };
 
-  /* ── Performance ── */
-  const perfTotals = useMemo(() => {
-    const planned = perf.reduce((sum, row) => sum + asNumber(row.planned_actions), 0);
-    const completed = perf.reduce((sum, row) => sum + asNumber(row.completed_actions), 0);
-    const remaining = Math.max(planned - completed, 0);
-    const rate = planned > 0 ? (completed / planned) * 100 : 0;
-    return { planned, completed, remaining, rate };
-  }, [perf]);
+  const [valOpen, setValOpen] = useState(false);
+  const [valTarget, setValTarget] = useState<{ id: number; vType: string }>({ id: 0, vType: 'V1' });
+  const [valDecision, setValDecision] = useState('approuve');
+  const [valComment, setValComment] = useState('');
+  const [valSaving, setValSaving] = useState(false);
 
-  const perfByInfluencer = useMemo(() => {
-    const rows = new Map<
-      string,
-      { name: string; planned: number; completed: number; actions: number; comments: number }
-    >();
+  const openValidation = (id: number, vType: string) => {
+    setValTarget({ id, vType });
+    setValDecision('approuve');
+    setValComment('');
+    setValOpen(true);
+  };
 
-    for (const row of perf) {
-      const key = String(row.influencer_id ?? 'unknown');
-      const current = rows.get(key) ?? {
-        name: influencerLabel(row),
-        planned: 0,
-        completed: 0,
-        actions: 0,
-        comments: 0,
-      };
-      current.actions += 1;
-      current.planned += asNumber(row.planned_actions);
-      current.completed += asNumber(row.completed_actions);
-      if (String(row.manager_comment ?? '').trim() !== '') current.comments += 1;
-      rows.set(key, current);
-    }
-
-    return Array.from(rows.values())
-      .map((item) => ({
-        ...item,
-        rate: item.planned > 0 ? (item.completed / item.planned) * 100 : 0,
-      }))
-      .sort((a, b) => b.rate - a.rate);
-  }, [perf]);
-
-  async function submitPerformance(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!perfDraft.influencer_id) {
-      toast.error('Sélectionnez un influenceur.');
-      return;
-    }
-
-    const planned = Math.max(1, Number(perfDraft.planned_actions || '1'));
-    const completed = Math.max(0, Math.min(Number(perfDraft.completed_actions || '0'), planned));
-
-    const payload: Record<string, unknown> = {
-      influencer_id: Number(perfDraft.influencer_id),
-      influencer_collaboration_id: perfDraft.influencer_collaboration_id
-        ? Number(perfDraft.influencer_collaboration_id)
-        : null,
-      metric_date: perfDraft.metric_date,
-      action_type: perfDraft.action_type.trim() || 'video',
-      planned_actions: planned,
-      completed_actions: completed,
-      manager_comment: perfDraft.manager_comment.trim() || null,
-      views: cleanNumberOrNull(perfDraft.views),
-      reach: cleanNumberOrNull(perfDraft.reach),
-      likes: cleanNumberOrNull(perfDraft.likes),
-      revenue: cleanNumberOrNull(perfDraft.revenue),
-    };
-
-    setSavingPerf(true);
+  const saveValidation = async () => {
+    setValSaving(true);
     try {
-      const res = await api.post<Record<string, unknown>>('influencer-performance', payload);
-      if (!res.ok) {
-        toast.error(res.message);
-        return;
-      }
-      toast.success('Action influenceur enregistrée.');
-      setPerfDraft((prev) => ({
-        ...prev,
-        completed_actions: '0',
-        manager_comment: '',
-        views: '',
-        reach: '',
-        likes: '',
-        revenue: '',
-      }));
-      await load();
-    } finally {
-      setSavingPerf(false);
-    }
-  }
+      const r = await api.post(`influencer-collaborations/${valTarget.id}/decide-validation`, {
+        validation_type: valTarget.vType, decision: valDecision, comment: valComment || null,
+      });
+      if (!r.ok) return errToast(toast, r);
+      toast.success(`${valTarget.vType} : ${valDecision === 'approuve' ? 'Approuvé' : 'Refusé'}.`);
+      setValOpen(false);
+      void load();
+    } finally { setValSaving(false); }
+  };
 
+  const changeCollabStatus = async (id: number, status: string, reason?: string) => {
+    const body: R = { status };
+    if (status === 'en_pause') body.pause_reason = reason || 'Mise en pause';
+    if (status === 'arretee') body.stop_reason = reason || 'Arrêtée';
+    const r = await api.post(`influencer-collaborations/${id}/status`, body);
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Statut mis à jour.');
+    void load();
+  };
+
+  /* ──────────────────────── DELIVERABLE CRUD ──────────────────────── */
+  const [delOpen, setDelOpen] = useState(false);
+  const [delId, setDelId] = useState<number | undefined>();
+  const [delForm, setDelForm] = useState({
+    collaboration_id: '', title: '', content_type: 'post', platform: '', quantity: '1',
+    due_date: '', description: '', brief_notes: '', status: 'a_produire',
+  });
+  const [delSaving, setDelSaving] = useState(false);
+
+  const openDel = (id?: number) => {
+    setDelId(id);
+    setDelForm({
+      collaboration_id: '', title: '', content_type: 'post', platform: '', quantity: '1',
+      due_date: '', description: '', brief_notes: '', status: 'a_produire',
+    });
+    if (id) void loadDel(id);
+    setDelOpen(true);
+  };
+
+  const loadDel = async (id: number) => {
+    const r = await api.get<R>(`influencer-deliverables/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    const d = r.data;
+    setDelForm({
+      collaboration_id: d.collaboration_id ? String(d.collaboration_id) : '',
+      title: String(d.title ?? ''), content_type: String(d.content_type ?? 'post'),
+      platform: String(d.platform ?? ''), quantity: String(d.quantity ?? 1),
+      due_date: d.due_date ? String(d.due_date).slice(0, 10) : '',
+      description: String(d.description ?? ''), brief_notes: String(d.brief_notes ?? ''),
+      status: String(d.status ?? 'a_produire'),
+    });
+  };
+
+  const saveDel = async () => {
+    const body: R = {
+      collaboration_id: Number(delForm.collaboration_id), title: delForm.title,
+      content_type: delForm.content_type, platform: delForm.platform || null,
+      quantity: Number(delForm.quantity || 1), due_date: delForm.due_date || null,
+      description: delForm.description || null, brief_notes: delForm.brief_notes || null,
+      status: delForm.status,
+    };
+    setDelSaving(true);
+    try {
+      const r = delId
+        ? await api.patch(`influencer-deliverables/${delId}`, body)
+        : await api.post('influencer-deliverables', body);
+      if (!r.ok) return errToast(toast, r);
+      toast.success(delId ? 'Livrable mis à jour.' : 'Livrable créé.');
+      setDelOpen(false);
+      void load();
+    } finally { setDelSaving(false); }
+  };
+
+  const deleteDel = async (id: number) => {
+    const r = await api.del(`influencer-deliverables/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Livrable supprimé.');
+    void load();
+  };
+
+  /* ──────────────────────── SHIPMENT CRUD ──────────────────────── */
+  const [shipOpen, setShipOpen] = useState(false);
+  const [shipId, setShipId] = useState<number | undefined>();
+  const [shipForm, setShipForm] = useState({
+    collaboration_id: '', influencer_id: '', products: '',
+    shipping_company: '', tracking_number: '', tracking_url: '',
+    estimated_delivery: '', delivery_address: '', notes: '', status: 'a_preparer',
+  });
+  const [shipSaving, setShipSaving] = useState(false);
+
+  const openShip = (id?: number) => {
+    setShipId(id);
+    setShipForm({
+      collaboration_id: '', influencer_id: '', products: '',
+      shipping_company: '', tracking_number: '', tracking_url: '',
+      estimated_delivery: '', delivery_address: '', notes: '', status: 'a_preparer',
+    });
+    if (id) void loadShip(id);
+    setShipOpen(true);
+  };
+
+  const loadShip = async (id: number) => {
+    const r = await api.get<R>(`influencer-shipments/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    const d = r.data;
+    const pj = Array.isArray(d.products_json) ? d.products_json : [];
+    setShipForm({
+      collaboration_id: d.collaboration_id ? String(d.collaboration_id) : '',
+      influencer_id: d.influencer_id ? String(d.influencer_id) : '',
+      products: pj.map((p: R) => `${p.name} x${p.quantity}`).join(', '),
+      shipping_company: String(d.shipping_company ?? ''),
+      tracking_number: String(d.tracking_number ?? ''),
+      tracking_url: String(d.tracking_url ?? ''),
+      estimated_delivery: d.estimated_delivery ? String(d.estimated_delivery).slice(0, 10) : '',
+      delivery_address: String(d.delivery_address ?? ''),
+      notes: String(d.notes ?? ''), status: String(d.status ?? 'a_preparer'),
+    });
+  };
+
+  const saveShip = async () => {
+    const items = shipForm.products.split(',').map(s => s.trim()).filter(Boolean).map(s => {
+      const match = s.match(/^(.+?)\s*x(\d+)$/);
+      return match ? { name: match[1].trim(), quantity: Number(match[2]) } : { name: s, quantity: 1 };
+    });
+    if (!items.length) { toast.error('Ajoutez au moins un produit.'); return; }
+    const body: R = {
+      collaboration_id: Number(shipForm.collaboration_id),
+      influencer_id: Number(shipForm.influencer_id),
+      products_json: items,
+      shipping_company: shipForm.shipping_company || null,
+      tracking_number: shipForm.tracking_number || null,
+      tracking_url: shipForm.tracking_url || null,
+      estimated_delivery: shipForm.estimated_delivery || null,
+      delivery_address: shipForm.delivery_address || null,
+      notes: shipForm.notes || null, status: shipForm.status,
+    };
+    setShipSaving(true);
+    try {
+      const r = shipId
+        ? await api.patch(`influencer-shipments/${shipId}`, body)
+        : await api.post('influencer-shipments', body);
+      if (!r.ok) return errToast(toast, r);
+      toast.success(shipId ? 'Envoi mis à jour.' : 'Envoi créé.');
+      setShipOpen(false);
+      void load();
+    } finally { setShipSaving(false); }
+  };
+
+  const deleteShip = async (id: number) => {
+    const r = await api.del(`influencer-shipments/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Envoi supprimé.');
+    void load();
+  };
+
+  /* ──────────────────────── PAYMENT CRUD ──────────────────────── */
+  const [payOpen, setPayOpen] = useState(false);
+  const [payId, setPayId] = useState<number | undefined>();
+  const [payForm, setPayForm] = useState({
+    collaboration_id: '', influencer_id: '', nature: 'remuneration',
+    amount: '', currency: 'MAD', payment_method: '', description: '',
+    period_start: '', period_end: '', due_date: '', notes: '',
+  });
+  const [paySaving, setPaySaving] = useState(false);
+
+  const openPay = (id?: number) => {
+    setPayId(id);
+    setPayForm({
+      collaboration_id: '', influencer_id: '', nature: 'remuneration',
+      amount: '', currency: 'MAD', payment_method: '', description: '',
+      period_start: '', period_end: '', due_date: '', notes: '',
+    });
+    if (id) void loadPay(id);
+    setPayOpen(true);
+  };
+
+  const loadPay = async (id: number) => {
+    const r = await api.get<R>(`influencer-payments/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    const d = r.data;
+    setPayForm({
+      collaboration_id: d.collaboration_id ? String(d.collaboration_id) : '',
+      influencer_id: d.influencer_id ? String(d.influencer_id) : '',
+      nature: String(d.nature ?? 'remuneration'),
+      amount: d.amount != null ? String(d.amount) : '',
+      currency: String(d.currency ?? 'MAD'),
+      payment_method: String(d.payment_method ?? ''),
+      description: String(d.description ?? ''),
+      period_start: d.period_start ? String(d.period_start).slice(0, 10) : '',
+      period_end: d.period_end ? String(d.period_end).slice(0, 10) : '',
+      due_date: d.due_date ? String(d.due_date).slice(0, 10) : '',
+      notes: String(d.notes ?? ''),
+    });
+  };
+
+  const savePay = async () => {
+    const body: R = {
+      collaboration_id: Number(payForm.collaboration_id),
+      influencer_id: Number(payForm.influencer_id),
+      nature: payForm.nature, amount: Number(payForm.amount || 0),
+      currency: payForm.currency || 'MAD',
+      payment_method: payForm.payment_method || null,
+      description: payForm.description || null,
+      period_start: payForm.period_start || null, period_end: payForm.period_end || null,
+      due_date: payForm.due_date || null, notes: payForm.notes || null,
+    };
+    setPaySaving(true);
+    try {
+      const r = payId
+        ? await api.patch(`influencer-payments/${payId}`, body)
+        : await api.post('influencer-payments', body);
+      if (!r.ok) return errToast(toast, r);
+      toast.success(payId ? 'Paiement mis à jour.' : 'Paiement créé.');
+      setPayOpen(false);
+      void load();
+    } finally { setPaySaving(false); }
+  };
+
+  const submitPayValidation = async (id: number) => {
+    const r = await api.post(`influencer-payments/${id}/submit-validation`, {});
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Soumis pour validation N1.');
+    void load();
+  };
+
+  const validatePayN1 = async (id: number, decision: string, comment?: string) => {
+    const r = await api.post(`influencer-payments/${id}/validate-n1`, { decision, comment: comment || null });
+    if (!r.ok) return errToast(toast, r);
+    toast.success(`N1 : ${decision === 'approuve' ? 'Approuvé' : 'Refusé'}.`);
+    void load();
+  };
+
+  const validatePayN2 = async (id: number, decision: string, comment?: string) => {
+    const r = await api.post(`influencer-payments/${id}/validate-n2`, { decision, comment: comment || null });
+    if (!r.ok) return errToast(toast, r);
+    toast.success(`N2 : ${decision === 'approuve' ? 'Approuvé' : 'Refusé'}.`);
+    void load();
+  };
+
+  const markPayPaid = async (id: number) => {
+    const r = await api.post(`influencer-payments/${id}/mark-paid`, {});
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Paiement marqué payé.');
+    void load();
+  };
+
+  const deletePay = async (id: number) => {
+    const r = await api.del(`influencer-payments/${id}`);
+    if (!r.ok) return errToast(toast, r);
+    toast.success('Paiement supprimé.');
+    void load();
+  };
+
+  /* ──────────────────────── Guard ──────────────────────── */
   if (!activeBrandId) {
     return (
       <div className="space-y-4">
@@ -576,1118 +763,748 @@ export function InfluenceWorkspaceScreen() {
     );
   }
 
+  const canManage = hasPermission('influence.manage');
   const canCreateInf = hasPermission('influence.create');
   const canEditInf = hasPermission('influence.update');
   const canDeleteInf = hasPermission('influence.delete');
-  const canCreateCollab = hasPermission('influencer_collaborations.create');
+  const canCollab = hasPermission('influencer_collaborations.create');
   const canEditCollab = hasPermission('influencer_collaborations.update');
-  const canDeleteCollab = hasPermission('influencer_collaborations.delete');
-  const canCreateComplaint = hasPermission('influencer_complaints.create');
-  const canEditComplaint = hasPermission('influencer_complaints.update');
-  const canDeleteComplaint = hasPermission('influencer_complaints.delete');
+  const canValidateCollab = hasPermission('influencer_collaborations.validate');
+  const canDel = hasPermission('influencer_deliverables.create');
+  const canShip = hasPermission('influencer_shipments.create');
+  const canPay = hasPermission('influencer_payments.create');
+  const canValidatePay = hasPermission('influencer_payments.validate');
 
+  /* ──────────────────────── TABS ──────────────────────── */
+  const spaces: { key: Space; label: string; icon: React.ReactNode }[] = [
+    { key: 'pilotage', label: 'Pilotage', icon: <BarChart3 size={16} /> },
+    { key: 'influenceuses', label: 'Influenceuses', icon: <Sparkles size={16} /> },
+    { key: 'collaborations', label: 'Collaborations', icon: <Handshake size={16} /> },
+    { key: 'livrables', label: 'Livrables & Contenus', icon: <ClipboardList size={16} /> },
+    { key: 'envois', label: 'Envois produits', icon: <Truck size={16} /> },
+    { key: 'paiements', label: 'Paiements', icon: <DollarSign size={16} /> },
+  ];
+
+  /* ──────────────────────── DASHBOARD STATS ──────────────────────── */
+  const dashStats = useMemo(() => {
+    if (!dash) return null;
+    const infByStatus = (s: string) => influencers.filter(i => String(i.status) === s).length;
+    return {
+      totalInf: Number(dash.total_influencers ?? influencers.length),
+      activeCollabs: Number(dash.active_collabs ?? 0),
+      totalSpend: Number(dash.total_spend ?? 0),
+      totalRevenue: Number(dash.total_revenue ?? 0),
+      avgRoi: Number(dash.avg_roi ?? 0),
+      pipeline: {
+        reperee: infByStatus('reperee'),
+        qualifiee: infByStatus('qualifiee'),
+        contactee: infByStatus('contactee'),
+        en_discussion: infByStatus('en_discussion'),
+        en_negociation: infByStatus('en_negociation'),
+        active: infByStatus('active'),
+      },
+    };
+  }, [dash, influencers]);
+
+  /* ═══════════════════════════ RENDER ═══════════════════════════ */
   return (
     <div className="space-y-6">
       <PageHeader
         title="Studio Influence"
-        subtitle="Influenceurs, collaborations, performance, messages, plaintes."
+        subtitle="Gestion complète des influenceuses, collaborations, livrables, envois et paiements."
         right={
-          <div className="flex items-center gap-2">
-            {tab === 'influencers' && canCreateInf && (
-              <button
-                type="button"
-                onClick={() => openInfluencer()}
-                className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Nouvel influenceur
-              </button>
-            )}
-            {tab === 'collabs' && canCreateCollab && (
-              <button
-                type="button"
-                onClick={() => openCollab()}
-                className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Nouvelle collaboration
-              </button>
-            )}
-            {tab === 'complaints' && canCreateComplaint && (
-              <button
-                type="button"
-                onClick={() => openComplaint()}
-                className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Nouvelle plainte
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex items-center gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </button>
-          </div>
+          <button type="button" onClick={() => void load()} disabled={loading}
+            className="flex items-center gap-1 rounded-xl bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-200 disabled:opacity-50">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Actualiser
+          </button>
         }
       />
 
-      <div className="flex flex-wrap gap-2 border-b border-zinc-100 pb-2">
-        {(
-          [
-            ['dash', 'Tableau', LayoutGrid],
-            ['influencers', 'Influenceurs', Sparkles],
-            ['collabs', 'Collabs', Handshake],
-            ['perf', 'Performance', BarChart3],
-            ['messages', 'Messages', MessageCircle],
-            ['complaints', 'Plaintes', AlertTriangle],
-          ] as const
-        ).map(([id, label, Icon]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id as Tab)}
-            className={`px-3 py-2 rounded-xl text-sm font-black inline-flex items-center gap-2 ${
-              tab === id ? 'bg-primary-600 text-white' : 'bg-zinc-100 text-zinc-700'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
+      {/* ── Space tabs ── */}
+      <div className="flex flex-wrap gap-1 rounded-2xl bg-zinc-50 p-1">
+        {spaces.map(s => (
+          <button key={s.key} type="button" onClick={() => setSpace(s.key)}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+              space === s.key ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+            }`}>
+            {s.icon} {s.label}
           </button>
         ))}
       </div>
 
-      {/* ── Dashboard ── */}
-      {tab === 'dash' && loading && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="card p-4 animate-pulse">
-              <div className="h-3 w-24 bg-zinc-100 rounded mb-2" />
-              <div className="h-8 w-16 bg-zinc-100 rounded" />
+      {loading && <div className="text-center text-sm text-zinc-400">Chargement…</div>}
+
+      {/* ═══════ PILOTAGE ═══════ */}
+      {space === 'pilotage' && dashStats && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <StatCard label="Influenceuses" value={fmtNum(dashStats.totalInf)} />
+            <StatCard label="Collaborations actives" value={fmtNum(dashStats.activeCollabs)} />
+            <StatCard label="Budget dépensé" value={formatCurrency(dashStats.totalSpend)} />
+            <StatCard label="Revenu généré" value={formatCurrency(dashStats.totalRevenue)} />
+            <StatCard label="ROI moyen" value={fmtPct(dashStats.avgRoi)} />
+          </div>
+
+          <div className="rounded-2xl border border-zinc-100 bg-white p-5">
+            <h3 className="mb-3 text-sm font-bold text-zinc-700">Pipeline influenceuses</h3>
+            <div className="flex flex-wrap gap-3">
+              {(['reperee', 'qualifiee', 'contactee', 'en_discussion', 'en_negociation', 'active'] as const).map(s => (
+                <div key={s} className="flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2">
+                  <StatusBadge value={s} labels={INFLUENCER_STATUS_LABELS} />
+                  <span className="text-lg font-black text-zinc-900">{dashStats.pipeline[s]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {dash?.top_influencers && Array.isArray(dash.top_influencers) && (
+            <div className="rounded-2xl border border-zinc-100 bg-white p-5">
+              <h3 className="mb-3 text-sm font-bold text-zinc-700">Top influenceuses par revenu</h3>
+              <div className="space-y-2">
+                {(dash.top_influencers as R[]).slice(0, 5).map((row, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2">
+                    <span className="text-sm font-semibold text-zinc-700">{String(row.full_name ?? row.username ?? '—')}</span>
+                    <span className="text-sm font-bold text-green-700">{formatCurrency(Number(row.total_revenue ?? 0))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════ INFLUENCEUSES ═══════ */}
+      {space === 'influenceuses' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <select value={infStatusFilter} onChange={e => setInfStatusFilter(e.target.value)} className={selClass} style={{ width: 200 }}>
+              <option value="">Tous les statuts</option>
+              {INF_STATUSES.map(s => <option key={s} value={s}>{INFLUENCER_STATUS_LABELS[s]}</option>)}
+            </select>
+            {canCreateInf && (
+              <button type="button" onClick={() => openInf()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
+                <Plus size={14} /> Nouvelle influenceuse
+              </button>
+            )}
+          </div>
+
+          {influencers.length === 0 && !loading ? (
+            <EmptyState title="Aucune influenceuse" description="Ajoutez votre première influenceuse." />
+          ) : (
+            <DataTable
+              columns={[
+                { header: 'Nom', accessor: (r: R) => (
+                  <div>
+                    <div className="font-semibold text-zinc-900">{String(r.full_name ?? '—')}</div>
+                    {r.username && <div className="text-xs text-zinc-500">@{String(r.username)}</div>}
+                  </div>
+                )},
+                { header: 'Plateforme', accessor: (r: R) => String(r.platform ?? '—') },
+                { header: 'Niche', accessor: (r: R) => String(r.niche ?? '—') },
+                { header: 'Audience', accessor: (r: R) => fmtNum(r.audience_size) },
+                { header: 'Engagement', accessor: (r: R) => r.engagement_rate != null ? fmtPct(r.engagement_rate) : '—' },
+                { header: 'Score Q.', accessor: (r: R) => r.qualification_score != null ? `${Number(r.qualification_score).toFixed(1)}/5` : '—' },
+                { header: 'Statut', accessor: (r: R) => <StatusBadge value={String(r.status ?? '')} labels={INFLUENCER_STATUS_LABELS} /> },
+                { header: 'Actions', accessor: (r: R) => {
+                  const id = Number(r.id);
+                  const st = String(r.status);
+                  return (
+                    <div className="flex items-center gap-1">
+                      {canEditInf && <button type="button" onClick={() => openInf(id)} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>}
+                      {canManage && st !== 'exclue' && (
+                        <button type="button" onClick={() => openQualify(id, r)} className="p-1 text-indigo-500 hover:text-indigo-700" title="Qualifier"><Star size={14} /></button>
+                      )}
+                      {canManage && !['active', 'exclue'].includes(st) && (
+                        <button type="button" onClick={() => changeInfStatus(id, 'active')} className="p-1 text-green-500 hover:text-green-700" title="Activer"><UserCheck size={14} /></button>
+                      )}
+                      {canManage && st !== 'exclue' && (
+                        <button type="button" onClick={() => { setExclId(id); setExclReason(''); setExclOpen(true); }} className="p-1 text-red-500 hover:text-red-700" title="Exclure"><UserX size={14} /></button>
+                      )}
+                      {canDeleteInf && <button type="button" onClick={() => deleteInf(id)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>}
+                    </div>
+                  );
+                }},
+              ]}
+              data={influencers}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ═══════ COLLABORATIONS ═══════ */}
+      {space === 'collaborations' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <select value={collabStatusFilter} onChange={e => setCollabStatusFilter(e.target.value)} className={selClass} style={{ width: 240 }}>
+              <option value="">Tous les statuts</option>
+              {COLLAB_STATUSES.map(s => <option key={s} value={s}>{COLLAB_STATUS_LABELS[s]}</option>)}
+            </select>
+            {canCollab && (
+              <button type="button" onClick={() => openCollab()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
+                <Plus size={14} /> Nouvelle collaboration
+              </button>
+            )}
+          </div>
+
+          {collabs.length === 0 && !loading ? (
+            <EmptyState title="Aucune collaboration" description="Créez votre première collaboration." />
+          ) : (
+            <DataTable
+              columns={[
+                { header: 'Titre', accessor: (r: R) => (
+                  <div>
+                    <div className="font-semibold text-zinc-900">{String(r.title ?? '—')}</div>
+                    <div className="text-xs text-zinc-500">{infLabel(r)}</div>
+                  </div>
+                )},
+                { header: 'Type', accessor: (r: R) => statusLabelFr(String(r.collaboration_type ?? ''), COLLAB_TYPE_LABELS) },
+                { header: 'Montant', accessor: (r: R) => formatCurrency(Number(r.agreed_amount ?? 0)) },
+                { header: 'Période', accessor: (r: R) => {
+                  const s = r.start_date ? String(r.start_date).slice(0, 10) : '—';
+                  const e = r.end_date ? String(r.end_date).slice(0, 10) : '—';
+                  return `${s} → ${e}`;
+                }},
+                { header: 'Statut', accessor: (r: R) => <StatusBadge value={String(r.status ?? '')} labels={COLLAB_STATUS_LABELS} /> },
+                { header: 'Validation', accessor: (r: R) => {
+                  const v1 = r.v1_status ? String(r.v1_status) : null;
+                  const v2 = r.v2_status ? String(r.v2_status) : null;
+                  return (
+                    <div className="flex gap-1">
+                      {v1 && <Badge color={v1 === 'approuve' ? 'bg-green-50 text-green-700' : v1 === 'refuse' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}>V1:{v1 === 'approuve' ? '✓' : v1 === 'refuse' ? '✗' : '…'}</Badge>}
+                      {v2 && <Badge color={v2 === 'approuve' ? 'bg-green-50 text-green-700' : v2 === 'refuse' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}>V2:{v2 === 'approuve' ? '✓' : v2 === 'refuse' ? '✗' : '…'}</Badge>}
+                    </div>
+                  );
+                }},
+                { header: 'Actions', accessor: (r: R) => {
+                  const id = Number(r.id);
+                  const st = String(r.status);
+                  return (
+                    <div className="flex items-center gap-1">
+                      {canEditCollab && <button type="button" onClick={() => openCollab(id)} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>}
+                      {canEditCollab && st === 'brouillon' && (
+                        <button type="button" onClick={() => requestValidation(id, 'V1')} className="p-1 text-amber-500 hover:text-amber-700" title="Demander V1"><Send size={14} /></button>
+                      )}
+                      {canValidateCollab && st === 'en_attente_validation' && (
+                        <button type="button" onClick={() => openValidation(id, 'V1')} className="p-1 text-green-500 hover:text-green-700" title="Décider V1"><ShieldCheck size={14} /></button>
+                      )}
+                      {canEditCollab && st === 'en_revue' && (
+                        <button type="button" onClick={() => requestValidation(id, 'V2')} className="p-1 text-orange-500 hover:text-orange-700" title="Demander V2"><Send size={14} /></button>
+                      )}
+                      {canValidateCollab && st === 'contractualisation_en_attente' && (
+                        <button type="button" onClick={() => openValidation(id, 'V2')} className="p-1 text-green-500 hover:text-green-700" title="Décider V2"><ShieldCheck size={14} /></button>
+                      )}
+                      {canEditCollab && ['en_cours', 'en_preparation'].includes(st) && (
+                        <button type="button" onClick={() => changeCollabStatus(id, 'en_pause')} className="p-1 text-amber-500 hover:text-amber-700" title="Pause"><Pause size={14} /></button>
+                      )}
+                      {canEditCollab && st === 'en_pause' && (
+                        <button type="button" onClick={() => changeCollabStatus(id, 'en_cours')} className="p-1 text-cyan-500 hover:text-cyan-700" title="Reprendre"><RefreshCw size={14} /></button>
+                      )}
+                      {canEditCollab && (
+                        <button type="button" onClick={() => { setColId(id); void api.post(`influencer-collaborations/${id}/submit-review`, { review_notes: 'Revue soumise', review_rating: 4 }).then(() => { toast.success('Revue soumise.'); void load(); }); }} className="p-1 text-purple-500 hover:text-purple-700" title="Soumettre revue" style={{ display: ['en_cours', 'contractualisee'].includes(st) ? 'block' : 'none' }}><Eye size={14} /></button>
+                      )}
+                      {canEditCollab && <button type="button" onClick={() => deleteCollab(id)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>}
+                    </div>
+                  );
+                }},
+              ]}
+              data={collabs}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ═══════ LIVRABLES & CONTENUS ═══════ */}
+      {space === 'livrables' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {canDel && (
+              <button type="button" onClick={() => openDel()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
+                <Plus size={14} /> Nouveau livrable
+              </button>
+            )}
+          </div>
+
+          {deliverables.length === 0 && !loading ? (
+            <EmptyState title="Aucun livrable" description="Créez des livrables pour vos collaborations." />
+          ) : (
+            <DataTable
+              columns={[
+                { header: 'Titre', accessor: (r: R) => (
+                  <div>
+                    <div className="font-semibold text-zinc-900">{String(r.title ?? '—')}</div>
+                    <div className="text-xs text-zinc-500">{collabLabel(r)}</div>
+                  </div>
+                )},
+                { header: 'Type', accessor: (r: R) => String(r.content_type ?? '—') },
+                { header: 'Plateforme', accessor: (r: R) => String(r.platform ?? '—') },
+                { header: 'Qté', accessor: (r: R) => String(r.quantity ?? 1) },
+                { header: 'Échéance', accessor: (r: R) => r.due_date ? String(r.due_date).slice(0, 10) : '—' },
+                { header: 'Statut', accessor: (r: R) => <StatusBadge value={String(r.status ?? '')} labels={DELIVERABLE_STATUS_LABELS} /> },
+                { header: 'Actions', accessor: (r: R) => (
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => openDel(Number(r.id))} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>
+                    <button type="button" onClick={() => deleteDel(Number(r.id))} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  </div>
+                )},
+              ]}
+              data={deliverables}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ═══════ ENVOIS PRODUITS ═══════ */}
+      {space === 'envois' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {canShip && (
+              <button type="button" onClick={() => openShip()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
+                <Plus size={14} /> Nouvel envoi
+              </button>
+            )}
+          </div>
+
+          {shipments.length === 0 && !loading ? (
+            <EmptyState title="Aucun envoi" description="Gérez les envois de produits aux influenceuses." />
+          ) : (
+            <DataTable
+              columns={[
+                { header: 'Réf.', accessor: (r: R) => String(r.reference ?? '—') },
+                { header: 'Influenceuse', accessor: (r: R) => infLabel(r) },
+                { header: 'Collaboration', accessor: (r: R) => collabLabel(r) },
+                { header: 'Produits', accessor: (r: R) => {
+                  const pj = Array.isArray(r.products_json) ? r.products_json : [];
+                  return pj.map((p: R) => `${p.name} x${p.quantity}`).join(', ') || '—';
+                }},
+                { header: 'Transporteur', accessor: (r: R) => String(r.shipping_company ?? '—') },
+                { header: 'Statut', accessor: (r: R) => <StatusBadge value={String(r.status ?? '')} labels={SHIPMENT_STATUS_LABELS} /> },
+                { header: 'Actions', accessor: (r: R) => (
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => openShip(Number(r.id))} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>
+                    <button type="button" onClick={() => deleteShip(Number(r.id))} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  </div>
+                )},
+              ]}
+              data={shipments}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ═══════ PAIEMENTS & COMMISSIONS ═══════ */}
+      {space === 'paiements' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {canPay && (
+              <button type="button" onClick={() => openPay()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
+                <Plus size={14} /> Nouveau paiement
+              </button>
+            )}
+          </div>
+
+          {payments.length === 0 && !loading ? (
+            <EmptyState title="Aucun paiement" description="Gérez les rémunérations, bonus et commissions." />
+          ) : (
+            <DataTable
+              columns={[
+                { header: 'Réf.', accessor: (r: R) => String(r.reference ?? '—') },
+                { header: 'Influenceuse', accessor: (r: R) => infLabel(r) },
+                { header: 'Nature', accessor: (r: R) => statusLabelFr(String(r.nature ?? ''), PAYMENT_NATURE_LABELS) },
+                { header: 'Montant', accessor: (r: R) => `${formatCurrency(Number(r.amount ?? 0))} ${String(r.currency ?? 'MAD')}` },
+                { header: 'Échéance', accessor: (r: R) => r.due_date ? String(r.due_date).slice(0, 10) : '—' },
+                { header: 'Statut', accessor: (r: R) => <StatusBadge value={String(r.status ?? '')} labels={PAYMENT_STATUS_LABELS} /> },
+                { header: 'Actions', accessor: (r: R) => {
+                  const id = Number(r.id);
+                  const st = String(r.status);
+                  return (
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => openPay(id)} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>
+                      {['brouillon', 'rejete'].includes(st) && (
+                        <button type="button" onClick={() => submitPayValidation(id)} className="p-1 text-amber-500 hover:text-amber-700" title="Soumettre validation"><Send size={14} /></button>
+                      )}
+                      {canValidatePay && st === 'en_attente_validation_n1' && (
+                        <button type="button" onClick={() => validatePayN1(id, 'approuve')} className="p-1 text-green-500 hover:text-green-700" title="Approuver N1"><CheckCircle2 size={14} /></button>
+                      )}
+                      {canValidatePay && st === 'en_attente_validation_n1' && (
+                        <button type="button" onClick={() => validatePayN1(id, 'refuse')} className="p-1 text-red-500 hover:text-red-700" title="Refuser N1"><XCircle size={14} /></button>
+                      )}
+                      {canValidatePay && st === 'en_attente_validation_n2' && (
+                        <button type="button" onClick={() => validatePayN2(id, 'approuve')} className="p-1 text-green-500 hover:text-green-700" title="Approuver N2"><CheckCircle2 size={14} /></button>
+                      )}
+                      {canValidatePay && st === 'en_attente_validation_n2' && (
+                        <button type="button" onClick={() => validatePayN2(id, 'refuse')} className="p-1 text-red-500 hover:text-red-700" title="Refuser N2"><XCircle size={14} /></button>
+                      )}
+                      {st === 'valide_n2' && (
+                        <button type="button" onClick={() => markPayPaid(id)} className="p-1 text-emerald-500 hover:text-emerald-700" title="Marquer payé"><DollarSign size={14} /></button>
+                      )}
+                      {['brouillon', 'rejete'].includes(st) && (
+                        <button type="button" onClick={() => deletePay(id)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                      )}
+                    </div>
+                  );
+                }},
+              ]}
+              data={payments}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ═══════ MODALS ═══════ */}
+
+      {/* Influencer modal */}
+      <Modal open={infOpen} onClose={() => setInfOpen(false)} title={infId ? 'Modifier influenceuse' : 'Nouvelle influenceuse'}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Nom complet *">
+            <input className={inputClass} value={infForm.full_name} onChange={e => setInfForm(p => ({ ...p, full_name: e.target.value }))} />
+          </Field>
+          <Field label="Username">
+            <input className={inputClass} value={infForm.username} onChange={e => setInfForm(p => ({ ...p, username: e.target.value }))} placeholder="@handle" />
+          </Field>
+          <Field label="Plateforme">
+            <select className={selClass} value={infForm.platform} onChange={e => setInfForm(p => ({ ...p, platform: e.target.value }))}>
+              <option value="">—</option>
+              {PLATFORMS.map(p => <option key={p.v} value={p.v}>{p.l}</option>)}
+            </select>
+          </Field>
+          <Field label="Niche">
+            <input className={inputClass} value={infForm.niche} onChange={e => setInfForm(p => ({ ...p, niche: e.target.value }))} />
+          </Field>
+          <Field label="Ville">
+            <input className={inputClass} value={infForm.city} onChange={e => setInfForm(p => ({ ...p, city: e.target.value }))} />
+          </Field>
+          <Field label="Source">
+            <input className={inputClass} value={infForm.source} onChange={e => setInfForm(p => ({ ...p, source: e.target.value }))} placeholder="Instagram, recommandation…" />
+          </Field>
+          <Field label="Taille audience">
+            <input type="number" className={inputClass} value={infForm.audience_size} onChange={e => setInfForm(p => ({ ...p, audience_size: e.target.value }))} />
+          </Field>
+          <Field label="Taux d'engagement (%)">
+            <input type="number" step="0.01" className={inputClass} value={infForm.engagement_rate} onChange={e => setInfForm(p => ({ ...p, engagement_rate: e.target.value }))} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Bio">
+              <textarea className={inputClass} rows={2} value={infForm.bio} onChange={e => setInfForm(p => ({ ...p, bio: e.target.value }))} />
+            </Field>
+          </div>
+          <Field label="Téléphone">
+            <input className={inputClass} value={infForm.contact_phone} onChange={e => setInfForm(p => ({ ...p, contact_phone: e.target.value }))} />
+          </Field>
+          <Field label="Email">
+            <input type="email" className={inputClass} value={infForm.contact_email} onChange={e => setInfForm(p => ({ ...p, contact_email: e.target.value }))} />
+          </Field>
+          <div className="sm:col-span-2 border-t pt-3 mt-1">
+            <div className="text-xs font-bold uppercase text-zinc-500 mb-2">Tarifs (MAD)</div>
+            <div className="grid grid-cols-5 gap-2">
+              {(['Story', 'Reel', 'Post', 'Vidéo', 'Live'] as const).map((l, i) => {
+                const k = (['pricing_story', 'pricing_reel', 'pricing_post', 'pricing_video', 'pricing_live'] as const)[i];
+                return (
+                  <Field key={k} label={l}>
+                    <input type="number" className={inputClass} value={infForm[k]} onChange={e => setInfForm(p => ({ ...p, [k]: e.target.value }))} />
+                  </Field>
+                );
+              })}
+            </div>
+          </div>
+          <Field label="Statut">
+            <select className={selClass} value={infForm.status} onChange={e => setInfForm(p => ({ ...p, status: e.target.value }))}>
+              {INF_STATUSES.map(s => <option key={s} value={s}>{INFLUENCER_STATUS_LABELS[s]}</option>)}
+            </select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Notes internes">
+              <textarea className={inputClass} rows={2} value={infForm.notes} onChange={e => setInfForm(p => ({ ...p, notes: e.target.value }))} />
+            </Field>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setInfOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveInf} disabled={infSaving || !infForm.full_name.trim()}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{infSaving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </Modal>
+
+      {/* Qualification modal */}
+      <Modal open={qualOpen} onClose={() => setQualOpen(false)} title="Qualification influenceuse">
+        <div className="space-y-3">
+          {QUALIFICATION_DIMS.map(d => (
+            <div key={d.key} className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-zinc-700">{d.label}</span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map(v => (
+                  <button key={v} type="button" onClick={() => setQualScores(p => ({ ...p, [d.key]: v }))}
+                    className={`w-8 h-8 rounded-lg text-sm font-bold ${qualScores[d.key] === v ? 'bg-indigo-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {tab === 'dash' && !loading && dash && (
-        <div className="space-y-6">
-          <p className="text-sm text-zinc-600">
-            Période :{' '}
-            <span className="font-bold text-zinc-800">
-              {(dash.period as { from?: string; to?: string } | undefined)?.from ?? '—'} →{' '}
-              {(dash.period as { from?: string; to?: string } | undefined)?.to ?? '—'}
+          <div className="border-t pt-3 text-center">
+            <span className="text-sm text-zinc-500">Score moyen : </span>
+            <span className="text-lg font-black text-indigo-700">
+              {(Object.values(qualScores).reduce((a, b) => a + b, 0) / Math.max(Object.values(qualScores).length, 1)).toFixed(1)}/5
             </span>
-          </p>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-            <div className="card p-4">
-              <p className="text-[10px] font-black uppercase text-zinc-400">Influenceurs (total)</p>
-              <p className="text-2xl font-black mt-1 tabular-nums">{Number(dash.total_influencers ?? 0)}</p>
-            </div>
-            <div className="card p-4">
-              <p className="text-[10px] font-black uppercase text-zinc-400">Collaborations actives</p>
-              <p className="text-2xl font-black mt-1 tabular-nums">{Number(dash.active_collaborations ?? 0)}</p>
-            </div>
-            <div className="card p-4">
-              <p className="text-[10px] font-black uppercase text-zinc-400">Dépenses (période)</p>
-              <p className="text-2xl font-black mt-1 tabular-nums">
-                {formatCurrency(Number(dash.influencer_spend_period ?? 0))}
-              </p>
-            </div>
-            <div className="card p-4">
-              <p className="text-[10px] font-black uppercase text-zinc-400">CA attribué</p>
-              <p className="text-2xl font-black mt-1 tabular-nums">
-                {formatCurrency(Number(dash.revenue_attributed ?? 0))}
-              </p>
-            </div>
-            <div className="card p-4">
-              <p className="text-[10px] font-black uppercase text-zinc-400">ROI moyen</p>
-              <p className="text-2xl font-black mt-1 tabular-nums">{fmtPct(dash.avg_roi_percent as number | null)}</p>
-            </div>
-            <div className="card p-4">
-              <p className="text-[10px] font-black uppercase text-zinc-400">Plaintes ouvertes</p>
-              <p className="text-2xl font-black mt-1 tabular-nums">{Number(dash.open_complaints ?? 0)}</p>
-            </div>
           </div>
-
-          <div className="grid lg:grid-cols-2 gap-4">
-            <div className="card p-4">
-              <p className="text-sm font-black mb-3">Top influenceurs (CA, période)</p>
-              {Array.isArray(dash.top_influencers) && dash.top_influencers.length > 0 ? (
-                <ul className="space-y-2">
-                  {(dash.top_influencers as Record<string, unknown>[]).map((row, idx) => {
-                    const inf = row.influencer as { full_name?: string; handle?: string } | undefined;
-                    const name = inf?.full_name ?? inf?.handle ?? `ID ${row.influencer_id ?? ''}`;
-                    const rev = row.total_rev;
-                    return (
-                      <li
-                        key={`${row.influencer_id ?? idx}`}
-                        className="flex justify-between gap-4 text-sm border-b border-zinc-50 pb-2 last:border-0"
-                      >
-                        <span className="font-semibold text-zinc-800 truncate">{name}</span>
-                        <span className="font-black tabular-nums shrink-0">
-                          {formatCurrency(Number(rev ?? 0))}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="text-sm text-zinc-500">Aucune performance enregistrée sur cette période.</p>
-              )}
-            </div>
-
-            <div className="card p-4">
-              <p className="text-sm font-black mb-3">Influenceurs par plateforme</p>
-              {dash.influencers_by_platform &&
-              typeof dash.influencers_by_platform === 'object' &&
-              !Array.isArray(dash.influencers_by_platform) &&
-              Object.keys(dash.influencers_by_platform as object).length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(dash.influencers_by_platform as Record<string, number>).map(([plat, c]) => (
-                    <span
-                      key={plat}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-100 text-sm font-bold text-zinc-800"
-                    >
-                      {plat}{' '}
-                      <span className="text-primary-600 tabular-nums">{Number(c)}</span>
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-zinc-500">Aucun influenceur avec plateforme renseignée.</p>
-              )}
-            </div>
-          </div>
-
-          {Number(dash.total_influencers ?? 0) === 0 && (
-            <EmptyState
-              title="Pas encore de données influence"
-              description="Créez des influenceurs depuis l'onglet Influenceurs pour commencer."
-            />
-          )}
         </div>
-      )}
-
-      {/* ── Influencers Tab ── */}
-      {tab === 'influencers' && (
-        <DataTable<Record<string, unknown>>
-          rows={influencers}
-          loading={loading}
-          columns={[
-            { key: 'n', header: 'Nom', cell: (r) => String(r.full_name ?? '') },
-            { key: 'u', header: 'Username', cell: (r) => r.username ? `@${String(r.username)}` : '—' },
-            { key: 'p', header: 'Plateforme', cell: (r) => String(r.platform ?? '—') },
-            { key: 'ni', header: 'Niche', cell: (r) => String(r.niche ?? '—') },
-            {
-              key: 'aud',
-              header: 'Audience',
-              cell: (r) => r.audience_size ? Number(r.audience_size).toLocaleString('fr-FR') : '—',
-            },
-            { key: 'ph', header: 'Contact', cell: (r) => String(r.contact_email ?? r.contact_phone ?? '—') },
-            {
-              key: 's',
-              header: 'Statut',
-              cell: (r) => {
-                const s = String(r.status ?? '');
-                const color =
-                  s === 'active' ? 'bg-emerald-50 text-emerald-700' :
-                  s === 'blacklisted' ? 'bg-rose-50 text-rose-700' :
-                  s === 'inactive' ? 'bg-zinc-100 text-zinc-600' :
-                  'bg-amber-50 text-amber-700';
-                return (
-                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
-                    {statusLabelFr(s, INFLUENCER_STATUS_LABELS)}
-                  </span>
-                );
-              },
-            },
-            ...((canEditInf || canDeleteInf)
-              ? [{
-                  key: 'actions',
-                  header: '',
-                  cell: (r: Record<string, unknown>) => (
-                    <div className="flex items-center gap-1">
-                      {canEditInf && (
-                        <button
-                          type="button"
-                          onClick={() => openInfluencer(Number(r.id))}
-                          className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {canDeleteInf && (
-                        <button
-                          type="button"
-                          onClick={() => void deleteInfluencer(Number(r.id))}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ),
-                }]
-              : []),
-          ]}
-          emptyTitle="Aucun influenceur pour cette marque"
-          emptyDescription="Créez un influenceur pour commencer à suivre vos partenariats."
-          emptyAction={
-            canCreateInf ? (
-              <button
-                type="button"
-                onClick={() => openInfluencer()}
-                className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-bold"
-              >
-                Ajouter un influenceur
-              </button>
-            ) : undefined
-          }
-        />
-      )}
-
-      {/* ── Collabs Tab ── */}
-      {tab === 'collabs' && (
-        <DataTable<Record<string, unknown>>
-          rows={collabs}
-          loading={loading}
-          columns={[
-            { key: 't', header: 'Titre', cell: (r) => String(r.title ?? '') },
-            {
-              key: 'inf',
-              header: 'Influenceur',
-              cell: (r) => {
-                const inf = r.influencer as Record<string, unknown> | undefined;
-                return inf ? String(inf.full_name ?? inf.username ?? '') : '—';
-              },
-            },
-            {
-              key: 'type',
-              header: 'Type',
-              cell: (r) => statusLabelFr(String(r.collaboration_type ?? ''), COLLAB_TYPE_LABELS),
-            },
-            {
-              key: 'a',
-              header: 'Montant',
-              cell: (r) => r.agreed_amount != null ? formatCurrency(Number(r.agreed_amount)) : '—',
-            },
-            {
-              key: 'dates',
-              header: 'Période',
-              cell: (r) => {
-                const s = r.start_date ? String(r.start_date).slice(0, 10) : '';
-                const e = r.end_date ? String(r.end_date).slice(0, 10) : '';
-                if (!s && !e) return '—';
-                return `${s} → ${e}`;
-              },
-            },
-            {
-              key: 'st',
-              header: 'Statut',
-              cell: (r) => {
-                const s = String(r.status ?? '');
-                const color =
-                  s === 'active' ? 'bg-emerald-50 text-emerald-700' :
-                  s === 'completed' ? 'bg-blue-50 text-blue-700' :
-                  s === 'cancelled' || s === 'disputed' ? 'bg-rose-50 text-rose-700' :
-                  s === 'approved' ? 'bg-teal-50 text-teal-700' :
-                  'bg-amber-50 text-amber-700';
-                return (
-                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
-                    {statusLabelFr(s, COLLAB_STATUS_LABELS)}
-                  </span>
-                );
-              },
-            },
-            ...((canEditCollab || canDeleteCollab)
-              ? [{
-                  key: 'actions',
-                  header: '',
-                  cell: (r: Record<string, unknown>) => (
-                    <div className="flex items-center gap-1">
-                      {canEditCollab && (
-                        <button
-                          type="button"
-                          onClick={() => openCollab(Number(r.id))}
-                          className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {canDeleteCollab && (
-                        <button
-                          type="button"
-                          onClick={() => void deleteCollab(Number(r.id))}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ),
-                }]
-              : []),
-          ]}
-          emptyTitle="Aucune collaboration"
-          emptyDescription="Créez une collaboration pour suivre vos partenariats influenceurs."
-          emptyAction={
-            canCreateCollab ? (
-              <button
-                type="button"
-                onClick={() => openCollab()}
-                className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-bold"
-              >
-                Nouvelle collaboration
-              </button>
-            ) : undefined
-          }
-        />
-      )}
-
-      {/* ── Performance Tab ── */}
-      {tab === 'perf' && (
-        <div className="space-y-4">
-          <div className="card p-4 space-y-4">
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Mois de suivi
-                <input
-                  type="month"
-                  value={perfMonth}
-                  onChange={(e) => setPerfMonth(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                />
-              </label>
-              <p className="text-xs text-zinc-500">
-                Suivi des livrables réalisés (vidéo, story, live...) par influenceur sur le mois.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="card-muted p-3">
-                <p className="text-[10px] uppercase font-black text-zinc-400">Actions prévues</p>
-                <p className="text-xl font-black tabular-nums">{perfTotals.planned}</p>
-              </div>
-              <div className="card-muted p-3">
-                <p className="text-[10px] uppercase font-black text-zinc-400">Actions réalisées</p>
-                <p className="text-xl font-black tabular-nums">{perfTotals.completed}</p>
-              </div>
-              <div className="card-muted p-3">
-                <p className="text-[10px] uppercase font-black text-zinc-400">Reste à livrer</p>
-                <p className="text-xl font-black tabular-nums">{perfTotals.remaining}</p>
-              </div>
-              <div className="card-muted p-3">
-                <p className="text-[10px] uppercase font-black text-zinc-400">Taux de livraison</p>
-                <p className="text-xl font-black tabular-nums">{fmtPct(perfTotals.rate)}</p>
-              </div>
-            </div>
-
-            <form onSubmit={(e) => void submitPerformance(e)} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Influenceur
-                <select
-                  value={perfDraft.influencer_id}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, influencer_id: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold"
-                  required
-                >
-                  <option value="">— Sélectionner —</option>
-                  {influencers.map((i) => (
-                    <option key={String(i.id)} value={String(i.id)}>
-                      {String(i.full_name ?? i.username ?? i.handle ?? `#${String(i.id)}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Collaboration
-                <select
-                  value={perfDraft.influencer_collaboration_id}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, influencer_collaboration_id: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold"
-                >
-                  <option value="">— Optionnel —</option>
-                  {collabs.map((c) => (
-                    <option key={String(c.id)} value={String(c.id)}>
-                      {String(c.title ?? `#${String(c.id)}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Action
-                <select
-                  value={perfDraft.action_type}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, action_type: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold"
-                >
-                  <option value="video">Vidéo</option>
-                  <option value="story">Story</option>
-                  <option value="live">Live</option>
-                  <option value="post">Post</option>
-                  <option value="reel">Reel</option>
-                  <option value="autre">Autre</option>
-                </select>
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Date
-                <input
-                  type="date"
-                  value={perfDraft.metric_date}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, metric_date: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                  required
-                />
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Prévu
-                <input
-                  type="number"
-                  min={1}
-                  value={perfDraft.planned_actions}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, planned_actions: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                />
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Réalisé
-                <input
-                  type="number"
-                  min={0}
-                  value={perfDraft.completed_actions}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, completed_actions: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                />
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500 md:col-span-3">
-                Commentaires
-                <textarea
-                  rows={2}
-                  value={perfDraft.manager_comment}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, manager_comment: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                  placeholder="Note de suivi (retard, qualité, remarques...)"
-                />
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Vues
-                <input
-                  type="number"
-                  min={0}
-                  value={perfDraft.views}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, views: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                />
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Reach
-                <input
-                  type="number"
-                  min={0}
-                  value={perfDraft.reach}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, reach: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                />
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                Likes
-                <input
-                  type="number"
-                  min={0}
-                  value={perfDraft.likes}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, likes: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                />
-              </label>
-
-              <label className="text-xs font-black uppercase text-zinc-500">
-                CA attribué
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={perfDraft.revenue}
-                  onChange={(e) => setPerfDraft((d) => ({ ...d, revenue: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                />
-              </label>
-
-              <div className="md:col-span-3 flex items-end justify-end">
-                <button
-                  type="submit"
-                  disabled={savingPerf}
-                  className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60"
-                >
-                  {savingPerf ? 'Enregistrement...' : 'Enregistrer action'}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <DataTable<Record<string, unknown>>
-            rows={perfByInfluencer.map((row) => ({
-              influencer: row.name,
-              planned: row.planned,
-              completed: row.completed,
-              actions: row.actions,
-              comments_count: row.comments,
-              rate: row.rate,
-            }))}
-            columns={[
-              { key: 'inf', header: 'Influenceur', cell: (r) => String(r.influencer ?? '') },
-              { key: 'a', header: 'Actions', cell: (r) => String(r.actions ?? 0) },
-              { key: 'p', header: 'Prévu', cell: (r) => String(r.planned ?? 0) },
-              { key: 'c', header: 'Réalisé', cell: (r) => String(r.completed ?? 0) },
-              { key: 'rate', header: 'Livraison %', cell: (r) => fmtPct(asNumber(r.rate)) },
-              { key: 'com', header: 'Commentaires', cell: (r) => String(r.comments_count ?? 0) },
-            ]}
-            loading={loading}
-            emptyTitle="Aucun suivi de performance sur ce mois"
-            emptyDescription="Ajoutez les actions livrées (vidéo, story, live...) pour suivre la complétion mensuelle par influenceur."
-          />
-
-          <DataTable<Record<string, unknown>>
-            rows={perf}
-            columns={[
-              { key: 'd', header: 'Date', cell: (r) => String(r.metric_date ?? '') },
-              { key: 'inf', header: 'Influenceur', cell: (r) => influencerLabel(r) },
-              { key: 'act', header: 'Action', cell: (r) => String(r.action_type ?? '—') },
-              { key: 'pc', header: 'Prévu/Réalisé', cell: (r) => `${asNumber(r.completed_actions)}/${asNumber(r.planned_actions)}` },
-              {
-                key: 'com',
-                header: 'Commentaire',
-                cell: (r) => {
-                  const text = String(r.manager_comment ?? '').trim();
-                  if (!text) return '—';
-                  return text.length > 90 ? `${text.slice(0, 90)}...` : text;
-                },
-              },
-              { key: 'rev', header: 'CA', cell: (r) => String(r.revenue ?? '') },
-              { key: 'roi', header: 'ROI %', cell: (r) => String(r.roi_percent ?? '') },
-            ]}
-            loading={loading}
-            emptyTitle="Aucune action enregistrée"
-            emptyDescription="Le community manager peut logger chaque action réalisée pour contrôler la livraison en fin de mois."
-          />
-        </div>
-      )}
-
-      {/* ── Messages Tab ── */}
-      {tab === 'messages' && (
-        <DataTable<Record<string, unknown>>
-          rows={messages}
-          loading={loading}
-          columns={[
-            { key: 'dir', header: 'Sens', cell: (r) => String(r.direction ?? '') },
-            { key: 'ch', header: 'Canal', cell: (r) => String(r.channel ?? '') },
-            { key: 'm', header: 'Message', cell: (r) => String(r.message ?? '').slice(0, 80) },
-          ]}
-          emptyTitle="Aucun message"
-          emptyDescription="Les messages avec les influenceurs apparaîtront ici."
-        />
-      )}
-
-      {/* ── Complaints Tab ── */}
-      {tab === 'complaints' && (
-        <DataTable<Record<string, unknown>>
-          rows={complaints}
-          loading={loading}
-          columns={[
-            { key: 't', header: 'Titre', cell: (r) => String(r.title ?? '') },
-            {
-              key: 'inf',
-              header: 'Influenceur',
-              cell: (r) => {
-                const inf = r.influencer as Record<string, unknown> | undefined;
-                return inf ? String(inf.full_name ?? inf.username ?? '') : '—';
-              },
-            },
-            {
-              key: 'cat',
-              header: 'Catégorie',
-              cell: (r) => statusLabelFr(String(r.category ?? ''), COMPLAINT_CATEGORY_LABELS),
-            },
-            {
-              key: 'sev',
-              header: 'Gravité',
-              cell: (r) => {
-                const s = String(r.severity ?? '');
-                const color =
-                  s === 'critical' ? 'bg-rose-50 text-rose-700' :
-                  s === 'high' ? 'bg-orange-50 text-orange-700' :
-                  s === 'medium' ? 'bg-amber-50 text-amber-700' :
-                  'bg-zinc-100 text-zinc-600';
-                return (
-                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
-                    {statusLabelFr(s, COMPLAINT_SEVERITY_LABELS)}
-                  </span>
-                );
-              },
-            },
-            {
-              key: 'st',
-              header: 'Statut',
-              cell: (r) => {
-                const s = String(r.status ?? '');
-                const color =
-                  s === 'resolved' || s === 'closed' ? 'bg-emerald-50 text-emerald-700' :
-                  s === 'in_review' ? 'bg-amber-50 text-amber-700' :
-                  s === 'reopened' ? 'bg-orange-50 text-orange-700' :
-                  'bg-rose-50 text-rose-700';
-                return (
-                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${color}`}>
-                    {statusLabelFr(s, COMPLAINT_STATUS_LABELS)}
-                  </span>
-                );
-              },
-            },
-            ...((canEditComplaint || canDeleteComplaint)
-              ? [{
-                  key: 'actions',
-                  header: '',
-                  cell: (r: Record<string, unknown>) => (
-                    <div className="flex items-center gap-1">
-                      {canEditComplaint && (
-                        <button
-                          type="button"
-                          onClick={() => openComplaint(Number(r.id))}
-                          className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {canDeleteComplaint && (
-                        <button
-                          type="button"
-                          onClick={() => void deleteComplaint(Number(r.id))}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 text-zinc-400 hover:text-rose-600"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ),
-                }]
-              : []),
-          ]}
-          emptyTitle="Aucune plainte"
-          emptyDescription="Créez une plainte pour signaler un problème avec un influenceur."
-          emptyAction={
-            canCreateComplaint ? (
-              <button
-                type="button"
-                onClick={() => openComplaint()}
-                className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-bold"
-              >
-                Nouvelle plainte
-              </button>
-            ) : undefined
-          }
-        />
-      )}
-
-      {/* ══════ MODALS ══════ */}
-
-      {/* ── Influencer Modal ── */}
-      <Modal
-        open={infOpen}
-        onClose={() => setInfOpen(false)}
-        title={infId ? 'Modifier influenceur' : 'Nouvel influenceur'}
-        panelClassName="max-w-xl"
-      >
-        <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
-          <Field label="Nom complet *">
-            <input
-              className={selClass}
-              value={infForm.full_name}
-              onChange={(e) => setInfForm({ ...infForm, full_name: e.target.value })}
-              required
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Username">
-              <input
-                className={selClass}
-                placeholder="@handle"
-                value={infForm.username}
-                onChange={(e) => setInfForm({ ...infForm, username: e.target.value })}
-              />
-            </Field>
-            <Field label="Plateforme">
-              <select
-                className={selClass}
-                value={infForm.platform}
-                onChange={(e) => setInfForm({ ...infForm, platform: e.target.value })}
-              >
-                <option value="">—</option>
-                {PF.map((p) => (
-                  <option key={p.v} value={p.v}>{p.l}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <Field label="Niche">
-            <input
-              className={selClass}
-              placeholder="beauté, sport, tech..."
-              value={infForm.niche}
-              onChange={(e) => setInfForm({ ...infForm, niche: e.target.value })}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Taille audience">
-              <input
-                type="number"
-                min={0}
-                className={selClass}
-                value={infForm.audience_size}
-                onChange={(e) => setInfForm({ ...infForm, audience_size: e.target.value })}
-              />
-            </Field>
-            <Field label="Taux engagement %">
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                className={selClass}
-                value={infForm.engagement_rate}
-                onChange={(e) => setInfForm({ ...infForm, engagement_rate: e.target.value })}
-              />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Téléphone">
-              <input
-                className={selClass}
-                value={infForm.contact_phone}
-                onChange={(e) => setInfForm({ ...infForm, contact_phone: e.target.value })}
-              />
-            </Field>
-            <Field label="Email">
-              <input
-                type="email"
-                className={selClass}
-                value={infForm.contact_email}
-                onChange={(e) => setInfForm({ ...infForm, contact_email: e.target.value })}
-              />
-            </Field>
-          </div>
-          <p className="text-[11px] font-bold uppercase text-zinc-700 pt-1">Tarifs (MAD)</p>
-          <div className="grid grid-cols-3 gap-2">
-            <Field label="Story">
-              <input
-                type="number"
-                min={0}
-                className={selClass}
-                placeholder="0"
-                value={infForm.pricing_story}
-                onChange={(e) => setInfForm({ ...infForm, pricing_story: e.target.value })}
-              />
-            </Field>
-            <Field label="Reel">
-              <input
-                type="number"
-                min={0}
-                className={selClass}
-                placeholder="0"
-                value={infForm.pricing_reel}
-                onChange={(e) => setInfForm({ ...infForm, pricing_reel: e.target.value })}
-              />
-            </Field>
-            <Field label="Post">
-              <input
-                type="number"
-                min={0}
-                className={selClass}
-                placeholder="0"
-                value={infForm.pricing_post}
-                onChange={(e) => setInfForm({ ...infForm, pricing_post: e.target.value })}
-              />
-            </Field>
-            <Field label="Vidéo">
-              <input
-                type="number"
-                min={0}
-                className={selClass}
-                placeholder="0"
-                value={infForm.pricing_video}
-                onChange={(e) => setInfForm({ ...infForm, pricing_video: e.target.value })}
-              />
-            </Field>
-            <Field label="Live">
-              <input
-                type="number"
-                min={0}
-                className={selClass}
-                placeholder="0"
-                value={infForm.pricing_live}
-                onChange={(e) => setInfForm({ ...infForm, pricing_live: e.target.value })}
-              />
-            </Field>
-          </div>
-          <Field label="Statut">
-            <select
-              className={selClass}
-              value={infForm.status}
-              onChange={(e) => setInfForm({ ...infForm, status: e.target.value })}
-            >
-              {Object.entries(INFLUENCER_STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </Field>
-          <button
-            type="button"
-            disabled={infSaving || !infForm.full_name.trim()}
-            onClick={() => void saveInfluencer()}
-            className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black disabled:opacity-60"
-          >
-            {infSaving ? 'Enregistrement...' : 'Enregistrer'}
-          </button>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setQualOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveQualify} disabled={qualSaving}
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{qualSaving ? 'Enregistrement…' : 'Qualifier'}</button>
         </div>
       </Modal>
 
-      {/* ── Collaboration Modal ── */}
-      <Modal
-        open={colOpen}
-        onClose={() => setColOpen(false)}
-        title={colId ? 'Modifier collaboration' : 'Nouvelle collaboration'}
-        panelClassName="max-w-xl"
-      >
-        <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
-          <Field label="Influenceur *">
-            <select
-              className={selClass}
-              value={colForm.influencer_id}
-              onChange={(e) => setColForm({ ...colForm, influencer_id: e.target.value })}
-              required
-            >
+      {/* Exclude modal */}
+      <Modal open={exclOpen} onClose={() => setExclOpen(false)} title="Exclure influenceuse">
+        <Field label="Motif d'exclusion *">
+          <textarea className={inputClass} rows={3} value={exclReason} onChange={e => setExclReason(e.target.value)} placeholder="Raison de l'exclusion…" />
+        </Field>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setExclOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveExclude} disabled={exclSaving || !exclReason.trim()}
+            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{exclSaving ? 'Exclusion…' : 'Exclure'}</button>
+        </div>
+      </Modal>
+
+      {/* Collaboration modal */}
+      <Modal open={colOpen} onClose={() => setColOpen(false)} title={colId ? 'Modifier collaboration' : 'Nouvelle collaboration'}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Influenceuse *">
+            <select className={selClass} value={colForm.influencer_id} onChange={e => setColForm(p => ({ ...p, influencer_id: e.target.value }))}>
               <option value="">— Sélectionner —</option>
-              {influencers.map((i) => (
-                <option key={String(i.id)} value={String(i.id)}>
-                  {String(i.full_name ?? i.username ?? `#${String(i.id)}`)}
-                </option>
+              {influencers.filter(i => String(i.status) !== 'exclue').map(i => (
+                <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>
               ))}
             </select>
           </Field>
-          <Field label="Titre *">
-            <input
-              className={selClass}
-              value={colForm.title}
-              onChange={(e) => setColForm({ ...colForm, title: e.target.value })}
-              required
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Type">
-              <select
-                className={selClass}
-                value={colForm.collaboration_type}
-                onChange={(e) => setColForm({ ...colForm, collaboration_type: e.target.value })}
-              >
-                {Object.entries(COLLAB_TYPE_LABELS).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Montant convenu">
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                className={selClass}
-                value={colForm.agreed_amount}
-                onChange={(e) => setColForm({ ...colForm, agreed_amount: e.target.value })}
-              />
-            </Field>
-          </div>
           <Field label="Campagne">
-            <select
-              className={selClass}
-              value={colForm.campaign_id}
-              onChange={(e) => setColForm({ ...colForm, campaign_id: e.target.value })}
-            >
-              <option value="">— Optionnel —</option>
-              {campaigns.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+            <select className={selClass} value={colForm.campaign_id} onChange={e => setColForm(p => ({ ...p, campaign_id: e.target.value }))}>
+              <option value="">— Aucune —</option>
+              {campaigns.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
             </select>
           </Field>
-          <Field label="Livrables">
-            <textarea
-              className={`${selClass} min-h-[60px]`}
-              placeholder="2 reels + 3 stories + 1 post..."
-              value={colForm.deliverables}
-              onChange={(e) => setColForm({ ...colForm, deliverables: e.target.value })}
-            />
-          </Field>
-          <Field label="URL contrat">
-            <input
-              className={selClass}
-              placeholder="https://..."
-              value={colForm.contract_url}
-              onChange={(e) => setColForm({ ...colForm, contract_url: e.target.value })}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Date début">
-              <input
-                type="date"
-                className={selClass}
-                value={colForm.start_date}
-                onChange={(e) => setColForm({ ...colForm, start_date: e.target.value })}
-              />
-            </Field>
-            <Field label="Date fin">
-              <input
-                type="date"
-                className={selClass}
-                value={colForm.end_date}
-                onChange={(e) => setColForm({ ...colForm, end_date: e.target.value })}
-              />
+          <div className="sm:col-span-2">
+            <Field label="Titre *">
+              <input className={inputClass} value={colForm.title} onChange={e => setColForm(p => ({ ...p, title: e.target.value }))} />
             </Field>
           </div>
-          <Field label="Statut">
-            <select
-              className={selClass}
-              value={colForm.status}
-              onChange={(e) => setColForm({ ...colForm, status: e.target.value })}
-            >
-              {Object.entries(COLLAB_STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
+          <Field label="Type">
+            <select className={selClass} value={colForm.collaboration_type} onChange={e => setColForm(p => ({ ...p, collaboration_type: e.target.value }))}>
+              {COLLAB_TYPES.map(t => <option key={t} value={t}>{COLLAB_TYPE_LABELS[t]}</option>)}
             </select>
           </Field>
-          <button
-            type="button"
-            disabled={colSaving || !colForm.influencer_id || !colForm.title.trim()}
-            onClick={() => void saveCollab()}
-            className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black disabled:opacity-60"
-          >
-            {colSaving ? 'Enregistrement...' : 'Enregistrer'}
+          <Field label="Montant convenu (MAD)">
+            <input type="number" className={inputClass} value={colForm.agreed_amount} onChange={e => setColForm(p => ({ ...p, agreed_amount: e.target.value }))} />
+          </Field>
+          <Field label="Date début">
+            <input type="date" className={inputClass} value={colForm.start_date} onChange={e => setColForm(p => ({ ...p, start_date: e.target.value }))} />
+          </Field>
+          <Field label="Date fin">
+            <input type="date" className={inputClass} value={colForm.end_date} onChange={e => setColForm(p => ({ ...p, end_date: e.target.value }))} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Description">
+              <textarea className={inputClass} rows={2} value={colForm.description} onChange={e => setColForm(p => ({ ...p, description: e.target.value }))} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Objectifs">
+              <textarea className={inputClass} rows={2} value={colForm.objectives} onChange={e => setColForm(p => ({ ...p, objectives: e.target.value }))} />
+            </Field>
+          </div>
+          <Field label="URL Contrat">
+            <input className={inputClass} value={colForm.contract_url} onChange={e => setColForm(p => ({ ...p, contract_url: e.target.value }))} />
+          </Field>
+          <Field label="URL Brief">
+            <input className={inputClass} value={colForm.brief_url} onChange={e => setColForm(p => ({ ...p, brief_url: e.target.value }))} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Livrables attendus (texte libre)">
+              <textarea className={inputClass} rows={2} value={colForm.deliverables} onChange={e => setColForm(p => ({ ...p, deliverables: e.target.value }))} />
+            </Field>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setColOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveCollab} disabled={colSaving || !colForm.title.trim() || !colForm.influencer_id}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{colSaving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </Modal>
+
+      {/* Validation decision modal */}
+      <Modal open={valOpen} onClose={() => setValOpen(false)} title={`Décision ${valTarget.vType}`}>
+        <div className="space-y-4">
+          <Field label="Décision">
+            <select className={selClass} value={valDecision} onChange={e => setValDecision(e.target.value)}>
+              <option value="approuve">Approuver</option>
+              <option value="refuse">Refuser</option>
+            </select>
+          </Field>
+          <Field label="Commentaire">
+            <textarea className={inputClass} rows={3} value={valComment} onChange={e => setValComment(e.target.value)} />
+          </Field>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setValOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveValidation} disabled={valSaving}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${valDecision === 'approuve' ? 'bg-green-600' : 'bg-red-600'}`}>
+            {valSaving ? 'Enregistrement…' : valDecision === 'approuve' ? 'Approuver' : 'Refuser'}
           </button>
         </div>
       </Modal>
 
-      {/* ── Complaint Modal ── */}
-      <Modal
-        open={cmpOpen}
-        onClose={() => setCmpOpen(false)}
-        title={cmpId ? 'Modifier plainte' : 'Nouvelle plainte'}
-        panelClassName="max-w-xl"
-      >
-        <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
-          <Field label="Influenceur *">
-            <select
-              className={selClass}
-              value={cmpForm.influencer_id}
-              onChange={(e) => setCmpForm({ ...cmpForm, influencer_id: e.target.value })}
-              required
-            >
+      {/* Deliverable modal */}
+      <Modal open={delOpen} onClose={() => setDelOpen(false)} title={delId ? 'Modifier livrable' : 'Nouveau livrable'}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Collaboration *">
+            <select className={selClass} value={delForm.collaboration_id} onChange={e => setDelForm(p => ({ ...p, collaboration_id: e.target.value }))}>
               <option value="">— Sélectionner —</option>
-              {influencers.map((i) => (
-                <option key={String(i.id)} value={String(i.id)}>
-                  {String(i.full_name ?? i.username ?? `#${String(i.id)}`)}
-                </option>
-              ))}
+              {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
             </select>
           </Field>
           <Field label="Titre *">
-            <input
-              className={selClass}
-              value={cmpForm.title}
-              onChange={(e) => setCmpForm({ ...cmpForm, title: e.target.value })}
-              required
-            />
+            <input className={inputClass} value={delForm.title} onChange={e => setDelForm(p => ({ ...p, title: e.target.value }))} />
           </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Catégorie">
-              <select
-                className={selClass}
-                value={cmpForm.category}
-                onChange={(e) => setCmpForm({ ...cmpForm, category: e.target.value })}
-              >
-                {Object.entries(COMPLAINT_CATEGORY_LABELS).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Gravité">
-              <select
-                className={selClass}
-                value={cmpForm.severity}
-                onChange={(e) => setCmpForm({ ...cmpForm, severity: e.target.value })}
-              >
-                {Object.entries(COMPLAINT_SEVERITY_LABELS).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <Field label="Collaboration (optionnel)">
-            <select
-              className={selClass}
-              value={cmpForm.influencer_collaboration_id}
-              onChange={(e) => setCmpForm({ ...cmpForm, influencer_collaboration_id: e.target.value })}
-            >
-              <option value="">— Aucune —</option>
-              {collabs
-                .filter((c) => !cmpForm.influencer_id || String(c.influencer_id) === cmpForm.influencer_id)
-                .map((c) => (
-                  <option key={String(c.id)} value={String(c.id)}>
-                    {String(c.title ?? `#${String(c.id)}`)}
-                  </option>
-                ))}
+          <Field label="Type de contenu">
+            <select className={selClass} value={delForm.content_type} onChange={e => setDelForm(p => ({ ...p, content_type: e.target.value }))}>
+              {CONTENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
-          <Field label="Description">
-            <textarea
-              className={`${selClass} min-h-[80px]`}
-              placeholder="Décrivez le problème en détail..."
-              value={cmpForm.description}
-              onChange={(e) => setCmpForm({ ...cmpForm, description: e.target.value })}
-            />
+          <Field label="Plateforme">
+            <select className={selClass} value={delForm.platform} onChange={e => setDelForm(p => ({ ...p, platform: e.target.value }))}>
+              <option value="">—</option>
+              {PLATFORMS.map(p => <option key={p.v} value={p.v}>{p.l}</option>)}
+            </select>
+          </Field>
+          <Field label="Quantité">
+            <input type="number" min="1" className={inputClass} value={delForm.quantity} onChange={e => setDelForm(p => ({ ...p, quantity: e.target.value }))} />
+          </Field>
+          <Field label="Échéance">
+            <input type="date" className={inputClass} value={delForm.due_date} onChange={e => setDelForm(p => ({ ...p, due_date: e.target.value }))} />
           </Field>
           <Field label="Statut">
-            <select
-              className={selClass}
-              value={cmpForm.status}
-              onChange={(e) => setCmpForm({ ...cmpForm, status: e.target.value })}
-            >
-              {Object.entries(COMPLAINT_STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
+            <select className={selClass} value={delForm.status} onChange={e => setDelForm(p => ({ ...p, status: e.target.value }))}>
+              {DELIVERABLE_STATUSES.map(s => <option key={s} value={s}>{DELIVERABLE_STATUS_LABELS[s]}</option>)}
             </select>
           </Field>
-          {(cmpForm.status === 'resolved' || cmpForm.status === 'closed') && (
-            <Field label="Notes de résolution *">
-              <textarea
-                className={`${selClass} min-h-[60px]`}
-                placeholder="Comment le problème a été résolu..."
-                value={cmpForm.resolution_notes}
-                onChange={(e) => setCmpForm({ ...cmpForm, resolution_notes: e.target.value })}
-                required
-              />
+          <div className="sm:col-span-2">
+            <Field label="Description">
+              <textarea className={inputClass} rows={2} value={delForm.description} onChange={e => setDelForm(p => ({ ...p, description: e.target.value }))} />
             </Field>
-          )}
-          <button
-            type="button"
-            disabled={cmpSaving || !cmpForm.influencer_id || !cmpForm.title.trim()}
-            onClick={() => void saveComplaint()}
-            className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black disabled:opacity-60"
-          >
-            {cmpSaving ? 'Enregistrement...' : 'Enregistrer'}
-          </button>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setDelOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveDel} disabled={delSaving || !delForm.title.trim() || !delForm.collaboration_id}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{delSaving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </Modal>
+
+      {/* Shipment modal */}
+      <Modal open={shipOpen} onClose={() => setShipOpen(false)} title={shipId ? 'Modifier envoi' : 'Nouvel envoi'}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Collaboration *">
+            <select className={selClass} value={shipForm.collaboration_id} onChange={e => setShipForm(p => ({ ...p, collaboration_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
+            </select>
+          </Field>
+          <Field label="Influenceuse *">
+            <select className={selClass} value={shipForm.influencer_id} onChange={e => setShipForm(p => ({ ...p, influencer_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+            </select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Produits (format : Nom x2, Nom2 x1)">
+              <input className={inputClass} value={shipForm.products} onChange={e => setShipForm(p => ({ ...p, products: e.target.value }))} placeholder="Rouge à lèvres x2, Fond de teint x1" />
+            </Field>
+          </div>
+          <Field label="Transporteur">
+            <input className={inputClass} value={shipForm.shipping_company} onChange={e => setShipForm(p => ({ ...p, shipping_company: e.target.value }))} />
+          </Field>
+          <Field label="N° suivi">
+            <input className={inputClass} value={shipForm.tracking_number} onChange={e => setShipForm(p => ({ ...p, tracking_number: e.target.value }))} />
+          </Field>
+          <Field label="Livraison estimée">
+            <input type="date" className={inputClass} value={shipForm.estimated_delivery} onChange={e => setShipForm(p => ({ ...p, estimated_delivery: e.target.value }))} />
+          </Field>
+          <Field label="Statut">
+            <select className={selClass} value={shipForm.status} onChange={e => setShipForm(p => ({ ...p, status: e.target.value }))}>
+              {SHIPMENT_STATUSES.map(s => <option key={s} value={s}>{SHIPMENT_STATUS_LABELS[s]}</option>)}
+            </select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Adresse de livraison">
+              <textarea className={inputClass} rows={2} value={shipForm.delivery_address} onChange={e => setShipForm(p => ({ ...p, delivery_address: e.target.value }))} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Notes">
+              <textarea className={inputClass} rows={2} value={shipForm.notes} onChange={e => setShipForm(p => ({ ...p, notes: e.target.value }))} />
+            </Field>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setShipOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={saveShip} disabled={shipSaving || !shipForm.collaboration_id || !shipForm.influencer_id || !shipForm.products.trim()}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{shipSaving ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </Modal>
+
+      {/* Payment modal */}
+      <Modal open={payOpen} onClose={() => setPayOpen(false)} title={payId ? 'Modifier paiement' : 'Nouveau paiement'}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Collaboration *">
+            <select className={selClass} value={payForm.collaboration_id} onChange={e => setPayForm(p => ({ ...p, collaboration_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
+            </select>
+          </Field>
+          <Field label="Influenceuse *">
+            <select className={selClass} value={payForm.influencer_id} onChange={e => setPayForm(p => ({ ...p, influencer_id: e.target.value }))}>
+              <option value="">— Sélectionner —</option>
+              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+            </select>
+          </Field>
+          <Field label="Nature *">
+            <select className={selClass} value={payForm.nature} onChange={e => setPayForm(p => ({ ...p, nature: e.target.value }))}>
+              {PAYMENT_NATURES.map(n => <option key={n} value={n}>{PAYMENT_NATURE_LABELS[n]}</option>)}
+            </select>
+          </Field>
+          <Field label="Montant *">
+            <input type="number" step="0.01" className={inputClass} value={payForm.amount} onChange={e => setPayForm(p => ({ ...p, amount: e.target.value }))} />
+          </Field>
+          <Field label="Devise">
+            <input className={inputClass} value={payForm.currency} onChange={e => setPayForm(p => ({ ...p, currency: e.target.value }))} />
+          </Field>
+          <Field label="Méthode de paiement">
+            <input className={inputClass} value={payForm.payment_method} onChange={e => setPayForm(p => ({ ...p, payment_method: e.target.value }))} placeholder="Virement, chèque…" />
+          </Field>
+          <Field label="Période début">
+            <input type="date" className={inputClass} value={payForm.period_start} onChange={e => setPayForm(p => ({ ...p, period_start: e.target.value }))} />
+          </Field>
+          <Field label="Période fin">
+            <input type="date" className={inputClass} value={payForm.period_end} onChange={e => setPayForm(p => ({ ...p, period_end: e.target.value }))} />
+          </Field>
+          <Field label="Échéance">
+            <input type="date" className={inputClass} value={payForm.due_date} onChange={e => setPayForm(p => ({ ...p, due_date: e.target.value }))} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Description">
+              <textarea className={inputClass} rows={2} value={payForm.description} onChange={e => setPayForm(p => ({ ...p, description: e.target.value }))} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Notes">
+              <textarea className={inputClass} rows={2} value={payForm.notes} onChange={e => setPayForm(p => ({ ...p, notes: e.target.value }))} />
+            </Field>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setPayOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
+          <button type="button" onClick={savePay} disabled={paySaving || !payForm.collaboration_id || !payForm.influencer_id || !payForm.amount}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{paySaving ? 'Enregistrement…' : 'Enregistrer'}</button>
         </div>
       </Modal>
     </div>
