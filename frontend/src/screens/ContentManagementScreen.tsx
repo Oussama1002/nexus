@@ -76,6 +76,42 @@ export function ContentManagementScreen() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const [paths, setPaths] = useState<{ id: number; title: string }[]>([]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    title: '', type: 'article', description: '', media_url: '',
+    duration_minutes: '', learning_path_id: '', status: 'draft',
+  });
+
+  const submitCreate = async () => {
+    if (!form.title.trim()) { toast('error', 'Titre requis.'); return; }
+    setSaving(true);
+    try {
+      const res = await api.post('academy-contents', {
+        title: form.title,
+        type: form.type,
+        description: form.description || undefined,
+        media_url: form.media_url || undefined,
+        duration_minutes: form.duration_minutes ? Number(form.duration_minutes) : undefined,
+        learning_path_id: form.learning_path_id ? Number(form.learning_path_id) : undefined,
+        status: form.status,
+      });
+      if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
+      toast('success', 'Contenu créé.');
+      setShowCreate(false);
+      setForm({ title: '', type: 'article', description: '', media_url: '', duration_minutes: '', learning_path_id: '', status: 'draft' });
+      setReloadTick((t) => t + 1);
+    } finally { setSaving(false); }
+  };
+
+  useEffect(() => {
+    (async () => {
+      const r = await api.get<Paginated<{ id: number; title: string }>>('learning-paths' + buildQuery({ per_page: 100 }));
+      if (r.ok) setPaths(r.data.data.map((p: any) => ({ id: p.id, title: p.title })));
+    })();
+  }, [activeBrandId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +143,7 @@ export function ContentManagementScreen() {
     };
     fetchData();
     return () => { cancelled = true; };
-  }, [page, search, typeFilter, statusFilter, activeBrandId]);
+  }, [page, search, typeFilter, statusFilter, activeBrandId, reloadTick]);
 
   const totalCount = total;
   const videoCount = rows.filter(r => r.type === 'video').length;
@@ -117,11 +153,53 @@ export function ContentManagementScreen() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="Gestion des contenus" subtitle="Contenus pédagogiques de la Brandna Academy">
-        <button className="btn btn-primary flex items-center gap-2" onClick={() => toast('info', 'Fonctionnalité à venir')}>
+        <button className="btn btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
           <Plus size={16} />
           Nouveau contenu
         </button>
       </PageHeader>
+
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-black text-zinc-900">Nouveau contenu Academy</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Titre *
+                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Type
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                  {TYPE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Statut
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  {STATUS_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Parcours de rattachement
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.learning_path_id} onChange={(e) => setForm({ ...form, learning_path_id: e.target.value })}>
+                  <option value="">— aucun —</option>
+                  {paths.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Durée (minutes)
+                <input type="number" min="0" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">URL média
+                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.media_url} onChange={(e) => setForm({ ...form, media_url: e.target.value })} />
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Description
+                <textarea rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+              <button onClick={submitCreate} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">{saving ? 'Envoi…' : 'Créer'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">

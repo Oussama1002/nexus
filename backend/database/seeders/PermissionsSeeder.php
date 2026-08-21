@@ -86,6 +86,9 @@ class PermissionsSeeder extends Seeder
             'delivery_failures' => ['view', 'create', 'update'],
             'bugs_incidents' => ['view', 'create', 'update', 'delete'],
             'team_performance' => ['view'],
+            // Academy extensions
+            'learning_paths' => ['view', 'create', 'update', 'delete'],
+            'academy_contents' => ['view', 'create', 'update', 'delete'],
             'reports' => ['view', 'create', 'update', 'delete'],
             'academy_courses' => ['view', 'create', 'update', 'delete', 'publish', 'archive'],
             'academy_lessons' => ['view', 'create', 'update', 'delete'],

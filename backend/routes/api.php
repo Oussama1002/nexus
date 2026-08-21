@@ -104,6 +104,8 @@ use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\DeliveryFailureController;
 use App\Http\Controllers\Api\BugIncidentController;
 use App\Http\Controllers\Api\TeamPerformanceController;
+use App\Http\Controllers\Api\AcademyLearningPathController;
+use App\Http\Controllers\Api\AcademyContentController;
 use App\Http\Controllers\Api\InternalChatController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -833,6 +835,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Team performance (read-only aggregation)
     Route::get('team-performance', [TeamPerformanceController::class, 'index'])->middleware('permission:team_performance.view');
+
+    // ═══ Academy extensions ═══
+    // Learning paths
+    Route::get('learning-paths', [AcademyLearningPathController::class, 'index'])->middleware('permission:learning_paths.view');
+    Route::post('learning-paths', [AcademyLearningPathController::class, 'store'])->middleware('permission:learning_paths.create');
+    Route::get('learning-paths/{id}', [AcademyLearningPathController::class, 'show'])->whereNumber('id')->middleware('permission:learning_paths.view');
+    Route::patch('learning-paths/{id}', [AcademyLearningPathController::class, 'update'])->whereNumber('id')->middleware('permission:learning_paths.update');
+    Route::put('learning-paths/{id}', [AcademyLearningPathController::class, 'update'])->whereNumber('id')->middleware('permission:learning_paths.update');
+    Route::delete('learning-paths/{id}', [AcademyLearningPathController::class, 'destroy'])->whereNumber('id')->middleware('permission:learning_paths.delete');
+    Route::post('learning-paths/{id}/enroll', [AcademyLearningPathController::class, 'enroll'])->whereNumber('id')->middleware('permission:learning_paths.update');
+
+    // Academy contents (library)
+    Route::get('academy-contents', [AcademyContentController::class, 'index'])->middleware('permission:academy_contents.view');
+    Route::post('academy-contents', [AcademyContentController::class, 'store'])->middleware('permission:academy_contents.create');
+    Route::patch('academy-contents/{id}', [AcademyContentController::class, 'update'])->whereNumber('id')->middleware('permission:academy_contents.update');
+    Route::put('academy-contents/{id}', [AcademyContentController::class, 'update'])->whereNumber('id')->middleware('permission:academy_contents.update');
+    Route::delete('academy-contents/{id}', [AcademyContentController::class, 'destroy'])->whereNumber('id')->middleware('permission:academy_contents.delete');
+    Route::post('academy-contents/{id}/view', [AcademyContentController::class, 'incrementView'])->whereNumber('id');
     Route::get('automations/runs', [AutomationRuleController::class, 'runs'])->middleware('permission:automations.view');
     Route::post('automations/rules/{id}/test', [AutomationRuleController::class, 'test'])->whereNumber('id')->middleware('permission:automations.run');
     Route::get('automations/rules', [AutomationRuleController::class, 'index'])->middleware('permission:automations.view');

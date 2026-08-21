@@ -69,6 +69,29 @@ export function LearningPathsScreen() {
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', level: 'beginner', duration_hours: '', status: 'draft' });
+
+  const submitCreate = async () => {
+    if (!form.title.trim()) { toast('error', 'Titre requis.'); return; }
+    setSaving(true);
+    try {
+      const res = await api.post('learning-paths', {
+        title: form.title,
+        description: form.description || undefined,
+        level: form.level,
+        duration_hours: form.duration_hours ? Number(form.duration_hours) : undefined,
+        status: form.status,
+      });
+      if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
+      toast('success', 'Parcours créé.');
+      setShowCreate(false);
+      setForm({ title: '', description: '', level: 'beginner', duration_hours: '', status: 'draft' });
+      setReloadTick((t) => t + 1);
+    } finally { setSaving(false); }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +123,7 @@ export function LearningPathsScreen() {
     };
     fetchData();
     return () => { cancelled = true; };
-  }, [page, search, levelFilter, statusFilter, activeBrandId]);
+  }, [page, search, levelFilter, statusFilter, activeBrandId, reloadTick]);
 
   const activeCount = rows.filter(r => r.status === 'active').length;
   const totalEnrolled = rows.reduce((s, r) => s + r.enrolled_count, 0);
@@ -109,11 +132,44 @@ export function LearningPathsScreen() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="Parcours" subtitle="Parcours de formation structurés">
-        <button className="btn btn-primary flex items-center gap-2" onClick={() => toast('info', 'Fonctionnalité à venir')}>
+        <button className="btn btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
           <Plus size={16} />
           Nouveau parcours
         </button>
       </PageHeader>
+
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-black text-zinc-900">Nouveau parcours</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Titre *
+                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Description
+                <textarea rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Niveau
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })}>
+                  {LEVEL_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Durée (heures)
+                <input type="number" step="0.5" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_hours} onChange={(e) => setForm({ ...form, duration_hours: e.target.value })} />
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Statut
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  {STATUS_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+              <button onClick={submitCreate} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">{saving ? 'Envoi…' : 'Créer'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
