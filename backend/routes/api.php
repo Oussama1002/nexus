@@ -100,6 +100,10 @@ use App\Http\Controllers\Api\SmmVeilleController;
 use App\Http\Controllers\Api\TreasuryController;
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\BudgetRequestController;
+use App\Http\Controllers\Api\ReturnController;
+use App\Http\Controllers\Api\DeliveryFailureController;
+use App\Http\Controllers\Api\BugIncidentController;
+use App\Http\Controllers\Api\TeamPerformanceController;
 use App\Http\Controllers\Api\InternalChatController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -806,6 +810,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('budget-requests', [BudgetRequestController::class, 'store'])->middleware('permission:budget_requests.create');
     Route::post('budget-requests/{id}/approve', [BudgetRequestController::class, 'approve'])->whereNumber('id')->middleware('permission:budget_requests.approve');
     Route::post('budget-requests/{id}/reject', [BudgetRequestController::class, 'reject'])->whereNumber('id')->middleware('permission:budget_requests.approve');
+
+    // ═══ Operations extensions ═══
+    // Returns
+    Route::get('returns', [ReturnController::class, 'index'])->middleware('permission:returns.view');
+    Route::post('returns', [ReturnController::class, 'store'])->middleware('permission:returns.create');
+    Route::patch('returns/{id}', [ReturnController::class, 'update'])->whereNumber('id')->middleware('permission:returns.update');
+    Route::put('returns/{id}', [ReturnController::class, 'update'])->whereNumber('id')->middleware('permission:returns.update');
+
+    // Delivery failures
+    Route::get('delivery-failures', [DeliveryFailureController::class, 'index'])->middleware('permission:delivery_failures.view');
+    Route::post('delivery-failures', [DeliveryFailureController::class, 'store'])->middleware('permission:delivery_failures.create');
+    Route::patch('delivery-failures/{id}', [DeliveryFailureController::class, 'update'])->whereNumber('id')->middleware('permission:delivery_failures.update');
+    Route::put('delivery-failures/{id}', [DeliveryFailureController::class, 'update'])->whereNumber('id')->middleware('permission:delivery_failures.update');
+
+    // Bugs & incidents
+    Route::get('bugs-incidents', [BugIncidentController::class, 'index'])->middleware('permission:bugs_incidents.view');
+    Route::post('bugs-incidents', [BugIncidentController::class, 'store'])->middleware('permission:bugs_incidents.create');
+    Route::patch('bugs-incidents/{id}', [BugIncidentController::class, 'update'])->whereNumber('id')->middleware('permission:bugs_incidents.update');
+    Route::put('bugs-incidents/{id}', [BugIncidentController::class, 'update'])->whereNumber('id')->middleware('permission:bugs_incidents.update');
+    Route::delete('bugs-incidents/{id}', [BugIncidentController::class, 'destroy'])->whereNumber('id')->middleware('permission:bugs_incidents.delete');
+
+    // Team performance (read-only aggregation)
+    Route::get('team-performance', [TeamPerformanceController::class, 'index'])->middleware('permission:team_performance.view');
     Route::get('automations/runs', [AutomationRuleController::class, 'runs'])->middleware('permission:automations.view');
     Route::post('automations/rules/{id}/test', [AutomationRuleController::class, 'test'])->whereNumber('id')->middleware('permission:automations.run');
     Route::get('automations/rules', [AutomationRuleController::class, 'index'])->middleware('permission:automations.view');

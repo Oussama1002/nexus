@@ -86,6 +86,28 @@ export function BugsIncidentsScreen() {
   const [severityFilter, setSeverityFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', severity: 'minor', module: 'crm' });
+
+  const submitCreate = async () => {
+    if (!form.title.trim()) { toast('error', 'Titre requis.'); return; }
+    setSaving(true);
+    try {
+      const res = await api.post('bugs-incidents', {
+        title: form.title,
+        description: form.description || undefined,
+        severity: form.severity,
+        module: form.module,
+      });
+      if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
+      toast('success', 'Bug signalé.');
+      setShowCreate(false);
+      setForm({ title: '', description: '', severity: 'minor', module: 'crm' });
+      setReloadTick((t) => t + 1);
+    } finally { setSaving(false); }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -117,7 +139,7 @@ export function BugsIncidentsScreen() {
     };
     fetchData();
     return () => { cancelled = true; };
-  }, [page, search, severityFilter, statusFilter, moduleFilter, activeBrandId]);
+  }, [page, search, severityFilter, statusFilter, moduleFilter, activeBrandId, reloadTick]);
 
   const openCount = rows.filter(r => r.status === 'open').length;
   const criticalCount = rows.filter(r => r.severity === 'critical').length;
@@ -126,11 +148,41 @@ export function BugsIncidentsScreen() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="Bugs & incidents" subtitle="Suivi des anomalies et incidents techniques">
-        <button className="btn btn-primary flex items-center gap-2" onClick={() => toast('info', 'Fonctionnalité à venir')}>
+        <button className="btn btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
           <Plus size={16} />
           Signaler un bug
         </button>
       </PageHeader>
+
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-black text-zinc-900">Signaler un bug ou incident</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Titre *
+                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Sévérité
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>
+                  {SEVERITY_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Module
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.module} onChange={(e) => setForm({ ...form, module: e.target.value })}>
+                  {MODULE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Description
+                <textarea rows={5} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ce qui s'est passé, étapes de reproduction, comportement attendu…" />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+              <button onClick={submitCreate} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">{saving ? 'Envoi…' : 'Signaler'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">

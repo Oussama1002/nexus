@@ -81,6 +81,11 @@ class PermissionsSeeder extends Seeder
             'treasury' => ['view', 'create', 'update', 'delete'],
             'budgets' => ['view', 'create', 'update', 'delete'],
             'budget_requests' => ['view', 'create', 'update', 'approve'],
+            // Operations extensions
+            'returns' => ['view', 'create', 'update'],
+            'delivery_failures' => ['view', 'create', 'update'],
+            'bugs_incidents' => ['view', 'create', 'update', 'delete'],
+            'team_performance' => ['view'],
             'reports' => ['view', 'create', 'update', 'delete'],
             'academy_courses' => ['view', 'create', 'update', 'delete', 'publish', 'archive'],
             'academy_lessons' => ['view', 'create', 'update', 'delete'],
