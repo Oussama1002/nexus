@@ -62,6 +62,34 @@ export function BudgetsScreen() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: '', department: 'marketing', period_label: '',
+    period_start: '', period_end: '', allocated: '', notes: '',
+  });
+
+  const submitCreate = async () => {
+    if (!form.name.trim() || !form.period_start || !form.period_end || !form.allocated) {
+      toast('error', 'Champs requis manquants.'); return;
+    }
+    setSaving(true);
+    try {
+      const res = await api.post('budgets', {
+        name: form.name, department: form.department,
+        period_label: form.period_label || undefined,
+        period_start: form.period_start, period_end: form.period_end,
+        allocated: Number(form.allocated),
+        notes: form.notes || undefined,
+      });
+      if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
+      toast('success', 'Budget créé.');
+      setShowCreate(false);
+      setForm({ name: '', department: 'marketing', period_label: '', period_start: '', period_end: '', allocated: '', notes: '' });
+      setReloadTick((t) => t + 1);
+    } finally { setSaving(false); }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +121,7 @@ export function BudgetsScreen() {
     };
     fetchData();
     return () => { cancelled = true; };
-  }, [page, search, statusFilter, departmentFilter, activeBrandId]);
+  }, [page, search, statusFilter, departmentFilter, activeBrandId, reloadTick]);
 
   const activeCount = rows.filter(r => r.status === 'active').length;
   const totalAllocated = rows.reduce((s, r) => s + r.allocated, 0);
@@ -103,11 +131,48 @@ export function BudgetsScreen() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="Budgets" subtitle="Budgets prévisionnels et suivi des enveloppes">
-        <button className="btn btn-primary flex items-center gap-2" onClick={() => toast('info', 'Fonctionnalité à venir')}>
+        <button className="btn btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
           <Plus size={16} />
           Nouveau budget
         </button>
       </PageHeader>
+
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-black text-zinc-900">Nouveau budget</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Nom *
+                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Département
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
+                  {DEPARTMENT_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Libellé période
+                <input placeholder="2026-Q3" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.period_label} onChange={(e) => setForm({ ...form, period_label: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Début *
+                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.period_start} onChange={(e) => setForm({ ...form, period_start: e.target.value })} />
+              </label>
+              <label className="text-sm font-bold text-zinc-700">Fin *
+                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.period_end} onChange={(e) => setForm({ ...form, period_end: e.target.value })} />
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Montant alloué (MAD) *
+                <input type="number" step="0.01" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.allocated} onChange={(e) => setForm({ ...form, allocated: e.target.value })} />
+              </label>
+              <label className="col-span-2 text-sm font-bold text-zinc-700">Notes
+                <textarea rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+              <button onClick={submitCreate} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">{saving ? 'Envoi…' : 'Créer'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">

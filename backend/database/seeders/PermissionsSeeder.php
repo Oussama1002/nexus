@@ -77,6 +77,10 @@ class PermissionsSeeder extends Seeder
             'smm_reports' => ['view', 'create', 'update', 'diffuse'],
             'smm_learnings' => ['view', 'create', 'update'],
             'smm_insights' => ['view', 'create', 'update', 'qualify'],
+            // Finance extensions
+            'treasury' => ['view', 'create', 'update', 'delete'],
+            'budgets' => ['view', 'create', 'update', 'delete'],
+            'budget_requests' => ['view', 'create', 'update', 'approve'],
             'reports' => ['view', 'create', 'update', 'delete'],
             'academy_courses' => ['view', 'create', 'update', 'delete', 'publish', 'archive'],
             'academy_lessons' => ['view', 'create', 'update', 'delete'],

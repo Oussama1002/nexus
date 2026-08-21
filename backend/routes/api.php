@@ -97,6 +97,9 @@ use App\Http\Controllers\Api\SmmMonthlyReportController;
 use App\Http\Controllers\Api\SmmPerformanceController;
 use App\Http\Controllers\Api\SmmStrategyController;
 use App\Http\Controllers\Api\SmmVeilleController;
+use App\Http\Controllers\Api\TreasuryController;
+use App\Http\Controllers\Api\BudgetController;
+use App\Http\Controllers\Api\BudgetRequestController;
 use App\Http\Controllers\Api\InternalChatController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -781,6 +784,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('smm/insights', [SmmClientInsightController::class, 'store'])->middleware('permission:smm_insights.create');
     Route::post('smm/insights/{id}/qualify', [SmmClientInsightController::class, 'qualify'])->whereNumber('id')->middleware('permission:smm_insights.qualify');
     Route::post('smm/insights/{id}/attach-content', [SmmClientInsightController::class, 'attachContent'])->whereNumber('id')->middleware('permission:smm_insights.update');
+
+    // ═══ Finance extensions ═══
+    // Treasury (Trésorerie)
+    Route::get('treasury', [TreasuryController::class, 'index'])->middleware('permission:treasury.view');
+    Route::post('treasury', [TreasuryController::class, 'store'])->middleware('permission:treasury.create');
+    Route::delete('treasury/{id}', [TreasuryController::class, 'destroy'])->whereNumber('id')->middleware('permission:treasury.delete');
+    Route::get('treasury/summary', [TreasuryController::class, 'summary'])->middleware('permission:treasury.view');
+    Route::get('treasury/accounts', [TreasuryController::class, 'accountsIndex'])->middleware('permission:treasury.view');
+    Route::post('treasury/accounts', [TreasuryController::class, 'accountsStore'])->middleware('permission:treasury.create');
+
+    // Budgets
+    Route::get('budgets', [BudgetController::class, 'index'])->middleware('permission:budgets.view');
+    Route::post('budgets', [BudgetController::class, 'store'])->middleware('permission:budgets.create');
+    Route::patch('budgets/{id}', [BudgetController::class, 'update'])->whereNumber('id')->middleware('permission:budgets.update');
+    Route::put('budgets/{id}', [BudgetController::class, 'update'])->whereNumber('id')->middleware('permission:budgets.update');
+    Route::delete('budgets/{id}', [BudgetController::class, 'destroy'])->whereNumber('id')->middleware('permission:budgets.delete');
+
+    // Budget requests
+    Route::get('budget-requests', [BudgetRequestController::class, 'index'])->middleware('permission:budget_requests.view');
+    Route::post('budget-requests', [BudgetRequestController::class, 'store'])->middleware('permission:budget_requests.create');
+    Route::post('budget-requests/{id}/approve', [BudgetRequestController::class, 'approve'])->whereNumber('id')->middleware('permission:budget_requests.approve');
+    Route::post('budget-requests/{id}/reject', [BudgetRequestController::class, 'reject'])->whereNumber('id')->middleware('permission:budget_requests.approve');
     Route::get('automations/runs', [AutomationRuleController::class, 'runs'])->middleware('permission:automations.view');
     Route::post('automations/rules/{id}/test', [AutomationRuleController::class, 'test'])->whereNumber('id')->middleware('permission:automations.run');
     Route::get('automations/rules', [AutomationRuleController::class, 'index'])->middleware('permission:automations.view');
