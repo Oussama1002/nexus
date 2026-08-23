@@ -102,11 +102,12 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // ── Call Center ──
   { id: 'call-center', label: 'Call Center', level: 1, block: 'operations', parentId: null, order: 1, icon: Headphones },
   { id: 'espace-confirmatrice', label: 'Espace Confirmatrice', confirmatriceLabel: 'Votre espace', level: 2, block: 'operations', parentId: 'call-center', order: 1, icon: Headphones, view: 'confirmatrice', confirmatriceView: 'whatsapp' },
-  { id: 'leads', label: 'Leads', level: 2, block: 'operations', parentId: 'call-center', order: 2, icon: Users, view: 'leads' },
-  { id: 'commandes', label: 'Commandes', level: 2, block: 'operations', parentId: 'call-center', order: 3, icon: Package, view: 'orders' },
-  { id: 'clients', label: 'Clients', level: 2, block: 'operations', parentId: 'call-center', order: 4, icon: Contact, view: 'customers' },
-  { id: 'reclamations', label: 'Réclamations', level: 2, block: 'operations', parentId: 'call-center', order: 5, icon: AlertTriangle, view: 'complaints' },
-  { id: 'pilotage-equipe', label: "Pilotage d'équipe", level: 2, block: 'operations', parentId: 'call-center', order: 6, icon: ChartNoAxesCombined, view: 'teamPerformance' },
+  { id: 'conversations', label: 'Conversations', level: 2, block: 'operations', parentId: 'call-center', order: 2, icon: MessageCircle, view: 'whatsapp' },
+  { id: 'leads', label: 'Leads', level: 2, block: 'operations', parentId: 'call-center', order: 3, icon: Users, view: 'leads' },
+  { id: 'commandes', label: 'Commandes', level: 2, block: 'operations', parentId: 'call-center', order: 4, icon: Package, view: 'orders' },
+  { id: 'clients', label: 'Clients', level: 2, block: 'operations', parentId: 'call-center', order: 5, icon: Contact, view: 'customers' },
+  { id: 'reclamations', label: 'Réclamations', level: 2, block: 'operations', parentId: 'call-center', order: 6, icon: AlertTriangle, view: 'complaints' },
+  { id: 'pilotage-equipe', label: "Pilotage d'équipe", level: 2, block: 'operations', parentId: 'call-center', order: 7, icon: ChartNoAxesCombined, view: 'teamPerformance' },
 
   // ── Marketing ──
   { id: 'marketing', label: 'Marketing', level: 1, block: 'operations', parentId: null, order: 2, icon: Megaphone },
