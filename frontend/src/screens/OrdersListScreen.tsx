@@ -58,6 +58,24 @@ function statusFr(s: string): OrderStatus {
   }
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  manual: 'Saisie manuelle',
+  whatsapp: 'WhatsApp',
+  ads: 'Publicité',
+  influencer: 'Influenceur',
+  site: 'Site web',
+  referral: 'Recommandation',
+  carrier_import: 'Import transporteur',
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+};
+
+function sourceFr(src: string | null | undefined): string {
+  if (!src || src === '—') return '—';
+  return SOURCE_LABELS[src] ?? src.replace(/_/g, ' ');
+}
+
 function statusApi(s: OrderStatus): string {
   switch (s) {
     case 'Brouillon':
@@ -287,7 +305,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
           <div className="space-y-1">
             <p className="text-sm font-black text-zinc-900">{o.id}</p>
             <p className="text-[11px] font-medium text-zinc-500">
-              {o.createdAt} • {o.source}
+              {o.createdAt} • {sourceFr(o.source)}
             </p>
           </div>
         ),
