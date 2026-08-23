@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { StatusChip } from '../components/ui/StatusChip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { CustomerFicheDrawer } from '../components/customers/CustomerFicheDrawer';
+import { CreateComplaintButton } from '../components/complaints/CreateComplaintButton';
 import { useBrand } from '../context/BrandContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -333,6 +334,15 @@ export function CustomersScreen() {
                   >
                     <Eye size={15} />
                   </button>
+                  <CreateComplaintButton
+                    preset={{
+                      customer_name: c.full_name,
+                      customer_phone: c.phone ?? undefined,
+                      channel: 'telephone',
+                      source_label: `Client #${c.id}`,
+                    }}
+                    title="Créer une réclamation pour ce client"
+                  />
                   {canDelete && (
                     <button
                       type="button"

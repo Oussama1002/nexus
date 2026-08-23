@@ -8,6 +8,7 @@ import { Drawer } from '../components/ui/Drawer';
 import { Modal } from '../components/ui/Modal';
 import { StatusChip } from '../components/ui/StatusChip';
 import { EmptyState } from '../components/ui/EmptyState';
+import { CreateComplaintButton } from '../components/complaints/CreateComplaintButton';
 import { cn, formatCurrency } from '../lib/utils';
 import type { Order, OrderStatus, PaymentState } from '../domain/orders';
 import { useBrand } from '../context/BrandContext';
@@ -538,7 +539,19 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
 
             {(hasPermission('orders.update') || hasPermission('orders.delete')) && (
               <div className="space-y-3">
-                <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Actions</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Actions</p>
+                  <CreateComplaintButton
+                    preset={{
+                      customer_name: selected.customerName,
+                      customer_phone: selected.phone,
+                      channel: 'telephone',
+                      category: 'produit',
+                      source_label: `Commande ${selected.id}`,
+                    }}
+                    title="Créer une réclamation pour cette commande"
+                  />
+                </div>
                 {hasPermission('orders.update') && (
                   <div className="grid grid-cols-2 gap-3">
                     <button
