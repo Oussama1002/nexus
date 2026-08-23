@@ -187,9 +187,14 @@ export function MainApp() {
     if (!authUser) {
       return { id: '', name: '', email: '', role: 'admin' };
     }
-    const slug = roleSlugs[0] ?? 'admin';
-    const legacyRole: User['role'] =
-      slug === 'confirmatrice' ? 'confirmatrice' : slug === 'admin' ? 'admin' : 'manager';
+    // Prioritize 'confirmatrice' over any other role so the dedicated
+    // Espace Confirmatrice sidebar entry and workspace remap kick in
+    // when the user holds the confirmatrice role in *any* position.
+    const legacyRole: User['role'] = roleSlugs.includes('confirmatrice')
+      ? 'confirmatrice'
+      : roleSlugs.includes('admin')
+        ? 'admin'
+        : 'manager';
     return {
       id: String(authUser.id),
       name: authUser.name,
