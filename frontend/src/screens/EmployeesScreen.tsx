@@ -1,32 +1,38 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Users, UserCheck, PalmtreeIcon, UserPlus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { buildQuery, type Paginated } from '../lib/pagination';
 
-type Employee = {
+type EmployeeRow = {
   id: number;
-  name: string;
-  position: string;
-  department: string;
-  phone: string;
-  email: string;
+  full_name: string;
+  role_title: string | null;
+  department: string | null;
+  phone: string | null;
+  email: string | null;
   status: string;
-  hired_at: string;
-  avatar_url?: string | null;
+  joined_at: string | null;
+  employee_code?: string | null;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Actif',
+  inactive: 'Inactif',
+  terminated: 'Terminé',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  Actif: 'bg-emerald-50 text-emerald-700',
-  'Congé': 'bg-amber-50 text-amber-700',
-  Suspendu: 'bg-red-50 text-red-700',
+  active: 'bg-emerald-50 text-emerald-700',
+  inactive: 'bg-amber-50 text-amber-700',
+  terminated: 'bg-red-50 text-red-700',
 };
 
 export function EmployeesScreen() {
   const toast = useToast();
-  const [rows, setRows] = useState<Employee[]>([]);
+  const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -39,8 +45,14 @@ export function EmployeesScreen() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const res = await api.get<Paginated<Employee>>(
-        'employees' + buildQuery({ per_page: 25, page, search: search || undefined, department: deptFilter || undefined, status: statusFilter || undefined }),
+      const res = await api.get<Paginated<EmployeeRow>>(
+        'hr' + buildQuery({
+          per_page: 25,
+          page,
+          search: search || undefined,
+          department: deptFilter || undefined,
+          status: statusFilter || undefined,
+        }),
       );
       if (cancelled) return;
       setLoading(false);
@@ -57,24 +69,24 @@ export function EmployeesScreen() {
   }, [page, search, deptFilter, statusFilter, toast]);
 
   const departments = useMemo(() => {
-    const s = new Set(rows.map((r) => r.department).filter(Boolean));
+    const s = new Set(rows.map((r) => r.department).filter(Boolean) as string[]);
     return Array.from(s).sort();
   }, [rows]);
 
   const stats = useMemo(() => {
-    const actifs = rows.filter((r) => r.status === 'Actif').length;
-    const conge = rows.filter((r) => r.status === 'Congé').length;
+    const actifs = rows.filter((r) => r.status === 'active').length;
+    const inactifs = rows.filter((r) => r.status === 'inactive').length;
     const now = new Date();
     const nouveaux = rows.filter((r) => {
-      const d = new Date(r.hired_at);
+      if (!r.joined_at) return false;
+      const d = new Date(r.joined_at);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
-    return { total, actifs, conge, nouveaux };
+    return { total, actifs, inactifs, nouveaux };
   }, [rows, total]);
 
-  function initials(name: string) {
-    return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
-  }
+  const initials = (name: string) =>
+    name.split(' ').map((w) => w[0] ?? '').join('').toUpperCase().slice(0, 2);
 
   return (
     <div className="space-y-6">
@@ -82,7 +94,10 @@ export function EmployeesScreen() {
         title="Fiches employés"
         subtitle="Répertoire complet des collaborateurs"
         right={
-          <button className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 inline-flex items-center gap-2">
+          <button
+            onClick={() => toast.error("Utilisez « Ressources → RH → Tableau de bord RH » pour ajouter un employé.")}
+            className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 inline-flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" /> Ajouter un employé
           </button>
         }
@@ -90,8 +105,8 @@ export function EmployeesScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total employés</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.total}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Actifs</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.actifs}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">En congé</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.conge}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Actifs</p><p className="text-2xl font-black text-emerald-600 mt-1">{stats.actifs}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Inactifs</p><p className="text-2xl font-black text-amber-600 mt-1">{stats.inactifs}</p></div>
         <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nouveaux ce mois</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.nouveaux}</p></div>
       </div>
 
@@ -116,16 +131,16 @@ export function EmployeesScreen() {
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
         >
           <option value="">Tous les statuts</option>
-          <option value="Actif">Actif</option>
-          <option value="Congé">En congé</option>
-          <option value="Suspendu">Suspendu</option>
+          <option value="active">Actif</option>
+          <option value="inactive">Inactif</option>
+          <option value="terminated">Terminé</option>
         </select>
       </div>
 
       {loading ? (
         <div className="card p-10 text-center text-sm font-bold text-zinc-500">Chargement…</div>
       ) : rows.length === 0 ? (
-        <EmptyState title="Aucun employé trouvé" description="Ajoutez un employé pour commencer." />
+        <EmptyState title="Aucun employé trouvé" description="Ajoutez un employé depuis le Tableau de bord RH." />
       ) : (
         <>
           <div className="card overflow-hidden">
@@ -133,6 +148,7 @@ export function EmployeesScreen() {
               <thead>
                 <tr className="border-b border-zinc-100">
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Photo</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Code</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Poste</th>
                   <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Département</th>
@@ -147,20 +163,21 @@ export function EmployeesScreen() {
                   <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-4 py-3 text-sm">
                       <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-black">
-                        {initials(r.name)}
+                        {initials(r.full_name)}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm font-bold text-zinc-900">{r.name}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">{r.position}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">{r.department}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">{r.phone}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">{r.email}</td>
+                    <td className="px-4 py-3 text-xs text-zinc-500">{r.employee_code ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-zinc-900">{r.full_name}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700">{r.role_title ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700">{r.department ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700">{r.phone ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700">{r.email ?? '—'}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[r.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                        {r.status}
+                        {STATUS_LABELS[r.status] ?? r.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">{new Date(r.hired_at).toLocaleDateString('fr-FR')}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700">{r.joined_at ? new Date(r.joined_at).toLocaleDateString('fr-FR') : '—'}</td>
                   </tr>
                 ))}
               </tbody>
