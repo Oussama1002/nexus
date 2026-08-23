@@ -72,7 +72,11 @@ const ORDER_STATUS_FR: Record<string, string> = {
 };
 
 const SHIPMENT_STATUS_FR: Record<string, string> = {
+  created: 'Créé',
   pending: 'En attente',
+  picked_up: 'Ramassé',
+  in_transit: 'En transit',
+  out_for_delivery: 'En livraison',
   shipped: 'Expédié',
   delivered: 'Livré',
   returned: 'Retour',
@@ -107,8 +111,13 @@ function recordToRows(rec: unknown): { key: string; label: string; value: number
   }));
 }
 
+function prettifyKey(k: string): string {
+  const s = k.replace(/_/g, ' ').trim();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function rowsWithLabels(rows: { key: string; label: string; value: number }[], map: Record<string, string>) {
-  return rows.map((r) => ({ ...r, label: map[r.key] ?? r.key }));
+  return rows.map((r) => ({ ...r, label: map[r.key] ?? prettifyKey(r.key) }));
 }
 
 function PeriodLine({ period }: { period?: { from?: string; to?: string } }) {
@@ -150,7 +159,11 @@ function DistributionPieCard({
                 cy="50%"
                 outerRadius={88}
                 paddingAngle={2}
-                label={({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`}
+                labelLine={false}
+                label={({ name, percent }) => {
+                  const pct = (percent ?? 0) * 100;
+                  return pct >= 4 ? `${name} ${pct.toFixed(0)}%` : '';
+                }}
               >
                 {data.map((_, i) => (
                   <Cell key={`pie-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
