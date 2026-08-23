@@ -139,40 +139,64 @@ function DistributionPieCard({
   rows: { key: string; label: string; value: number }[];
   emptyHint: string;
 }) {
-  const data = rows
-    .filter((r) => r.value > 0)
-    .map((r) => ({ name: r.label, value: r.value }));
+  const positive = rows.filter((r) => r.value > 0);
+  const total = positive.reduce((s, r) => s + r.value, 0);
+  const data = positive.map((r, i) => ({
+    name: r.label,
+    value: r.value,
+    pct: total > 0 ? (r.value / total) * 100 : 0,
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }));
+
   return (
     <div className="card p-4">
-      <h3 className="text-sm font-black text-zinc-900 mb-2">{title}</h3>
+      <h3 className="text-sm font-black text-zinc-900 mb-4">{title}</h3>
       {data.length === 0 ? (
         <p className="text-sm text-zinc-500">{emptyHint}</p>
       ) : (
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={88}
-                paddingAngle={2}
-                labelLine={false}
-                label={({ name, percent }) => {
-                  const pct = (percent ?? 0) * 100;
-                  return pct >= 4 ? `${name} ${pct.toFixed(0)}%` : '';
-                }}
-              >
-                {data.map((_, i) => (
-                  <Cell key={`pie-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v: number) => Number(v).toLocaleString('fr-FR')} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex items-center gap-6">
+          {/* Donut with total in the middle */}
+          <div className="relative h-52 w-52 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={62}
+                  outerRadius={92}
+                  paddingAngle={2}
+                  stroke="none"
+                >
+                  {data.map((d, i) => (
+                    <Cell key={`pie-${i}`} fill={d.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(v: number) => Number(v).toLocaleString('fr-FR')}
+                  contentStyle={{ borderRadius: 12, fontSize: 12, border: '1px solid #e4e4e7' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total</p>
+              <p className="text-2xl font-black text-zinc-900">{total.toLocaleString('fr-FR')}</p>
+            </div>
+          </div>
+
+          {/* Legend with count + percentage per row */}
+          <ul className="flex-1 space-y-2 min-w-0">
+            {data.map((d) => (
+              <li key={d.name} className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                <span className="text-sm font-bold text-zinc-800 flex-1 truncate">{d.name}</span>
+                <span className="text-sm font-bold text-zinc-900 tabular-nums">{d.value.toLocaleString('fr-FR')}</span>
+                <span className="text-xs font-medium text-zinc-500 tabular-nums w-10 text-right">{d.pct.toFixed(1)}%</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
