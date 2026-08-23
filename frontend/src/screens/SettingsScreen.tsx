@@ -56,10 +56,6 @@ const SECTION_LABEL_FR: Record<SettingsCenterSection, string> = {
 const NAV: { id: SettingsCenterSection; label: string; description: string }[] = [
   { id: 'general', label: 'Général', description: 'Entreprise, système, marque, workflows' },
   { id: 'catalogue', label: 'Catalogue', description: 'Catégories produits, types, fournisseurs' },
-  { id: 'integrations', label: 'Intégrations', description: 'E-mail, SMS, fichiers, webhooks' },
-  { id: 'delivery', label: 'Livraison', description: 'Transporteurs, règles, COD' },
-  { id: 'whatsapp', label: 'WhatsApp', description: 'API, automatisation, modèles' },
-  { id: 'meta', label: 'Meta & pub', description: 'Business Manager, pubs, KPIs' },
   { id: 'finance', label: 'Finance', description: 'TVA, facturation, charges' },
   { id: 'security', label: 'Sécurité', description: 'Sessions, mots de passe, audit' },
 ];

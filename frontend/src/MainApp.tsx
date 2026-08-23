@@ -41,7 +41,6 @@ import { AccountingScreen } from './screens/AccountingScreen';
 import { EmployeesManagementScreen } from './screens/EmployeesManagementScreen';
 import { UsersAdminScreen } from './screens/UsersAdminScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { SystemSettingsScreen } from './screens/SystemSettingsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
 import { SocialMediaWorkspaceScreen } from './screens/SocialMediaWorkspaceScreen';
 import { InfluenceWorkspaceScreen } from './screens/InfluenceWorkspaceScreen';
@@ -220,8 +219,6 @@ export function MainApp() {
 
   const parsedPath = useMemo(() => parseAppPath(location.pathname), [location.pathname]);
   const activeView: View = parsedPath.view;
-  const settingsMode =
-    parsedPath.view === 'settings' ? parsedPath.settingsMode : 'center';
 
   useEffect(() => {
     const p = location.pathname.replace(/\/+$/, '') || '/';
@@ -550,39 +547,7 @@ export function MainApp() {
       case 'bugsIncidents':
         return <BugsIncidentsScreen />;
       case 'settings':
-        return (
-          <div className="space-y-6">
-            <div className="flex flex-wrap gap-2 border-b border-zinc-200 pb-px">
-              <button
-                type="button"
-                onClick={() => navigate(pathForView('settings', 'center'))}
-                className={`px-4 py-2.5 rounded-t-xl text-sm font-black transition-colors ${
-                  settingsMode === 'center'
-                    ? 'bg-white text-primary-800 shadow-sm border border-b-0 border-zinc-200 relative top-px'
-                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
-                }`}
-              >
-                Centre de paramètres
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(pathForView('settings', 'advanced'))}
-                className={`px-4 py-2.5 rounded-t-xl text-sm font-black transition-colors ${
-                  settingsMode === 'advanced'
-                    ? 'bg-white text-primary-800 shadow-sm border border-b-0 border-zinc-200 relative top-px'
-                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
-                }`}
-              >
-                Paramètres techniques (clés DB)
-              </button>
-            </div>
-            {settingsMode === 'center' ? (
-              <SettingsScreen />
-            ) : (
-              <SystemSettingsScreen onNavigateToUsersAdmin={() => navigate(pathForView('usersAdmin'))} />
-            )}
-          </div>
-        );
+        return <SettingsScreen />;
       default:
         return <PlaceholderScreen title={activeView} subtitle="Écran prêt à implémenter (design system actif)." />;
     }
