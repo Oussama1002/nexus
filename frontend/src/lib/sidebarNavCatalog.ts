@@ -124,6 +124,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'echecs-livraison', label: 'Échecs de livraison', level: 2, block: 'operations', parentId: 'logistique', order: 2, icon: AlertTriangle, view: 'deliveryFailures' },
   { id: 'retours', label: 'Retours', level: 2, block: 'operations', parentId: 'logistique', order: 3, icon: RotateCcw, view: 'returns' },
   { id: 'transporteurs', label: 'Transporteurs', level: 2, block: 'operations', parentId: 'logistique', order: 4, icon: Truck, view: 'delivery' },
+  { id: 'livraison-kpi', label: 'Livraison KPI', level: 2, block: 'operations', parentId: 'logistique', order: 5, icon: BarChart3, view: 'deliveryDashboard' },
 
   // ── Catalogue & Stock ──
   { id: 'catalogue-stock', label: 'Catalogue & Stock', level: 1, block: 'operations', parentId: null, order: 4, icon: Barcode },
