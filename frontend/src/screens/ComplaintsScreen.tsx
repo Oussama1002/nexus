@@ -112,9 +112,11 @@ export function ComplaintsScreen() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Réclamations" subtitle="Suivi et traitement des réclamations clients">
-        <CreateComplaintButton size="button" onCreated={() => setReloadTick((t) => t + 1)} />
-      </PageHeader>
+      <PageHeader
+        title="Réclamations"
+        subtitle="Suivi et traitement des réclamations clients"
+        right={<CreateComplaintButton size="button" onCreated={() => setReloadTick((t) => t + 1)} />}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
