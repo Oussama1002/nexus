@@ -16,13 +16,13 @@ class AcademyLessonController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 50), 1), 200);
         $search = trim((string) $request->query('search', ''));
         $category = trim((string) $request->query('category', ''));
 
         $q = AcademyLesson::query()
-            ->where('brand_id', $brandId)
+            ->when($brandId, fn ($qq) => $qq->where('brand_id', $brandId))
             ->where('is_active', true)
             ->with('createdBy:id,name')
             ->orderByDesc('sort_order')

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AdAccountController;
 use App\Http\Controllers\Api\Academy\CourseController as AcademyCourseController;
 use App\Http\Controllers\Api\Academy\SectionController as AcademySectionController;
 use App\Http\Controllers\Api\Academy\LessonController as AcademyLessonController;
+use App\Http\Controllers\Api\AcademyLessonController as LegacyAcademyLessonController;
 use App\Http\Controllers\Api\Academy\StudentController as AcademyStudentController;
 use App\Http\Controllers\Api\Academy\EnrollmentController as AcademyEnrollmentController;
 use App\Http\Controllers\Api\Academy\QuizController as AcademyQuizController;
@@ -507,6 +508,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:hr.view');
     $registerCrud('hr', EmployeeController::class, 'hr');
     Route::prefix('academy')->group(function () {
+        // Legacy standalone lessons (used by RH → Brandna academy tab)
+        Route::get('lessons', [LegacyAcademyLessonController::class, 'index']);
+        Route::post('lessons', [LegacyAcademyLessonController::class, 'store']);
+        Route::get('lessons/{id}', [LegacyAcademyLessonController::class, 'show'])->whereNumber('id');
+        Route::put('lessons/{id}', [LegacyAcademyLessonController::class, 'update'])->whereNumber('id');
+        Route::patch('lessons/{id}', [LegacyAcademyLessonController::class, 'update'])->whereNumber('id');
+        Route::delete('lessons/{id}', [LegacyAcademyLessonController::class, 'destroy'])->whereNumber('id');
+
         // Courses
         Route::get('courses', [AcademyCourseController::class, 'index']);
         Route::post('courses', [AcademyCourseController::class, 'store']);

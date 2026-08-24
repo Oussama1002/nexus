@@ -46,11 +46,11 @@ class DeliveryPaymentController extends Controller
 
     public function codPendingSummary(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $deliveryCompanyId = $request->query('delivery_company_id');
 
         $q = Shipment::query()
-            ->where('brand_id', $brandId)
+            ->when($brandId, fn ($qq) => $qq->where('brand_id', $brandId))
             ->where('status', 'delivered')
             ->where('payment_status', 'cod_pending')
             ->whereNull('delivery_payment_id')
