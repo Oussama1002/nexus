@@ -9,13 +9,14 @@ import { useToast } from '../context/ToastContext';
 import { useBrand } from '../context/BrandContext';
 
 type Return = {
-  id: number;
+  id: number | string;
   order_ref: string;
   customer_name: string;
   product_name: string;
   reason: string;
   status: string;
   amount: number;
+  source?: 'return' | 'order';
   created_at: string;
 };
 
@@ -158,8 +159,17 @@ export function ReturnsScreen() {
               {loading ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-zinc-400">Chargement…</td></tr>
               ) : rows.map(row => (
-                <tr key={row.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                  <td className="px-4 py-3 text-sm font-medium">#{row.id}</td>
+                <tr key={String(row.id)} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                  <td className="px-4 py-3 text-sm font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <span>#{row.id}</span>
+                      {row.source === 'order' && (
+                        <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase bg-blue-50 text-blue-700" title="Commande retournée">
+                          Commande
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-sm">{row.order_ref}</td>
                   <td className="px-4 py-3 text-sm">{row.customer_name}</td>
                   <td className="px-4 py-3 text-sm">{row.product_name}</td>
