@@ -84,7 +84,7 @@ export function WhatsAppWorkspaceScreen({
   const { user, hasPermission, roleSlugs } = useAuth();
   const toast = useToast();
 
-  const isConfirmatrice = roleSlugs.includes('confirmatrice');
+  const isConfirmatrice = Array.isArray(roleSlugs) && roleSlugs.includes('confirmatrice');
   const canViewConversations = hasPermission('conversations.view') || isConfirmatrice;
   const canCreateConversations = hasPermission('conversations.create') || isConfirmatrice;
 
