@@ -36,7 +36,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-zinc-50 overflow-hidden">
+    <div className="flex min-h-screen bg-zinc-50 overflow-hidden max-w-[100vw]">
       {/* Mobile-only backdrop when the drawer is open */}
       {sidebarOpen && (
         <button
@@ -49,8 +49,8 @@ export function AppShell({
       <SidebarNav open={sidebarOpen} header={sidebarHeader} footer={sidebarFooter} blocks={navBlocks} />
       <main className={cn('flex-1 flex flex-col min-w-0 max-h-screen overflow-hidden')}>
         <Topbar left={topbarLeft} brandPill={topbarBrandPill} onSearchClick={onSearchClick} onChatClick={onChatClick} unreadChatCount={unreadChatCount} onNotificationClick={onNotificationClick} notificationCount={notificationCount} right={topbarRight} />
-        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-10 md:px-10 md:py-12 scrollbar-hide">
-          <div className="max-w-[1600px] mx-auto w-full">{children}</div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 sm:px-8 sm:py-10 md:px-10 md:py-12 scrollbar-hide">
+          <div className="max-w-[1600px] mx-auto w-full min-w-0">{children}</div>
         </div>
       </main>
     </div>
