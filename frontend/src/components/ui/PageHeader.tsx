@@ -17,12 +17,12 @@ export function PageHeader({
 }) {
   const actions = right ?? children;
   return (
-    <div className={cn('flex items-end justify-between gap-6', className)}>
+    <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6', className)}>
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-[color:var(--color-text-0)] truncate">{title}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[color:var(--color-text-0)] truncate">{title}</h1>
         {subtitle && <p className="mt-1 text-sm font-medium text-[color:var(--color-text-2)]">{subtitle}</p>}
       </div>
-      {actions && <div className="shrink-0">{actions}</div>}
+      {actions && <div className="shrink-0 flex flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }

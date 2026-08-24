@@ -204,7 +204,9 @@ export function MainApp() {
 
   /** Admin: which confirmatrice workspace is shown in "Espace Confirmatrice". */
   const [selectedConfirmatriceUserId, setSelectedConfirmatriceUserId] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => (typeof window === 'undefined' ? true : window.matchMedia('(min-width: 768px)').matches),
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
@@ -346,16 +348,25 @@ export function MainApp() {
     trackSession({ name: 'nav.view', ts: Date.now(), meta: { view: activeView, userId: currentUser.id, role: currentUser.role } });
   }, [activeView, currentUser.id, currentUser.role]);
 
+  const navigateAndAutoClose = useCallback((path: string) => {
+    navigate(path);
+    // On mobile viewports the sidebar is a drawer overlaying the content —
+    // auto-close it after tapping a nav entry so the user sees where they landed.
+    if (typeof window !== 'undefined' && !window.matchMedia('(min-width: 768px)').matches) {
+      setSidebarOpen(false);
+    }
+  }, [navigate]);
+
   const navBlocks = useMemo(
     () =>
       buildSidebarNav({
         activeView,
-        navigate,
+        navigate: navigateAndAutoClose as any,
         canAccess,
         userRole: currentUser.role,
         visibility: sidebarVisibility,
       }),
-    [activeView, navigate, canAccess, currentUser.role, sidebarVisibility],
+    [activeView, navigateAndAutoClose, canAccess, currentUser.role, sidebarVisibility],
   );
   const brandIdByName = (name: string) => brands.find((b) => b.name === name)?.id;
 
@@ -557,6 +568,7 @@ export function MainApp() {
     <>
     <AppShell
         sidebarOpen={sidebarOpen}
+        onSidebarClose={() => setSidebarOpen(false)}
         navBlocks={navBlocks}
         sidebarHeader={
           <div className="flex items-center gap-3">

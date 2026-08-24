@@ -255,8 +255,13 @@ export function SidebarNav({
   return (
     <aside
       className={cn(
-        'bg-white border-r border-zinc-100 h-screen transition-all duration-300 flex flex-col z-50 sticky top-0 shrink-0',
-        open ? 'w-72' : 'w-20',
+        'bg-white border-r border-zinc-100 h-screen transition-all duration-300 flex flex-col z-50 shrink-0',
+        // Mobile: fixed drawer that slides in from the left. Desktop: sticky column.
+        'fixed inset-y-0 left-0 md:sticky md:top-0',
+        'w-72',
+        open ? 'translate-x-0' : '-translate-x-full',
+        'md:translate-x-0',
+        open ? 'md:w-72' : 'md:w-20',
       )}
     >
       <div className="p-6 pb-2">{header}</div>

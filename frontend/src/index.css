@@ -84,3 +84,18 @@
     border-radius: var(--radius-md);
   }
 }
+
+/* Mobile: let tables that are direct card children scroll horizontally
+ * instead of getting clipped by the card's overflow-hidden. Uses :has()
+ * so cards that don't contain a table keep their default overflow behavior. */
+@media (max-width: 767px) {
+  .card:has(> table),
+  .card:has(> .overflow-x-auto > table),
+  .overflow-hidden.card:has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .card > table {
+    min-width: 640px;
+  }
+}
