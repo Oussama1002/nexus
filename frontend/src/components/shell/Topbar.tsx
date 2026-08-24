@@ -22,10 +22,10 @@ export function Topbar({
   right?: React.ReactNode;
 }) {
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-zinc-100 flex items-center justify-between px-8 z-40 shrink-0 sticky top-0">
-      <div className="flex items-center gap-4 min-w-0">{left}</div>
+    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-zinc-100 flex items-center justify-between px-3 sm:px-8 gap-2 z-40 shrink-0 sticky top-0">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 shrink-0">{left}</div>
 
-      <div className="flex items-center gap-6 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-6 shrink-0 min-w-0">
         {brandPill}
         <div className="flex items-center gap-2">
           <button

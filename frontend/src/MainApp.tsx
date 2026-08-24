@@ -596,17 +596,17 @@ export function MainApp() {
           </button>
         }
         topbarLeft={
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-500 transition-colors"
+              className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-500 transition-colors shrink-0"
               aria-label="Toggle sidebar"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="h-6 w-[1px] bg-zinc-200" />
-            <div className="text-sm font-black text-zinc-900">{VIEW_LABELS_FR[activeView] ?? activeView}</div>
+            <div className="hidden sm:block h-6 w-[1px] bg-zinc-200" />
+            <div className="hidden sm:block text-sm font-black text-zinc-900">{VIEW_LABELS_FR[activeView] ?? activeView}</div>
           </div>
         }
         topbarBrandPill={
