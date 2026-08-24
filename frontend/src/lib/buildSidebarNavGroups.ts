@@ -9,11 +9,18 @@ export function buildSidebarNav(opts: {
   navigate: NavigateFunction;
   canAccess: (v: View) => boolean;
   userRole: User['role'];
+  /** Preferred over userRole when both are present — ground truth from the API. */
+  roleSlugs?: string[];
   visibility: Record<string, boolean> | null;
 }): NavBlock[] {
-  const { activeView, navigate, canAccess, userRole, visibility } = opts;
+  const { activeView, navigate, canAccess, userRole, roleSlugs, visibility } = opts;
 
-  const isConfirmatrice = userRole === 'confirmatrice';
+  // Prefer the raw slug list (source of truth from the API) so we're robust
+  // to any drift in the derived legacy `userRole`. A user with the
+  // 'confirmatrice' role in any position gets the confirmatrice remap.
+  const isConfirmatrice = roleSlugs
+    ? roleSlugs.includes('confirmatrice')
+    : userRole === 'confirmatrice';
 
   const canShowEntry = (id: string, view?: View): boolean => {
     if (!isSidebarNavVisible(id, visibility)) return false;

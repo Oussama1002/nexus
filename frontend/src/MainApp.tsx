@@ -364,9 +364,10 @@ export function MainApp() {
         navigate: navigateAndAutoClose as any,
         canAccess,
         userRole: currentUser.role,
+        roleSlugs,
         visibility: sidebarVisibility,
       }),
-    [activeView, navigateAndAutoClose, canAccess, currentUser.role, sidebarVisibility],
+    [activeView, navigateAndAutoClose, canAccess, currentUser.role, roleSlugs, sidebarVisibility],
   );
   const brandIdByName = (name: string) => brands.find((b) => b.name === name)?.id;
 
