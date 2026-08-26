@@ -20,9 +20,9 @@ export function FilterBar({
   placeholder?: string;
 }) {
   return (
-    <div className={cn('card p-4 flex items-center gap-4', className)}>
-      <div className="flex-1 min-w-0 flex items-center gap-3">
-        <div className="relative flex-1 min-w-[280px] max-w-[520px]">
+    <div className={cn('card p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4', className)}>
+      <div className="flex-1 min-w-0 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-0 sm:min-w-[280px] max-w-full sm:max-w-[520px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <input
             value={query}
@@ -44,9 +44,9 @@ export function FilterBar({
             </button>
           )}
         </div>
-        {left && <div className="flex items-center gap-3">{left}</div>}
+        {left && <div className="flex items-center gap-3 flex-wrap">{left}</div>}
       </div>
-      {right && <div className="flex items-center gap-3 shrink-0">{right}</div>}
+      {right && <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">{right}</div>}
     </div>
   );
 }

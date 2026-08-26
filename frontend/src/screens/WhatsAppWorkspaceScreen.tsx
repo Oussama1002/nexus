@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, FileText, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -455,7 +455,12 @@ export function WhatsAppWorkspaceScreen({
 
       <div className="rounded-2xl border border-zinc-200/90 bg-white shadow-[0_2px_24px_rgba(15,23,42,0.06)]">
         <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[calc(100dvh-13rem)] lg:max-h-[calc(100dvh-13rem)] overflow-hidden">
-          <aside className="lg:col-span-4 flex flex-col min-w-0 min-h-0 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-100/90 bg-zinc-50/30">
+          <aside className={cn(
+            'lg:col-span-4 flex flex-col min-w-0 min-h-0 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-100/90 bg-zinc-50/30',
+            // On mobile: hide the conversation list while a conversation is open,
+            // so the messages panel takes the full width instead of appearing below.
+            selectedId != null && 'hidden lg:flex',
+          )}>
             <div className="p-5 sm:p-6 border-b border-zinc-100/90 space-y-4 shrink-0">
               {numbers.length > 1 && (
                 <div className="flex flex-wrap gap-1.5">
@@ -570,13 +575,26 @@ export function WhatsAppWorkspaceScreen({
             </div>
           </aside>
 
-          <section className="lg:col-span-8 flex flex-col min-w-0 min-h-[420px] lg:min-h-0 lg:h-full lg:max-h-full overflow-hidden bg-white">
+          <section className={cn(
+            'lg:col-span-8 flex flex-col min-w-0 min-h-[420px] lg:min-h-0 lg:h-full lg:max-h-full overflow-hidden bg-white',
+            // On mobile: only render the messages panel when a conversation is selected.
+            selectedId == null && 'hidden lg:flex',
+          )}>
             {selected ? (
               <>
                 <div className="px-5 sm:px-7 py-5 border-b border-zinc-100/90 shrink-0 bg-white">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(null)}
+                    className="lg:hidden inline-flex items-center gap-1.5 mb-2 px-2 py-1 rounded-lg hover:bg-zinc-100 text-zinc-600 text-xs font-bold"
+                    aria-label="Retour à la liste"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Retour aux conversations
+                  </button>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-base font-black text-zinc-900 truncate">{selected.customer?.full_name ?? `Conversation #${selected.id}`}</p>
+                    <p className="text-base font-black text-zinc-900 truncate">{selected.customer?.full_name ?? `Conversation #${selected.id}`}</p>
                       <p className="text-xs font-bold text-zinc-500 truncate mt-1">{selected.customer?.phone ?? ''}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <StatusChip tone={isMandatoryStatus(selected.status) ? 'success' : 'danger'}>
