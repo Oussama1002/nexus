@@ -19,3 +19,16 @@ Schedule::command('smm:sync-meta-performance --stale-minutes=30 --limit=200')
     ->everyThirtyMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+// SMM — TikTok organic performance sync. Same 30 min cadence.
+Schedule::command('smm:sync-tiktok-performance --stale-minutes=30 --limit=200')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// SMM — RS-01 … RS-24 scheduled automations (spec §11).
+// Runs hourly; each rule has its own dedup window so re-runs don't spam.
+Schedule::command('smm:run-automations')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();

@@ -686,6 +686,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ═══ SMM Module (Marketing → Réseaux sociaux → Stratégie & contenu) ═══
     Route::get('smm/dashboard/summary', [SmmDashboardController::class, 'summary'])->middleware('permission:smm_strategy.view');
+    Route::get('smm/dashboard/manager-ops', [SmmDashboardController::class, 'managerOps'])->middleware('permission:smm_strategy.view');
 
     // Strategy
     Route::get('smm/strategies', [SmmStrategyController::class, 'index'])->middleware('permission:smm_strategy.view');
