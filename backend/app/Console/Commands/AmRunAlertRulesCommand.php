@@ -96,6 +96,74 @@ class AmRunAlertRulesCommand extends Command
                 }
             });
 
+        // AM-05 : marge brute sous la cible
+        foreach (AmBrandEconomics::query()->whereNotNull('gross_margin')->get() as $eco) {
+            if ((float) $eco->gross_margin < (float) $eco->gross_margin_target) {
+                $count += (int) $this->openAlert('AM-05', $eco->brand_id, $today, $rules->get('AM-05'), [
+                    'label' => 'Marge brute sous la cible',
+                    'severity' => 'high',
+                    'trigger_value' => (string) $eco->gross_margin,
+                    'description' => "Observé " . round((float) $eco->gross_margin * 100, 1) . "% < cible " . round((float) $eco->gross_margin_target * 100, 1) . "%.",
+                ]);
+            }
+        }
+
+        // AM-20 : conformité produit non conforme (double filet : la suspension automatique + alerte)
+        \App\Models\AmComplianceCheck::query()
+            ->where('status', 'non_conforme')
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $cc) {
+                    $count += (int) $this->openAlert('AM-20', $cc->brand_id, $today, $rules->get('AM-20'), [
+                        'label' => 'Conformité produit non conforme',
+                        'severity' => 'critical',
+                        'description' => "Produit #{$cc->product_id} — {$cc->market}.",
+                    ], suffix: (string) $cc->id);
+                }
+            });
+
+        // AM-21 : révision de conformité à faire (review_due_date dépassée)
+        \App\Models\AmComplianceCheck::query()
+            ->whereNotNull('review_due_date')
+            ->whereDate('review_due_date', '<', now())
+            ->whereIn('status', ['conforme', 'a_verifier'])
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $cc) {
+                    $count += (int) $this->openAlert('AM-21', $cc->brand_id, $today, $rules->get('AM-21'), [
+                        'label' => 'Révision de conformité en retard',
+                        'severity' => 'medium',
+                    ], suffix: (string) $cc->id);
+                }
+            });
+
+        // AM-22 : réunion client sans compte rendu > 3 jours après la tenue
+        \App\Models\AmClientMeeting::query()
+            ->where('status', 'tenu')
+            ->whereNotNull('held_at')
+            ->where('held_at', '<', now()->subDays(3))
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $m) {
+                    $count += (int) $this->openAlert('AM-22', $m->brand_id, $today, $rules->get('AM-22'), [
+                        'label' => 'Compte rendu de réunion client à rédiger',
+                        'severity' => 'medium',
+                    ], suffix: (string) $m->id);
+                }
+            });
+
+        // AM-01 : marque sans feuille de route ouverte
+        $brandsWithRoadmap = AmRoadmap::query()
+            ->whereIn('status', ['non_demarree', 'en_cours', 'suspendue'])
+            ->pluck('brand_id')->all();
+        \App\Models\Brand::query()
+            ->whereNotIn('id', $brandsWithRoadmap ?: [0])
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $b) {
+                    $count += (int) $this->openAlert('AM-01', $b->id, $today, $rules->get('AM-01'), [
+                        'label' => 'Marque sans feuille de route active',
+                        'severity' => 'low',
+                    ]);
+                }
+            });
+
         $this->info("Alertes AM ouvertes : {$count}");
         AuditLogger::system('am_alerts.run', null, ['opened' => $count, 'date' => $today]);
         return self::SUCCESS;

@@ -281,7 +281,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('campaigns', [CampaignController::class, 'index'])->middleware('permission:campaigns.view');
-    Route::post('campaigns', [CampaignController::class, 'store'])->middleware('permission:campaigns.create');
+    Route::post('campaigns', [CampaignController::class, 'store'])
+        ->middleware(['permission:campaigns.create', 'am.gate:G3']); // AM lock: G3 franchie required for creation
     Route::get('campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id')->middleware('permission:campaigns.view');
     Route::put('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
     Route::patch('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
@@ -293,9 +294,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('campaign-metrics/{id}', [CampaignMetricController::class, 'update'])->whereNumber('id')->middleware('permission:campaign_metrics.update');
     Route::patch('campaign-metrics/{id}', [CampaignMetricController::class, 'update'])->whereNumber('id')->middleware('permission:campaign_metrics.update');
     Route::delete('campaign-metrics/{id}', [CampaignMetricController::class, 'destroy'])->whereNumber('id')->middleware('permission:campaign_metrics.delete');
-    Route::post('media-buying/{id}/repurpose', [MediaBuyingController::class, 'repurpose'])->whereNumber('id')->middleware('permission:campaigns.create');
+    Route::post('media-buying/{id}/repurpose', [MediaBuyingController::class, 'repurpose'])
+        ->whereNumber('id')
+        ->middleware(['permission:campaigns.create', 'am.gate:G3,scaling']); // scaling ops need G5 + G7
     Route::get('media-buying', [MediaBuyingController::class, 'index'])->middleware('permission:campaigns.view');
-    Route::post('media-buying', [MediaBuyingController::class, 'store'])->middleware('permission:campaigns.create');
+    Route::post('media-buying', [MediaBuyingController::class, 'store'])
+        ->middleware(['permission:campaigns.create', 'am.gate:G3']); // AM lock: G3 franchie required
     Route::get('media-buying/{id}', [MediaBuyingController::class, 'show'])->whereNumber('id')->middleware('permission:campaigns.view');
     Route::put('media-buying/{id}', [MediaBuyingController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
     Route::patch('media-buying/{id}', [MediaBuyingController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
@@ -393,7 +397,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ─── Influencer Collaborations ───
     Route::get('influencer-collaborations', [InfluencerCollaborationController::class, 'index'])->middleware('permission:influencer_collaborations.view');
-    Route::post('influencer-collaborations', [InfluencerCollaborationController::class, 'store'])->middleware('permission:influencer_collaborations.create');
+    Route::post('influencer-collaborations', [InfluencerCollaborationController::class, 'store'])
+        ->middleware(['permission:influencer_collaborations.create', 'am.gate:G4']); // AM lock: G4 required for influence
     Route::get('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'show'])->whereNumber('id')->middleware('permission:influencer_collaborations.view');
     Route::put('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');
     Route::patch('influencer-collaborations/{id}', [InfluencerCollaborationController::class, 'update'])->whereNumber('id')->middleware('permission:influencer_collaborations.update');

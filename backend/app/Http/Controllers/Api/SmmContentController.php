@@ -354,6 +354,14 @@ class SmmContentController extends Controller
         if (!$row->publicationSlip || !$row->publicationSlip->is_complete) {
             return ApiResponse::error('Fiche de publication incomplète.', null, 422);
         }
+        // AM cross-module lock: block diffusion if brand+product is under compliance suspension.
+        if ($row->brand_id && app(\App\Services\Am\AmComplianceService::class)
+                ->isDiffusionBlocked((int) $row->brand_id, null)) {
+            return ApiResponse::error(
+                'Diffusion suspendue : la conformité produit de cette marque est actuellement non conforme.',
+                null, 423,
+            );
+        }
         $row->status = 'transmis_cm';
         $row->transmitted_at = now();
         $row->save();

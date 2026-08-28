@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'permission' => CheckPermission::class,
+            'am.gate' => \App\Http\Middleware\EnsureAmGate::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
