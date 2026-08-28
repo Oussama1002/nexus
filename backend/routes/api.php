@@ -976,4 +976,100 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch("{$settingsPath}/{id}", [SystemSettingController::class, 'update'])->whereNumber('id')->middleware('permission:settings.update');
         Route::delete("{$settingsPath}/{id}", [SystemSettingController::class, 'destroy'])->whereNumber('id')->middleware('permission:settings.delete');
     }
+
+    // ═══ AM Module (Pilotage de marque / Account Management) ═══
+    Route::prefix('am')->group(function () {
+        // Roadmaps
+        Route::get('roadmaps',                 [\App\Http\Controllers\Api\AmRoadmapController::class, 'index'])->middleware('permission:am_roadmap.view');
+        Route::get('roadmaps/{id}',            [\App\Http\Controllers\Api\AmRoadmapController::class, 'show'])->whereNumber('id')->middleware('permission:am_roadmap.view');
+        Route::post('roadmaps',                [\App\Http\Controllers\Api\AmRoadmapController::class, 'store'])->middleware('permission:am_roadmap.create');
+        Route::post('roadmaps/{id}/close',     [\App\Http\Controllers\Api\AmRoadmapController::class, 'close'])->whereNumber('id')->middleware('permission:am_roadmap.close');
+        Route::post('roadmaps/{id}/suspend',   [\App\Http\Controllers\Api\AmRoadmapController::class, 'suspend'])->whereNumber('id')->middleware('permission:am_roadmap.suspend');
+        Route::post('roadmaps/{id}/resume',    [\App\Http\Controllers\Api\AmRoadmapController::class, 'resume'])->whereNumber('id')->middleware('permission:am_roadmap.suspend');
+
+        // Chantiers
+        Route::get('chantiers',                [\App\Http\Controllers\Api\AmChantierController::class, 'index'])->middleware('permission:am_chantier.view');
+        Route::get('chantiers/{id}',           [\App\Http\Controllers\Api\AmChantierController::class, 'show'])->whereNumber('id')->middleware('permission:am_chantier.view');
+        Route::patch('chantiers/{id}',         [\App\Http\Controllers\Api\AmChantierController::class, 'update'])->whereNumber('id')->middleware('permission:am_chantier.update');
+
+        // Gates
+        Route::get('gates',                    [\App\Http\Controllers\Api\AmGateController::class, 'index'])->middleware('permission:am_gate.view');
+        Route::get('gates/{id}',               [\App\Http\Controllers\Api\AmGateController::class, 'show'])->whereNumber('id')->middleware('permission:am_gate.view');
+        Route::patch('gate-criteria/{id}',     [\App\Http\Controllers\Api\AmGateController::class, 'updateCriterion'])->whereNumber('id')->middleware('permission:am_gate.update');
+        Route::post('gates/{id}/request',      [\App\Http\Controllers\Api\AmGateController::class, 'requestTransit'])->whereNumber('id')->middleware('permission:am_gate.request_transit');
+        Route::post('gates/{id}/validate',     [\App\Http\Controllers\Api\AmGateController::class, 'validateTransit'])->whereNumber('id')->middleware('permission:am_gate.validate');
+        Route::post('gates/{id}/refuse',       [\App\Http\Controllers\Api\AmGateController::class, 'refuseTransit'])->whereNumber('id')->middleware('permission:am_gate.validate');
+
+        // Derogations
+        Route::get('derogations',              [\App\Http\Controllers\Api\AmDerogationController::class, 'index'])->middleware('permission:am_derogation.view');
+        Route::post('derogations',             [\App\Http\Controllers\Api\AmDerogationController::class, 'store'])->middleware('permission:am_derogation.request');
+        Route::post('derogations/{id}/decide', [\App\Http\Controllers\Api\AmDerogationController::class, 'decide'])->whereNumber('id')->middleware('permission:am_derogation.decide');
+        Route::post('derogations/{id}/lift',   [\App\Http\Controllers\Api\AmDerogationController::class, 'lift'])->whereNumber('id')->middleware('permission:am_derogation.decide');
+
+        // Deliverables + QA
+        Route::get('deliverables',                [\App\Http\Controllers\Api\AmDeliverableController::class, 'index'])->middleware('permission:am_deliverable.view');
+        Route::get('deliverables/{id}',           [\App\Http\Controllers\Api\AmDeliverableController::class, 'show'])->whereNumber('id')->middleware('permission:am_deliverable.view');
+        Route::post('deliverables',               [\App\Http\Controllers\Api\AmDeliverableController::class, 'store'])->middleware('permission:am_deliverable.create');
+        Route::patch('deliverables/{id}',         [\App\Http\Controllers\Api\AmDeliverableController::class, 'update'])->whereNumber('id')->middleware('permission:am_deliverable.update');
+        Route::post('deliverables/{id}/version',  [\App\Http\Controllers\Api\AmDeliverableController::class, 'uploadVersion'])->whereNumber('id')->middleware('permission:am_deliverable.update');
+        Route::post('deliverables/{id}/validate', [\App\Http\Controllers\Api\AmDeliverableController::class, 'validateDeliverable'])->whereNumber('id')->middleware('permission:am_deliverable.validate');
+        Route::get('qa-grids',                    [\App\Http\Controllers\Api\AmQaCheckController::class, 'grids'])->middleware('permission:am_deliverable.view');
+        Route::post('qa-checks',                  [\App\Http\Controllers\Api\AmQaCheckController::class, 'store'])->middleware('permission:am_deliverable.validate');
+
+        // Brand economics + objectives
+        Route::get('brand-economics',          [\App\Http\Controllers\Api\AmBrandEconomicsController::class, 'index'])->middleware('permission:am_roadmap.view');
+        Route::post('brand-economics',         [\App\Http\Controllers\Api\AmBrandEconomicsController::class, 'store'])->middleware('permission:am_roadmap.update');
+        Route::patch('brand-economics/{id}',   [\App\Http\Controllers\Api\AmBrandEconomicsController::class, 'update'])->whereNumber('id')->middleware('permission:am_roadmap.update');
+        Route::get('brand-objectives',         [\App\Http\Controllers\Api\AmBrandObjectiveController::class, 'index'])->middleware('permission:am_roadmap.view');
+        Route::post('brand-objectives',        [\App\Http\Controllers\Api\AmBrandObjectiveController::class, 'store'])->middleware('permission:am_roadmap.update');
+        Route::patch('brand-objectives/{id}',  [\App\Http\Controllers\Api\AmBrandObjectiveController::class, 'update'])->whereNumber('id')->middleware('permission:am_roadmap.update');
+
+        // Decisions + tests
+        Route::get('decisions',                [\App\Http\Controllers\Api\AmDecisionController::class, 'index'])->middleware('permission:am_decision.view');
+        Route::post('decisions',               [\App\Http\Controllers\Api\AmDecisionController::class, 'store'])->middleware('permission:am_decision.create');
+        Route::post('decisions/{id}/review',   [\App\Http\Controllers\Api\AmDecisionController::class, 'reviewOutcome'])->whereNumber('id')->middleware('permission:am_decision.create');
+        Route::get('tests',                    [\App\Http\Controllers\Api\AmTestController::class, 'index'])->middleware('permission:am_test.view');
+        Route::post('tests',                   [\App\Http\Controllers\Api\AmTestController::class, 'store'])->middleware('permission:am_test.create');
+        Route::patch('tests/{id}',             [\App\Http\Controllers\Api\AmTestController::class, 'update'])->whereNumber('id')->middleware('permission:am_test.create');
+        Route::post('tests/{id}/verdict',      [\App\Http\Controllers\Api\AmTestController::class, 'verdict'])->whereNumber('id')->middleware('permission:am_test.verdict');
+
+        // Compliance + suspensions
+        Route::get('compliance-checks',                [\App\Http\Controllers\Api\AmComplianceCheckController::class, 'index'])->middleware('permission:am_compliance.view');
+        Route::post('compliance-checks',               [\App\Http\Controllers\Api\AmComplianceCheckController::class, 'store'])->middleware('permission:am_compliance.update');
+        Route::patch('compliance-checks/{id}',         [\App\Http\Controllers\Api\AmComplianceCheckController::class, 'update'])->whereNumber('id')->middleware('permission:am_compliance.update');
+        Route::post('compliance-checks/{id}/suspend',  [\App\Http\Controllers\Api\AmComplianceCheckController::class, 'suspend'])->whereNumber('id')->middleware('permission:am_compliance.update');
+        Route::post('diffusion-suspensions/{id}/lift', [\App\Http\Controllers\Api\AmComplianceCheckController::class, 'lift'])->whereNumber('id')->middleware('permission:am_compliance.suspend_lift');
+
+        // Alerts
+        Route::get('alerts',                   [\App\Http\Controllers\Api\AmAlertController::class, 'index'])->middleware('permission:am_alert.view');
+        Route::post('alerts/{id}/take',        [\App\Http\Controllers\Api\AmAlertController::class, 'take'])->whereNumber('id')->middleware('permission:am_alert.take');
+        Route::post('alerts/{id}/resolve',     [\App\Http\Controllers\Api\AmAlertController::class, 'resolve'])->whereNumber('id')->middleware('permission:am_alert.resolve');
+        Route::post('alerts/{id}/escalate',    [\App\Http\Controllers\Api\AmAlertController::class, 'escalate'])->whereNumber('id')->middleware('permission:am_alert.escalate');
+
+        // Brand assignments
+        Route::get('brand-assignments',        [\App\Http\Controllers\Api\AmBrandAssignmentController::class, 'index'])->middleware('permission:am_roadmap.view');
+        Route::post('brand-assignments',       [\App\Http\Controllers\Api\AmBrandAssignmentController::class, 'store'])->middleware('permission:am_roadmap.update');
+        Route::patch('brand-assignments/{id}', [\App\Http\Controllers\Api\AmBrandAssignmentController::class, 'update'])->whereNumber('id')->middleware('permission:am_roadmap.update');
+
+        // Client meetings
+        Route::get('client-meetings',                 [\App\Http\Controllers\Api\AmClientMeetingController::class, 'index'])->middleware('permission:am_client_meeting.view');
+        Route::post('client-meetings',                [\App\Http\Controllers\Api\AmClientMeetingController::class, 'store'])->middleware('permission:am_client_meeting.create');
+        Route::patch('client-meetings/{id}',          [\App\Http\Controllers\Api\AmClientMeetingController::class, 'update'])->whereNumber('id')->middleware('permission:am_client_meeting.create');
+        Route::post('client-meetings/{id}/actions',   [\App\Http\Controllers\Api\AmClientMeetingController::class, 'addAction'])->whereNumber('id')->middleware('permission:am_client_meeting.create');
+        Route::post('meeting-actions/{actionId}/close', [\App\Http\Controllers\Api\AmClientMeetingController::class, 'closeAction'])->whereNumber('actionId')->middleware('permission:am_client_meeting.create');
+
+        // Client reports
+        Route::get('client-reports',              [\App\Http\Controllers\Api\AmClientReportController::class, 'index'])->middleware('permission:am_report_client.view');
+        Route::get('client-reports/{id}',         [\App\Http\Controllers\Api\AmClientReportController::class, 'show'])->whereNumber('id')->middleware('permission:am_report_client.view');
+        Route::post('client-reports',             [\App\Http\Controllers\Api\AmClientReportController::class, 'draft'])->middleware('permission:am_report_client.create');
+        Route::post('client-reports/{id}/validate', [\App\Http\Controllers\Api\AmClientReportController::class, 'validateReport'])->whereNumber('id')->middleware('permission:am_report_client.validate');
+        Route::post('client-reports/{id}/publish',  [\App\Http\Controllers\Api\AmClientReportController::class, 'publish'])->whereNumber('id')->middleware('permission:am_report_client.publish');
+
+        // Dashboards
+        Route::get('dashboards/direction',       [\App\Http\Controllers\Api\AmDashboardController::class, 'direction'])->middleware('permission:am_roadmap.view');
+        Route::get('dashboards/manager-ops',     [\App\Http\Controllers\Api\AmDashboardController::class, 'managerOps'])->middleware('permission:am_roadmap.view');
+        Route::get('dashboards/account-manager', [\App\Http\Controllers\Api\AmDashboardController::class, 'accountManager'])->middleware('permission:am_roadmap.view');
+        Route::get('dashboards/client',          [\App\Http\Controllers\Api\AmDashboardController::class, 'client'])->middleware('permission:am_roadmap.view');
+        Route::get('dashboards/health-score',    [\App\Http\Controllers\Api\AmDashboardController::class, 'healthScore'])->middleware('permission:am_roadmap.view');
+    });
 });

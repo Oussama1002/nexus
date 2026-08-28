@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             Lot9RolePermissionsSeeder::class,
             ManagementRolePermissionsSeeder::class,
             ClientPortalRolePermissionsSeeder::class,
+            AmModuleRolePermissionsSeeder::class,
             DemoBrandsSeeder::class,
             DeliveryCompaniesSeeder::class,
             InfluenceDemoSeeder::class,

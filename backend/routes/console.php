@@ -32,3 +32,9 @@ Schedule::command('smm:run-automations')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// AM — Alert rules AM-01..AM-25 + derogation expiry.
+Schedule::command('am:run-alert-rules')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
