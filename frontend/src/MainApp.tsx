@@ -43,6 +43,7 @@ import { UsersAdminScreen } from './screens/UsersAdminScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
 import { SocialMediaWorkspaceScreen } from './screens/SocialMediaWorkspaceScreen';
+import { AmWorkspaceScreen } from './screens/AmWorkspaceScreen';
 import { InfluenceWorkspaceScreen } from './screens/InfluenceWorkspaceScreen';
 import { BrandKnowledgeBaseScreen } from './screens/BrandKnowledgeBaseScreen';
 import { AcademyScreen } from './screens/AcademyScreen';
@@ -496,6 +497,8 @@ export function MainApp() {
         return <SocialMediaWorkspaceScreen />;
       case 'influenceHub':
         return <InfluenceWorkspaceScreen />;
+      case 'amWorkspace':
+        return <AmWorkspaceScreen />;
       case 'profile':
         return <ProfileScreen />;
       case 'myTrainings':

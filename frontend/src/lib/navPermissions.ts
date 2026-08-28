@@ -37,6 +37,7 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   usersAdmin: ['users.view'],
   socialMedia: ['social_accounts.view'],
   influenceHub: ['influence.view', 'influencer_collaborations.view'],
+  amWorkspace: ['am_roadmap.view'],
   complaints: ['complaints.view'],
   teamPerformance: ['team_performance.view'],
   socialPublishing: ['social_accounts.view'],
@@ -100,6 +101,7 @@ const ALL_VIEWS: View[] = [
   'usersAdmin',
   'socialMedia',
   'influenceHub',
+  'amWorkspace',
   'comptabilite',
   'complaints',
   'teamPerformance',
@@ -144,7 +146,8 @@ export const ROLE_DEFAULT_VIEWS: Record<string, View[]> = {
   smm: ['dashboard', 'brands', 'ads', 'mediaBuying', 'collabProjects', 'reporting', 'leads', 'customers', 'socialMedia', 'socialPublishing', 'socialAccounts', 'influenceHub', 'knowledgeBase', 'academy', 'automations'],
   influence_manager: ['dashboard', 'brands', 'leads', 'customers', 'influenceHub', 'reporting', 'academy', 'automations', 'mediaBuying', 'collabProjects'],
   comptable: ['dashboard', 'comptabilite', 'finance', 'treasury', 'budgets', 'budgetRequests', 'expenses'],
-  client_brand_owner: ['clientPortal'],
+  client_brand_owner: ['clientPortal', 'amWorkspace'],
+  account_manager: ['dashboard', 'brands', 'customers', 'leads', 'mediaBuying', 'socialMedia', 'influenceHub', 'amWorkspace', 'collabProjects', 'reporting', 'academy', 'automations'],
 };
 
 export function userHasPermissionSlug(userSlugs: Set<string>, required: string): boolean {
