@@ -6,6 +6,7 @@ use App\Models\SmmContent;
 use App\Models\SmmContentPerformance;
 use App\Models\SmmPerformanceSnapshot;
 use App\Models\SystemSetting;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -59,6 +60,12 @@ class TiktokContentInsightsService
             'platform' => 'tiktok',
             'snapshot_at' => now(),
             'metrics_json' => $metrics,
+        ]);
+
+        AuditLogger::system('smm_perf.sync_ok', $row, [
+            'content_id' => $content->id,
+            'platform' => 'tiktok',
+            'metrics' => $metrics,
         ]);
 
         return $row->fresh();
@@ -146,6 +153,12 @@ class TiktokContentInsightsService
 
         Log::warning('tiktok.insights.failed', [
             'content_id' => $content->id,
+            'error' => $message,
+        ]);
+
+        AuditLogger::system('smm_perf.sync_failed', $row, [
+            'content_id' => $content->id,
+            'platform' => 'tiktok',
             'error' => $message,
         ]);
 

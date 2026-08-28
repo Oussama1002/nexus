@@ -113,6 +113,23 @@ class SmmContentController extends Controller
             'is_sensitive' => ['nullable', 'boolean'],
             'sensitivity_reason' => ['nullable', 'string', 'max:60'],
         ]);
+        // Spec §3.5 rule #4: prevent bypassing Direction by clearing the
+        // sensitive flag right before validation. Only users who can also
+        // validate content on behalf of Direction (permission
+        // smm_contents.validate) are allowed to downgrade is_sensitive
+        // from true to false.
+        if (
+            $row->is_sensitive
+            && array_key_exists('is_sensitive', $data)
+            && $data['is_sensitive'] === false
+            && ! $request->user()?->hasPermissionSlug('smm_contents.validate')
+        ) {
+            return ApiResponse::error(
+                "Seule la Direction peut retirer le marquage 'sensible' d'un contenu.",
+                null,
+                403,
+            );
+        }
         $row->fill($data);
         $row->file_identifier = $this->buildFileIdentifier($row);
         $row->save();

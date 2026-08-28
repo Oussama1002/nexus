@@ -52,7 +52,9 @@ class SmmVeilleController extends Controller
             'platforms_observed_json' => ['nullable', 'array'],
             'platform_behavior_changes' => ['nullable', 'string'],
         ]);
+        $before = $row->toArray();
         $row->fill($data)->save();
+        AuditLogger::log($request, 'smm_veille_note.update', $row, $before, $row->fresh()->toArray());
         return ApiResponse::success($row->fresh());
     }
 
@@ -91,7 +93,13 @@ class SmmVeilleController extends Controller
             'reason' => ['nullable', 'string'],
             'generated_content_id' => ['nullable', 'integer', 'exists:smm_contents,id'],
         ]);
+        // Guard: écartée requires a motif (also enforced at store).
+        if (($data['decision'] ?? $t->decision) === 'ecartee' && empty($data['reason'] ?? $t->reason)) {
+            return ApiResponse::error('Motif obligatoire pour toute tendance écartée.', null, 422);
+        }
+        $before = $t->toArray();
         $t->fill($data)->save();
+        AuditLogger::log($request, 'smm_trend.update', $t, $before, $t->fresh()->toArray());
         return ApiResponse::success($t->fresh());
     }
 }

@@ -64,7 +64,9 @@ class SmmAutomationController extends Controller
             'call_to_action_links' => ['nullable', 'string'],
             'linked_content_ids_json' => ['nullable', 'array'],
         ]);
+        $before = $row->toArray();
         $row->fill($data)->save();
+        AuditLogger::log($request, 'smm_auto.update', $row, $before, $row->fresh()->toArray());
         return ApiResponse::success($row->fresh());
     }
 

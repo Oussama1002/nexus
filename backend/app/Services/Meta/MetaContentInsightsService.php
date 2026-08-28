@@ -5,6 +5,7 @@ namespace App\Services\Meta;
 use App\Models\SmmContent;
 use App\Models\SmmContentPerformance;
 use App\Models\SmmPerformanceSnapshot;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -73,6 +74,13 @@ class MetaContentInsightsService
             'platform' => $content->platform,
             'snapshot_at' => now(),
             'metrics_json' => $metrics,
+        ]);
+
+        // Spec §15: log every synchronisation, success or failure.
+        AuditLogger::system('smm_perf.sync_ok', $row, [
+            'content_id' => $content->id,
+            'platform' => $content->platform,
+            'metrics' => $metrics,
         ]);
 
         return $row->fresh();
@@ -206,6 +214,12 @@ class MetaContentInsightsService
         );
 
         Log::warning('meta.insights.failed', [
+            'content_id' => $content->id,
+            'platform' => $content->platform,
+            'error' => $message,
+        ]);
+
+        AuditLogger::system('smm_perf.sync_failed', $row, [
             'content_id' => $content->id,
             'platform' => $content->platform,
             'error' => $message,
