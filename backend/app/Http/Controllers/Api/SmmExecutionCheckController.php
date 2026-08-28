@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SmmContent;
 use App\Models\SmmExecutionCheck;
 use App\Services\AuditLogger;
+use App\Services\Smm\SmmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +41,18 @@ class SmmExecutionCheckController extends Controller
         $data['checked_by_user_id'] = $request->user()->id;
         $row = SmmExecutionCheck::query()->create($data);
         AuditLogger::log($request, 'smm_exec.create', $row);
+        // Écart d'exécution constaté → notify Community Manager pool
+        if ($row->status === 'ecart_constate') {
+            \App\Models\User::query()
+                ->whereHas('roles', fn ($q) => $q->where('slug', 'community_manager'))
+                ->get()
+                ->each(fn ($u) => SmmNotificationService::notifyUser(
+                    (int) $u->id, $row->brand_id, 'execution_deviation',
+                    "Écart d'exécution constaté",
+                    $row->deviation_description ?: 'Écart détecté sur la publication.',
+                    ['check_id' => $row->id, 'content_id' => $row->content_id], 'smm_execution_check', $row->id,
+                ));
+        }
         return ApiResponse::success($row, 'Contrôle enregistré.', 201);
     }
 
@@ -70,6 +83,13 @@ class SmmExecutionCheckController extends Controller
         }
         $row->save();
         AuditLogger::log($request, 'smm_exec.escalate', $row);
+        // Écart à impact public → Direction
+        SmmNotificationService::notifyDirection(
+            $row->brand_id, 'public_impact_deviation', 'Écart à impact public',
+            $row->deviation_description ?: 'Écart d\'exécution avec impact public — dépublication demandée.',
+            ['check_id' => $row->id, 'content_id' => $row->content_id, 'unpublished' => (bool) $row->unpublished],
+            'smm_execution_check', $row->id,
+        );
         return ApiResponse::success($row->fresh());
     }
 }

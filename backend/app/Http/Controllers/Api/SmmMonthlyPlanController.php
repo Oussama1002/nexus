@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SmmMonthlyPlan;
 use App\Models\SmmStrategy;
 use App\Services\AuditLogger;
+use App\Services\Smm\SmmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -91,6 +92,12 @@ class SmmMonthlyPlanController extends Controller
         $row->submitted_at = now();
         $row->save();
         AuditLogger::log($request, 'smm_plan.submit', $row);
+        $label = str_pad((string) $row->month, 2, '0', STR_PAD_LEFT) . '/' . $row->year;
+        SmmNotificationService::notifyManagerOps(
+            $row->brand_id, 'plan_submitted', 'Plan mensuel soumis',
+            "Le plan {$label} attend votre décision.",
+            ['plan_id' => $row->id], 'smm_monthly_plan', $row->id,
+        );
         return ApiResponse::success($row->fresh(), 'Plan soumis.');
     }
 
@@ -108,6 +115,12 @@ class SmmMonthlyPlanController extends Controller
         $row->validation_comment = $data['validation_comment'] ?? null;
         $row->save();
         AuditLogger::log($request, 'smm_plan.validate', $row);
+        $label = str_pad((string) $row->month, 2, '0', STR_PAD_LEFT) . '/' . $row->year;
+        SmmNotificationService::notifySmm(
+            $row->brand_id, 'plan_validated', 'Plan mensuel validé',
+            "Le plan {$label} est validé. Vous pouvez démarrer la production.",
+            ['plan_id' => $row->id], 'smm_monthly_plan', $row->id,
+        );
         return ApiResponse::success($row->fresh(), 'Plan validé.');
     }
 
@@ -120,6 +133,12 @@ class SmmMonthlyPlanController extends Controller
         $row->rejection_reason = $data['rejection_reason'];
         $row->save();
         AuditLogger::log($request, 'smm_plan.reject', $row);
+        $label = str_pad((string) $row->month, 2, '0', STR_PAD_LEFT) . '/' . $row->year;
+        SmmNotificationService::notifySmm(
+            $row->brand_id, 'plan_rejected', 'Plan mensuel rejeté',
+            "Le plan {$label} a été rejeté. Motif : {$row->rejection_reason}",
+            ['plan_id' => $row->id], 'smm_monthly_plan', $row->id,
+        );
         return ApiResponse::success($row->fresh());
     }
 

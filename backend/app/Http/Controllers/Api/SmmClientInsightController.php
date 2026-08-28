@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\SmmClientInsight;
 use App\Services\AuditLogger;
+use App\Services\Smm\SmmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -39,6 +40,11 @@ class SmmClientInsightController extends Controller
         $data['status'] = 'nouveau';
         $row = SmmClientInsight::query()->create($data);
         AuditLogger::log($request, 'smm_insight.create', $row);
+        SmmNotificationService::notifySmm(
+            $row->brand_id, 'insight_captured', 'Insight client enregistré',
+            "Nouveau {$row->insight_type} depuis {$row->source} — à qualifier.",
+            ['insight_id' => $row->id], 'smm_client_insight', $row->id,
+        );
         return ApiResponse::success($row, 'Insight enregistré.', 201);
     }
 

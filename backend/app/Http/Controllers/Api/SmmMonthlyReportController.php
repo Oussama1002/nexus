@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\SmmMonthlyReport;
 use App\Services\AuditLogger;
+use App\Services\Smm\SmmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -80,6 +81,20 @@ class SmmMonthlyReportController extends Controller
         $row->diffused_by_user_id = $request->user()->id;
         $row->save();
         AuditLogger::log($request, 'smm_report.diffuse', $row);
+        $label = str_pad((string) $row->month, 2, '0', STR_PAD_LEFT) . '/' . $row->year;
+        // Broadcast to Manager OPS + Direction + explicit recipients if any
+        SmmNotificationService::notifySmmAndOps(
+            $row->brand_id, 'monthly_report_diffused', 'Rapport mensuel diffusé',
+            "Le rapport {$label} vient d'être diffusé.",
+            ['report_id' => $row->id], 'smm_monthly_report', $row->id,
+        );
+        foreach ((array) $row->recipient_user_ids_json as $uid) {
+            SmmNotificationService::notifyUser(
+                (int) $uid, $row->brand_id, 'monthly_report_diffused',
+                'Rapport mensuel', "Le rapport {$label} est disponible.",
+                ['report_id' => $row->id], 'smm_monthly_report', $row->id,
+            );
+        }
         return ApiResponse::success($row->fresh(), 'Rapport diffusé.');
     }
 }

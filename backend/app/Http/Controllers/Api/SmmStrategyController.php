@@ -7,6 +7,7 @@ use App\Models\SmmContentPillar;
 use App\Models\SmmStrategy;
 use App\Models\SmmStrategyContribution;
 use App\Services\AuditLogger;
+use App\Services\Smm\SmmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -134,6 +135,11 @@ class SmmStrategyController extends Controller
         $row->submitted_at = now();
         $row->save();
         AuditLogger::log($request, 'smm_strategy.submit', $row);
+        SmmNotificationService::notifyDirection(
+            $row->brand_id, 'strategy_submitted', 'Stratégie soumise',
+            "T{$row->quarter} {$row->year} attend une décision.",
+            ['strategy_id' => $row->id], 'smm_strategy', $row->id,
+        );
         return ApiResponse::success($row->fresh(), 'Stratégie soumise.');
     }
 
@@ -149,6 +155,12 @@ class SmmStrategyController extends Controller
         $row->validation_comment = $data['validation_comment'] ?? null;
         $row->save();
         AuditLogger::log($request, 'smm_strategy.validate', $row);
+        // Broadcast: SMM + Media Buyer + Content Manager + CM (spec §10)
+        SmmNotificationService::notifySmmAndOps(
+            $row->brand_id, 'strategy_validated', 'Stratégie validée',
+            "T{$row->quarter} {$row->year} est validée. Vous pouvez démarrer le plan mensuel.",
+            ['strategy_id' => $row->id], 'smm_strategy', $row->id,
+        );
         return ApiResponse::success($row->fresh(), 'Stratégie validée.');
     }
 
@@ -161,6 +173,12 @@ class SmmStrategyController extends Controller
         $row->rejection_reason = $data['rejection_reason'];
         $row->save();
         AuditLogger::log($request, 'smm_strategy.reject', $row);
+        // "Décision sur une stratégie" → Manager OPS
+        SmmNotificationService::notifyManagerOps(
+            $row->brand_id, 'strategy_rejected', 'Stratégie rejetée',
+            "T{$row->quarter} {$row->year} — motif : {$row->rejection_reason}",
+            ['strategy_id' => $row->id], 'smm_strategy', $row->id,
+        );
         return ApiResponse::success($row->fresh(), 'Stratégie rejetée.');
     }
 
@@ -190,6 +208,11 @@ class SmmStrategyController extends Controller
             ['role_at_time' => $data['role_at_time'] ?? null, 'requested_at' => now()],
         );
         AuditLogger::log($request, 'smm_strategy.solicit', $c);
+        SmmNotificationService::notifyUser(
+            (int) $data['contributor_user_id'], $row->brand_id, 'contribution_requested',
+            'Contribution sollicitée', "Votre contribution est demandée sur T{$row->quarter} {$row->year}.",
+            ['strategy_id' => $row->id], 'smm_strategy', $row->id,
+        );
         return ApiResponse::success($c);
     }
 

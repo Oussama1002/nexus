@@ -10,6 +10,7 @@ use App\Models\SmmContentVersion;
 use App\Models\SmmPublicationSlip;
 use App\Models\SmmQcChecklist;
 use App\Services\AuditLogger;
+use App\Services\Smm\SmmNotificationService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -165,6 +166,13 @@ class SmmContentController extends Controller
         $row->briefed_at = now();
         $row->save();
         AuditLogger::log($request, 'smm_content.briefed', $row);
+        if ($row->assigned_user_id) {
+            SmmNotificationService::notifyUser(
+                (int) $row->assigned_user_id, $row->brand_id, 'brief_assigned',
+                'Brief assigné', "« {$row->title} » — un nouveau brief vous a été assigné.",
+                ['content_id' => $row->id], 'smm_content', $row->id,
+            );
+        }
         return ApiResponse::success($row->fresh());
     }
 
@@ -198,6 +206,11 @@ class SmmContentController extends Controller
             $row->save();
         }
         AuditLogger::log($request, 'smm_content.version', $v);
+        SmmNotificationService::notifySmm(
+            $row->brand_id, 'version_uploaded', 'Version déposée',
+            "Une nouvelle version a été déposée pour « {$row->title} ».",
+            ['content_id' => $row->id, 'version_id' => $v->id], 'smm_content', $row->id,
+        );
         return ApiResponse::success($v, 'Version déposée.', 201);
     }
 
@@ -213,6 +226,13 @@ class SmmContentController extends Controller
         $r = SmmContentRevision::query()->create($data);
         $row->increment('revision_rounds');
         AuditLogger::log($request, 'smm_content.revision', $r);
+        if ($row->assigned_user_id) {
+            SmmNotificationService::notifyUser(
+                (int) $row->assigned_user_id, $row->brand_id, 'revision_feedback',
+                'Retour de révision', "Retour à traiter sur « {$row->title} ».",
+                ['content_id' => $row->id, 'revision_id' => $r->id], 'smm_content', $row->id,
+            );
+        }
         return ApiResponse::success($r, 'Retour de révision ajouté.', 201);
     }
 
@@ -251,6 +271,11 @@ class SmmContentController extends Controller
             $row->status = 'a_valider_direction';
             $row->save();
             AuditLogger::log($request, 'smm_content.to_direction', $row);
+            SmmNotificationService::notifyDirection(
+                $row->brand_id, 'sensitive_submitted', 'Contenu sensible à valider',
+                "« {$row->title} » — motif : " . ($row->sensitivity_reason ?? 'non précisé'),
+                ['content_id' => $row->id], 'smm_content', $row->id,
+            );
             return ApiResponse::success($row->fresh(), 'Contenu sensible envoyé en validation Direction.');
         }
         if ($row->author_user_id === $request->user()->id && !$row->is_sensitive) {
@@ -273,6 +298,11 @@ class SmmContentController extends Controller
         $row->validated_by_user_id = $request->user()->id;
         $row->save();
         AuditLogger::log($request, 'smm_content.direction_validate', $row);
+        SmmNotificationService::notifySmm(
+            $row->brand_id, 'sensitive_decided', 'Décision Direction sur contenu sensible',
+            "« {$row->title} » a été validé par la Direction.",
+            ['content_id' => $row->id], 'smm_content', $row->id,
+        );
         return ApiResponse::success($row->fresh(), 'Validation Direction enregistrée.');
     }
 
@@ -311,6 +341,22 @@ class SmmContentController extends Controller
         $row->transmitted_at = now();
         $row->save();
         AuditLogger::log($request, 'smm_content.transmit', $row);
+        // Notify the Community Manager pool
+        \App\Services\Smm\SmmNotificationService::notifySmm(
+            $row->brand_id, 'transmitted_to_cm', 'Contenu transmis au CM',
+            "« {$row->title} » est prêt à publier (" . ($row->platform ?? '—') . ").",
+            ['content_id' => $row->id], 'smm_content', $row->id,
+        );
+        // Also fan out to community_manager role specifically
+        \App\Models\User::query()
+            ->whereHas('roles', fn ($q) => $q->where('slug', 'community_manager'))
+            ->get()
+            ->each(fn ($u) => SmmNotificationService::notifyUser(
+                (int) $u->id, $row->brand_id, 'transmitted_to_cm',
+                'À publier', "« {$row->title} » — " . ($row->platform ?? '—') . " le "
+                    . ($row->scheduled_publish_at?->format('d/m/Y H:i') ?? 'date à confirmer'),
+                ['content_id' => $row->id], 'smm_content', $row->id,
+            ));
         return ApiResponse::success($row->fresh(), 'Transmis au Community Manager.');
     }
 
