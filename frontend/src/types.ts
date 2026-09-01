@@ -31,6 +31,7 @@ export type View =
   | 'socialMedia'
   | 'influenceHub'
   | 'amWorkspace'
+  | 'amConfig'
   | 'comptabilite'
   | 'profile'
   | 'complaints'

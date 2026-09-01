@@ -1076,5 +1076,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('dashboards/account-manager', [\App\Http\Controllers\Api\AmDashboardController::class, 'accountManager'])->middleware('permission:am_roadmap.view');
         Route::get('dashboards/client',          [\App\Http\Controllers\Api\AmDashboardController::class, 'client'])->middleware('permission:am_roadmap.view');
         Route::get('dashboards/health-score',    [\App\Http\Controllers\Api\AmDashboardController::class, 'healthScore'])->middleware('permission:am_roadmap.view');
+
+        // ─── Configuration templates (Direction only) ───
+        Route::get('config/{resource}',          [\App\Http\Controllers\Api\AmConfigController::class, 'index'])->middleware('permission:am_config.view');
+        Route::get('config/{resource}/{id}',     [\App\Http\Controllers\Api\AmConfigController::class, 'show'])->whereNumber('id')->middleware('permission:am_config.view');
+        Route::post('config/{resource}',         [\App\Http\Controllers\Api\AmConfigController::class, 'store'])->middleware('permission:am_config.update');
+        Route::patch('config/{resource}/{id}',   [\App\Http\Controllers\Api\AmConfigController::class, 'update'])->whereNumber('id')->middleware('permission:am_config.update');
+        Route::delete('config/{resource}/{id}',  [\App\Http\Controllers\Api\AmConfigController::class, 'destroy'])->whereNumber('id')->middleware('permission:am_config.update');
     });
 });

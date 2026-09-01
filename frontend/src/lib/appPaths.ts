@@ -65,6 +65,8 @@ export const VIEW_PATH: Record<Exclude<View, 'login' | 'settings'>, string> = {
   rolesPermissions: '/roles-permissions',
   bugsIncidents: '/bugs-incidents',
   integrations: '/integrations',
+  amWorkspace: '/pilotage-de-marque',
+  amConfig: '/pilotage-de-marque/config',
 };
 
 export type SettingsMode = 'center' | 'advanced';

@@ -157,16 +157,16 @@ function DashboardTab({ toast }: { toast: any }) {
       setLoading(true);
       const [ops, h] = await Promise.all([
         api.get<R>('am/dashboards/manager-ops'),
-        api.get<R>('am/dashboards/health-score').catch(() => ({ ok: false })),
+        api.get<R>('am/dashboards/health-score').catch(() => null),
       ]);
       if (ops.ok) setData(ops.data);
-      if (h.ok) setHealth(h.data);
+      if (h && h.ok) setHealth(h.data);
       setLoading(false);
     })();
   }, []);
 
   if (loading) return <div className="text-sm text-zinc-500">Chargement…</div>;
-  if (!data) return <EmptyState title="Aucune donnée" message="Le tableau de bord n'a pas pu être chargé." />;
+  if (!data) return <EmptyState title="Aucune donnée" description="Le tableau de bord n'a pas pu être chargé." />;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -254,7 +254,7 @@ function RoadmapTab({ toast }: { toast: any }) {
         </button>
       </div>
       {rows.length === 0 ? (
-        <EmptyState title="Aucune feuille de route" message="Ouvrez une feuille de route pour démarrer le pilotage." />
+        <EmptyState title="Aucune feuille de route" description="Ouvrez une feuille de route pour démarrer le pilotage." />
       ) : (
         <div className="grid gap-3">
           {rows.map(r => (
@@ -296,7 +296,7 @@ function ChantiersTab({ toast }: { toast: any }) {
     })();
   }, []);
   return rows.length === 0 ? (
-    <EmptyState title="Aucun chantier" message="Les chantiers apparaissent après ouverture d'une feuille de route." />
+    <EmptyState title="Aucun chantier" description="Les chantiers apparaissent après ouverture d'une feuille de route." />
   ) : (
     <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
       <table className="w-full text-sm">
@@ -459,7 +459,7 @@ function DeliverablesTab({ toast }: { toast: any }) {
   };
 
   return rows.length === 0 ? (
-    <EmptyState title="Aucun livrable" message="Créez un livrable rattaché à un chantier." />
+    <EmptyState title="Aucun livrable" description="Créez un livrable rattaché à un chantier." />
   ) : (
     <div className="grid gap-3">
       {rows.map(d => (
@@ -490,7 +490,7 @@ function EconomicsTab({ toast }: { toast: any }) {
     })();
   }, []);
   return rows.length === 0 ? (
-    <EmptyState title="Modèle économique non renseigné" message="Ajoutez le modèle économique via l'API pour piloter la marge et le ratio LTV/CAC." />
+    <EmptyState title="Modèle économique non renseigné" description="Ajoutez le modèle économique via l'API pour piloter la marge et le ratio LTV/CAC." />
   ) : (
     <div className="grid gap-3">
       {rows.map(e => (
@@ -530,7 +530,7 @@ function DecisionsTab({ toast }: { toast: any }) {
     })();
   }, []);
   return rows.length === 0 ? (
-    <EmptyState title="Journal vide" message="Aucune décision consignée." />
+    <EmptyState title="Journal vide" description="Aucune décision consignée." />
   ) : (
     <div className="space-y-3">
       {rows.map(d => (
@@ -555,7 +555,7 @@ function TestsTab({ toast }: { toast: any }) {
     })();
   }, []);
   return rows.length === 0 ? (
-    <EmptyState title="Aucun test" message="Planifiez un test pour tracer l'apprentissage." />
+    <EmptyState title="Aucun test" description="Planifiez un test pour tracer l'apprentissage." />
   ) : (
     <div className="space-y-3">
       {rows.map(t => (
@@ -586,7 +586,7 @@ function ComplianceTab({ toast }: { toast: any }) {
   };
 
   return rows.length === 0 ? (
-    <EmptyState title="Aucun contrôle" message="Créez un contrôle par produit / marché." />
+    <EmptyState title="Aucun contrôle" description="Créez un contrôle par produit / marché." />
   ) : (
     <div className="grid gap-3">
       {rows.map(c => (
@@ -624,7 +624,7 @@ function AlertsTab({ toast }: { toast: any }) {
   };
 
   return rows.length === 0 ? (
-    <EmptyState title="Aucune alerte" message="Aucune règle AM ne s'est déclenchée récemment." />
+    <EmptyState title="Aucune alerte" description="Aucune règle AM ne s'est déclenchée récemment." />
   ) : (
     <div className="space-y-3">
       {rows.map(a => (
@@ -662,7 +662,7 @@ function MeetingsTab({ toast }: { toast: any }) {
     })();
   }, []);
   return rows.length === 0 ? (
-    <EmptyState title="Aucune réunion" message="Aucune réunion client planifiée." />
+    <EmptyState title="Aucune réunion" description="Aucune réunion client planifiée." />
   ) : (
     <div className="space-y-3">
       {rows.map(m => (
@@ -700,7 +700,7 @@ function ReportsTab({ toast }: { toast: any }) {
   };
 
   return rows.length === 0 ? (
-    <EmptyState title="Aucun rapport" message="Créez un rapport client pour le partager avec la marque." />
+    <EmptyState title="Aucun rapport" description="Créez un rapport client pour le partager avec la marque." />
   ) : (
     <div className="grid gap-3">
       {rows.map(r => (
@@ -736,7 +736,7 @@ function AssignmentsTab({ toast }: { toast: any }) {
     })();
   }, []);
   return rows.length === 0 ? (
-    <EmptyState title="Aucun rattachement" message="Aucune personne rattachée à cette marque." />
+    <EmptyState title="Aucun rattachement" description="Aucune personne rattachée à cette marque." />
   ) : (
     <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
       <table className="w-full text-sm">
