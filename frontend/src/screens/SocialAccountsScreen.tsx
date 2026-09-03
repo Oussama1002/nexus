@@ -60,7 +60,7 @@ function PlatformIcon({ platform }: { platform: string }) {
 }
 
 export function SocialAccountsScreen() {
-  const { toast } = useToast();
+  const toast = useToast();
   const [rows, setRows] = useState<SocialAccount[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -98,7 +98,7 @@ export function SocialAccountsScreen() {
         );
         if (cancelled) return;
         if (!res.ok) {
-          toast('error', res.message ?? 'Erreur lors du chargement des comptes sociaux.');
+          toast.error( res.message ?? 'Erreur lors du chargement des comptes sociaux.');
           setRows([]);
           return;
         }
@@ -131,7 +131,7 @@ export function SocialAccountsScreen() {
   };
 
   const submitCreate = async () => {
-    if (!form.account_name.trim()) { toast('error', 'Nom du compte requis.'); return; }
+    if (!form.account_name.trim()) { toast.error( 'Nom du compte requis.'); return; }
     setSaving(true);
     try {
       const res = await api.post('social-accounts', {
@@ -143,8 +143,8 @@ export function SocialAccountsScreen() {
         status: form.status,
         api_connected: form.api_connected,
       });
-      if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
-      toast('success', 'Compte social ajouté.');
+      if (!res.ok) { toast.error( res.message ?? 'Erreur.'); return; }
+      toast.success( 'Compte social ajouté.');
       setShowCreate(false);
       setForm({ platform: 'instagram', account_name: '', handle: '', profile_url: '', follower_count: '', status: 'active', api_connected: false });
       setReloadTick((t) => t + 1);
@@ -275,48 +275,142 @@ export function SocialAccountsScreen() {
         </>
       )}
 
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-black text-zinc-900">Connecter un compte</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm font-bold text-zinc-700">Plateforme
-                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.platform} onChange={(e) => setForm({ ...form, platform: e.target.value })}>
-                  {PLATFORMS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}
-                </select>
-              </label>
-              <label className="text-sm font-bold text-zinc-700">Statut
-                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  <option value="active">Connecté</option>
-                  <option value="inactive">Déconnecté</option>
-                </select>
-              </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Nom du compte *
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.account_name} onChange={(e) => setForm({ ...form, account_name: e.target.value })} placeholder="Brandna Store" />
-              </label>
-              <label className="text-sm font-bold text-zinc-700">Handle
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.handle} onChange={(e) => setForm({ ...form, handle: e.target.value })} placeholder="brandna_store" />
-              </label>
-              <label className="text-sm font-bold text-zinc-700">Abonnés
-                <input type="number" min="0" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.follower_count} onChange={(e) => setForm({ ...form, follower_count: e.target.value })} />
-              </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">URL du profil
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.profile_url} onChange={(e) => setForm({ ...form, profile_url: e.target.value })} placeholder="https://instagram.com/brandna_store" />
-              </label>
-              <label className="col-span-2 flex items-center gap-2 text-sm font-bold text-zinc-700">
-                <input type="checkbox" checked={form.api_connected} onChange={(e) => setForm({ ...form, api_connected: e.target.checked })} />
-                API officielle connectée (Meta / TikTok / etc.)
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
-              <button onClick={submitCreate} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">
-                {saving ? 'Envoi…' : 'Ajouter'}
-              </button>
-            </div>
-          </div>
+      {showCreate && <CreateAccountModal
+        form={form}
+        setForm={setForm}
+        onCancel={() => setShowCreate(false)}
+        onSubmit={submitCreate}
+        saving={saving}
+      />}
+    </div>
+  );
+}
+
+/**
+ * Simplified connect-account modal. Only Plateforme + Nom du compte are shown
+ * by default; everything else (Handle, URL, Abonnés, API officielle) lives
+ * behind a "Détails supplémentaires" toggle. Status defaults to Connecté and
+ * can be changed later on the row. If the user fills a Handle we auto-derive
+ * the profile URL from the platform when the URL field is left empty.
+ */
+function CreateAccountModal({ form, setForm, onCancel, onSubmit, saving }: {
+  form: any; setForm: (v: any) => void; onCancel: () => void; onSubmit: () => void; saving: boolean;
+}) {
+  const [showMore, setShowMore] = useState(false);
+
+  const setPlatform = (v: string) => {
+    setForm({ ...form, platform: v });
+  };
+  const setHandle = (v: string) => {
+    const next = { ...form, handle: v };
+    // Auto-suggest profile URL from platform + handle if URL is still blank
+    if (!form.profile_url && v.trim()) {
+      const base: Record<string, string> = {
+        instagram: 'https://instagram.com/',
+        facebook: 'https://facebook.com/',
+        tiktok: 'https://tiktok.com/@',
+        youtube: 'https://youtube.com/@',
+        x: 'https://x.com/',
+        linkedin: 'https://linkedin.com/in/',
+      };
+      const b = base[form.platform];
+      if (b) next.profile_url = b + v.replace(/^@/, '');
+    }
+    setForm(next);
+  };
+
+  const canSubmit = form.account_name.trim().length > 0 && !saving;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div>
+          <h2 className="text-xl font-black text-zinc-900">Connecter un compte</h2>
+          <p className="text-xs text-zinc-500 font-medium mt-1">Renseignez juste la plateforme et le nom. Le reste est facultatif.</p>
         </div>
-      )}
+
+        <label className="block text-sm font-bold text-zinc-700">
+          Plateforme
+          <select
+            className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-medium"
+            value={form.platform}
+            onChange={(e) => setPlatform(e.target.value)}
+          >
+            {PLATFORMS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}
+          </select>
+        </label>
+
+        <label className="block text-sm font-bold text-zinc-700">
+          Nom du compte *
+          <input
+            autoFocus
+            className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-medium"
+            value={form.account_name}
+            onChange={(e) => setForm({ ...form, account_name: e.target.value })}
+            placeholder="Brandna Store"
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="text-xs font-black text-primary-600 hover:underline"
+        >
+          {showMore ? '− Masquer les détails supplémentaires' : '+ Ajouter des détails (handle, URL, abonnés, API)'}
+        </button>
+
+        {showMore && (
+          <div className="space-y-3 pt-2 border-t border-zinc-100">
+            <label className="block text-sm font-bold text-zinc-700">
+              Handle
+              <input
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-medium"
+                value={form.handle}
+                onChange={(e) => setHandle(e.target.value)}
+                placeholder="brandna_store"
+              />
+            </label>
+            <label className="block text-sm font-bold text-zinc-700">
+              URL du profil
+              <input
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-medium"
+                value={form.profile_url}
+                onChange={(e) => setForm({ ...form, profile_url: e.target.value })}
+                placeholder="https://instagram.com/brandna_store"
+              />
+            </label>
+            <label className="block text-sm font-bold text-zinc-700">
+              Abonnés
+              <input
+                type="number"
+                min="0"
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-medium"
+                value={form.follower_count}
+                onChange={(e) => setForm({ ...form, follower_count: e.target.value })}
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm font-bold text-zinc-700">
+              <input
+                type="checkbox"
+                checked={form.api_connected}
+                onChange={(e) => setForm({ ...form, api_connected: e.target.checked })}
+              />
+              API officielle connectée (Meta / TikTok / etc.)
+            </label>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
+          <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+          <button
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60"
+          >
+            {saving ? 'Envoi…' : 'Connecter'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
