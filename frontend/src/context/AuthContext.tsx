@@ -22,6 +22,7 @@ export type ApiRole = {
   id: number;
   name: string;
   slug: string;
+  landing_view?: string | null;
 };
 
 export type ApiPermission = {
@@ -53,6 +54,7 @@ export type AuthPayload = {
   roles: ApiRole[];
   permissions: ApiPermission[];
   brands: ApiBrand[];
+  landing_view?: string | null;
   attendance?: AttendanceInfo | null;
 };
 
@@ -63,13 +65,14 @@ type AuthContextValue = {
   accessibleBrands: ApiBrand[];
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ ok: true; roleSlugs?: string[]; attendance?: AttendanceInfo | null } | { ok: false; message: string }>;
+  login: (email: string, password: string) => Promise<{ ok: true; roleSlugs?: string[]; landingView?: string | null; attendance?: AttendanceInfo | null } | { ok: false; message: string }>;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
   hasPermission: (required: string | string[]) => boolean;
   isAdmin: boolean;
   permissionSlugs: Set<string>;
   roleSlugs: string[];
+  landingView: string;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -79,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const [permissions, setPermissions] = useState<ApiPermission[]>([]);
   const [accessibleBrands, setAccessibleBrands] = useState<ApiBrand[]>([]);
+  const [landingView, setLandingView] = useState<string>('dashboard');
   const [loading, setLoading] = useState(() => !!api.getStoredToken());
 
   const permissionSlugs = useMemo(
@@ -104,6 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRoles(data.roles ?? []);
     setPermissions(data.permissions ?? []);
     setAccessibleBrands(data.brands ?? []);
+    // Spec §7.3 — landing view from server (first role with one set), else 'dashboard'
+    setLandingView(data.landing_view ?? 'dashboard');
   }, []);
 
   const fetchMe = useCallback(async () => {
@@ -148,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     applyMePayload(data);
     setLoading(false);
     const loginRoles = (data.roles ?? []).map((r: ApiRole) => r.slug);
-    return { ok: true as const, roleSlugs: loginRoles, attendance: data.attendance ?? null };
+    return { ok: true as const, roleSlugs: loginRoles, landingView: data.landing_view ?? 'dashboard', attendance: data.attendance ?? null };
   }, [applyMePayload]);
 
   const logout = useCallback(async () => {
@@ -182,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       permissionSlugs,
       roleSlugs,
+      landingView,
     }),
     [
       user,
@@ -197,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       permissionSlugs,
       roleSlugs,
+      landingView,
     ],
   );
 

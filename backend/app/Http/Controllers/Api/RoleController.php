@@ -60,4 +60,30 @@ class RoleController extends Controller
 
         return ApiResponse::success($role->load('permissions'), 'Permissions du rôle mises à jour.');
     }
+
+    /**
+     * Spec Phase 1 §7.3 — configure the landing view for a role.
+     * PATCH /api/roles/{id}/landing-view with { landing_view: string|null }.
+     */
+    public function setLandingView(Request $request, string $id): JsonResponse
+    {
+        if (! $request->user()?->hasPermissionSlug('roles.update')) {
+            throw new AccessDeniedHttpException('Forbidden.');
+        }
+
+        $data = $request->validate([
+            'landing_view' => ['nullable', 'string', 'max:40'],
+        ]);
+
+        $role = Role::query()->findOrFail($id);
+        $before = ['landing_view' => $role->landing_view];
+        $role->landing_view = $data['landing_view'] ?: null;
+        $role->save();
+
+        \App\Services\AuditLogger::log($request, 'role.landing_view.update', $role, $before, [
+            'landing_view' => $role->landing_view,
+        ]);
+
+        return ApiResponse::success($role->fresh(), 'Écran d’accueil du rôle mis à jour.');
+    }
 }

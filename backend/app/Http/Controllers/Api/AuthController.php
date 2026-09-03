@@ -156,7 +156,12 @@ class AuthController extends Controller
             'id' => $role->id,
             'name' => $role->name,
             'slug' => $role->slug,
+            'landing_view' => $role->landing_view,
         ])->values();
+
+        // Spec Phase 1 §7.3 — user's home screen is the first role's landing_view
+        // that is defined; falls back to 'dashboard' when no role sets one.
+        $landingView = $user->roles->pluck('landing_view')->filter()->first() ?? 'dashboard';
 
         $permissions = $user->roles
             ->flatMap(fn ($role) => $role->permissions)
@@ -189,6 +194,7 @@ class AuthController extends Controller
             'roles' => $roles,
             'permissions' => $permissions,
             'brands' => $brands,
+            'landing_view' => $landingView,
         ];
     }
 }

@@ -3,9 +3,11 @@ import { Layers, ArrowRight, Shield, BarChart3, Users, Package } from 'lucide-re
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { pathForView } from '../lib/appPaths';
+import type { View } from '../types';
 
 export function LoginPage() {
-  const { login, isAuthenticated, loading, roleSlugs } = useAuth();
+  const { login, isAuthenticated, loading, roleSlugs, landingView } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [email, setEmail] = useState('');
@@ -15,7 +17,11 @@ export function LoginPage() {
   const [focused, setFocused] = useState<string | null>(null);
 
   if (!loading && isAuthenticated) {
-    const dest = roleSlugs.includes('confirmatrice') ? '/whatsapp' : '/dashboard';
+    // Confirmatrice historical override stays; otherwise honor the role's
+    // configured landing view (spec Phase 1 §7.3), falling back to dashboard.
+    const dest = roleSlugs.includes('confirmatrice')
+      ? '/whatsapp'
+      : safePathForView(landingView);
     return <Navigate to={dest} replace />;
   }
 
@@ -34,8 +40,20 @@ export function LoginPage() {
     } else if (res.attendance) {
       toast.success(`Pointage enregistre a ${res.attendance.clock_in_at}`);
     }
-    const dest = res.roleSlugs?.includes('confirmatrice') ? '/whatsapp' : '/dashboard';
+    const dest = res.roleSlugs?.includes('confirmatrice')
+      ? '/whatsapp'
+      : safePathForView(res.landingView ?? 'dashboard');
     navigate(dest, { replace: true });
+  }
+
+  // Guard: if a role is configured with a view label the frontend no longer
+  // knows about, don't crash — fall back to /dashboard.
+  function safePathForView(view: string | null | undefined): string {
+    try {
+      return pathForView((view || 'dashboard') as View);
+    } catch {
+      return '/dashboard';
+    }
   }
 
   const features = [

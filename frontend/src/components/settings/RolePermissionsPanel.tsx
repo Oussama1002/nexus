@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Save } from 'lucide-react';
+import { RefreshCw, Save, Home } from 'lucide-react';
 import * as api from '../../lib/api';
 import { buildQuery } from '../../lib/pagination';
 import type { Paginated } from '../../lib/pagination';
@@ -7,10 +7,16 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import { permissionDisplayLabelFr, permissionModuleTitleFr } from '../../lib/permissionLabelsFr';
+import { NAV_CATALOG } from '../../lib/sidebarNavCatalog';
 
 type PermissionRow = { id: number; slug: string; name: string; module: string | null };
-type RoleOpt = { id: number; name: string; slug: string };
+type RoleOpt = { id: number; name: string; slug: string; landing_view?: string | null };
 type RoleDetail = RoleOpt & { permissions?: PermissionRow[] };
+
+/** Views eligible to be a landing screen — anything the sidebar can reach. */
+const LANDING_VIEW_OPTIONS = NAV_CATALOG
+  .filter((e) => !!e.view)
+  .map((e) => ({ view: e.view as string, label: e.label }));
 
 function groupByModule(perms: PermissionRow[]): Record<string, PermissionRow[]> {
   const out: Record<string, PermissionRow[]> = {};
@@ -84,7 +90,16 @@ export function RolePermissionsPanel({
     if (!res.ok || !res.data) return;
     const ids = (res.data.permissions ?? []).map((p) => p.id);
     setSelected(new Set(ids));
+    // Keep the roles list's landing_view in sync so the select reflects the server.
+    setRoles((prev) => prev.map((r) => r.id === id ? { ...r, landing_view: res.data!.landing_view ?? null } : r));
   }, []);
+
+  const saveLandingView = useCallback(async (id: number, value: string | null) => {
+    const res = await api.patch<RoleOpt>(`roles/${id}/landing-view`, { landing_view: value });
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success("Écran d'accueil enregistré.");
+    setRoles((prev) => prev.map((r) => r.id === id ? { ...r, landing_view: value } : r));
+  }, [toast]);
 
   useEffect(() => {
     if (!canViewRoles || roles.length === 0) return;
@@ -245,6 +260,25 @@ export function RolePermissionsPanel({
           ))}
         </select>
       </div>
+
+      {/* Spec Phase 1 §7.3 — landing view per role */}
+      {selectedRole && canEditRoles && !isAdminRole && (
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center rounded-xl border border-zinc-100 bg-blue-50/40 px-4 py-3">
+          <label className="text-[10px] font-black uppercase tracking-widest text-blue-800 shrink-0 inline-flex items-center gap-1.5">
+            <Home className="w-3.5 h-3.5" /> Écran d'accueil
+          </label>
+          <select
+            value={selectedRole.landing_view ?? ''}
+            onChange={(e) => void saveLandingView(selectedRole.id, e.target.value || null)}
+            className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm font-black text-zinc-900 bg-white"
+          >
+            <option value="">— Tableau de bord (par défaut) —</option>
+            {LANDING_VIEW_OPTIONS.map((o) => (
+              <option key={o.view} value={o.view}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {loading ? <p className="text-sm font-bold text-zinc-500">Chargement des permissions du rôle…</p> : null}
 

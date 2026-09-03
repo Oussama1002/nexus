@@ -13,6 +13,7 @@ class Role extends Model
         'name',
         'slug',
         'description',
+        'landing_view',
     ];
 
     public function users()

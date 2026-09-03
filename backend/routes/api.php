@@ -165,6 +165,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
     Route::get('roles/{id}', [RoleController::class, 'show'])->whereNumber('id')->middleware('permission:roles.view');
     Route::patch('roles/{id}', [RoleController::class, 'update'])->whereNumber('id')->middleware('permission:roles.update');
+    Route::patch('roles/{id}/landing-view', [RoleController::class, 'setLandingView'])->whereNumber('id')->middleware('permission:roles.update');
 
     Route::get('permissions', [PermissionController::class, 'index'])->middleware('permission:permissions.view');
     Route::get('permissions/{id}', [PermissionController::class, 'show'])->whereNumber('id')->middleware('permission:permissions.view');
