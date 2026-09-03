@@ -131,15 +131,35 @@ function normalize<T>(status: number, body: unknown): NormalizedResponse<T> {
 
 export type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
-  /** If set, sends this value as X-Brand-Id (overrides stored active brand). */
-  brandId?: string;
+  /**
+   * If set to a string, sends that value as X-Brand-Id (overrides stored active brand).
+   * If set to false, forces the header to be omitted entirely (spec §7.4 opt-out).
+   */
+  brandId?: string | false;
 };
+
+/**
+ * Spec Phase 1 §7.4 — MainApp sets this on view change so requests originating
+ * from a non-brand-scoped section (RH, Academy, Administration) don't send the
+ * X-Brand-Id header. An explicit `brandId` on a request always wins.
+ */
+let currentViewBrandScoped: boolean = true;
+export function setCurrentViewBrandScoped(scoped: boolean): void {
+  currentViewBrandScoped = scoped;
+}
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<NormalizedResponse<T>> {
   const url = `${baseUrl()}/${path.replace(/^\//, '')}`;
   const token = getStoredToken();
   const { brandId: optBrand, ...fetchOpts } = options;
-  const brandHeader = optBrand !== undefined ? optBrand : readActiveBrandId();
+  // Explicit false on the call = never send the header. Otherwise read the
+  // stored active brand, and suppress it when the current view is not brand-scoped.
+  const brandHeader =
+    optBrand === false
+      ? null
+      : optBrand !== undefined
+        ? optBrand
+        : (currentViewBrandScoped ? readActiveBrandId() : null);
 
   const headers = new Headers(fetchOpts.headers);
   if (!headers.has('Accept')) headers.set('Accept', 'application/json');

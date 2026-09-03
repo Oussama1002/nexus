@@ -86,6 +86,7 @@ import { NotificationPanel, type NotificationItem } from './components/shell/Not
 import { InternalChatModal } from './components/chat/InternalChatModal';
 import { Modal } from './components/ui/Modal';
 import { parseAppPath, pathForView } from './lib/appPaths';
+import { isBrandScopedView } from './lib/sidebarNavCatalog';
 
 const ORDER_DRAFT_KEY = 'nexus.orderDraft';
 
@@ -348,6 +349,10 @@ export function MainApp() {
 
   useEffect(() => {
     trackSession({ name: 'nav.view', ts: Date.now(), meta: { view: activeView, userId: currentUser.id, role: currentUser.role } });
+    // Spec §7.4 — tell the API client whether the current view participates
+    // in the brand selector. RH, Academy and Administration opt out so their
+    // requests don't carry X-Brand-Id.
+    api.setCurrentViewBrandScoped(isBrandScopedView(activeView));
   }, [activeView, currentUser.id, currentUser.role]);
 
   const navigateAndAutoClose = useCallback((path: string) => {

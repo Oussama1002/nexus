@@ -86,6 +86,12 @@ export type NavCatalogEntry = {
   confirmatriceView?: View;
   confirmatriceLabel?: string;
   configurable?: boolean;
+  /**
+   * Spec Phase 1 §7.4 — set to false to opt this entry (and its whole subtree)
+   * out of the brand selector. Applied on RH, Brandna Academy and
+   * Administration per spec. Defaults to true when omitted.
+   */
+  brandScoped?: boolean;
 };
 
 export const NAV_CATALOG: NavCatalogEntry[] = [
@@ -140,8 +146,8 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // BLOC RESSOURCES
   // ═══════════════════════════════════════════
 
-  // ── Équipe & RH ──
-  { id: 'equipe-rh', label: 'Équipe & RH', level: 1, block: 'ressources', parentId: null, order: 1, icon: Briefcase },
+  // ── Équipe & RH ── (spec §7.4 — not filtered by brand selector)
+  { id: 'equipe-rh', label: 'Équipe & RH', level: 1, block: 'ressources', parentId: null, order: 1, icon: Briefcase, brandScoped: false },
   { id: 'tableau-bord-rh', label: 'Tableau de bord RH', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 1, icon: Layout, view: 'hr' },
   { id: 'dossiers-salaries', label: 'Dossiers salariés', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 2, icon: FolderOpen },
   { id: 'fiches-employes', label: 'Fiches employés', level: 3, block: 'ressources', parentId: 'dossiers-salaries', order: 1, icon: Contact, view: 'employees' },
@@ -180,17 +186,17 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'base-marque', label: 'Base marque', level: 2, block: 'referentiels', parentId: 'marques', order: 2, icon: BookOpen, view: 'knowledgeBase' },
   { id: 'espace-client', label: 'Espace client', level: 2, block: 'referentiels', parentId: 'marques', order: 3, icon: ShieldUser, view: 'clientPortal' },
 
-  // ── Brandna Academy ──
-  { id: 'brandna-academy', label: 'Brandna Academy', level: 1, block: 'referentiels', parentId: null, order: 2, icon: GraduationCap },
+  // ── Brandna Academy ── (spec §7.4 — not filtered by brand selector)
+  { id: 'brandna-academy', label: 'Brandna Academy', level: 1, block: 'referentiels', parentId: null, order: 2, icon: GraduationCap, brandScoped: false },
   { id: 'catalogue-academy', label: 'Catalogue', level: 2, block: 'referentiels', parentId: 'brandna-academy', order: 1, icon: BookOpen, view: 'academy' },
   { id: 'mes-formations', label: 'Mes formations', level: 2, block: 'referentiels', parentId: 'brandna-academy', order: 2, icon: BookMarked, view: 'myTrainings' },
   { id: 'parcours', label: 'Parcours', level: 2, block: 'referentiels', parentId: 'brandna-academy', order: 3, icon: GitBranch, view: 'learningPaths' },
   { id: 'gestion-contenus', label: 'Gestion des contenus', level: 2, block: 'referentiels', parentId: 'brandna-academy', order: 4, icon: Cog, view: 'contentManagement' },
 
   // ═══════════════════════════════════════════
-  // BLOC SYSTÈME
+  // BLOC SYSTÈME  (spec §7.4 — not filtered by brand selector)
   // ═══════════════════════════════════════════
-  { id: 'administration', label: 'Administration', level: 1, block: 'systeme', parentId: null, order: 1, icon: Settings },
+  { id: 'administration', label: 'Administration', level: 1, block: 'systeme', parentId: null, order: 1, icon: Settings, brandScoped: false },
   { id: 'utilisateurs', label: 'Utilisateurs', level: 2, block: 'systeme', parentId: 'administration', order: 1, icon: UserCog, view: 'usersAdmin' },
   { id: 'roles-permissions', label: 'Rôles & permissions', level: 2, block: 'systeme', parentId: 'administration', order: 2, icon: ShieldAlert, view: 'rolesPermissions' },
   { id: 'automatisations', label: 'Automatisations', level: 2, block: 'systeme', parentId: 'administration', order: 3, icon: Bot, view: 'automations' },
@@ -221,4 +227,23 @@ export const SIDEBAR_NAV_UPDATED_EVENT = 'nexus:sidebar-nav-updated';
 
 export function notifySidebarNavUpdated(): void {
   window.dispatchEvent(new CustomEvent(SIDEBAR_NAV_UPDATED_EVENT));
+}
+
+/**
+ * Spec Phase 1 §7.4 — resolve whether a given view participates in the brand
+ * selector. Walks up the parent chain: the closest ancestor with `brandScoped`
+ * explicitly set wins. Views not in the catalog default to true (brand-scoped)
+ * so that a new module without an opt-out still gets brand filtering.
+ */
+export function isBrandScopedView(view: View | null | undefined): boolean {
+  if (!view) return true;
+  const entry = NAV_CATALOG.find((e) => e.view === view);
+  if (!entry) return true;
+  let cursor: NavCatalogEntry | undefined = entry;
+  while (cursor) {
+    if (typeof cursor.brandScoped === 'boolean') return cursor.brandScoped;
+    if (!cursor.parentId) return true;
+    cursor = NAV_CATALOG.find((e) => e.id === cursor!.parentId);
+  }
+  return true;
 }
