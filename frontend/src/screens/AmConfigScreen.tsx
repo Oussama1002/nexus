@@ -212,7 +212,7 @@ export function AmConfigScreen() {
                   <td className="px-4 py-2 font-mono text-xs text-zinc-500">{r.id}</td>
                   {active.fields.slice(0, 4).map(f => (
                     <td key={f.name} className="px-4 py-2">
-                      {formatCell(r[f.name], f.type)}
+                      {formatCell(r[f.name], f.type, f.name)}
                     </td>
                   ))}
                   <td className="px-4 py-2 text-right space-x-2">
@@ -301,10 +301,93 @@ function coerce(form: R, fields: Resource['fields']): R {
   return out;
 }
 
-function formatCell(value: any, type: string) {
-  if (value === null || value === undefined || value === '') return <span className="text-zinc-400">—</span>;
-  if (type === 'bool') return value ? '✓' : '✗';
-  if (type === 'json') return <span className="text-xs font-mono text-zinc-500">{typeof value === 'string' ? value.slice(0, 30) : JSON.stringify(value).slice(0, 30)}…</span>;
+// Human-friendly labels for well-known configuration values.
+const KNOWN_CODE_LABELS: Record<string, string> = {
+  default: 'Par défaut',
+  'monthly-client': 'Rapport client mensuel',
+};
+const KNOWN_KEY_LABELS: Record<string, string> = {
+  // health score components / weights
+  economics: 'Économique',
+  conversion: 'Conversion',
+  execution: 'Exécution',
+  risk: 'Risque',
+  // deliverable types
+  brand_book: 'Brand book',
+  landing_page: 'Landing page',
+  creative_video: 'Créatif vidéo',
+  monthly_plan: 'Plan mensuel',
+};
+
+function humanizeKey(k: string): string {
+  return KNOWN_KEY_LABELS[k] ?? k.replace(/_/g, ' ');
+}
+
+function humanizeCode(v: string): string {
+  return KNOWN_CODE_LABELS[v] ?? v;
+}
+
+function jsonSummary(value: any): React.ReactNode {
+  const parsed = typeof value === 'string' ? tryParse(value) : value;
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const entries = Object.entries(parsed);
+    if (entries.length === 0) return <span className="text-zinc-400">— aucun —</span>;
+    // For numeric maps (e.g. weights) render "clé : valeur" chips
+    const allNumeric = entries.every(([, v]) => typeof v === 'number');
+    if (allNumeric) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {entries.map(([k, v]) => (
+            <span key={k} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+              {humanizeKey(k)} <span className="font-black">{formatWeight(v as number)}</span>
+            </span>
+          ))}
+        </div>
+      );
+    }
+    // Otherwise list the labels
+    return (
+      <div className="flex flex-wrap gap-1">
+        {entries.slice(0, 6).map(([k]) => (
+          <span key={k} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+            {humanizeKey(k)}
+          </span>
+        ))}
+        {entries.length > 6 && <span className="text-[11px] text-zinc-500">+{entries.length - 6}</span>}
+      </div>
+    );
+  }
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 0) return <span className="text-zinc-400">— aucun —</span>;
+    return <span className="text-xs text-zinc-600 font-semibold">{parsed.length} élément{parsed.length > 1 ? 's' : ''}</span>;
+  }
+  return <span className="text-zinc-400">—</span>;
+}
+
+function tryParse(s: string): any {
+  try { return JSON.parse(s); } catch { return null; }
+}
+
+function formatWeight(v: number): string {
+  // Weights are typically 0..1 → show as percent for readability
+  if (v <= 1 && v >= 0) return `${Math.round(v * 100)}%`;
+  return String(v);
+}
+
+function formatCell(value: any, type: string, fieldName?: string) {
+  if (value === null || value === undefined || value === '') {
+    // Friendly default for brand_id column ("empty = default config")
+    if (fieldName === 'brand_id') return <span className="text-xs font-semibold text-blue-700">Toutes les marques</span>;
+    return <span className="text-zinc-400">—</span>;
+  }
+  if (type === 'bool') return value ? <span className="text-emerald-600 font-black">Oui</span> : <span className="text-zinc-400 font-black">Non</span>;
+  if (type === 'json') return jsonSummary(value);
+  if (fieldName === 'code') return <span className="font-semibold text-zinc-800">{humanizeCode(String(value))}</span>;
+  if (fieldName === 'severity') {
+    const map: Record<string, string> = { low: 'Faible', medium: 'Moyenne', high: 'Élevée', critical: 'Critique' };
+    return <span className="font-semibold">{map[String(value)] ?? value}</span>;
+  }
+  if (fieldName === 'deliverable_type') return <span className="font-semibold">{humanizeKey(String(value))}</span>;
   const s = String(value);
   return s.length > 60 ? s.slice(0, 57) + '…' : s;
 }
