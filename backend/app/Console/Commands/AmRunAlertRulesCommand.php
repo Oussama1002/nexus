@@ -164,6 +164,87 @@ class AmRunAlertRulesCommand extends Command
                 }
             });
 
+        // AM-06 : test terminé sans verdict (end_date passée sans verdict rendu)
+        \App\Models\AmTest::query()
+            ->whereNull('verdict')
+            ->whereNotNull('end_date')
+            ->whereDate('end_date', '<', now())
+            ->whereNotIn('status', ['coupe', 'itere', 'scale'])
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $t) {
+                    $count += (int) $this->openAlert('AM-06', $t->brand_id, $today, $rules->get('AM-06'), [
+                        'label' => 'Test terminé sans verdict',
+                        'severity' => 'medium',
+                        'description' => "Test #{$t->id} : {$t->hypothesis}",
+                    ], suffix: (string) $t->id);
+                }
+            });
+
+        // AM-07 : chantier stagnant — ouvert depuis > 10 jours sans franchissement
+        \App\Models\AmChantier::query()
+            ->whereIn('status', ['ouvert', 'en_cours'])
+            ->whereNotNull('opened_at')
+            ->where('opened_at', '<', now()->subDays(10))
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $c) {
+                    $count += (int) $this->openAlert('AM-07', $c->brand_id, $today, $rules->get('AM-07'), [
+                        'label' => 'Chantier stagnant depuis plus de 10 jours',
+                        'severity' => 'medium',
+                        'description' => "Chantier {$c->code} — ouvert le " . optional($c->opened_at)->format('d/m/Y'),
+                    ], suffix: (string) $c->id);
+                }
+            });
+
+        // AM-08 : livrable refusé 2 fois ou plus (compté sur les versions)
+        \DB::table('am_deliverables as d')
+            ->select('d.id', 'd.brand_id', \DB::raw('COUNT(v.id) as v_count'))
+            ->leftJoin('am_deliverable_versions as v', 'v.deliverable_id', '=', 'd.id')
+            ->where('d.status', 'a_corriger')
+            ->groupBy('d.id', 'd.brand_id')
+            ->havingRaw('COUNT(v.id) >= 2')
+            ->orderBy('d.id')
+            ->chunk(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $r) {
+                    $count += (int) $this->openAlert('AM-08', (int) $r->brand_id, $today, $rules->get('AM-08'), [
+                        'label' => 'Livrable refusé plusieurs fois',
+                        'severity' => 'high',
+                        'description' => "Livrable #{$r->id} — {$r->v_count} versions rejetées.",
+                    ], suffix: (string) $r->id);
+                }
+            });
+
+        // AM-11 : aucune réunion client tenue depuis 30 jours
+        $recentMeetingBrands = \App\Models\AmClientMeeting::query()
+            ->where('status', 'tenu')
+            ->where('held_at', '>=', now()->subDays(30))
+            ->pluck('brand_id')->unique()->all();
+        \App\Models\Brand::query()
+            ->whereIn('id', $brandsWithRoadmap ?: [0])
+            ->whereNotIn('id', $recentMeetingBrands ?: [0])
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $b) {
+                    $count += (int) $this->openAlert('AM-11', $b->id, $today, $rules->get('AM-11'), [
+                        'label' => 'Aucune réunion client depuis 30 jours',
+                        'severity' => 'medium',
+                    ]);
+                }
+            });
+
+        // AM-13 : objectif sans mesure alors que la période est terminée
+        // Traite les périodes au format YYYY-MM (mensuel) et YYYY-Qn (trimestriel).
+        \App\Models\AmBrandObjective::query()
+            ->whereNull('observed_value')
+            ->chunkById(200, function ($rows) use ($today, $rules, &$count) {
+                foreach ($rows as $obj) {
+                    if (! $this->periodIsFinished((string) $obj->period)) continue;
+                    $count += (int) $this->openAlert('AM-13', $obj->brand_id, $today, $rules->get('AM-13'), [
+                        'label' => 'Objectif sans mesure en fin de période',
+                        'severity' => 'medium',
+                        'description' => "Objectif {$obj->metric_code} pour {$obj->period} : aucune mesure renseignée.",
+                    ], suffix: (string) $obj->id);
+                }
+            });
+
         $this->info("Alertes AM ouvertes : {$count}");
         AuditLogger::system('am_alerts.run', null, ['opened' => $count, 'date' => $today]);
         return self::SUCCESS;
@@ -172,12 +253,16 @@ class AmRunAlertRulesCommand extends Command
     private function openAlert(string $code, int $brandId, string $day, ?AmAlertRuleTemplate $rule, array $override, string $suffix = ''): bool
     {
         $fp = "am:{$code}:{$brandId}:{$day}" . ($suffix !== '' ? ":{$suffix}" : '');
-        $exists = AmAlert::query()
-            ->where('brand_id', $brandId)
-            ->where('rule_code', $code)
-            ->where('opened_at', '>=', now()->startOfDay())
+        // Dedup on the FULL fingerprint so per-item rules (AM-08 livrable, AM-06 test,
+        // etc.) open one alert per item, not one per brand per day. The fingerprint is
+        // recorded in the audit log entry we write on every open — checking that table
+        // avoids adding a new column to am_alerts.
+        $alreadyOpened = \App\Models\AuditLog::query()
+            ->where('action', 'am_alert.opened')
+            ->where('created_at', '>=', now()->startOfDay())
+            ->whereJsonContains('new_values->fp', $fp)
             ->exists();
-        if ($exists) return false;
+        if ($alreadyOpened) return false;
 
         $alert = AmAlert::query()->create(array_merge([
             'brand_id' => $brandId,
@@ -195,5 +280,25 @@ class AmRunAlertRulesCommand extends Command
         $this->notify->notifyRole($role, $brandId, 'am.alert', $alert->label, $alert->description ?? '', ['alert_id' => $alert->id, 'fp' => $fp]);
         AuditLogger::system('am_alert.opened', $alert, ['fp' => $fp]);
         return true;
+    }
+
+    /**
+     * Recognise "YYYY-MM" and "YYYY-Qn" (n in 1..4). Returns true when the period
+     * has ended (last day is strictly before today). Unknown formats -> false so
+     * we don't spam alerts for exotic period labels.
+     */
+    private function periodIsFinished(string $period): bool
+    {
+        if (preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/', $period, $m)) {
+            $end = \Illuminate\Support\Carbon::create((int) $m[1], (int) $m[2], 1)->endOfMonth();
+            return $end->isPast();
+        }
+        if (preg_match('/^(\d{4})-Q([1-4])$/i', $period, $m)) {
+            $year = (int) $m[1];
+            $endMonth = ((int) $m[2]) * 3;
+            $end = \Illuminate\Support\Carbon::create($year, $endMonth, 1)->endOfMonth();
+            return $end->isPast();
+        }
+        return false;
     }
 }

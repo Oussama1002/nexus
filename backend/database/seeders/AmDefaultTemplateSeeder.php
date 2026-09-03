@@ -188,6 +188,11 @@ class AmDefaultTemplateSeeder extends Seeder
             ['AM-20', 'Conformité produit non conforme',               'critical', 'admin',                120],
             ['AM-21', 'Révision de conformité en retard',              'medium',   'manager_operationnel', 720],
             ['AM-22', 'Compte rendu de réunion client à rédiger',      'medium',   'account_manager',      720],
+            ['AM-06', 'Test terminé sans verdict',                     'medium',   'account_manager',      480],
+            ['AM-07', 'Chantier stagnant > 10 jours',                  'medium',   'manager_operationnel', 720],
+            ['AM-08', 'Livrable refusé plusieurs fois',                'high',     'manager_operationnel', 240],
+            ['AM-11', 'Aucune réunion client depuis 30 jours',         'medium',   'account_manager',      1440],
+            ['AM-13', 'Objectif sans mesure en fin de période',        'medium',   'account_manager',      720],
         ];
         foreach ($rules as [$code, $label, $sev, $recipient, $sla]) {
             AmAlertRuleTemplate::query()->updateOrCreate(
