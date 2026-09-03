@@ -673,6 +673,13 @@ function ContentsTab({ contents, plans, events, onReload }: { contents: R[]; pla
             <tbody>
               {filtered.map((c) => {
                 const st = CONTENT_STATUSES[c.status] ?? { label: c.status, cls: 'bg-zinc-100' };
+                // Spec §7.3 — derived state "En retard": status prior to Publié
+                // and scheduled_publish_at in the past. Computed here, not
+                // stored server-side.
+                const isLate = c.scheduled_publish_at
+                  && c.status !== 'publie'
+                  && c.status !== 'annule'
+                  && new Date(c.scheduled_publish_at) < new Date();
                 return (
                   <tr key={c.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-4 py-3 text-sm font-bold text-zinc-900">
@@ -683,8 +690,13 @@ function ContentsTab({ contents, plans, events, onReload }: { contents: R[]; pla
                     <td className="px-4 py-3 text-xs uppercase text-zinc-600">{c.format}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{c.pillar?.label ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{c.assigned_to?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">{c.scheduled_publish_at ? new Date(c.scheduled_publish_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
-                    <td className="px-4 py-3"><Badge label={st.label} cls={st.cls} /></td>
+                    <td className={`px-4 py-3 text-xs ${isLate ? 'text-red-700 font-bold' : 'text-zinc-500'}`}>
+                      {c.scheduled_publish_at ? new Date(c.scheduled_publish_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge label={st.label} cls={st.cls} />
+                      {isLate && <Badge label="En retard" cls="bg-red-100 text-red-800 ml-1" />}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => setSelected(c)} className="text-xs font-bold text-primary-600">Ouvrir</button>
                     </td>

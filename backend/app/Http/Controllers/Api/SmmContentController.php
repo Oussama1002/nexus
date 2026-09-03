@@ -96,6 +96,16 @@ class SmmContentController extends Controller
         if (in_array($row->status, ['publie', 'annule'], true)) {
             return ApiResponse::error('Contenu verrouillé.', null, 422);
         }
+        // Spec §8 W3 rule 5 — once transmitted to CM, the content becomes
+        // frozen except for the publication-status change endpoints
+        // (setPublished / setNonPublished). The generic update is closed
+        // to everyone, including the CM.
+        if ($row->status === 'transmis_cm') {
+            return ApiResponse::error(
+                "Contenu déjà transmis au CM : seule la mise à jour du statut de publication est autorisée.",
+                null, 422,
+            );
+        }
         $before = $row->toArray();
         $data = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
@@ -353,6 +363,22 @@ class SmmContentController extends Controller
         if ($row->status !== 'valide') return ApiResponse::error('Le contenu doit être validé avant transmission.', null, 422);
         if (!$row->publicationSlip || !$row->publicationSlip->is_complete) {
             return ApiResponse::error('Fiche de publication incomplète.', null, 422);
+        }
+        // Spec §18 Production/validation rule 5 — transmission must happen at
+        // least N minutes before the scheduled publish time (default 60,
+        // configurable per brand via SystemSetting `smm_transmit_lead_minutes`).
+        $scheduled = $row->scheduled_publish_at;
+        if ($scheduled) {
+            $leadMinutes = (int) \App\Models\SystemSetting::query()
+                ->where('brand_id', $row->brand_id)
+                ->where('setting_key', 'smm_transmit_lead_minutes')
+                ->value('setting_value') ?: 60;
+            if ($scheduled->lte(now()->addMinutes($leadMinutes))) {
+                return ApiResponse::error(
+                    "Transmission trop tardive : elle doit intervenir au moins {$leadMinutes} minutes avant l'heure de publication prévue.",
+                    null, 422,
+                );
+            }
         }
         // AM cross-module lock: block diffusion if brand+product is under compliance suspension.
         if ($row->brand_id && app(\App\Services\Am\AmComplianceService::class)

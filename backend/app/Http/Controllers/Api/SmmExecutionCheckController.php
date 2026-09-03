@@ -71,15 +71,20 @@ class SmmExecutionCheckController extends Controller
     public function escalate(Request $request, string $id): JsonResponse
     {
         $row = SmmExecutionCheck::query()->findOrFail($id);
+        // Spec §8 W4 escalade — "écart à impact public : dépublication
+        // immédiate et alerte Direction". Unpublication is automatic, not
+        // opt-in; passing unpublish=false explicitly is the only way to
+        // skip it (e.g. content already unpublished by the CM).
         $data = $request->validate(['unpublish' => ['nullable', 'boolean']]);
+        $shouldUnpublish = $data['unpublish'] ?? true;
         $row->has_public_impact = true;
         $row->escalated_to_direction = true;
-        if (!empty($data['unpublish'])) {
+        if ($shouldUnpublish && $row->content_id) {
             $row->unpublished = true;
-            // Also flip the content back
-            if ($row->content_id) {
-                SmmContent::query()->where('id', $row->content_id)->update(['status' => 'non_publie', 'not_published_reason' => 'Dépublié suite à écart à impact public']);
-            }
+            SmmContent::query()->where('id', $row->content_id)->update([
+                'status' => 'non_publie',
+                'not_published_reason' => 'Dépublié suite à écart à impact public',
+            ]);
         }
         $row->save();
         AuditLogger::log($request, 'smm_exec.escalate', $row);
