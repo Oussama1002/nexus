@@ -750,6 +750,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Publication state (CM only, but permission gated at role level)
     Route::post('smm/contents/{id}/set-published', [SmmContentController::class, 'setPublished'])->whereNumber('id');
     Route::post('smm/contents/{id}/set-not-published', [SmmContentController::class, 'setNotPublished'])->whereNumber('id');
+    Route::post('smm/contents/{id}/report-problem', [SmmContentController::class, 'reportProblem'])->whereNumber('id');
     Route::post('smm/contents/{id}/cancel', [SmmContentController::class, 'cancel'])->whereNumber('id')->middleware('permission:smm_contents.update');
 
     // Execution checks

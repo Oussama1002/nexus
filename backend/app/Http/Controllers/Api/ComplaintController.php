@@ -59,6 +59,8 @@ class ComplaintController extends Controller
             'category' => 'required|string|max:100',
             'priority' => 'required|string|in:P1,P2,P3',
             'description' => 'required|string',
+            'attachments' => 'required|array|min:1',
+            'attachments.*' => 'nullable|string',
         ]);
 
         $data['brand_id'] = $brandId;
@@ -66,6 +68,13 @@ class ComplaintController extends Controller
         $data['source'] = 'community_manager';
         $data['status'] = 'nouvelle';
         $data['reference'] = 'REC-' . strtoupper(uniqid());
+
+        // Spec §13 réclamations rule 3 — auto-assign to the Manager Call Center
+        // of the brand, when identifiable.
+        $data['assigned_user_id'] = \App\Models\User::query()
+            ->whereHas('roles', fn ($q) => $q->where('slug', 'call_center_manager'))
+            ->whereHas('brands', fn ($q) => $q->where('brands.id', $brandId))
+            ->value('id');
 
         $row = Complaint::create($data);
 

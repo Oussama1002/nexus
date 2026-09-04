@@ -105,6 +105,14 @@ class CommunityManagerController extends Controller
             ->where('brand_id', $brandId)
             ->findOrFail($id);
 
+        // CM spec §14.3 rule 1 — a CM can only see their own checklist,
+        // even if they know another CM's id.
+        $user = $request->user();
+        if (UserRoleHelper::isCommunityManager($user) && ! UserRoleHelper::isAdmin($user)
+            && (int) $checklist->cm_user_id !== (int) $user->id) {
+            throw new AccessDeniedHttpException('Accès refusé : cette checklist ne vous appartient pas.');
+        }
+
         return ApiResponse::success($checklist);
     }
 
@@ -290,6 +298,18 @@ class CommunityManagerController extends Controller
             'action_date' => 'required|date',
         ]);
 
+        // CM spec §13 modération rule 3 — screenshot is the sole evidence
+        // when a public comment has been deleted; refuse without it.
+        $isCommentDeletion = ($data['action_type'] ?? '') === 'commentaire_supprimé'
+            || !empty($data['public_comment_deleted']);
+        if ($isCommentDeletion && empty($data['screenshot_url'])) {
+            return ApiResponse::error(
+                'Une capture d\'écran est obligatoire pour un commentaire supprimé (le commentaire public disparaît, la capture reste la seule preuve).',
+                ['screenshot_url' => ['Capture obligatoire.']],
+                422,
+            );
+        }
+
         $data['brand_id'] = $brandId;
         $data['cm_user_id'] = $user->id;
 
@@ -354,10 +374,45 @@ class CommunityManagerController extends Controller
             'notes' => 'nullable|string',
             'live_duration_minutes' => 'nullable|integer|min:0',
             'live_viewers_count' => 'nullable|integer|min:0',
+            'cm_assisted_live' => 'nullable|boolean',
+            'live_recording_archived' => 'nullable|boolean',
             'no_publication' => 'nullable|boolean',
             'quantity' => 'nullable|integer|min:1',
             'archive_url' => 'nullable|string|max:500',
+            'archived' => 'nullable|boolean',
         ]);
+
+        // CM spec §13 influenceurs rule 3 — no_publication is mutually
+        // exclusive with content saisi.
+        if (!empty($data['no_publication']) && (!empty($data['content_url']) || !empty($data['quantity']))) {
+            return ApiResponse::error(
+                '« Aucune publication » est incompatible avec la saisie d\'un contenu.',
+                null, 422,
+            );
+        }
+
+        // CM spec §13 influenceurs rule 4 — archive_url required when archived=true.
+        if (!empty($data['archived']) && empty($data['archive_url'])) {
+            return ApiResponse::error(
+                'Le lien d\'archive est obligatoire lorsque le contenu est marqué archivé.',
+                ['archive_url' => ['Lien d\'archive obligatoire.']], 422,
+            );
+        }
+
+        // CM spec §13 influenceurs rule 5 — Live-type content requires all
+        // three live-specific fields.
+        if (($data['content_type'] ?? '') === 'live') {
+            $missing = [];
+            if (!isset($data['live_duration_minutes'])) $missing[] = 'live_duration_minutes';
+            if (!isset($data['cm_assisted_live'])) $missing[] = 'cm_assisted_live';
+            if (!isset($data['live_recording_archived'])) $missing[] = 'live_recording_archived';
+            if ($missing) {
+                return ApiResponse::error(
+                    'Champs Live obligatoires manquants : ' . implode(', ', $missing) . '.',
+                    array_fill_keys($missing, ['Requis pour un Live.']), 422,
+                );
+            }
+        }
 
         $data['brand_id'] = $brandId;
         $data['cm_user_id'] = $user->id;

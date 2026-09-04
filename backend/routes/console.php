@@ -38,3 +38,11 @@ Schedule::command('am:run-alert-rules')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// CM — CM-GEN, CM-CLOSE, CM-A1..A7 (spec §15).
+// Runs hourly; each rule has its own dedup, and autoCloseEndOfDay only
+// acts on checklists whose date is already past.
+Schedule::command('cm:run-automations')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();

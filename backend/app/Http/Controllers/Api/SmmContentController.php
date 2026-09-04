@@ -417,15 +417,41 @@ class SmmContentController extends Controller
     {
         $row = SmmContent::query()->findOrFail($id);
         if ($row->status !== 'transmis_cm') return ApiResponse::error('Non transmis.', null, 422);
+        // CM spec §13 publication rule 4 — status Publiée refused without the
+        // link to the actual online publication.
         $data = $request->validate([
-            'published_platform_id' => ['nullable', 'string', 'max:191'],
+            'published_platform_id' => ['required', 'string', 'max:191'],
         ]);
         $row->status = 'publie';
         $row->published_at = now();
-        $row->published_platform_id = $data['published_platform_id'] ?? null;
+        $row->published_platform_id = $data['published_platform_id'];
         $row->save();
         AuditLogger::log($request, 'smm_content.published', $row);
         return ApiResponse::success($row->fresh(), 'Contenu marqué publié.');
+    }
+
+    /**
+     * CM spec §13 publication rule 6 — "Signaler un problème au SMM" — the CM
+     * flags an issue on the content without modifying it. Sends a notification
+     * to the SMM pool and records an audit entry; content is untouched.
+     */
+    public function reportProblem(Request $request, string $id): JsonResponse
+    {
+        $row = SmmContent::query()->findOrFail($id);
+        $data = $request->validate([
+            'problem_description' => ['required', 'string', 'max:2000'],
+        ]);
+        AuditLogger::log($request, 'smm_content.problem_reported', $row, null, [
+            'reported_by_user_id' => $request->user()?->id,
+            'problem_description' => $data['problem_description'],
+        ]);
+        \App\Services\Smm\SmmNotificationService::notifySmm(
+            $row->brand_id, 'content_problem_reported', 'Problème signalé par le CM',
+            "« {$row->title} » — " . $data['problem_description'],
+            ['content_id' => $row->id, 'reported_by_user_id' => $request->user()?->id],
+            'smm_content', $row->id,
+        );
+        return ApiResponse::success(null, 'Problème signalé au SMM.');
     }
 
     public function setNotPublished(Request $request, string $id): JsonResponse

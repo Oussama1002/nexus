@@ -21,7 +21,7 @@ import {
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-type CmTab = 'journee' | 'publications' | 'influenceurs' | 'moderation' | 'reclamations';
+type CmTab = 'journee' | 'historique' | 'publications' | 'influenceurs' | 'moderation' | 'reclamations';
 
 type DailySummary = {
   checklist_completion_percent: number;
@@ -241,6 +241,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 const tabs: { key: CmTab; label: string; icon: typeof ClipboardCheck }[] = [
   { key: 'journee', label: 'Ma journée', icon: ClipboardCheck },
+  { key: 'historique', label: 'Historique', icon: FileText },
   { key: 'publications', label: 'Publications', icon: FileText },
   { key: 'influenceurs', label: 'Suivi influenceurs', icon: Users },
   { key: 'moderation', label: 'Modération', icon: Shield },
@@ -702,8 +703,9 @@ export function SocialPublishingScreen() {
               </button>
             )}
             <button
-              onClick={() => navigate(pathForView('academy'))}
+              onClick={() => navigate(pathForView('academy') + '?department=community_management&role=cm')}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+              title="SOP, procédures, guidelines et messages types pour le Community Manager"
             >
               <BookOpen size={16} /> Ressources CM
             </button>
@@ -735,6 +737,7 @@ export function SocialPublishingScreen() {
 
       {/* Panels */}
       {activeTab === 'journee' && <TabJournee toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} canValidate={canValidate} />}
+      {activeTab === 'historique' && <TabHistorique toast={toast} userId={user?.id} />}
       {activeTab === 'publications' && <TabPublications toast={toast} userId={user?.id} />}
       {activeTab === 'influenceurs' && <TabInfluenceurs toast={toast} onNewComplaint={openComplaintModal} />}
       {activeTab === 'moderation' && <TabModeration toast={toast} onNewComplaint={openComplaintModal} />}
@@ -2390,6 +2393,103 @@ function TabReclamations({ toast, userId, onNewComplaint, refreshToken }: { toas
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
+/*  Tab : Historique des journées (spec §7 E2)                       */
+/*  Lecture seule — journées passées figées à leur clôture.          */
+/* ─────────────────────────────────────────────────────────────────── */
+function TabHistorique({ toast, userId: _userId }: { toast: (m: string, t: string) => void; userId?: number }) {
+  type Row = {
+    id: number;
+    date: string;
+    completion_rate?: number | null;
+    punctuality_rate?: number | null;
+    status: string;
+    closed_automatically?: boolean;
+    closed_at?: string | null;
+  };
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const q = buildQuery({ date_from: dateFrom, date_to: dateTo, per_page: 60 });
+    const r = await api.get<Paginated<Row>>('cm/checklists' + q);
+    if (r.ok) setRows(r.data.data);
+    else toast(r.message ?? 'Erreur', 'error');
+    setLoading(false);
+  }, [dateFrom, dateTo, toast]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const fmt = (v?: number | null) => v == null ? '—' : `${Math.round(Number(v) * 100)}%`;
+  const fmtDate = (s: string) => {
+    try { return new Date(s).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }); }
+    catch { return s; }
+  };
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-wrap gap-3 items-end">
+        <label className="text-xs font-bold text-zinc-600">Du
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="mt-1 block px-3 py-2 rounded-xl border border-zinc-200 text-sm font-medium" />
+        </label>
+        <label className="text-xs font-bold text-zinc-600">Au
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="mt-1 block px-3 py-2 rounded-xl border border-zinc-200 text-sm font-medium" />
+        </label>
+      </div>
+
+      {loading ? (
+        <div className="text-sm text-zinc-500">Chargement…</div>
+      ) : rows.length === 0 ? (
+        <EmptyState title="Aucune journée archivée" description="Ajustez la période pour voir vos journées passées." />
+      ) : (
+        <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
+              <tr>
+                <th className="text-left px-4 py-2">Date</th>
+                <th className="text-right px-4 py-2">Complétion</th>
+                <th className="text-right px-4 py-2">Ponctualité</th>
+                <th className="text-left px-4 py-2">Statut</th>
+                <th className="text-left px-4 py-2">Clôture</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.id} className="border-t border-zinc-100 hover:bg-zinc-50/60">
+                  <td className="px-4 py-2 font-semibold text-zinc-800">{fmtDate(r.date)}</td>
+                  <td className="px-4 py-2 text-right font-black">{fmt(r.completion_rate)}</td>
+                  <td className="px-4 py-2 text-right font-black">{fmt(r.punctuality_rate)}</td>
+                  <td className="px-4 py-2 text-xs uppercase text-zinc-600">{r.status}</td>
+                  <td className="px-4 py-2 text-xs">
+                    {r.closed_automatically
+                      ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 font-bold text-amber-800">Auto (minuit)</span>
+                      : r.closed_at ? <span className="text-zinc-600">Manuelle</span>
+                      : <span className="text-zinc-400">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="text-xs text-zinc-500">Les journées passées sont figées à leur clôture — aucune modification possible depuis cet écran (spec §7 E2).</p>
     </div>
   );
 }

@@ -137,6 +137,12 @@ class UserController extends Controller
         if (isset($data['role_ids'])) {
             $this->assertNonAdminCannotAssignAdminRole($request, $data['role_ids']);
             $this->assertNotRemovingLastAdmin($user, $data['role_ids']);
+            // CM spec §14.3 rule 3 — enforce CM + SMM role incompatibility
+            // on update as well as on create.
+            $newRoles = Role::query()->whereIn('id', $data['role_ids'])->pluck('slug')->all();
+            if (in_array('community_manager', $newRoles, true) && in_array('smm', $newRoles, true)) {
+                abort(422, "Un même utilisateur ne peut pas cumuler les rôles Community Manager et Social Media Manager.");
+            }
             $user->roles()->sync($data['role_ids']);
             $user->refresh();
             $user->load('roles');
@@ -209,6 +215,12 @@ class UserController extends Controller
     private function assertRolesBrandsRule(array $roleIds, array $brandIds): void
     {
         $roles = Role::query()->whereIn('id', $roleIds)->pluck('slug')->all();
+        // CM spec §14.3 rule 3 — a single account cannot be both Community
+        // Manager and Social Media Manager (would make the CM-A1 supervision
+        // notification meaningless: a CM supervising themselves).
+        if (in_array('community_manager', $roles, true) && in_array('smm', $roles, true)) {
+            abort(422, "Un même utilisateur ne peut pas cumuler les rôles Community Manager et Social Media Manager.");
+        }
         if (in_array('admin', $roles, true)) {
             return;
         }
