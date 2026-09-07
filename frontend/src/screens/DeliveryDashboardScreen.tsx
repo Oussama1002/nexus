@@ -14,8 +14,10 @@ type DashboardPayload = {
   delivered_shipments: number;
   returned_shipments: number;
   failed_shipments: number;
+  cancelled_shipments?: number;
   delivery_rate: number;
   return_rate: number;
+  failure_rate?: number;
   cod_pending_amount: number;
   cod_received_amount: number;
   cod_reconciled_amount: number;
@@ -36,8 +38,15 @@ export function DeliveryDashboardScreen() {
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState('');
   const [carriers, setCarriers] = useState<CarrierOpt[]>([]);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  // Default range: first day of the current month → today (locale-safe,
+  // avoids the previous "Au = blank" bug where the backend received no
+  // upper bound and included shipments from later periods.
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [carrierId, setCarrierId] = useState<string>('');
 
   const loadCarriers = useCallback(async () => {
@@ -168,8 +177,10 @@ export function DeliveryDashboardScreen() {
       { label: 'Livrées', value: String(data.delivered_shipments) },
       { label: 'Retours', value: String(data.returned_shipments) },
       { label: 'Échecs', value: String(data.failed_shipments) },
+      { label: 'Annulées', value: String(data.cancelled_shipments ?? 0) },
       { label: 'Taux livraison', value: `${data.delivery_rate}%` },
       { label: 'Taux retour', value: `${data.return_rate}%` },
+      { label: 'Taux échec', value: `${data.failure_rate ?? 0}%` },
       { label: "Chiffre d'affaires", value: formatCurrency(data.revenue ?? 0) },
       { label: 'COD en attente', value: formatCurrency(data.cod_pending_amount) },
       { label: 'COD reçu', value: formatCurrency(data.cod_received_amount ?? 0) },

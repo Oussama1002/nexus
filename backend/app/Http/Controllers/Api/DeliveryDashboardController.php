@@ -59,10 +59,17 @@ class DeliveryDashboardController extends Controller
         $returned = $count('returned');
         $failed = $count('failed');
         $pending = $count('pending') + $count('created');
+        $cancelled = $count('cancelled');
 
-        $den = max(1, $delivered + $returned);
+        // Industry-standard delivery/return rates: the denominator is
+        // every shipment that reached a terminal outcome (delivered +
+        // returned + failed). The previous formula excluded failed and
+        // gave misleadingly high ratios (66 / (66+1) = 98.51 %).
+        $terminal = $delivered + $returned + $failed;
+        $den = max(1, $terminal);
         $deliveryRate = round(100 * $delivered / $den, 2);
         $returnRate = round(100 * $returned / $den, 2);
+        $failureRate = round(100 * $failed / $den, 2);
 
         $codPending = (clone $q)->where('payment_status', 'cod_pending')->sum('cod_amount');
         $codReceived = (clone $q)->where('payment_status', 'cod_received')->sum('cod_amount');
@@ -123,8 +130,10 @@ class DeliveryDashboardController extends Controller
             'delivered_shipments' => $delivered,
             'returned_shipments' => $returned,
             'failed_shipments' => $failed,
+            'cancelled_shipments' => $cancelled,
             'delivery_rate' => $deliveryRate,
             'return_rate' => $returnRate,
+            'failure_rate' => $failureRate,
             'cod_pending_amount' => round((float) $codPending, 2),
             'cod_received_amount' => round((float) $codReceived, 2),
             'cod_reconciled_amount' => round((float) $codReconciled, 2),
