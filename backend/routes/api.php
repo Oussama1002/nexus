@@ -161,6 +161,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('internal-chat/unread', [InternalChatController::class, 'unreadCount']);
     Route::get('internal-chat/{userId}/messages', [InternalChatController::class, 'messages'])->whereNumber('userId');
     Route::post('internal-chat/{userId}/messages', [InternalChatController::class, 'send'])->whereNumber('userId');
+    // Group conversations
+    Route::get('internal-chat/conversations', [InternalChatController::class, 'conversations']);
+    Route::post('internal-chat/conversations', [InternalChatController::class, 'createConversation']);
+    Route::get('internal-chat/conversations/{conversationId}/messages', [InternalChatController::class, 'conversationMessages'])->whereNumber('conversationId');
+    Route::post('internal-chat/conversations/{conversationId}/messages', [InternalChatController::class, 'sendToConversation'])->whereNumber('conversationId');
 
     Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
     Route::get('roles/{id}', [RoleController::class, 'show'])->whereNumber('id')->middleware('permission:roles.view');
