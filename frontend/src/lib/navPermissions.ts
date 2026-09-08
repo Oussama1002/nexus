@@ -58,7 +58,9 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   training: ['hr.view'],
   evaluations: ['hr.view'],
   discipline: ['hr.view'],
-  internalComms: ['hr.view'],
+  // Everyone gets internal messaging — no permission required (the endpoint
+  // itself scopes to the caller's own threads/groups).
+  internalComms: [],
   treasury: ['finance.view'],
   budgets: ['finance.view'],
   budgetRequests: ['finance.view'],
@@ -174,6 +176,10 @@ export function canAccessView(
 ): boolean {
   if (view === 'profile') return true;
   if (ctx.isAdmin) return true;
+  // A view whose VIEW_PERMISSIONS entry is an explicit empty array is
+  // universally accessible (e.g. internal messaging — everyone has DMs).
+  const explicit = VIEW_PERMISSIONS[view];
+  if (Array.isArray(explicit) && explicit.length === 0) return true;
   if (ctx.roleSlugs.length === 1 && ctx.roleSlugs[0] === 'client_brand_owner') {
     if (view !== 'clientPortal') return false;
   }
