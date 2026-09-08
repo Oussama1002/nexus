@@ -42,7 +42,7 @@ class InternalChatController extends Controller
             }
             $threads[$peerId] = [
                 'user_id' => $peerId,
-                'last_message' => $msg->body,
+                'last_message' => $this->messagePreview($msg),
                 'last_message_at' => $msg->created_at->toIso8601String(),
                 'last_direction' => $msg->sender_id === $me ? 'sent' : 'received',
                 'unread' => ($msg->receiver_id === $me && ! $msg->read_at) ? 1 : 0,
@@ -186,7 +186,7 @@ class InternalChatController extends Controller
                 'title' => $c->title ?? 'Groupe',
                 'type' => $c->type,
                 'member_count' => (int) ($memberCounts[$c->id] ?? 0),
-                'last_message' => $last?->body ?? '',
+                'last_message' => $last ? $this->messagePreview($last) : '',
                 'last_message_at' => ($last?->created_at ?? $c->last_message_at ?? $c->created_at)?->toIso8601String(),
                 'last_direction' => $last ? ($last->sender_id === $me ? 'sent' : 'received') : 'received',
                 'unread' => $unreadQ->count(),
@@ -338,6 +338,26 @@ class InternalChatController extends Controller
             abort(422, 'Message vide : ajoutez du texte ou un fichier.');
         }
         return $data;
+    }
+
+    /**
+     * Preview text for a message in a thread list.
+     * - Message with body → the body (server-side truncation is up to the caller).
+     * - Attachment-only image → "📷 Image".
+     * - Attachment-only other file → "📎 <filename>".
+     * - Nothing at all → empty string.
+     */
+    private function messagePreview(InternalMessage $m): string
+    {
+        $body = trim((string) $m->body);
+        if ($body !== '') return $body;
+        if ($m->attachment_url) {
+            if (str_starts_with((string) $m->attachment_mime, 'image/')) {
+                return '📷 Image';
+            }
+            return '📎 ' . ($m->attachment_name ?: 'Fichier');
+        }
+        return '';
     }
 
     private function serializeMessage(InternalMessage $m): array
