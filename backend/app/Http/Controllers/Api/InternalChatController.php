@@ -22,9 +22,13 @@ class InternalChatController extends Controller
     {
         $me = $request->user()->id;
 
+        // DM-only: exclude group messages (conversation_id set, receiver_id null).
+        // Wrapping the sender/receiver clause in its own where() prevents the
+        // "conversation_id null" filter from being OR'd away.
         $messages = InternalMessage::query()
-            ->where('sender_id', $me)
-            ->orWhere('receiver_id', $me)
+            ->whereNull('conversation_id')
+            ->whereNotNull('receiver_id')
+            ->where(fn ($q) => $q->where('sender_id', $me)->orWhere('receiver_id', $me))
             ->orderByDesc('created_at')
             ->get();
 
