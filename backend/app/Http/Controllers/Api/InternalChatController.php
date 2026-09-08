@@ -11,6 +11,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class InternalChatController extends Controller
 {
@@ -92,18 +93,11 @@ class InternalChatController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        return ApiResponse::success($messages->map(fn (InternalMessage $m) => [
-            'id' => $m->id,
-            'sender_id' => $m->sender_id,
-            'receiver_id' => $m->receiver_id,
-            'body' => $m->body,
-            'read_at' => $m->read_at?->toIso8601String(),
-            'created_at' => $m->created_at->toIso8601String(),
-        ]), 'Messages retrieved.');
+        return ApiResponse::success($messages->map(fn (InternalMessage $m) => $this->serializeMessage($m)), 'Messages retrieved.');
     }
 
     /**
-     * Send a message to another user.
+     * Send a message (with optional attachment) to another user.
      */
     public function send(Request $request, string $userId): JsonResponse
     {
@@ -118,24 +112,14 @@ class InternalChatController extends Controller
             return ApiResponse::error('Utilisateur introuvable.', null, 404);
         }
 
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:5000'],
-        ]);
+        $data = $this->validateMessageInput($request);
 
-        $msg = InternalMessage::query()->create([
+        $msg = InternalMessage::query()->create(array_merge([
             'sender_id' => $me,
             'receiver_id' => $peer,
-            'body' => $data['body'],
-        ]);
+        ], $data));
 
-        return ApiResponse::success([
-            'id' => $msg->id,
-            'sender_id' => $msg->sender_id,
-            'receiver_id' => $msg->receiver_id,
-            'body' => $msg->body,
-            'read_at' => null,
-            'created_at' => $msg->created_at->toIso8601String(),
-        ], 'Message envoyé.', 201);
+        return ApiResponse::success($this->serializeMessage($msg->fresh()), 'Message envoyé.', 201);
     }
 
     /**
@@ -275,18 +259,17 @@ class InternalChatController extends Controller
             ->where('user_id', $me)
             ->update(['last_read_at' => now()]);
 
-        return ApiResponse::success($messages->map(fn (InternalMessage $m) => [
-            'id' => $m->id,
-            'sender_id' => $m->sender_id,
-            'sender_name' => $m->sender?->name,
-            'sender_avatar' => $m->sender?->avatar_url,
-            'body' => $m->body,
-            'created_at' => $m->created_at->toIso8601String(),
-        ]), 'OK');
+        return ApiResponse::success($messages->map(fn (InternalMessage $m) => array_merge(
+            $this->serializeMessage($m),
+            [
+                'sender_name' => $m->sender?->name,
+                'sender_avatar' => $m->sender?->avatar_url,
+            ],
+        )), 'OK');
     }
 
     /**
-     * Post a message to a group conversation.
+     * Post a message (with optional attachment) to a group conversation.
      */
     public function sendToConversation(Request $request, string $conversationId): JsonResponse
     {
@@ -296,14 +279,13 @@ class InternalChatController extends Controller
             return ApiResponse::error('Vous ne faites pas partie de cette conversation.', null, 403);
         }
 
-        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $data = $this->validateMessageInput($request);
 
-        $msg = InternalMessage::query()->create([
+        $msg = InternalMessage::query()->create(array_merge([
             'sender_id' => $me,
             'receiver_id' => null,
             'conversation_id' => $cid,
-            'body' => $data['body'],
-        ]);
+        ], $data));
         ChatConversation::query()->where('id', $cid)->update(['last_message_at' => now()]);
         // The sender has read their own message.
         ChatConversationMember::query()
@@ -311,12 +293,68 @@ class InternalChatController extends Controller
             ->where('user_id', $me)
             ->update(['last_read_at' => now()]);
 
+        return ApiResponse::success(array_merge(
+            $this->serializeMessage($msg->fresh()),
+            [
+                'sender_name' => $request->user()->name,
+                'sender_avatar' => $request->user()->avatar_url,
+            ],
+        ), 'Message envoyé.', 201);
+    }
+
+    /**
+     * Upload a single attachment file to the storage/public disk under
+     * chat/YYYY/MM/. Returns the URL + metadata so the client can
+     * include them in a follow-up send() call.
+     * POST /internal-chat/upload  multipart file[file] (max 15 MB)
+     */
+    public function upload(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:15360'], // 15 MB
+        ]);
+        $file = $request->file('file');
+        $dir = 'chat/' . now()->format('Y/m');
+        $path = $file->store($dir, 'public');
         return ApiResponse::success([
-            'id' => $msg->id,
-            'sender_id' => $msg->sender_id,
-            'body' => $msg->body,
-            'created_at' => $msg->created_at->toIso8601String(),
-        ], 'Message envoyé.', 201);
+            'url' => '/storage/' . $path,
+            'name' => $file->getClientOriginalName(),
+            'mime' => $file->getMimeType(),
+            'size' => (int) $file->getSize(),
+        ], 'Fichier téléversé.');
+    }
+
+    private function validateMessageInput(Request $request): array
+    {
+        $data = $request->validate([
+            'body' => ['nullable', 'string', 'max:5000'],
+            'attachment_url' => ['nullable', 'string', 'max:500'],
+            'attachment_name' => ['nullable', 'string', 'max:255'],
+            'attachment_mime' => ['nullable', 'string', 'max:120'],
+            'attachment_size' => ['nullable', 'integer', 'min:0'],
+        ]);
+        // A message must carry at least a body or an attachment.
+        if (empty(trim((string) ($data['body'] ?? ''))) && empty($data['attachment_url'] ?? null)) {
+            abort(422, 'Message vide : ajoutez du texte ou un fichier.');
+        }
+        return $data;
+    }
+
+    private function serializeMessage(InternalMessage $m): array
+    {
+        return [
+            'id' => $m->id,
+            'sender_id' => $m->sender_id,
+            'receiver_id' => $m->receiver_id,
+            'conversation_id' => $m->conversation_id,
+            'body' => $m->body,
+            'attachment_url' => $m->attachment_url,
+            'attachment_name' => $m->attachment_name,
+            'attachment_mime' => $m->attachment_mime,
+            'attachment_size' => $m->attachment_size,
+            'read_at' => $m->read_at?->toIso8601String(),
+            'created_at' => $m->created_at->toIso8601String(),
+        ];
     }
 
     private function isMember(int $conversationId, int $userId): bool

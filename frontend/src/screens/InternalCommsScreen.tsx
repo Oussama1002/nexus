@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MessageCircle, Send, Search, ArrowLeft, Plus, Users, X, User, RefreshCw } from 'lucide-react';
+import { MessageCircle, Send, Search, ArrowLeft, Plus, Users, X, User, RefreshCw, Paperclip, FileText, Image as ImageIcon, Download } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +24,10 @@ type ChatMessage = {
   sender_id: number;
   receiver_id: number;
   body: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_mime?: string | null;
+  attachment_size?: number | null;
   read_at: string | null;
   created_at: string;
 };
@@ -52,6 +56,10 @@ type GroupMessage = {
   sender_name?: string;
   sender_avatar?: string | null;
   body: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_mime?: string | null;
+  attachment_size?: number | null;
   created_at: string;
 };
 
@@ -78,6 +86,9 @@ export function InternalCommsScreen() {
   const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [search, setSearch] = useState('');
   const [showNewMenu, setShowNewMenu] = useState(false);
@@ -164,24 +175,50 @@ export function InternalCommsScreen() {
     setGroups((prev) => prev.map((g) => g.conversation_id === conv.conversation_id ? { ...g, unread: 0 } : g));
   };
 
+  /** Upload the pending file, if any, then return its attachment payload. */
+  const uploadIfNeeded = async (): Promise<{
+    attachment_url?: string; attachment_name?: string; attachment_mime?: string; attachment_size?: number;
+  } | null> => {
+    if (!pendingFile) return {};
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', pendingFile);
+    const res = await api.post<{ url: string; name: string; mime: string; size: number }>('internal-chat/upload', fd as any);
+    setUploading(false);
+    if (!res.ok || !res.data) {
+      toast.error(res.message || 'Échec du téléversement.');
+      return null;
+    }
+    return {
+      attachment_url: res.data.url,
+      attachment_name: res.data.name,
+      attachment_mime: res.data.mime,
+      attachment_size: res.data.size,
+    };
+  };
+
   const sendMessage = async () => {
-    if (!activeChat || !draft.trim()) return;
+    if (!activeChat) return;
+    if (!draft.trim() && !pendingFile) return;
     setSending(true);
+    const attachment = await uploadIfNeeded();
+    if (attachment === null) { setSending(false); return; }
+    const payload: any = { body: draft.trim(), ...attachment };
     if (activeChat.kind === 'dm') {
-      const res = await api.post<ChatMessage>(`internal-chat/${activeChat.peer.id}/messages`, { body: draft.trim() });
+      const res = await api.post<ChatMessage>(`internal-chat/${activeChat.peer.id}/messages`, payload);
       setSending(false);
       if (res.ok && res.data) {
         setMessages((prev) => [...prev, res.data!]);
-        setDraft('');
+        setDraft(''); setPendingFile(null);
         void loadThreads();
       } else if (!res.ok) toast.error(res.message);
     } else {
       const cid = activeChat.conv.conversation_id;
-      const res = await api.post<GroupMessage>(`internal-chat/conversations/${cid}/messages`, { body: draft.trim() });
+      const res = await api.post<GroupMessage>(`internal-chat/conversations/${cid}/messages`, payload);
       setSending(false);
       if (res.ok && res.data) {
         setGroupMessages((prev) => [...prev, { ...res.data!, sender_name: authUser?.name, sender_avatar: authUser?.avatar_url }]);
-        setDraft('');
+        setDraft(''); setPendingFile(null);
         void loadGroups();
       } else if (!res.ok) toast.error(res.message);
     }
@@ -428,7 +465,8 @@ export function InternalCommsScreen() {
                           <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
                             isMine ? 'bg-primary-600 text-white rounded-br-md' : 'bg-white text-zinc-900 rounded-bl-md border border-zinc-100'
                           }`}>
-                            <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                            {m.attachment_url && <AttachmentPreview m={m} mine={isMine} />}
+                            {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                             <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-zinc-400'}`}>
                               {new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             </p>
@@ -468,22 +506,59 @@ export function InternalCommsScreen() {
 
               <form
                 onSubmit={(e) => { e.preventDefault(); void sendMessage(); }}
-                className="px-5 py-3 border-t border-zinc-100 shrink-0 flex items-center gap-2"
+                className="border-t border-zinc-100 shrink-0"
               >
-                <input
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Écrire un message…"
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={sending || !draft.trim()}
-                  className="p-2.5 rounded-xl bg-primary-600 text-white disabled:opacity-40"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
+                {pendingFile && (
+                  <div className="px-5 pt-3 flex items-center gap-2">
+                    <div className="flex-1 flex items-center gap-2 rounded-xl bg-zinc-100 px-3 py-2 text-xs">
+                      {pendingFile.type.startsWith('image/')
+                        ? <ImageIcon className="w-4 h-4 text-primary-600" />
+                        : <FileText className="w-4 h-4 text-primary-600" />}
+                      <span className="font-bold truncate flex-1">{pendingFile.name}</span>
+                      <span className="text-zinc-500">{formatBytes(pendingFile.size)}</span>
+                    </div>
+                    <button type="button" onClick={() => setPendingFile(null)} className="p-1 rounded-lg hover:bg-zinc-100">
+                      <X className="w-4 h-4 text-zinc-500" />
+                    </button>
+                  </div>
+                )}
+                <div className="px-5 py-3 flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      if (f.size > 15 * 1024 * 1024) { toast.error('Fichier trop volumineux (max 15 Mo).'); e.target.value = ''; return; }
+                      setPendingFile(f);
+                      e.target.value = '';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Joindre un fichier ou une image"
+                    className="p-2.5 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+                  <input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder="Écrire un message…"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || uploading || (!draft.trim() && !pendingFile)}
+                    className="p-2.5 rounded-xl bg-primary-600 text-white disabled:opacity-40"
+                    title={uploading ? 'Téléversement…' : 'Envoyer'}
+                  >
+                    {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
               </form>
             </>
           )}
@@ -649,4 +724,44 @@ function NewGroupModal({ users, onClose, onCreated }: { users: UserTarget[]; onC
       </div>
     </div>
   );
+}
+
+/** Renders an attachment inline: images as thumbnails, everything else as a download link. */
+function AttachmentPreview({ m, mine }: { m: { attachment_url?: string | null; attachment_name?: string | null; attachment_mime?: string | null; attachment_size?: number | null }; mine: boolean }) {
+  if (!m.attachment_url) return null;
+  const url = resolvePublicAssetUrl(m.attachment_url);
+  const isImage = (m.attachment_mime ?? '').startsWith('image/');
+  if (isImage) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block mb-2">
+        <img
+          src={url}
+          alt={m.attachment_name ?? 'image'}
+          className="rounded-lg max-h-64 w-auto object-cover"
+        />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      download={m.attachment_name ?? undefined}
+      className={`mb-2 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${
+        mine ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'
+      }`}
+    >
+      <FileText className="w-4 h-4 shrink-0" />
+      <span className="truncate max-w-[180px]">{m.attachment_name ?? 'Fichier'}</span>
+      {m.attachment_size ? <span className={`text-[10px] ${mine ? 'text-white/70' : 'text-zinc-500'}`}>{formatBytes(m.attachment_size)}</span> : null}
+      <Download className="w-3.5 h-3.5 opacity-60" />
+    </a>
+  );
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} o`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} Ko`;
+  return `${(n / (1024 * 1024)).toFixed(1)} Mo`;
 }

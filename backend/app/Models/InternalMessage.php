@@ -11,6 +11,10 @@ class InternalMessage extends Model
         'receiver_id',
         'conversation_id',
         'body',
+        'attachment_url',
+        'attachment_name',
+        'attachment_mime',
+        'attachment_size',
         'read_at',
     ];
 

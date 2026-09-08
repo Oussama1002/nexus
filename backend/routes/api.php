@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword'])->whereNumber('id')->middleware('permission:users.update');
 
     // Internal chat (between users)
+    Route::post('internal-chat/upload', [InternalChatController::class, 'upload']);
     Route::get('internal-chat/threads', [InternalChatController::class, 'threads']);
     Route::get('internal-chat/unread', [InternalChatController::class, 'unreadCount']);
     Route::get('internal-chat/{userId}/messages', [InternalChatController::class, 'messages'])->whereNumber('userId');
