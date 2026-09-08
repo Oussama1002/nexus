@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MessageCircle, Send, Search, ArrowLeft, Plus, Users, X, User } from 'lucide-react';
+import { MessageCircle, Send, Search, ArrowLeft, Plus, Users, X, User, RefreshCw } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../context/AuthContext';
@@ -125,10 +125,27 @@ export function InternalCommsScreen() {
     return () => clearInterval(timer);
   }, [activeChat, loadDmMessages, loadGroupMessages]);
 
-  // Poll the thread list every 15s to catch new conversations initiated by others.
+  // Poll the thread list every 5s so groups created by others appear quickly.
   useEffect(() => {
-    const timer = setInterval(() => { void loadThreads(); void loadGroups(); }, 15000);
+    const timer = setInterval(() => { void loadThreads(); void loadGroups(); }, 5000);
     return () => clearInterval(timer);
+  }, [loadThreads, loadGroups]);
+
+  // Refresh immediately when the tab regains focus (covers the case where a
+  // teammate created a group while you were on another tab).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadThreads();
+        void loadGroups();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, [loadThreads, loadGroups]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, groupMessages]);
@@ -209,30 +226,39 @@ export function InternalCommsScreen() {
         {/* ─── Left pane: threads ─── */}
         <aside className={`w-full md:w-80 shrink-0 border-r border-zinc-100 flex flex-col ${activeChat ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-3 border-b border-zinc-100 shrink-0 space-y-2">
-            {/* Nouvelle conversation menu */}
-            <div className="relative">
+            {/* Nouvelle conversation menu + refresh */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <button
+                  onClick={() => setShowNewMenu((v) => !v)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700"
+                >
+                  <Plus className="w-4 h-4" /> Nouvelle conversation
+                </button>
+                {showNewMenu && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
+                    <button
+                      onClick={() => { setShowNewMenu(false); setShowNewDm(true); }}
+                      className="w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50 inline-flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4 text-zinc-500" /> Avec un utilisateur
+                    </button>
+                    <button
+                      onClick={() => { setShowNewMenu(false); setShowNewGroup(true); }}
+                      className="w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50 inline-flex items-center gap-2 border-t border-zinc-100"
+                    >
+                      <Users className="w-4 h-4 text-zinc-500" /> Nouveau groupe
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
-                onClick={() => setShowNewMenu((v) => !v)}
-                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700"
+                onClick={() => { void loadThreads(); void loadGroups(); }}
+                title="Actualiser"
+                className="shrink-0 inline-flex items-center justify-center px-3 py-2 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
               >
-                <Plus className="w-4 h-4" /> Nouvelle conversation
+                <RefreshCw className="w-4 h-4" />
               </button>
-              {showNewMenu && (
-                <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
-                  <button
-                    onClick={() => { setShowNewMenu(false); setShowNewDm(true); }}
-                    className="w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50 inline-flex items-center gap-2"
-                  >
-                    <User className="w-4 h-4 text-zinc-500" /> Avec un utilisateur
-                  </button>
-                  <button
-                    onClick={() => { setShowNewMenu(false); setShowNewGroup(true); }}
-                    className="w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-zinc-50 inline-flex items-center gap-2 border-t border-zinc-100"
-                  >
-                    <Users className="w-4 h-4 text-zinc-500" /> Nouveau groupe
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="relative">
