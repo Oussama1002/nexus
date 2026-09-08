@@ -76,7 +76,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function BugsIncidentsScreen() {
   const { activeBrandId } = useBrand();
-  const { toast } = useToast();
+  const toastCtx = useToast();
+  // Pre-existing bug guard: some parts of this file call toast('kind', 'msg').
+  // Translate that shape onto the real ToastContextValue API.
+  const toast = (kind: 'success' | 'error' | 'info', message: string) => {
+    if (kind === 'success') toastCtx.success(message);
+    else if (kind === 'error') toastCtx.error(message);
+    else toastCtx.showToast('info', message);
+  };
   const [rows, setRows] = useState<BugIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -89,22 +96,33 @@ export function BugsIncidentsScreen() {
   const [reloadTick, setReloadTick] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', severity: 'minor', module: 'crm' });
+  const [form, setForm] = useState({ title: '', description: '', severity: 'minor', module: 'crm', moduleOther: '' });
 
   const submitCreate = async () => {
     if (!form.title.trim()) { toast('error', 'Titre requis.'); return; }
+    // When "Autre" is picked, the free-text value replaces the module.
+    // Sent as-is to the backend; the enum was widened server-side.
+    const moduleValue = form.module === 'other'
+      ? (form.moduleOther.trim() || 'other')
+      : form.module;
+    if (form.module === 'other' && !form.moduleOther.trim()) {
+      toast('error', "Précisez le type d'incident.");
+      return;
+    }
     setSaving(true);
     try {
+      // Bug reports are not brand-scoped — do not send X-Brand-Id even if
+      // the current view is brand-scoped (e.g. reporting from Media Buying).
       const res = await api.post('bugs-incidents', {
         title: form.title,
         description: form.description || undefined,
         severity: form.severity,
-        module: form.module,
-      });
+        module: moduleValue,
+      }, { brandId: false });
       if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
       toast('success', 'Bug signalé.');
       setShowCreate(false);
-      setForm({ title: '', description: '', severity: 'minor', module: 'crm' });
+      setForm({ title: '', description: '', severity: 'minor', module: 'crm', moduleOther: '' });
       setReloadTick((t) => t + 1);
     } finally { setSaving(false); }
   };
@@ -167,11 +185,22 @@ export function BugsIncidentsScreen() {
                   {SEVERITY_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
-              <label className="text-sm font-bold text-zinc-700">Module
+              <label className="text-sm font-bold text-zinc-700">Type d'incident
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.module} onChange={(e) => setForm({ ...form, module: e.target.value })}>
                   {MODULE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
+              {form.module === 'other' && (
+                <label className="col-span-2 text-sm font-bold text-zinc-700">Préciser le type *
+                  <input
+                    autoFocus
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
+                    value={form.moduleOther}
+                    onChange={(e) => setForm({ ...form, moduleOther: e.target.value })}
+                    placeholder="Décrire brièvement le type d'incident (ex : intégration Stripe, cron horaire, …)"
+                  />
+                </label>
+              )}
               <label className="col-span-2 text-sm font-bold text-zinc-700">Description
                 <textarea rows={5} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ce qui s'est passé, étapes de reproduction, comportement attendu…" />
               </label>
@@ -237,7 +266,7 @@ export function BugsIncidentsScreen() {
       </div>
 
       {!loading && rows.length === 0 ? (
-        <EmptyState icon={<Bug size={40} />} title="Aucun bug" description="Aucun bug ou incident trouvé pour les filtres sélectionnés." />
+        <EmptyState title="Aucun bug" description="Aucun bug ou incident trouvé pour les filtres sélectionnés." />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full">

@@ -47,12 +47,16 @@ class BugIncidentController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        // An incident report is not brand-scoped by design — a bug can be
+        // reported from any screen (RH, Academy, Administration) where no
+        // brand is selected. Optional: capture the active brand when there
+        // is one, but never block the report because there isn't.
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'severity' => ['required', 'string', 'in:critical,major,minor,cosmetic'],
-            'module' => ['required', 'string', 'max:30'],
+            'module' => ['required', 'string', 'max:60'],
             'assignee_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
         $data['brand_id'] = $brandId;
