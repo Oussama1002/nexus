@@ -166,6 +166,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'evaluation-carriere', label: 'Évaluation & Carrière', level: 3, block: 'ressources', parentId: 'developpement', order: 2, icon: Award, view: 'evaluations' },
   { id: 'discipline', label: 'Discipline', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 7, icon: Scale, view: 'discipline' },
   { id: 'communication-interne', label: 'Communication interne', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 8, icon: MessageCircle, view: 'internalComms' },
+  { id: 'projets-collaboratifs', label: 'Projets collaboratifs', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 9, icon: Briefcase, view: 'collabProjects' },
 
   // ── Finance & Comptabilité ──
   { id: 'finance-comptabilite', label: 'Finance & Comptabilité', level: 1, block: 'ressources', parentId: null, order: 2, icon: DollarSign },
