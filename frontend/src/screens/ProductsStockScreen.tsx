@@ -223,13 +223,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     setMovements(isPaginator<ApiMovementRow>(res.data) ? res.data.data : []);
   }, [activeBrandId, toast]);
 
-  useEffect(() => {
-    if (variant === 'products') void loadProducts(true);
-    else {
-      void loadProducts(false);
-      void loadMovements();
-    }
-  }, [variant, loadProducts, loadMovements]);
+  useEffect(() => { void loadProducts(true); }, [loadProducts]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -460,138 +454,12 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     await loadProducts();
   }
 
-  async function saveMovement() {
-    setSaving(true);
-    const payload: Record<string, unknown> = {
-      product_id: Number(movForm.product_id),
-      movement_type: movForm.movement_type,
-      reason: movForm.reason.trim() || null,
-    };
-    if (movForm.movement_type === 'adjustment') {
-      payload.signed_delta = Number(movForm.signed_delta);
-    } else {
-      payload.quantity = Number(movForm.quantity);
-    }
-    const res = await api.post('stock-movements', payload);
-    setSaving(false);
-    if (!res.ok) {
-      toast.error(res.message);
-      return;
-    }
-    toast.success('Mouvement enregistré.');
-    await loadMovements();
-    await loadProducts();
-  }
-
   if (!activeBrandId) {
     return <EmptyState title="Marque requise" description="Choisissez une marque active." />;
   }
 
-  if (variant === 'stock' && !hasPermission('stock.view')) {
-    return <EmptyState title="Accès refusé" description="Permission stock.view requise." />;
-  }
   if (variant === 'products' && !hasPermission('products.view')) {
     return <EmptyState title="Accès refusé" description="Permission products.view requise." />;
-  }
-
-  if (variant === 'stock') {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Mouvements de stock" subtitle="Historique immuable + saisie de mouvements (API)." />
-        <div className="card p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <select
-            value={movForm.product_id}
-            onChange={(e) => setMovForm((m) => ({ ...m, product_id: e.target.value }))}
-            className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm"
-          >
-            <option value="">Produit…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.apiId}>
-                {p.sku} — {p.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={movForm.movement_type}
-            onChange={(e) => setMovForm((m) => ({ ...m, movement_type: e.target.value as (typeof MOVEMENT_TYPES)[number] }))}
-            className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm"
-          >
-            {MOVEMENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {MOVEMENT_TYPE_FR[t] ?? t}
-              </option>
-            ))}
-          </select>
-          {movForm.movement_type === 'adjustment' ? (
-            <input
-              placeholder="Delta signé"
-              value={movForm.signed_delta}
-              onChange={(e) => setMovForm((m) => ({ ...m, signed_delta: e.target.value }))}
-              className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm"
-            />
-          ) : (
-            <input
-              placeholder="Quantité"
-              value={movForm.quantity}
-              onChange={(e) => setMovForm((m) => ({ ...m, quantity: e.target.value }))}
-              className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm"
-            />
-          )}
-          <select
-            value={movForm.reason}
-            onChange={(e) => setMovForm((m) => ({ ...m, reason: e.target.value }))}
-            className="px-3 py-2 rounded-xl border border-zinc-200 font-bold text-sm md:col-span-2"
-          >
-            <option value="">— Raison —</option>
-            {Object.entries(REASON_FR).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-          {hasPermission('stock.create') ? (
-            <button
-              type="button"
-              disabled={saving || !movForm.product_id}
-              onClick={() => void saveMovement()}
-              className="py-2 rounded-xl bg-primary-600 text-white font-black text-sm disabled:opacity-50"
-            >
-              Enregistrer
-            </button>
-          ) : null}
-        </div>
-        <DataTable<ApiMovementRow>
-          rows={movements}
-          columns={
-            [
-              {
-                key: 't',
-                header: 'Date',
-                cell: (m: ApiMovementRow) => (
-                  <span className="font-bold text-zinc-700 text-sm">
-                    {new Date(m.moved_at || m.created_at || Date.now()).toLocaleString()}
-                  </span>
-                ),
-              },
-              {
-                key: 'p',
-                header: 'Produit',
-                cell: (m: ApiMovementRow) => <span className="font-bold text-zinc-800">{m.product?.name ?? m.product_id}</span>,
-              },
-              {
-                key: 'type',
-                header: 'Type',
-                cell: (m: ApiMovementRow) => <StatusChip tone="neutral">{MOVEMENT_TYPE_FR[m.movement_type] ?? m.movement_type}</StatusChip>,
-              },
-              { key: 'q', header: 'Qté', cell: (m: ApiMovementRow) => <span className="font-black">{m.quantity ?? '—'}</span> },
-              { key: 'r', header: 'Raison', cell: (m: ApiMovementRow) => <span className="text-sm text-zinc-600">{m.reason ? (REASON_FR[m.reason] ?? m.reason) : '—'}</span> },
-            ] satisfies Column<ApiMovementRow>[]
-          }
-          emptyTitle="Aucun mouvement"
-          emptyDescription="Créez un mouvement ou changez de marque."
-        />
-      </div>
-    );
   }
 
   return (

@@ -60,6 +60,7 @@ import { TeamPerformanceScreen } from './screens/TeamPerformanceScreen';
 import { DeliveryFailuresScreen } from './screens/DeliveryFailuresScreen';
 import { ReturnsScreen } from './screens/ReturnsScreen';
 import { StockMovementsScreen } from './screens/StockMovementsScreen';
+import { StocksScreen } from './screens/StocksScreen';
 import { EmployeesScreen } from './screens/EmployeesScreen';
 import { HrDocumentsScreen } from './screens/HrDocumentsScreen';
 import { OrgChartScreen } from './screens/OrgChartScreen';
@@ -530,7 +531,7 @@ export function MainApp() {
       case 'products':
         return <ProductsStockScreen variant="products" />;
       case 'stock':
-        return <ProductsStockScreen variant="stock" />;
+        return <StocksScreen />;
       case 'finance':
         return <FinanceScreen />;
       case 'comptabilite':

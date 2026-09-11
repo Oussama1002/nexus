@@ -1,12 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowDownUp, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowDownUp, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
+import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { useToast } from '../context/ToastContext';
 import { useBrand } from '../context/BrandContext';
+import { useAuth } from '../context/AuthContext';
+
+type ProductLite = { id: number; sku: string; name: string; stock_quantity: number };
+
+const MOVEMENT_TYPES = ['in', 'out', 'reservation', 'release', 'adjustment', 'damaged', 'returned'] as const;
+const MOVEMENT_TYPE_FR_FULL: Record<string, string> = {
+  in: 'Entrée', out: 'Sortie', reservation: 'Réservation', release: 'Libération',
+  adjustment: 'Ajustement', damaged: 'Endommagé', returned: 'Retour',
+};
 
 type StockMovement = {
   id: number;
@@ -43,7 +53,9 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function StockMovementsScreen() {
   const { activeBrandId } = useBrand();
-  const { toast } = useToast();
+  const toast = useToast();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission('stock.create');
   const [rows, setRows] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -51,6 +63,50 @@ export function StockMovementsScreen() {
   const [lastPage, setLastPage] = useState(1);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const [products, setProducts] = useState<ProductLite[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({
+    product_id: '',
+    movement_type: 'in' as (typeof MOVEMENT_TYPES)[number],
+    quantity: '1',
+    signed_delta: '',
+    reason: 'manual_adjustment',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const loadProducts = useCallback(async () => {
+    if (!activeBrandId) { setProducts([]); return; }
+    const res = await api.get<LaravelPaginator<ProductLite>>('products?per_page=200');
+    if (res.ok && isPaginator<ProductLite>(res.data)) setProducts(res.data.data);
+  }, [activeBrandId]);
+  useEffect(() => { void loadProducts(); }, [loadProducts]);
+
+  const productLabel = useMemo(() => {
+    const p = products.find((p) => String(p.id) === form.product_id);
+    return p ? `${p.sku} — ${p.name} (stock ${p.stock_quantity})` : '';
+  }, [products, form.product_id]);
+
+  async function submitCreate() {
+    if (!form.product_id) { toast.error('Sélectionnez un produit.'); return; }
+    setSaving(true);
+    const payload: Record<string, unknown> = {
+      product_id: Number(form.product_id),
+      movement_type: form.movement_type,
+      reason: form.reason.trim() || null,
+    };
+    if (form.movement_type === 'adjustment') payload.signed_delta = Number(form.signed_delta);
+    else payload.quantity = Number(form.quantity);
+    const res = await api.post('stock-movements', payload);
+    setSaving(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success('Mouvement enregistré.');
+    setCreateOpen(false);
+    setForm({ product_id: '', movement_type: 'in', quantity: '1', signed_delta: '', reason: 'manual_adjustment' });
+    setRefreshTick((t) => t + 1);
+    void loadProducts();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +138,7 @@ export function StockMovementsScreen() {
     };
     fetchData();
     return () => { cancelled = true; };
-  }, [page, search, typeFilter, activeBrandId]);
+  }, [page, search, typeFilter, activeBrandId, refreshTick]);
 
   const inCount = rows.filter(r => r.type === 'in').length;
   const outCount = rows.filter(r => r.type === 'out').length;
@@ -91,7 +147,20 @@ export function StockMovementsScreen() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Mouvements de stock" subtitle="Historique des entrées, sorties et transferts de stock" />
+      <PageHeader
+        title="Mouvements de stock"
+        subtitle="Historique des entrées, sorties, transferts et ajustements."
+      >
+        {canCreate && (
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black"
+          >
+            <Plus className="w-4 h-4" /> Nouveau mouvement
+          </button>
+        )}
+      </PageHeader>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
@@ -132,7 +201,7 @@ export function StockMovementsScreen() {
       </div>
 
       {!loading && rows.length === 0 ? (
-        <EmptyState icon={<ArrowDownUp size={40} />} title="Aucun mouvement" description="Aucun mouvement de stock trouvé pour les filtres sélectionnés." />
+        <EmptyState title="Aucun mouvement" description="Aucun mouvement de stock trouvé pour les filtres sélectionnés." />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full">
@@ -186,6 +255,62 @@ export function StockMovementsScreen() {
             <button className="btn btn-secondary p-2" disabled={page >= lastPage} onClick={() => setPage(p => p + 1)}>
               <ChevronRight size={16} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {createOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setCreateOpen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nouveau mouvement</p>
+              <p className="text-lg font-black text-zinc-900">Enregistrer un mouvement de stock</p>
+            </div>
+            <label className="block text-xs font-bold text-zinc-500">
+              Produit
+              <select
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
+                value={form.product_id}
+                onChange={(e) => setForm((f) => ({ ...f, product_id: e.target.value }))}
+              >
+                <option value="">— Sélectionner —</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>{p.sku} — {p.name} (stock {p.stock_quantity})</option>
+                ))}
+              </select>
+              {productLabel && <p className="mt-1 text-[11px] text-zinc-500">{productLabel}</p>}
+            </label>
+            <label className="block text-xs font-bold text-zinc-500">
+              Type
+              <select
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
+                value={form.movement_type}
+                onChange={(e) => setForm((f) => ({ ...f, movement_type: e.target.value as typeof f.movement_type }))}
+              >
+                {MOVEMENT_TYPES.map((t) => <option key={t} value={t}>{MOVEMENT_TYPE_FR_FULL[t] ?? t}</option>)}
+              </select>
+            </label>
+            {form.movement_type === 'adjustment' ? (
+              <label className="block text-xs font-bold text-zinc-500">
+                Delta signé (+/-)
+                <input type="number" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={form.signed_delta} onChange={(e) => setForm((f) => ({ ...f, signed_delta: e.target.value }))} />
+              </label>
+            ) : (
+              <label className="block text-xs font-bold text-zinc-500">
+                Quantité
+                <input type="number" min={1} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={form.quantity} onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))} />
+              </label>
+            )}
+            <label className="block text-xs font-bold text-zinc-500">
+              Raison
+              <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} />
+            </label>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setCreateOpen(false)} className="flex-1 py-2.5 rounded-xl border font-black text-sm">Annuler</button>
+              <button type="button" disabled={saving || !form.product_id} onClick={() => void submitCreate()} className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white font-black text-sm disabled:opacity-50">
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
           </div>
         </div>
       )}
