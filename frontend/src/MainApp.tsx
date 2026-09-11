@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as api from './lib/api';
 import { buildQuery } from './lib/pagination';
 import type { Paginated } from './lib/pagination';
@@ -301,12 +301,38 @@ export function MainApp() {
     }
   }, []);
 
+  const lastUnreadRef = useRef({ internal: 0, whatsapp: 0 });
   useEffect(() => {
     const poll = async () => {
-      const res = await api.get<{ unread: number }>('internal-chat/unread');
-      if (res.ok && res.data) {
-        const d = res.data as any;
-        setUnreadChatCount(d?.unread ?? d?.data?.unread ?? 0);
+      const [im, wa] = await Promise.all([
+        api.get<{ unread: number }>('internal-chat/unread'),
+        api.get<{ unread: number }>('conversations/unread'),
+      ]);
+      const readCount = (r: any): number => {
+        const d = r?.data;
+        if (!d) return 0;
+        return d.unread ?? d?.data?.unread ?? 0;
+      };
+      const internal = im.ok ? readCount(im) : lastUnreadRef.current.internal;
+      const whatsapp = wa.ok ? readCount(wa) : lastUnreadRef.current.whatsapp;
+      const total = internal + whatsapp;
+      const prev = lastUnreadRef.current;
+      const grewInternal = internal > prev.internal;
+      const grewWhatsapp = whatsapp > prev.whatsapp;
+      lastUnreadRef.current = { internal, whatsapp };
+      setUnreadChatCount(total);
+
+      // Fire a browser push when a new message lands while the user is on
+      // another screen. The bell/badge in the top bar still updates either way.
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        const onInternal = activeView === 'internalComms';
+        const onWhatsapp = activeView === 'whatsapp';
+        if (grewInternal && !onInternal) {
+          try { new Notification('Nouveau message interne', { body: `Vous avez ${internal} message${internal > 1 ? 's' : ''} non lu${internal > 1 ? 's' : ''}.`, tag: 'internal-chat', silent: false }); } catch { /* ignore */ }
+        }
+        if (grewWhatsapp && !onWhatsapp) {
+          try { new Notification('Nouveau message client', { body: `${whatsapp} conversation${whatsapp > 1 ? 's' : ''} en attente.`, tag: 'wa-conv', silent: false }); } catch { /* ignore */ }
+        }
       }
     };
     void poll();
@@ -314,7 +340,17 @@ export function MainApp() {
     const timer = setInterval(poll, 10000);
     const notifTimer = setInterval(fetchNotifications, 60000);
     return () => { clearInterval(timer); clearInterval(notifTimer); };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, activeView]);
+
+  // Ask the browser for notification permission once, after first render.
+  // (Browsers require a user gesture in some configs; we still call once
+  // silently — a denial or "default" state simply means no push shows.)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      try { void Notification.requestPermission(); } catch { /* ignore */ }
+    }
+  }, []);
 
   // Ctrl+K to open search
   useEffect(() => {

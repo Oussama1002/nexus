@@ -193,6 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('leads/{id}/status', [LeadController::class, 'updateStatus'])->whereNumber('id')->middleware('permission:leads.update');
     Route::post('leads/{id}/convert-to-order', [LeadController::class, 'convertToOrder'])->whereNumber('id')->middleware('permission:leads.update');
 
+    Route::get('conversations/unread', [ConversationController::class, 'unread'])->middleware('permission:conversations.view');
     Route::get('conversations', [ConversationController::class, 'index'])->middleware('permission:conversations.view');
     Route::post('conversations', [ConversationController::class, 'store'])->middleware('permission:conversations.create');
     Route::get('conversations/{id}', [ConversationController::class, 'show'])->whereNumber('id')->middleware('permission:conversations.view');

@@ -226,6 +226,38 @@ class ConversationController extends Controller
     /** Typing rows older than this are ignored. */
     private const TYPING_WINDOW_SECONDS = 6;
 
+    /**
+     * Total inbound customer messages the current team member hasn't seen
+     * yet across the WhatsApp workspace — used by the top-bar bell so a
+     * new inbound arriving while the agent is on another screen surfaces
+     * as a badge (and a browser push).
+     */
+    public function unread(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $user = $request->user();
+
+        $q = Conversation::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        if (! $user->canViewAllConversations()) {
+            $q->where('assigned_user_id', $user->id);
+        }
+        $conversationIds = $q->pluck('id');
+        if ($conversationIds->isEmpty()) {
+            return ApiResponse::success(['unread' => 0]);
+        }
+
+        $unread = \App\Models\Message::query()
+            ->whereIn('conversation_id', $conversationIds)
+            ->where('direction', 'inbound')
+            ->where(function ($w) use ($conversationIds) {
+                $w->whereRaw('sent_at > COALESCE((SELECT agent_last_read_at FROM conversations WHERE conversations.id = messages.conversation_id), \'1970-01-01\')');
+            })
+            ->count();
+
+        return ApiResponse::success(['unread' => $unread]);
+    }
+
     public function storeMessage(StoreMessageRequest $request, string $id, WhatsAppCloudService $wa): JsonResponse
     {
         $conversation = $this->findConversationForUser($request, $id);
