@@ -193,10 +193,54 @@ class WhatsAppCloudService
                         $stored++;
                     }
                 }
+
+                foreach ($value['statuses'] ?? [] as $st) {
+                    $this->applyOutboundStatus($st);
+                }
             }
         }
 
         return $stored;
+    }
+
+    /**
+     * Meta Cloud status webhook: { id, status: sent|delivered|read|failed,
+     * timestamp, errors: [...] }. We match the outbound message by its
+     * external_message_id (returned from sendText) and update the row so the
+     * UI can render Envoyé / Reçu / Lu / Échec.
+     */
+    private function applyOutboundStatus(array $st): void
+    {
+        $wamid = (string) ($st['id'] ?? '');
+        $status = (string) ($st['status'] ?? '');
+        if ($wamid === '' || $status === '') return;
+
+        $msg = Message::query()->where('external_message_id', $wamid)->first();
+        if (! $msg) return;
+
+        $ts = isset($st['timestamp']) ? Carbon::createFromTimestampUTC((int) $st['timestamp']) : now();
+        $update = [];
+
+        // Never regress: delivered ⇐ sent, read ⇐ delivered.
+        $rank = ['sent' => 1, 'delivered' => 2, 'read' => 3, 'failed' => 4];
+        $currentRank = $rank[(string) $msg->delivery_status] ?? 0;
+        $nextRank = $rank[$status] ?? 0;
+        if ($nextRank <= $currentRank && $status !== 'failed') return;
+
+        $update['delivery_status'] = $status;
+        if ($status === 'delivered' && ! $msg->delivered_at) $update['delivered_at'] = $ts;
+        if ($status === 'read') {
+            if (! $msg->delivered_at) $update['delivered_at'] = $ts;
+            $update['read_at'] = $ts;
+        }
+        if ($status === 'failed') {
+            $err = $st['errors'][0] ?? [];
+            $update['delivery_error'] = trim((string) (
+                ($err['title'] ?? '') . (isset($err['message']) ? ' — ' . $err['message'] : '')
+            )) ?: 'Échec de livraison WhatsApp.';
+        }
+
+        $msg->forceFill($update)->save();
     }
 
     private function storeInboundMessage(int $brandId, ?WhatsAppNumber $number, array $value, array $msg): bool

@@ -266,43 +266,62 @@ class ConversationController extends Controller
         $direction = $data['direction'];
         $body = $data['content'] ?? null;
         $externalId = $data['external_message_id'] ?? null;
+        $deliveryStatus = null;
+        $deliveryError = null;
 
-        // Recipient: the thread id if we have one (inbound-started conversation),
-        // otherwise derive it from the customer's phone so manually-created
-        // conversations can actually send (not just store locally).
-        $recipient = $conversation->external_thread_id;
-        if (! $recipient && $conversation->channel === WhatsAppCloudService::CHANNEL) {
-            $conversation->loadMissing('customer');
-            $phone = $conversation->customer?->phone;
-            if ($phone) {
-                $recipient = \App\Services\PhoneNormalizer::toWhatsAppId($phone);
+        // Outbound messages MUST be delivered through the channel before we
+        // persist them locally. Skipping the send silently used to make the
+        // bubble read "sent" while nothing reached the customer — refusing
+        // early is the fix.
+        if ($direction === 'outbound' && $body && empty($externalId)) {
+            if ($conversation->channel !== WhatsAppCloudService::CHANNEL) {
+                return ApiResponse::error(
+                    "Ce canal (« {$conversation->channel} ») ne supporte pas encore l'envoi sortant.",
+                    null,
+                    422,
+                );
             }
-        }
 
-        if ($direction === 'outbound'
-            && $conversation->channel === WhatsAppCloudService::CHANNEL
-            && $body
-            && ! $recipient
-            && empty($externalId)) {
-            return ApiResponse::error(
-                'Impossible de déterminer le numéro WhatsApp du destinataire. Vérifiez que le client a un numéro de téléphone valide.',
-                null,
-                422,
-            );
-        }
+            // Recipient: the thread id if we have one (inbound-started
+            // conversation), otherwise derive it from the customer's phone so
+            // manually-created conversations can actually send.
+            $recipient = $conversation->external_thread_id;
+            if (! $recipient) {
+                $conversation->loadMissing('customer');
+                $phone = $conversation->customer?->phone;
+                if ($phone) {
+                    $recipient = \App\Services\PhoneNormalizer::toWhatsAppId($phone);
+                }
+            }
 
-        if ($direction === 'outbound'
-            && $conversation->channel === WhatsAppCloudService::CHANNEL
-            && $body
-            && $recipient
-            && empty($externalId)) {
+            if (! $recipient) {
+                return ApiResponse::error(
+                    'Impossible de déterminer le numéro WhatsApp du destinataire. Vérifiez que le client a un numéro de téléphone valide.',
+                    null,
+                    422,
+                );
+            }
+
             try {
-                $externalId = $wa->sendText(
+                $sentId = $wa->sendText(
                     $conversation->brand_id,
                     $recipient,
                     $body,
                     $conversation->whatsappNumber,
-                ) ?: null;
+                );
+                if ($sentId === '') {
+                    // WA API accepted the request but returned no message id.
+                    // That would strand the message in "sent-locally,
+                    // unknown-status" limbo, which is exactly the bug the user
+                    // reported. Treat it as a failure so the agent sees it.
+                    return ApiResponse::error(
+                        "WhatsApp n'a pas renvoyé d'identifiant de message. Vérifiez la configuration du numéro dans Paramètres → WhatsApp.",
+                        null,
+                        502,
+                    );
+                }
+                $externalId = $sentId;
+                $deliveryStatus = 'sent';
 
                 // Persist the resolved thread id so replies/webhooks match this thread.
                 if (! $conversation->external_thread_id) {
@@ -310,9 +329,11 @@ class ConversationController extends Controller
                     $conversation->save();
                 }
             } catch (\Throwable $e) {
-                // WhatsAppCloudService déjà préfixe le message en français.
                 return ApiResponse::error($e->getMessage(), null, 502);
             }
+        } elseif ($direction === 'outbound' && $externalId) {
+            // Message pre-sent elsewhere (e.g. template flow) — trust caller.
+            $deliveryStatus = 'sent';
         }
 
         $message = Message::query()->create([
@@ -323,6 +344,8 @@ class ConversationController extends Controller
             'message_type' => $data['message_type'] ?? 'text',
             'external_message_id' => $externalId,
             'sent_at' => now(),
+            'delivery_status' => $deliveryStatus,
+            'delivery_error' => $deliveryError,
         ]);
 
         $conversation->last_message_at = now();

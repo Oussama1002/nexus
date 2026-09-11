@@ -18,10 +18,16 @@ class Message extends Model
         'media_url',
         'external_message_id',
         'sent_at',
+        'delivery_status',
+        'delivery_error',
+        'delivered_at',
+        'read_at',
     ];
 
     protected $casts = [
         'sent_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'read_at' => 'datetime',
     ];
 
     public function conversation()

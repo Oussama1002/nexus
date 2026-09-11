@@ -68,6 +68,8 @@ type ApiMessage = {
   media_url?: string | null;
   sent_at: string | null;
   sender?: { name: string } | null;
+  delivery_status?: 'sent' | 'delivered' | 'read' | 'failed' | null;
+  delivery_error?: string | null;
 };
 
 type ApiCustomer = { id: number; full_name: string; phone: string };
@@ -766,7 +768,16 @@ export function WhatsAppWorkspaceScreen({
                               <span className="text-[10px] text-zinc-400 font-bold">
                                 {new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
-                              {isAgent && <CheckCircle2 className="w-3 h-3 text-primary-500" />}
+                              {isAgent && (() => {
+                                const s = m.delivery_status ?? null;
+                                if (s === 'failed') return (
+                                  <span title={m.delivery_error ?? 'Échec'} className="text-[10px] font-black text-rose-600 uppercase tracking-wide">Échec</span>
+                                );
+                                if (s === 'read') return <CheckCircle2 className="w-3 h-3 text-primary-600" aria-label="Lu" />;
+                                if (s === 'delivered') return <CheckCircle2 className="w-3 h-3 text-zinc-500" aria-label="Reçu" />;
+                                if (s === 'sent') return <CheckCircle2 className="w-3 h-3 text-zinc-300" aria-label="Envoyé" />;
+                                return <span className="text-[10px] font-bold text-zinc-400" title="En attente d'envoi">…</span>;
+                              })()}
                               {canDelete && (
                                 <button type="button" onClick={() => void deleteMessage(m.id)} className="ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity p-0.5 rounded hover:bg-rose-100" title="Supprimer">
                                   <Trash2 className="w-3 h-3 text-rose-400 hover:text-rose-600" />
