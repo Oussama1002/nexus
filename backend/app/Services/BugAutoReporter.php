@@ -14,31 +14,34 @@ use Throwable;
  */
 class BugAutoReporter
 {
-    /** Exception classes we don't want cluttering the tracker. */
-    private const IGNORE = [
-        \Illuminate\Auth\AuthenticationException::class,
-        \Illuminate\Auth\Access\AuthorizationException::class,
-        \Illuminate\Validation\ValidationException::class,
-        \Illuminate\Session\TokenMismatchException::class,
-        \Illuminate\Database\Eloquent\ModelNotFoundException::class,
-        \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
-        \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException::class,
-        \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException::class,
-        \Symfony\Component\HttpKernel\Exception\HttpException::class,
-    ];
-
     public static function shouldReport(Throwable $e): bool
     {
-        foreach (self::IGNORE as $class) {
-            if ($e instanceof $class) {
-                // Still report 5xx HttpExceptions — they're server bugs, not client mistakes.
-                if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException
-                    && $e->getStatusCode() >= 500) {
-                    return true;
-                }
-                return false;
-            }
+        // Explicit ValidationException / auth / not-found → never report (user mistakes).
+        foreach ([
+            \Illuminate\Validation\ValidationException::class,
+            \Illuminate\Auth\AuthenticationException::class,
+            \Illuminate\Auth\Access\AuthorizationException::class,
+            \Illuminate\Database\Eloquent\ModelNotFoundException::class,
+            \Illuminate\Session\TokenMismatchException::class,
+            \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+            \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException::class,
+            \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException::class,
+        ] as $class) {
+            if ($e instanceof $class) return false;
         }
+
+        // Symfony HttpException from abort() — 5xx always reported, 4xx with a
+        // human message reported too (they usually flag a real code path bug
+        // like "Active brand is required" firing on a shared workspace).
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+            $code = $e->getStatusCode();
+            if ($code >= 500) return true;
+            // 4xx: report when there is a message (indicates a deliberate
+            // abort() call worth surfacing). Empty-message 4xx are usually
+            // wrapped validation/auth errors we don't want.
+            return trim((string) $e->getMessage()) !== '';
+        }
+
         return true;
     }
 

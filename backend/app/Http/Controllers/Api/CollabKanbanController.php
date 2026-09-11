@@ -19,11 +19,13 @@ class CollabKanbanController extends Controller
 
     private function findProject(Request $request, int $projectId): CollabProject
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-
-        return CollabProject::query()
-            ->where('brand_id', $brandId)
-            ->findOrFail($projectId);
+        // Projets collaboratifs are a shared workspace — the sidebar entry is
+        // brand-neutral. Filter by the active brand when there is one, but
+        // never refuse the request just because no brand is selected.
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $q = CollabProject::query();
+        ApiBrandContext::scopeBrand($q, $brandId);
+        return $q->findOrFail($projectId);
     }
 
     /* ══════════ BOARD (full read) ══════════ */

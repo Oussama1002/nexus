@@ -15,8 +15,11 @@ class CollabDocumentController extends Controller
 {
     public function index(Request $request, string $projectId): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($projectId);
+        // Shared workspace — brand is optional (see CollabKanbanController::findProject).
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $projQ = CollabProject::query();
+        ApiBrandContext::scopeBrand($projQ, $brandId);
+        $project = $projQ->findOrFail($projectId);
 
         $docs = CollabProjectDocument::query()
             ->where('project_id', $project->id)
@@ -38,8 +41,11 @@ class CollabDocumentController extends Controller
 
     public function store(Request $request, string $projectId): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($projectId);
+        // Shared workspace — brand is optional (see CollabKanbanController::findProject).
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $projQ = CollabProject::query();
+        ApiBrandContext::scopeBrand($projQ, $brandId);
+        $project = $projQ->findOrFail($projectId);
 
         $request->validate([
             'file' => ['required', 'file', 'max:20480'],
@@ -70,8 +76,11 @@ class CollabDocumentController extends Controller
 
     public function download(Request $request, string $projectId, string $docId)
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($projectId);
+        // Shared workspace — brand is optional (see CollabKanbanController::findProject).
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $projQ = CollabProject::query();
+        ApiBrandContext::scopeBrand($projQ, $brandId);
+        $project = $projQ->findOrFail($projectId);
         $doc = CollabProjectDocument::query()
             ->where('project_id', $project->id)
             ->findOrFail($docId);
@@ -85,8 +94,11 @@ class CollabDocumentController extends Controller
 
     public function destroy(Request $request, string $projectId, string $docId): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $project = CollabProject::query()->where('brand_id', $brandId)->findOrFail($projectId);
+        // Shared workspace — brand is optional (see CollabKanbanController::findProject).
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $projQ = CollabProject::query();
+        ApiBrandContext::scopeBrand($projQ, $brandId);
+        $project = $projQ->findOrFail($projectId);
         $doc = CollabProjectDocument::query()
             ->where('project_id', $project->id)
             ->findOrFail($docId);
