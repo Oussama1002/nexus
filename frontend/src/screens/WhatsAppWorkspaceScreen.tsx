@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, FileText, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
@@ -11,6 +11,19 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatDayDivider(d: Date): string {
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (isSameDay(d, today)) return "Aujourd'hui";
+  if (isSameDay(d, yesterday)) return 'Hier';
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' });
+}
 
 type ApiConversation = {
   id: number;
@@ -670,11 +683,22 @@ export function WhatsAppWorkspaceScreen({
                   {msgLoading ? (
                     <p className="text-sm font-bold text-zinc-500">Chargement messages…</p>
                   ) : (
-                    messages.map((m) => {
+                    messages.map((m, idx) => {
                       const isAgent = m.direction === 'outbound';
                       const ts = m.sent_at ? new Date(m.sent_at).getTime() : Date.now();
+                      const prev = idx > 0 ? messages[idx - 1] : null;
+                      const prevTs = prev?.sent_at ? new Date(prev.sent_at).getTime() : null;
+                      const showDayDivider = prevTs === null || !isSameDay(new Date(prevTs), new Date(ts));
                       return (
-                        <div key={m.id} className={cn('flex gap-3 max-w-[min(92%,28rem)] group/msg', isAgent ? 'flex-row-reverse ml-auto' : '')}>
+                        <Fragment key={m.id}>
+                          {showDayDivider && (
+                            <div className="flex justify-center py-1">
+                              <span className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 bg-zinc-100 border border-zinc-200 rounded-full px-3 py-1">
+                                {formatDayDivider(new Date(ts))}
+                              </span>
+                            </div>
+                          )}
+                        <div className={cn('flex gap-3 max-w-[min(92%,28rem)] group/msg', isAgent ? 'flex-row-reverse ml-auto' : '')}>
                           {!isAgent && (
                             <div className="w-8 h-8 rounded-xl bg-zinc-200 shrink-0 flex items-center justify-center text-[10px] font-black text-zinc-600">
                               {(selected.customer?.full_name ?? '?')[0]}
@@ -729,6 +753,7 @@ export function WhatsAppWorkspaceScreen({
                             </div>
                           </div>
                         </div>
+                        </Fragment>
                       );
                     })
                   )}
