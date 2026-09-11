@@ -36,13 +36,36 @@ class BugIncidentController extends Controller
             'title' => $r->title,
             'severity' => $r->severity,
             'module' => $r->module,
-            'reporter' => $r->reporter?->name ?? '—',
+            'source' => $r->source ?? 'user',
+            'occurrences' => (int) ($r->occurrences ?? 1),
+            'last_seen_at' => $r->last_seen_at?->toIso8601String(),
+            'reporter' => $r->source === 'runtime' ? 'Système' : ($r->reporter?->name ?? '—'),
             'assignee' => $r->assignee?->name,
             'status' => $r->status,
             'created_at' => $r->created_at?->toIso8601String(),
         ]);
         $paginator->setCollection($mapped);
         return ApiResponse::success($paginator);
+    }
+
+    /**
+     * Frontend error-boundary endpoint. Accepts anonymously so JS crashes
+     * that happen mid-logout or with an expired token still get captured.
+     * POST /api/bugs-incidents/report-client
+     */
+    public function reportClient(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'message' => ['nullable', 'string'],
+            'stack' => ['nullable', 'string'],
+            'url' => ['nullable', 'string', 'max:2000'],
+            'severity' => ['nullable', 'string', 'in:critical,major,minor,cosmetic'],
+            'fingerprint' => ['nullable', 'string', 'max:200'],
+            'context' => ['nullable', 'array'],
+        ]);
+        $row = \App\Services\BugAutoReporter::captureClient($data, $request);
+        return ApiResponse::success(['id' => $row->id], 'Erreur enregistrée.');
     }
 
     public function store(Request $request): JsonResponse

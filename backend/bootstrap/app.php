@@ -31,6 +31,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Auto-capture: every Throwable that isn't a routine 4xx (validation,
+        // auth, not-found, ...) records a row in bugs_incidents so the Admin
+        // tracker becomes a live error dashboard. Deduplication happens on
+        // fingerprint (exception class + file:line + normalised message).
+        $exceptions->report(function (\Throwable $e) {
+            \App\Services\BugAutoReporter::capture($e, request());
+        });
+
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error(

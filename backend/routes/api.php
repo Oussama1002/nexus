@@ -856,6 +856,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Bugs & incidents
     Route::get('bugs-incidents', [BugIncidentController::class, 'index'])->middleware('permission:bugs_incidents.view');
     Route::post('bugs-incidents', [BugIncidentController::class, 'store'])->middleware('permission:bugs_incidents.create');
+    // Frontend error-boundary endpoint — permission-free so unauthenticated crashes still land.
+    Route::post('bugs-incidents/report-client', [BugIncidentController::class, 'reportClient']);
     Route::patch('bugs-incidents/{id}', [BugIncidentController::class, 'update'])->whereNumber('id')->middleware('permission:bugs_incidents.update');
     Route::put('bugs-incidents/{id}', [BugIncidentController::class, 'update'])->whereNumber('id')->middleware('permission:bugs_incidents.update');
     Route::delete('bugs-incidents/{id}', [BugIncidentController::class, 'destroy'])->whereNumber('id')->middleware('permission:bugs_incidents.delete');

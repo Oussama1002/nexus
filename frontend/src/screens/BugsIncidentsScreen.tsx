@@ -17,6 +17,9 @@ type BugIncident = {
   assignee: string | null;
   status: string;
   created_at: string;
+  source?: 'user' | 'runtime';
+  occurrences?: number;
+  last_seen_at?: string | null;
 };
 
 const SEVERITY_OPTIONS = [
@@ -288,7 +291,21 @@ export function BugsIncidentsScreen() {
               ) : rows.map(row => (
                 <tr key={row.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                   <td className="px-4 py-3 text-sm font-medium">#{row.id}</td>
-                  <td className="px-4 py-3 text-sm">{row.title}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      {row.source === 'runtime' && (
+                        <span title="Détecté automatiquement par le CRM" className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-black uppercase bg-violet-50 text-violet-700">
+                          Auto
+                        </span>
+                      )}
+                      <span className="truncate">{row.title}</span>
+                      {row.occurrences && row.occurrences > 1 && (
+                        <span title={row.last_seen_at ? `Dernière occurrence : ${new Date(row.last_seen_at).toLocaleString('fr-FR')}` : ''} className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-800">
+                          ×{row.occurrences}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${SEVERITY_COLORS[row.severity] ?? 'bg-zinc-100 text-zinc-600'}`}>
                       {SEVERITY_LABELS[row.severity] ?? row.severity}

@@ -11,11 +11,13 @@ import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './screens/LoginPage';
 import { MainApp } from './MainApp';
+import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 
 const queryClient = new QueryClient();
 
 export default function App() {
   return (
+    <GlobalErrorBoundary>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
@@ -37,5 +39,6 @@ export default function App() {
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>
+    </GlobalErrorBoundary>
   );
 }
