@@ -222,6 +222,28 @@ export function WhatsAppWorkspaceScreen({
     return () => window.clearInterval(timer);
   }, [selectedId, loadMessages]);
 
+  // Agent presence: another agent typing + team last-read timestamp.
+  const [presence, setPresence] = useState<{ agent_typing: { user_id: number; name: string } | null; agent_last_read_at: string | null }>({ agent_typing: null, agent_last_read_at: null });
+  const lastTypingPingRef = useRef<number>(0);
+  useEffect(() => {
+    if (!selectedId) { setPresence({ agent_typing: null, agent_last_read_at: null }); return; }
+    const poll = async () => {
+      const res = await api.get<{ agent_typing: { user_id: number; name: string } | null; agent_last_read_at: string | null }>(`conversations/${selectedId}/presence`);
+      if (res.ok && res.data) setPresence(res.data);
+    };
+    void poll();
+    const timer = window.setInterval(() => void poll(), 2000);
+    return () => window.clearInterval(timer);
+  }, [selectedId]);
+
+  const pingTyping = useCallback(() => {
+    if (!selectedId) return;
+    const now = Date.now();
+    if (now - lastTypingPingRef.current < 2000) return;
+    lastTypingPingRef.current = now;
+    void api.post(`conversations/${selectedId}/typing`, {});
+  }, [selectedId]);
+
   // Default the new-conversation number picker: current inbox filter, else brand default.
   useEffect(() => {
     if (!newOpen) return;
@@ -759,6 +781,12 @@ export function WhatsAppWorkspaceScreen({
                   )}
                 </div>
 
+                {presence.agent_typing && (
+                  <p className="px-5 sm:px-7 pb-2 text-xs italic text-zinc-500 animate-pulse">
+                    {presence.agent_typing.name} est en train d'écrire…
+                  </p>
+                )}
+
                 {canCreateConversations && (
                   <div className="p-4 border-t border-zinc-100 bg-white shrink-0">
                     <div className="flex items-end gap-2">
@@ -795,7 +823,7 @@ export function WhatsAppWorkspaceScreen({
                       </button>
                       <textarea
                         value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
+                        onChange={(e) => { setDraft(e.target.value); if (e.target.value.trim()) pingTyping(); }}
                         onKeyDown={(e) => {
                           if (e.key !== 'Enter' || e.shiftKey) return;
                           e.preventDefault();

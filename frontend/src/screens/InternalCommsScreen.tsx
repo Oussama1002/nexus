@@ -96,6 +96,11 @@ export function InternalCommsScreen() {
   const [showNewDm, setShowNewDm] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Presence (typing + read receipts) for the active chat.
+  const [dmPresence, setDmPresence] = useState<{ peer_typing: boolean; peer_last_read_at: string | null }>({ peer_typing: false, peer_last_read_at: null });
+  const [groupPresence, setGroupPresence] = useState<{ members_typing: { user_id: number; name: string }[]; members_last_read: { user_id: number; name: string; last_read_at: string | null }[] }>({ members_typing: [], members_last_read: [] });
+  const lastTypingPingRef = useRef<number>(0);
+
   const loadThreads = useCallback(async () => {
     const res = await api.get<Thread[]>('internal-chat/threads');
     if (res.ok && Array.isArray(res.data)) setThreads(res.data);
@@ -135,6 +140,37 @@ export function InternalCommsScreen() {
     }, 3000);
     return () => clearInterval(timer);
   }, [activeChat, loadDmMessages, loadGroupMessages]);
+
+  // Poll presence (typing + read receipts) every 2s for the active chat.
+  useEffect(() => {
+    if (!activeChat) {
+      setDmPresence({ peer_typing: false, peer_last_read_at: null });
+      setGroupPresence({ members_typing: [], members_last_read: [] });
+      return;
+    }
+    const poll = async () => {
+      if (activeChat.kind === 'dm') {
+        const res = await api.get<{ peer_typing: boolean; peer_last_read_at: string | null }>(`internal-chat/${activeChat.peer.id}/presence`);
+        if (res.ok && res.data) setDmPresence(res.data);
+      } else {
+        const res = await api.get<{ members_typing: { user_id: number; name: string }[]; members_last_read: { user_id: number; name: string; last_read_at: string | null }[] }>(`internal-chat/conversations/${activeChat.conv.conversation_id}/presence`);
+        if (res.ok && res.data) setGroupPresence(res.data);
+      }
+    };
+    void poll();
+    const timer = setInterval(() => void poll(), 2000);
+    return () => clearInterval(timer);
+  }, [activeChat]);
+
+  // Ping "typing" at most once every 2s while the user is actively drafting.
+  const pingTyping = useCallback(() => {
+    if (!activeChat) return;
+    const now = Date.now();
+    if (now - lastTypingPingRef.current < 2000) return;
+    lastTypingPingRef.current = now;
+    if (activeChat.kind === 'dm') void api.post(`internal-chat/${activeChat.peer.id}/typing`, {});
+    else void api.post(`internal-chat/${activeChat.conv.conversation_id}/typing`, {});
+  }, [activeChat]);
 
   // Poll the thread list every 5s so groups created by others appear quickly.
   useEffect(() => {
@@ -458,30 +494,47 @@ export function InternalCommsScreen() {
                   messages.length === 0 ? (
                     <p className="text-center text-sm text-zinc-400 py-8">Aucun message. Envoyez le premier.</p>
                   ) : (
-                    messages.map((m) => {
-                      const isMine = m.sender_id === myId;
-                      return (
-                        <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
-                            isMine ? 'bg-primary-600 text-white rounded-br-md' : 'bg-white text-zinc-900 rounded-bl-md border border-zinc-100'
-                          }`}>
-                            {m.attachment_url && <AttachmentPreview m={m} mine={isMine} />}
-                            {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
-                            <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-zinc-400'}`}>
-                              {new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                    (() => {
+                      const peerReadAt = dmPresence.peer_last_read_at ? new Date(dmPresence.peer_last_read_at).getTime() : 0;
+                      const lastMineReadId = (() => {
+                        let id = 0;
+                        for (const m of messages) {
+                          if (m.sender_id === myId && peerReadAt && new Date(m.created_at).getTime() <= peerReadAt) id = m.id;
+                        }
+                        return id;
+                      })();
+                      return messages.map((m) => {
+                        const isMine = m.sender_id === myId;
+                        const seen = isMine && m.id === lastMineReadId;
+                        return (
+                          <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                              isMine ? 'bg-primary-600 text-white rounded-br-md' : 'bg-white text-zinc-900 rounded-bl-md border border-zinc-100'
+                            }`}>
+                              {m.attachment_url && <AttachmentPreview m={m} mine={isMine} />}
+                              {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+                              <p className={`text-[10px] mt-1 flex items-center gap-1 ${isMine ? 'text-white/60 justify-end' : 'text-zinc-400'}`}>
+                                <span>{new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                {seen && <span className="font-black uppercase tracking-wide">· Vu</span>}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })
+                        );
+                      });
+                    })()
                   )
                 ) : (
                   groupMessages.length === 0 ? (
                     <p className="text-center text-sm text-zinc-400 py-8">Aucun message dans ce groupe.</p>
                   ) : (
-                    groupMessages.map((m) => {
-                      const isMine = m.sender_id === myId;
-                      return (
+                    (() => {
+                      // For each message I sent, count how many other members have last_read_at >= message.created_at.
+                      const otherReads = groupPresence.members_last_read.filter((r) => r.user_id !== myId);
+                      return groupMessages.map((m) => {
+                        const isMine = m.sender_id === myId;
+                        const t = new Date(m.created_at).getTime();
+                        const seenBy = isMine ? otherReads.filter((r) => r.last_read_at && new Date(r.last_read_at).getTime() >= t) : [];
+                        return (
                         <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[75%] ${isMine ? '' : ''}`}>
                             {!isMine && m.sender_name && (
@@ -491,16 +544,33 @@ export function InternalCommsScreen() {
                               isMine ? 'bg-primary-600 text-white rounded-br-md' : 'bg-white text-zinc-900 rounded-bl-md border border-zinc-100'
                             }`}>
                               <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                              <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-zinc-400'}`}>
-                                {new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              <p className={`text-[10px] mt-1 flex items-center gap-1 ${isMine ? 'text-white/60 justify-end' : 'text-zinc-400'}`}>
+                                <span>{new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                {isMine && seenBy.length > 0 && (
+                                  <span className="font-black uppercase tracking-wide" title={seenBy.map((r) => r.name).join(', ')}>
+                                    · Lu {seenBy.length}/{otherReads.length}
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </div>
                         </div>
-                      );
-                    })
+                        );
+                      });
+                    })()
                   )
                 )}
+                {(() => {
+                  const typingLabel =
+                    activeChat.kind === 'dm'
+                      ? (dmPresence.peer_typing ? `${activeChat.peer.name} est en train d'écrire…` : '')
+                      : (groupPresence.members_typing.length > 0
+                          ? `${groupPresence.members_typing.map((t) => t.name).join(', ')} ${groupPresence.members_typing.length > 1 ? 'écrivent' : 'écrit'}…`
+                          : '');
+                  return typingLabel ? (
+                    <p className="text-xs italic text-zinc-500 px-1 animate-pulse">{typingLabel}</p>
+                  ) : null;
+                })()}
                 <div ref={bottomRef} />
               </div>
 
@@ -545,7 +615,7 @@ export function InternalCommsScreen() {
                   </button>
                   <input
                     value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => { setDraft(e.target.value); if (e.target.value.trim()) pingTyping(); }}
                     placeholder="Écrire un message…"
                     className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     autoFocus

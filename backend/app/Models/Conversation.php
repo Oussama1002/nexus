@@ -19,10 +19,15 @@ class Conversation extends Model
         'external_thread_id',
         'status',
         'last_message_at',
+        'agent_typing_user_id',
+        'agent_typing_at',
+        'agent_last_read_at',
     ];
 
     protected $casts = [
         'last_message_at' => 'datetime',
+        'agent_typing_at' => 'datetime',
+        'agent_last_read_at' => 'datetime',
     ];
 
     public function brand()

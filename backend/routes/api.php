@@ -162,11 +162,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('internal-chat/unread', [InternalChatController::class, 'unreadCount']);
     Route::get('internal-chat/{userId}/messages', [InternalChatController::class, 'messages'])->whereNumber('userId');
     Route::post('internal-chat/{userId}/messages', [InternalChatController::class, 'send'])->whereNumber('userId');
+    Route::post('internal-chat/{userId}/typing', [InternalChatController::class, 'typingDm'])->whereNumber('userId');
+    Route::get('internal-chat/{userId}/presence', [InternalChatController::class, 'presenceDm'])->whereNumber('userId');
     // Group conversations
     Route::get('internal-chat/conversations', [InternalChatController::class, 'conversations']);
     Route::post('internal-chat/conversations', [InternalChatController::class, 'createConversation']);
     Route::get('internal-chat/conversations/{conversationId}/messages', [InternalChatController::class, 'conversationMessages'])->whereNumber('conversationId');
     Route::post('internal-chat/conversations/{conversationId}/messages', [InternalChatController::class, 'sendToConversation'])->whereNumber('conversationId');
+    Route::post('internal-chat/conversations/{conversationId}/typing', [InternalChatController::class, 'typingConversation'])->whereNumber('conversationId');
+    Route::get('internal-chat/conversations/{conversationId}/presence', [InternalChatController::class, 'presenceConversation'])->whereNumber('conversationId');
 
     Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
     Route::get('roles/{id}', [RoleController::class, 'show'])->whereNumber('id')->middleware('permission:roles.view');
@@ -198,6 +202,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('conversations/{id}', [ConversationController::class, 'destroy'])->whereNumber('id')->middleware('permission:conversations.delete');
     Route::get('conversations/{id}/messages', [ConversationController::class, 'messages'])->whereNumber('id')->middleware('permission:conversations.view');
     Route::post('conversations/{id}/messages', [ConversationController::class, 'storeMessage'])->whereNumber('id')->middleware('permission:conversations.create');
+    Route::post('conversations/{id}/typing', [ConversationController::class, 'typing'])->whereNumber('id')->middleware('permission:conversations.view');
+    Route::get('conversations/{id}/presence', [ConversationController::class, 'presence'])->whereNumber('id')->middleware('permission:conversations.view');
     Route::post('conversations/{id}/upload', [ConversationController::class, 'uploadAttachment'])->whereNumber('id')->middleware('permission:conversations.create');
     Route::post('conversations/{id}/send-template', [ConversationController::class, 'sendTemplate'])->whereNumber('id')->middleware('permission:conversations.create');
 

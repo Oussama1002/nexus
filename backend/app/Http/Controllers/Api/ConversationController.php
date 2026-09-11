@@ -175,11 +175,56 @@ class ConversationController extends Controller
         $conversation = $this->findConversationForUser($request, $id);
         $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
 
+        // Mark this conversation as read on the agent side (any team member
+        // who opens it counts as "seen").
+        $conversation->forceFill(['agent_last_read_at' => now()])->save();
+
         return ApiResponse::success(
             $conversation->messages()->with('sender')->orderBy('sent_at')->orderBy('id')->paginate($perPage),
             'Messages retrieved successfully.'
         );
     }
+
+    /**
+     * Typing indicator ping. Client calls this every ~2s while an agent is
+     * typing; a row older than TYPING_WINDOW_SECONDS is considered stale.
+     */
+    public function typing(Request $request, string $id): JsonResponse
+    {
+        $conversation = $this->findConversationForUser($request, $id);
+        $conversation->forceFill([
+            'agent_typing_user_id' => $request->user()->id,
+            'agent_typing_at' => now(),
+        ])->save();
+        return ApiResponse::success(['ok' => true]);
+    }
+
+    /**
+     * Presence poll: is another agent currently typing on this conversation,
+     * and what's the team's last-read timestamp?
+     */
+    public function presence(Request $request, string $id): JsonResponse
+    {
+        $conversation = $this->findConversationForUser($request, $id);
+        $meId = $request->user()->id;
+        $threshold = Carbon::now()->subSeconds(self::TYPING_WINDOW_SECONDS);
+
+        $typingUserId = $conversation->agent_typing_user_id;
+        $typingAt = $conversation->agent_typing_at;
+        $typing = null;
+        if ($typingUserId && $typingUserId !== $meId && $typingAt && Carbon::parse($typingAt)->gte($threshold)) {
+            $u = \App\Models\User::query()->find($typingUserId, ['id', 'name']);
+            if ($u) $typing = ['user_id' => $u->id, 'name' => $u->name];
+        }
+
+        return ApiResponse::success([
+            'agent_typing' => $typing,
+            'agent_last_read_at' => $conversation->agent_last_read_at?->toIso8601String(),
+        ]);
+    }
+
+    /** Typing rows older than this are ignored. */
+    private const TYPING_WINDOW_SECONDS = 6;
 
     public function storeMessage(StoreMessageRequest $request, string $id, WhatsAppCloudService $wa): JsonResponse
     {

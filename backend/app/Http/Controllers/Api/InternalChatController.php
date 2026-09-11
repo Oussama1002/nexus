@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ChatConversation;
 use App\Models\ChatConversationMember;
+use App\Models\InternalDmTyping;
 use App\Models\InternalMessage;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -391,4 +393,108 @@ class InternalChatController extends Controller
             ->where('user_id', $userId)
             ->get(['conversation_id', 'last_read_at']);
     }
+
+    /**
+     * Typing indicator ping for a DM. Client calls this every ~2s while the
+     * user is typing; a row older than TYPING_WINDOW_SECONDS is considered
+     * stale and no longer "typing".
+     */
+    public function typingDm(Request $request, string $userId): JsonResponse
+    {
+        $me = $request->user()->id;
+        $peer = (int) $userId;
+        if ($me === $peer) return ApiResponse::success(['ok' => true]);
+
+        InternalDmTyping::query()->updateOrCreate(
+            ['user_id' => $me, 'peer_user_id' => $peer],
+            ['last_typing_at' => now()],
+        );
+        return ApiResponse::success(['ok' => true]);
+    }
+
+    /**
+     * Presence poll for a DM: is the peer currently typing, and when did they
+     * last read a message I sent them?
+     */
+    public function presenceDm(Request $request, string $userId): JsonResponse
+    {
+        $me = $request->user()->id;
+        $peer = (int) $userId;
+
+        $typing = InternalDmTyping::query()
+            ->where('user_id', $peer)
+            ->where('peer_user_id', $me)
+            ->where('last_typing_at', '>=', now()->subSeconds(self::TYPING_WINDOW_SECONDS))
+            ->exists();
+
+        // The peer's "last read at" for messages I sent them: the newest
+        // read_at on any message where I'm sender and they're receiver.
+        $peerLastReadAt = InternalMessage::query()
+            ->where('sender_id', $me)
+            ->where('receiver_id', $peer)
+            ->whereNotNull('read_at')
+            ->max('read_at');
+
+        return ApiResponse::success([
+            'peer_typing' => $typing,
+            'peer_last_read_at' => $peerLastReadAt ? Carbon::parse($peerLastReadAt)->toIso8601String() : null,
+        ]);
+    }
+
+    /**
+     * Typing indicator ping for a group conversation.
+     */
+    public function typingConversation(Request $request, string $conversationId): JsonResponse
+    {
+        $me = $request->user()->id;
+        $cid = (int) $conversationId;
+        if (! $this->isMember($cid, $me)) {
+            return ApiResponse::error('Vous ne faites pas partie de cette conversation.', null, 403);
+        }
+        ChatConversationMember::query()
+            ->where('conversation_id', $cid)
+            ->where('user_id', $me)
+            ->update(['last_typing_at' => now()]);
+        return ApiResponse::success(['ok' => true]);
+    }
+
+    /**
+     * Presence poll for a group conversation: which other members are
+     * currently typing, and each member's last_read_at.
+     */
+    public function presenceConversation(Request $request, string $conversationId): JsonResponse
+    {
+        $me = $request->user()->id;
+        $cid = (int) $conversationId;
+        if (! $this->isMember($cid, $me)) {
+            return ApiResponse::error('Vous ne faites pas partie de cette conversation.', null, 403);
+        }
+
+        $threshold = now()->subSeconds(self::TYPING_WINDOW_SECONDS);
+        $members = ChatConversationMember::query()
+            ->where('conversation_id', $cid)
+            ->where('user_id', '!=', $me)
+            ->with('user:id,name')
+            ->get(['user_id', 'last_read_at', 'last_typing_at']);
+
+        $typing = [];
+        $reads = [];
+        foreach ($members as $m) {
+            if ($m->last_typing_at && $m->last_typing_at->gte($threshold)) {
+                $typing[] = ['user_id' => $m->user_id, 'name' => $m->user?->name ?? '—'];
+            }
+            $reads[] = [
+                'user_id' => $m->user_id,
+                'name' => $m->user?->name ?? '—',
+                'last_read_at' => $m->last_read_at?->toIso8601String(),
+            ];
+        }
+        return ApiResponse::success([
+            'members_typing' => $typing,
+            'members_last_read' => $reads,
+        ]);
+    }
+
+    /** Typing rows older than this are ignored. */
+    private const TYPING_WINDOW_SECONDS = 6;
 }
