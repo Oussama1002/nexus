@@ -369,25 +369,27 @@ export function UsersAdminScreen() {
 
   const columns = useMemo<Column<UserRow>[]>(
     () => [
-      { key: 'name', header: 'Nom', cell: (u) => (
-        <button type="button" onClick={() => { setFicheUserId(u.id); setFicheOpen(true); }} className="font-black text-primary-700 hover:underline">
+      { key: 'name', header: 'Nom', className: '!align-top text-left', cell: (u) => (
+        <button type="button" onClick={() => { setFicheUserId(u.id); setFicheOpen(true); }} className="font-black text-primary-700 hover:underline text-left">
           {u.name}
         </button>
       ) },
-      { key: 'email', header: 'Email', cell: (u) => <span className="text-sm text-zinc-700">{u.email}</span> },
+      { key: 'email', header: 'Email', className: '!align-top text-left', cell: (u) => <span className="text-sm text-zinc-700">{u.email}</span> },
       {
         key: 'roles',
         header: 'Rôles',
+        className: '!align-top text-left',
         cell: (u) => (
           <span className="text-xs text-zinc-600">
             {u.roles.map((r) => organizationRoleLabel(r.slug, r.name)).join(', ') || '—'}
           </span>
         ),
       },
-      { key: 'status', header: 'Statut', cell: (u) => <span className="text-xs font-black uppercase">{u.status}</span> },
+      { key: 'status', header: 'Statut', className: '!align-top text-left', cell: (u) => <span className="text-xs font-black uppercase">{u.status}</span> },
       {
         key: 'actions',
         header: '',
+        className: '!align-top text-right',
         cell: (u) => (
           <div className="flex gap-1 justify-end">
             <button
@@ -458,7 +460,7 @@ export function UsersAdminScreen() {
     <div className="space-y-6">
       <PageHeader
         title="Utilisateurs"
-        subtitle="Gestion des comptes (API `/users`)."
+        subtitle="Gérez les comptes, rôles et accès de votre équipe."
         right={
           <div className="flex gap-2">
             <button
