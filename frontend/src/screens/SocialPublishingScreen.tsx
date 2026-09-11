@@ -528,6 +528,7 @@ function TemplatesPanel({ toast, open, onClose, onCreateFromTemplate }: {
   };
 
   const deleteTemplate = async (id: number) => {
+    if (!window.confirm('Supprimer ce template ?')) return;
     try {
       const res = await api.del(`cm/templates/${id}`);
       if (res.ok) { toast('Template supprimé', 'success'); load(); }

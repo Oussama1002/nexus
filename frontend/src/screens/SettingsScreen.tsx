@@ -227,6 +227,7 @@ export function SettingsScreen() {
   }
 
   async function deleteWhatsappNumber(id: number): Promise<boolean> {
+    if (!window.confirm('Retirer ce numéro WhatsApp ?')) return false;
     const res = await api.del(`whatsapp/numbers/${id}`);
     if (res.ok) toast.success(res.message);
     else toast.error(res.message);

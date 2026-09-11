@@ -208,6 +208,7 @@ export function AccountingScreen() {
   };
 
   const onDeleteEntry = async (id: number) => {
+    if (!window.confirm('Supprimer cette écriture ?')) return;
     const res = await api.del(`accounting/entries/${id}`);
     if (!res.ok) {
       toast.error(res.message);
@@ -240,6 +241,7 @@ export function AccountingScreen() {
   };
 
   const onDeleteAccount = async (id: number) => {
+    if (!window.confirm('Supprimer ce compte ?')) return;
     const res = await api.del(`accounting/accounts/${id}`);
     if (!res.ok) {
       toast.error(res.message);

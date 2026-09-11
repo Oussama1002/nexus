@@ -361,6 +361,7 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const deleteInf = async (id: number) => {
+    if (!window.confirm('Supprimer cette influenceuse ? Cette action est irréversible.')) return;
     const r = await api.del(`influencers/${id}`);
     if (!r.ok) return errToast(toast, r);
     toast.success('Influenceuse supprimée.');
@@ -485,6 +486,7 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const deleteCollab = async (id: number) => {
+    if (!window.confirm('Supprimer cette collaboration ?')) return;
     const r = await api.del(`influencer-collaborations/${id}`);
     if (!r.ok) return errToast(toast, r);
     toast.success('Collaboration supprimée.');
@@ -589,6 +591,7 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const deleteDel = async (id: number) => {
+    if (!window.confirm('Supprimer ce livrable ?')) return;
     const r = await api.del(`influencer-deliverables/${id}`);
     if (!r.ok) return errToast(toast, r);
     toast.success('Livrable supprimé.');
@@ -664,6 +667,7 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const deleteShip = async (id: number) => {
+    if (!window.confirm('Supprimer cet envoi ?')) return;
     const r = await api.del(`influencer-shipments/${id}`);
     if (!r.ok) return errToast(toast, r);
     toast.success('Envoi supprimé.');
@@ -762,6 +766,7 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const deletePay = async (id: number) => {
+    if (!window.confirm('Supprimer ce paiement ?')) return;
     const r = await api.del(`influencer-payments/${id}`);
     if (!r.ok) return errToast(toast, r);
     toast.success('Paiement supprimé.');
@@ -845,6 +850,7 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const deletePc = async (id: number) => {
+    if (!window.confirm('Supprimer ce contenu publié ?')) return;
     const r = await api.del(`influencer-published-contents/${id}`);
     if (!r.ok) return errToast(toast, r);
     toast.success('Contenu supprimé.');
@@ -903,6 +909,7 @@ export function InfluenceWorkspaceScreen() {
   };
 
   const deleteDoc = async (id: number) => {
+    if (!window.confirm('Supprimer ce document ?')) return;
     const r = await api.del(`influencer-documents/${id}`);
     if (!r.ok) return errToast(toast, r);
     toast.success('Document supprimé.');
