@@ -153,6 +153,8 @@ export const AUDIT_ACTION_LABELS_FR: Record<string, string> = {
   'conversations.update': 'Modification de conversation',
   'conversations.delete': 'Suppression de conversation',
   'messages.create': 'Envoi de message',
+  'messages.update': 'Modification de message',
+  'messages.delete': 'Suppression de message',
   'influencer_messages.create': 'Création de message influenceur',
   'influencer_messages.update': 'Modification de message influenceur',
   'influencer_messages.delete': 'Suppression de message influenceur',
@@ -313,6 +315,30 @@ export const AUDIT_FIELD_LABELS_FR: Record<string, string> = {
   weight: 'Poids',
   last_login_at: 'Derni\u00e8re connexion',
   last_login_ip: 'IP derni\u00e8re connexion',
+  // WhatsApp / conversations
+  content: 'Contenu',
+  conversation_id: 'Conversation',
+  message_type: 'Type de message',
+  media_url: 'Fichier joint',
+  direction: 'Sens',
+  sender_user_id: 'Exp\u00e9diteur (ID)',
+  external_message_id: 'Identifiant WhatsApp',
+  sent_at: 'Envoy\u00e9 le',
+  delivered_at: 'Livr\u00e9 le',
+  delivery_status: 'Statut de livraison',
+  delivery_error: 'Erreur de livraison',
+  // Stock
+  moved_at: 'Effectu\u00e9 le',
+  movement_type: 'Type de mouvement',
+  reason: 'Raison',
+  signed_delta: 'Delta sign\u00e9',
+  // Common relational ids
+  actor_user_id: 'Auteur (ID)',
+  team_id: '\u00c9quipe',
+  channel: 'Canal',
+  reference: 'R\u00e9f\u00e9rence',
+  external_thread_id: 'Fil externe',
+  whatsapp_number_id: 'Num\u00e9ro WhatsApp',
 };
 
 function humanizeKey(key: string): string {
