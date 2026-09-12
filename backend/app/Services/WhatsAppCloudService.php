@@ -310,9 +310,11 @@ class WhatsAppCloudService
         }
         if ($status === 'failed') {
             $err = $st['errors'][0] ?? [];
-            $update['delivery_error'] = trim((string) (
-                ($err['title'] ?? '') . (isset($err['message']) ? ' — ' . $err['message'] : '')
-            )) ?: 'Échec de livraison WhatsApp.';
+            $raw = trim((string) ($err['message'] ?? $err['title'] ?? ''));
+            $errCode = is_numeric($err['code'] ?? null) ? (int) $err['code'] : null;
+            $update['delivery_error'] = $raw !== ''
+                ? \App\Services\Meta\MetaErrorTranslator::toFrench($raw, $errCode)
+                : 'Échec de livraison WhatsApp.';
         }
 
         $msg->forceFill($update)->save();

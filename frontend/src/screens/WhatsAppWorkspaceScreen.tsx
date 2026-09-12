@@ -748,6 +748,25 @@ export function WhatsAppWorkspaceScreen({
                       Client en attente depuis {(() => { const m = selected.waiting_agent_reply_minutes ?? 0; if (m < 1) return `${Math.round(m * 60)}s`; if (m < 60) return `${Math.round(m)} min`; return `${Math.floor(m / 60)}h ${Math.round(m % 60)} min`; })()} sans reponse agent.
                     </p>
                   ) : null}
+                  {(() => {
+                    // WhatsApp Cloud only accepts free-form text within 24h of
+                    // the customer's last inbound. Outside that window, only
+                    // approved templates go through — warn the agent up front
+                    // so they don't fire "Échec" bubbles.
+                    const lastInbound = messages.reduce<number>((acc, m) => {
+                      if (m.direction !== 'inbound') return acc;
+                      const t = m.sent_at ? new Date(m.sent_at).getTime() : 0;
+                      return t > acc ? t : acc;
+                    }, 0);
+                    if (!lastInbound) return null;
+                    const hoursSince = (Date.now() - lastInbound) / 3_600_000;
+                    if (hoursSince < 24) return null;
+                    return (
+                      <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+                        <span className="font-black">Fenêtre 24 h expirée.</span> Le dernier message du client date de plus de 24 h : les messages libres seront refusés par WhatsApp. Envoyez un modèle approuvé, ou attendez que le client vous écrive.
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 space-y-5 bg-gradient-to-b from-zinc-50/50 to-white">
@@ -811,6 +830,11 @@ export function WhatsAppWorkspaceScreen({
                                 <p className="text-sm leading-relaxed break-words">{m.content ?? '—'}</p>
                               )}
                             </div>
+                            {isAgent && m.delivery_status === 'failed' && m.delivery_error && (
+                              <div className="rounded-lg bg-rose-50 border border-rose-200 px-2.5 py-1.5 text-[11px] leading-snug text-rose-800 font-medium">
+                                <span className="font-black">Échec WhatsApp :</span> {m.delivery_error}
+                              </div>
+                            )}
                             <div className={cn('flex items-center gap-1', isAgent ? 'justify-end' : '')}>
                               <span className="text-[10px] text-zinc-400 font-bold">
                                 {new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
