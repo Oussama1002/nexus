@@ -164,8 +164,8 @@ class ConversationController extends Controller
     {
         $conversation = $this->findConversationForUser($request, $id);
         $before = $conversation->toArray();
+        AuditLogger::log($request, 'conversations.delete', $conversation, $before, null);
         $conversation->delete();
-        AuditLogger::log($request, 'conversations.delete', null, $before, null);
 
         return ApiResponse::success(null, 'Conversation deleted successfully.');
     }
@@ -482,8 +482,11 @@ class ConversationController extends Controller
         $conversation = $this->findConversationForUser($request, $conversationId);
         $message = Message::query()->where('conversation_id', $conversation->id)->findOrFail($messageId);
         $before = $message->toArray();
+        // Log BEFORE the delete so the audit row keeps a real entity_type +
+        // entity_id (Message · n° X) and shows up when the user filters
+        // Historique d'activité by "Message".
+        AuditLogger::log($request, 'messages.delete', $message, $before, null);
         $message->delete();
-        AuditLogger::log($request, 'messages.delete', null, $before, null);
 
         return ApiResponse::success(null, 'Message deleted successfully.');
     }
