@@ -59,6 +59,10 @@ export function InternalChatModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Typing indicator state — mirrors what InternalCommsScreen does.
+  const [peerTyping, setPeerTyping] = useState(false);
+  const lastTypingPingRef = useRef<number>(0);
+
   const loadThreads = useCallback(async () => {
     const res = await api.get<Thread[]>('internal-chat/threads');
     if (res.ok && Array.isArray(res.data)) setThreads(res.data);
@@ -83,6 +87,27 @@ export function InternalChatModal({
     const timer = setInterval(() => { void loadMessages(activePeer.id); }, 3000);
     return () => clearInterval(timer);
   }, [open, activePeer, loadMessages]);
+
+  // Poll DM presence (is the peer typing?) every 2s while the chat is open.
+  useEffect(() => {
+    if (!open || !activePeer) { setPeerTyping(false); return; }
+    const poll = async () => {
+      const res = await api.get<{ peer_typing: boolean; peer_last_read_at: string | null }>(`internal-chat/${activePeer.id}/presence`);
+      if (res.ok && res.data) setPeerTyping(!!res.data.peer_typing);
+    };
+    void poll();
+    const timer = setInterval(() => void poll(), 2000);
+    return () => clearInterval(timer);
+  }, [open, activePeer]);
+
+  // Ping the "I'm typing" endpoint at most once every 2s.
+  const pingTyping = useCallback(() => {
+    if (!activePeer) return;
+    const now = Date.now();
+    if (now - lastTypingPingRef.current < 2000) return;
+    lastTypingPingRef.current = now;
+    void api.post(`internal-chat/${activePeer.id}/typing`, {});
+  }, [activePeer]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -258,6 +283,11 @@ export function InternalChatModal({
               <div ref={bottomRef} />
             </div>
             <div className="border-t border-zinc-100 shrink-0">
+              {peerTyping && activePeer && (
+                <div className="px-5 pt-2 pb-1 text-[11px] text-zinc-500 italic">
+                  {activePeer.name} est en train d'écrire…
+                </div>
+              )}
               {pendingFile && (
                 <div className="px-5 pt-3 flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-2 rounded-xl bg-zinc-100 px-3 py-2 text-xs">
@@ -298,7 +328,7 @@ export function InternalChatModal({
                 </button>
                 <input
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => { setDraft(e.target.value); if (e.target.value.trim()) pingTyping(); }}
                   placeholder="Écrire un message…"
                   className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   autoFocus
