@@ -417,14 +417,22 @@ class ConversationController extends Controller
             return ApiResponse::error($e->getMessage(), null, 502);
         }
 
+        $rendered = \App\Services\WhatsAppTemplateAutomationService::renderStoredBody(
+            $conversation->brand_id,
+            $data['template_name'],
+            array_values($data['parameters'] ?? []),
+            $wa,
+        );
+
         $message = Message::query()->create([
             'conversation_id' => $conversation->id,
             'sender_user_id' => $request->user()->id,
             'direction' => 'outbound',
-            'content' => '[Template: ' . $data['template_name'] . ']',
+            'content' => $rendered !== '' ? $rendered : ('[Template: ' . $data['template_name'] . ']'),
             'message_type' => 'template',
             'external_message_id' => $externalId,
             'sent_at' => now(),
+            'delivery_status' => $externalId ? 'sent' : null,
         ]);
 
         $conversation->last_message_at = now();

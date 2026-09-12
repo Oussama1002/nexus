@@ -18,6 +18,7 @@ class OrderStateService
         protected StockService $stockService,
         protected OrderFulfillmentService $orderFulfillmentService,
         protected WhatsAppCloudService $whatsAppService,
+        protected WhatsAppTemplateAutomationService $templateAutomation,
     ) {}
 
     public function updateStatus(Order $order, string $toStatus, User $user, ?string $note = null): Order
@@ -98,6 +99,22 @@ class OrderStateService
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+
+        // Auto-template automation on business events. Silent skip when the
+        // brand hasn't configured a template for the event.
+        try {
+            if ($toStatus === 'confirmed') {
+                $this->templateAutomation->sendOrderConfirmed($result->fresh(['customer']));
+            } elseif ($toStatus === 'shipped') {
+                $this->templateAutomation->sendOrderShipped($result->fresh(['customer']));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('wa.auto_template.dispatch_failed', [
+                'order_id' => $result->id,
+                'to' => $toStatus,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return $result;

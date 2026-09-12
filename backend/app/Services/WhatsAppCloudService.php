@@ -16,6 +16,9 @@ class WhatsAppCloudService
 {
     public const CHANNEL = 'whatsapp';
 
+    // WhatsAppTemplateAutomationService is resolved via app() at call sites
+    // to avoid a circular dependency (it constructor-injects this service).
+
     private function config(int $brandId): array
     {
         $rows = SystemSetting::query()
@@ -339,6 +342,11 @@ class WhatsAppCloudService
         $customer = $this->findOrCreateCustomer($brandId, $fromWaId, $profileName);
         $conversation = $this->findOrCreateConversation($brandId, $number, $customer, $fromWaId);
 
+        // Was this the first inbound on this conversation? Answer BEFORE
+        // inserting the new inbound row, then fire the welcome template if
+        // one is configured for the brand.
+        $isFirstInbound = ! $conversation->messages()->where('direction', 'inbound')->exists();
+
         Message::query()->create([
             'conversation_id' => $conversation->id,
             'sender_user_id' => null,
@@ -353,6 +361,14 @@ class WhatsAppCloudService
             'last_message_at' => $sentAt,
             'status' => $conversation->status === 'closed' ? 'open' : $conversation->status,
         ])->save();
+
+        if ($isFirstInbound) {
+            try {
+                app(WhatsAppTemplateAutomationService::class)->sendWelcome($conversation, $customer);
+            } catch (\Throwable $e) {
+                Log::warning('wa.welcome_template.failed', ['error' => $e->getMessage()]);
+            }
+        }
 
         return true;
     }

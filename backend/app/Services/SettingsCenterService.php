@@ -463,6 +463,7 @@ class SettingsCenterService
                 'defaultWelcomeMessage' => $this->getRaw($brandId, 'wa_default_welcome_message') ?? '',
             ],
             'templates' => [
+                'welcome' => $this->getRaw($brandId, 'wa_tpl_welcome') ?? '',
                 'orderConfirmation' => $this->getRaw($brandId, 'wa_tpl_order_confirmation') ?? '',
                 'delivery' => $this->getRaw($brandId, 'wa_tpl_delivery') ?? '',
                 'followUp' => $this->getRaw($brandId, 'wa_tpl_relance') ?? '',
@@ -497,6 +498,7 @@ class SettingsCenterService
             $this->upsert($brandId, 'whatsapp', 'wa_enable_auto_replies', ! empty($a['autoReplies']) ? '1' : '0');
             $this->upsert($brandId, 'whatsapp', 'wa_default_welcome_message', $a['defaultWelcomeMessage'] ?? '');
             $t = $p['templates'] ?? [];
+            $this->upsert($brandId, 'whatsapp', 'wa_tpl_welcome', $t['welcome'] ?? '');
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_order_confirmation', $t['orderConfirmation'] ?? '');
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_delivery', $t['delivery'] ?? '');
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_relance', $t['followUp'] ?? '');

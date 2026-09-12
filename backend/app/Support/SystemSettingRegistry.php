@@ -136,8 +136,9 @@ class SystemSettingRegistry
             'wa_auto_create_lead' => ['sensitive' => false, 'description' => 'Création auto de lead'],
             'wa_default_welcome_message' => ['sensitive' => false, 'description' => 'Message d’accueil par défaut'],
             'wa_enable_auto_replies' => ['sensitive' => false, 'description' => 'Réponses automatiques'],
+            'wa_tpl_welcome' => ['sensitive' => false, 'description' => 'Modèle accueil (premier message client)'],
             'wa_tpl_order_confirmation' => ['sensitive' => false, 'description' => 'Modèle confirmation commande'],
-            'wa_tpl_delivery' => ['sensitive' => false, 'description' => 'Modèle livraison'],
+            'wa_tpl_delivery' => ['sensitive' => false, 'description' => 'Modèle livraison (rappel paiement)'],
             'wa_tpl_relance' => ['sensitive' => false, 'description' => 'Modèle relance'],
             'wa_tpl_upsell' => ['sensitive' => false, 'description' => 'Modèle upsell'],
         ];
