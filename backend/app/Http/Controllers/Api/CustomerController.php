@@ -80,6 +80,22 @@ class CustomerController extends Controller
 
         if ($originLeadId !== null) {
             Lead::query()->whereKey($originLeadId)->update(['customer_id' => $customer->id]);
+        } else {
+            // A client not converted from an existing lead is still a lead —
+            // create one now so they appear in the Leads list. Status
+            // "confirmed" reflects that they already became a client.
+            $lead = Lead::query()->create([
+                'brand_id' => $brandId,
+                'customer_id' => $customer->id,
+                'assigned_user_id' => $customer->assigned_user_id,
+                'source' => $data['client_source'] ?? 'manual',
+                'status' => 'confirmed',
+                'interest_level' => $data['interest_level'] ?? null,
+                'notes' => 'Créé automatiquement à partir du client.',
+                'first_contact_at' => now(),
+            ]);
+            $customer->origin_lead_id = $lead->id;
+            $customer->save();
         }
 
         AuditLogger::log($request, 'customers.create', $customer, null, $customer->toArray());
