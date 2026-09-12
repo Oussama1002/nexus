@@ -317,12 +317,15 @@ export function MainApp() {
       };
       const internal = im.ok ? readCount(im) : lastUnreadRef.current.internal;
       const whatsapp = wa.ok ? readCount(wa) : lastUnreadRef.current.whatsapp;
-      const total = internal + whatsapp;
       const prev = lastUnreadRef.current;
       const grewInternal = internal > prev.internal;
       const grewWhatsapp = whatsapp > prev.whatsapp;
       lastUnreadRef.current = { internal, whatsapp };
-      setUnreadChatCount(total);
+      // The top-bar chat icon (💬 Messagerie interne) shows ONLY the count
+      // of unread internal messages. WhatsApp customer conversations have
+      // their own indicator on the /conversations screen and would confuse
+      // the internal-messaging badge if summed here.
+      setUnreadChatCount(internal);
 
       // Fire a browser push when a new message lands while the user is on
       // another screen. The bell/badge in the top bar still updates either way.
