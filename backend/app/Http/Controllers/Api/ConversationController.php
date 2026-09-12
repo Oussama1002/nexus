@@ -356,12 +356,30 @@ class ConversationController extends Controller
         return ApiResponse::success($message->fresh(['sender']), 'Message added successfully.', 201);
     }
 
+    /**
+     * List the current brand's APPROVED WhatsApp templates so the frontend
+     * template picker can render them. Falls back to a helpful message when
+     * the WABA isn't configured.
+     */
+    public function listTemplates(Request $request, WhatsAppCloudService $wa): JsonResponse
+    {
+        $brandId = \App\Support\ApiBrandContext::resolveBrandId($request);
+        try {
+            $templates = $wa->fetchTemplates($brandId);
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage(), null, 502);
+        }
+        return ApiResponse::success($templates);
+    }
+
     public function sendTemplate(Request $request, string $id, WhatsAppCloudService $wa): JsonResponse
     {
         $conversation = $this->findConversationForUser($request, $id);
         $data = $request->validate([
             'template_name' => ['required', 'string', 'max:191'],
             'language_code' => ['nullable', 'string', 'max:10'],
+            'parameters' => ['nullable', 'array'],
+            'parameters.*' => ['string'],
         ]);
 
         $recipient = $conversation->external_thread_id;
@@ -386,8 +404,8 @@ class ConversationController extends Controller
                 $conversation->brand_id,
                 $recipient,
                 $data['template_name'],
-                $data['language_code'] ?? 'en_US',
-                [],
+                $data['language_code'] ?? 'fr',
+                $data['parameters'] ?? [],
                 $conversation->whatsappNumber,
             ) ?: null;
 

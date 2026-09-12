@@ -207,6 +207,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('conversations/{id}/presence', [ConversationController::class, 'presence'])->whereNumber('id')->middleware('permission:conversations.view');
     Route::post('conversations/{id}/upload', [ConversationController::class, 'uploadAttachment'])->whereNumber('id')->middleware('permission:conversations.create');
     Route::post('conversations/{id}/send-template', [ConversationController::class, 'sendTemplate'])->whereNumber('id')->middleware('permission:conversations.create');
+    Route::get('whatsapp/templates', [ConversationController::class, 'listTemplates'])->middleware('permission:conversations.view');
 
     Route::get('orders', [OrderController::class, 'index'])->middleware('permission:orders.view');
     Route::post('orders', [OrderController::class, 'store'])->middleware('permission:orders.create');

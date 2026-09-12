@@ -110,6 +110,15 @@ export function WhatsAppWorkspaceScreen({
   const [msgLoading, setMsgLoading] = useState(false);
   const [draft, setDraft] = useState('');
   const [q, setQ] = useState('');
+  // Template picker
+  type WaTemplate = { name: string; language: string; category: string; status: string; body: string; param_count: number };
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [templates, setTemplates] = useState<WaTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<WaTemplate | null>(null);
+  const [templateParams, setTemplateParams] = useState<string[]>([]);
+  const [sendingTemplate, setSendingTemplate] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [openedAtByConversation, setOpenedAtByConversation] = useState<Record<number, number>>({});
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -323,6 +332,44 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setDraft('');
+    await loadMessages(selectedId);
+    await loadConversations();
+  }
+
+  async function openTemplatePicker() {
+    setTemplatePickerOpen(true);
+    setTemplatesLoading(true);
+    setTemplatesError(null);
+    const res = await api.get<WaTemplate[]>('whatsapp/templates');
+    setTemplatesLoading(false);
+    if (!res.ok) { setTemplatesError(res.message); return; }
+    setTemplates(res.data ?? []);
+  }
+
+  function openTemplateForSend(t: WaTemplate) {
+    setSelectedTemplate(t);
+    setTemplateParams(new Array(t.param_count).fill(''));
+  }
+
+  async function sendSelectedTemplate() {
+    if (!selectedId || !selectedTemplate) return;
+    // Refuse if any parameter is empty — WhatsApp rejects blank variables.
+    if (selectedTemplate.param_count > 0 && templateParams.some((p) => !p.trim())) {
+      toast.error('Remplissez toutes les variables du modèle.');
+      return;
+    }
+    setSendingTemplate(true);
+    const res = await api.post(`conversations/${selectedId}/send-template`, {
+      template_name: selectedTemplate.name,
+      language_code: selectedTemplate.language,
+      parameters: templateParams,
+    });
+    setSendingTemplate(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success('Modèle envoyé.');
+    setTemplatePickerOpen(false);
+    setSelectedTemplate(null);
+    setTemplateParams([]);
     await loadMessages(selectedId);
     await loadConversations();
   }
@@ -843,6 +890,15 @@ export function WhatsAppWorkspaceScreen({
                       <button type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-50" aria-label="attach">
                         <Paperclip className={`w-5 h-5 ${uploading ? 'animate-spin' : ''}`} />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => void openTemplatePicker()}
+                        title="Envoyer un modèle approuvé (permet de contacter un client hors fenêtre 24h)"
+                        className="p-3 rounded-xl border border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100"
+                        aria-label="template"
+                      >
+                        <MessageSquare className="w-5 h-5" />
+                      </button>
                       <textarea
                         value={draft}
                         onChange={(e) => { setDraft(e.target.value); if (e.target.value.trim()) pingTyping(); }}
@@ -1016,6 +1072,94 @@ export function WhatsAppWorkspaceScreen({
           </label>
         </div>
       </Modal>
+
+      {templatePickerOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            {!selectedTemplate ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-black text-zinc-900">Envoyer un modèle</h2>
+                  <button onClick={() => setTemplatePickerOpen(false)} className="p-1 rounded-lg hover:bg-zinc-100"><ArrowLeft className="w-4 h-4" /></button>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Seuls les modèles <strong>APPROVED</strong> par Meta sont listés ici. Un modèle vous permet d'écrire à un client hors fenêtre 24h.
+                </p>
+                {templatesLoading ? (
+                  <p className="text-sm text-zinc-400 text-center py-6">Chargement…</p>
+                ) : templatesError ? (
+                  <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">
+                    {templatesError}
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+                    Aucun modèle approuvé.<br />
+                    Créez-en un dans <strong>Meta Business Suite → WhatsApp → Message templates</strong>, attendez son approbation (~24h), puis revenez ici.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {templates.map((t) => (
+                      <button
+                        key={`${t.name}-${t.language}`}
+                        onClick={() => openTemplateForSend(t)}
+                        className="w-full text-left rounded-xl border border-zinc-200 p-3 hover:border-primary-400 hover:bg-primary-50/40 transition"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-black text-zinc-900">{t.name}</span>
+                          <span className="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-zinc-100 text-zinc-600">{t.category}</span>
+                          <span className="text-[10px] font-semibold text-zinc-400">{t.language}</span>
+                          {t.param_count > 0 && (
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
+                              {t.param_count} variable{t.param_count > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-zinc-600 whitespace-pre-wrap line-clamp-3">{t.body}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-black text-zinc-900">{selectedTemplate.name}</h2>
+                  <button onClick={() => { setSelectedTemplate(null); setTemplateParams([]); }} className="p-1 rounded-lg hover:bg-zinc-100"><ArrowLeft className="w-4 h-4" /></button>
+                </div>
+                <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm whitespace-pre-wrap">
+                  {selectedTemplate.body || <em>(pas de corps)</em>}
+                </div>
+                {selectedTemplate.param_count > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-zinc-700">Variables à remplir :</p>
+                    {Array.from({ length: selectedTemplate.param_count }).map((_, i) => (
+                      <label key={i} className="block text-xs font-semibold text-zinc-600">
+                        {`{{${i + 1}}}`}
+                        <input
+                          value={templateParams[i] ?? ''}
+                          onChange={(e) => setTemplateParams((prev) => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                          className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
+                          placeholder={`Valeur pour {{${i + 1}}}`}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
+                  <button onClick={() => { setSelectedTemplate(null); setTemplateParams([]); }} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Retour</button>
+                  <button
+                    disabled={sendingTemplate}
+                    onClick={() => void sendSelectedTemplate()}
+                    className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-50"
+                  >
+                    {sendingTemplate ? 'Envoi…' : 'Envoyer'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -102,6 +102,81 @@ class WhatsAppCloudService
         return $out;
     }
 
+    /**
+     * List the WhatsApp Message Templates registered under the brand's WABA.
+     * Returns only APPROVED templates in French / the caller's preferred lang.
+     * The templates picker in the frontend calls this.
+     *
+     * @return list<array{name: string, language: string, category: string, status: string, body: string, param_count: int}>
+     */
+    public function fetchTemplates(int $brandId): array
+    {
+        $rows = SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->whereIn('setting_key', [
+                'wa_api_base_url', 'wa_api_token', 'wa_business_account_id', 'whatsapp_api_token',
+            ])
+            ->pluck('setting_value', 'setting_key')
+            ->all();
+
+        $baseUrl = rtrim((string) ($rows['wa_api_base_url'] ?? 'https://graph.facebook.com/v25.0'), '/');
+        $token = trim((string) ($rows['wa_api_token'] ?? $rows['whatsapp_api_token'] ?? ''));
+        $wabaId = trim((string) ($rows['wa_business_account_id'] ?? ''));
+
+        if ($token === '' || preg_match('/^\*+$/', $token)) {
+            throw new \RuntimeException('Jeton API WhatsApp manquant. Renseignez-le dans Paramètres → WhatsApp.');
+        }
+        if ($wabaId === '') {
+            throw new \RuntimeException('WhatsApp Business Account ID (WABA) manquant. Renseignez-le dans Paramètres → WhatsApp.');
+        }
+
+        $res = Http::withToken($token)
+            ->acceptJson()
+            ->timeout(20)
+            ->get("{$baseUrl}/{$wabaId}/message_templates", [
+                'fields' => 'name,language,category,status,components',
+                'limit' => 200,
+            ]);
+
+        if (! $res->successful()) {
+            $err = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
+            Log::warning('whatsapp.templates.failed', ['brand_id' => $brandId, 'status' => $res->status(), 'body' => $res->body()]);
+            throw new \RuntimeException(\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
+        }
+
+        $out = [];
+        foreach ((array) $res->json('data', []) as $row) {
+            if (! is_array($row)) continue;
+            $status = (string) ($row['status'] ?? '');
+            if (strtoupper($status) !== 'APPROVED') continue;
+            $body = '';
+            $paramCount = 0;
+            foreach ((array) ($row['components'] ?? []) as $comp) {
+                if (! is_array($comp)) continue;
+                if (strtoupper((string) ($comp['type'] ?? '')) === 'BODY') {
+                    $body = (string) ($comp['text'] ?? '');
+                    // Count {{1}}, {{2}} placeholders.
+                    if (preg_match_all('/\{\{(\d+)\}\}/', $body, $m) && ! empty($m[1])) {
+                        $paramCount = max(array_map('intval', $m[1]));
+                    }
+                    break;
+                }
+            }
+            $out[] = [
+                'name' => (string) ($row['name'] ?? ''),
+                'language' => (string) ($row['language'] ?? 'fr'),
+                'category' => (string) ($row['category'] ?? ''),
+                'status' => $status,
+                'body' => $body,
+                'param_count' => $paramCount,
+            ];
+        }
+        // Sort: category then name.
+        usort($out, fn ($a, $b) => strcmp($a['category'] . '|' . $a['name'], $b['category'] . '|' . $b['name']));
+        return $out;
+    }
+
     /** Resolve the stored WhatsApp number by incoming phone_number_id (Meta payload metadata). */
     public function resolveNumberByPhoneId(string $phoneNumberId): ?WhatsAppNumber
     {
