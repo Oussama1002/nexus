@@ -771,7 +771,18 @@ export function WhatsAppWorkspaceScreen({
                               {isAgent && (() => {
                                 const s = m.delivery_status ?? null;
                                 if (s === 'failed') return (
-                                  <span title={m.delivery_error ?? 'Échec'} className="text-[10px] font-black text-rose-600 uppercase tracking-wide">Échec</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => alert(
+                                      m.delivery_error
+                                        ? `Cause de l'échec :\n\n${m.delivery_error}`
+                                        : "Échec sans motif renvoyé par Meta.\n\nCauses fréquentes :\n• Numéro du client incorrect ou bloqué\n• Fenêtre 24h dépassée (le client n'a pas écrit depuis > 24h — utiliser un template)\n• Token Meta expiré / hors quota\n• Compte WhatsApp Business en pause"
+                                    )}
+                                    title="Cliquez pour voir la cause"
+                                    className="text-[10px] font-black text-rose-600 uppercase tracking-wide underline decoration-dotted underline-offset-2 hover:text-rose-700"
+                                  >
+                                    Échec ⓘ
+                                  </button>
                                 );
                                 if (s === 'read') return <CheckCircle2 className="w-3 h-3 text-primary-600" aria-label="Lu" />;
                                 if (s === 'delivered') return <CheckCircle2 className="w-3 h-3 text-zinc-500" aria-label="Reçu" />;
