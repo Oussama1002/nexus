@@ -414,8 +414,8 @@ export function DashboardScreen() {
               {(() => {
                 const entries = (Object.entries(payload.shipments_by_status) as [string, number][]).sort((a, b) => b[1] - a[1]);
                 const max = Math.max(...entries.map(([, v]) => v), 1);
-                const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-blue-500', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-cyan-500', picked_up: 'bg-indigo-500', failed: 'bg-red-500', shipped: 'bg-blue-400' };
-                const shipLbl: Record<string, string> = { delivered: 'Livré', in_transit: 'En transit', pending: 'En attente', returned: 'Retourné', cancelled: 'Annulé', created: 'Créé', picked_up: 'Ramassé', failed: 'Échoué', shipped: 'Expédié' };
+                const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-blue-500', out_for_delivery: 'bg-violet-500', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-cyan-500', picked_up: 'bg-indigo-500', failed: 'bg-red-500', shipped: 'bg-blue-400', on_hold: 'bg-orange-500', lost: 'bg-red-700', damaged: 'bg-red-600' };
+                const shipLbl: Record<string, string> = { delivered: 'Livré', in_transit: 'En transit', out_for_delivery: 'En distribution', pending: 'En attente', returned: 'Retourné', cancelled: 'Annulé', created: 'Créé', picked_up: 'Ramassé', failed: 'Échoué', shipped: 'Expédié', on_hold: 'En attente', lost: 'Perdu', damaged: 'Endommagé' };
                 return entries.map(([label, value]) => (
                   <div key={label} className="flex items-center gap-3">
                     <span className="text-xs font-bold text-zinc-600 w-20 text-right">{shipLbl[label] ?? label}</span>
