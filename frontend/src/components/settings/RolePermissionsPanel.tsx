@@ -116,6 +116,14 @@ export function RolePermissionsPanel({
 
   const grouped = useMemo(() => groupByModule(perms), [perms]);
 
+  // Admin role holds every permission implicitly. Show every box ticked
+  // even if the DB row doesn't materialise each grant — the note under
+  // the header already says the list is not editable for admin.
+  const effectiveSelected = useMemo<Set<number>>(() => {
+    if (isAdminRole) return new Set(perms.map((p) => p.id));
+    return selected;
+  }, [isAdminRole, perms, selected]);
+
   const toggle = (id: number) => {
     if (!canEditRoles || isAdminRole) return;
     setSelected((prev) => {
@@ -288,8 +296,8 @@ export function RolePermissionsPanel({
           .map((moduleKey) => {
             const list = grouped[moduleKey];
             const ids = list.map((p) => p.id);
-            const allOn = ids.length > 0 && ids.every((id) => selected.has(id));
-            const someOn = ids.some((id) => selected.has(id));
+            const allOn = ids.length > 0 && ids.every((id) => effectiveSelected.has(id));
+            const someOn = ids.some((id) => effectiveSelected.has(id));
             return (
               <div key={moduleKey} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -316,7 +324,7 @@ export function RolePermissionsPanel({
                       <input
                         type="checkbox"
                         className="mt-0.5 rounded border-zinc-300"
-                        checked={selected.has(p.id)}
+                        checked={effectiveSelected.has(p.id)}
                         disabled={!canEditRoles || isAdminRole}
                         onChange={() => toggle(p.id)}
                       />
