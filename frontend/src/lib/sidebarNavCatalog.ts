@@ -26,6 +26,7 @@ import {
   MessageCircle,
   Network,
   Package,
+  PackagePlus,
   PieChart,
   Plug,
   RotateCcw,
@@ -113,9 +114,10 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'conversations', label: 'Conversations', level: 2, block: 'operations', parentId: 'call-center', order: 2, icon: MessageCircle, view: 'whatsapp' },
   { id: 'leads', label: 'Leads', level: 2, block: 'operations', parentId: 'call-center', order: 3, icon: Users, view: 'leads' },
   { id: 'commandes', label: 'Commandes', level: 2, block: 'operations', parentId: 'call-center', order: 4, icon: Package, view: 'orders' },
-  { id: 'clients', label: 'Clients', level: 2, block: 'operations', parentId: 'call-center', order: 5, icon: Contact, view: 'customers' },
-  { id: 'reclamations', label: 'Réclamations', level: 2, block: 'operations', parentId: 'call-center', order: 6, icon: AlertTriangle, view: 'complaints' },
-  { id: 'pilotage-equipe', label: "Pilotage d'équipe", level: 2, block: 'operations', parentId: 'call-center', order: 7, icon: ChartNoAxesCombined, view: 'teamPerformance' },
+  { id: 'nouvelle-commande', label: 'Nouvelle commande', level: 2, block: 'operations', parentId: 'call-center', order: 5, icon: PackagePlus, view: 'ordersNew' },
+  { id: 'clients', label: 'Clients', level: 2, block: 'operations', parentId: 'call-center', order: 6, icon: Contact, view: 'customers' },
+  { id: 'reclamations', label: 'Réclamations', level: 2, block: 'operations', parentId: 'call-center', order: 7, icon: AlertTriangle, view: 'complaints' },
+  { id: 'pilotage-equipe', label: "Pilotage d'équipe", level: 2, block: 'operations', parentId: 'call-center', order: 8, icon: ChartNoAxesCombined, view: 'teamPerformance' },
 
   // ── Marketing ──
   { id: 'marketing', label: 'Marketing', level: 1, block: 'operations', parentId: null, order: 2, icon: Megaphone },
