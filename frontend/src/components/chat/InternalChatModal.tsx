@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { MessageCircle, Send, X, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Send, X, ArrowLeft, Paperclip, FileText, Image as ImageIcon, Download, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { resolvePublicAssetUrl } from '../../lib/publicAssetUrl';
 import * as api from '../../lib/api';
@@ -20,6 +20,10 @@ type ChatMessage = {
   sender_id: number;
   receiver_id: number;
   body: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_mime?: string | null;
+  attachment_size?: number | null;
   read_at: string | null;
   created_at: string;
 };
@@ -50,6 +54,9 @@ export function InternalChatModal({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadThreads = useCallback(async () => {
@@ -89,13 +96,31 @@ export function InternalChatModal({
   }
 
   async function sendMessage() {
-    if (!activePeer || !draft.trim()) return;
+    if (!activePeer) return;
+    if (!draft.trim() && !pendingFile) return;
     setLoading(true);
-    const res = await api.post<ChatMessage>(`internal-chat/${activePeer.id}/messages`, { body: draft.trim() });
+    // Upload attachment first, if any.
+    let attachment: { attachment_url?: string; attachment_name?: string; attachment_mime?: string; attachment_size?: number } = {};
+    if (pendingFile) {
+      setUploading(true);
+      const fd = new FormData();
+      fd.append('file', pendingFile);
+      const up = await api.post<{ url: string; name: string; mime: string; size: number }>('internal-chat/upload', fd as any);
+      setUploading(false);
+      if (!up.ok || !up.data) { setLoading(false); return; }
+      attachment = {
+        attachment_url: up.data.url,
+        attachment_name: up.data.name,
+        attachment_mime: up.data.mime,
+        attachment_size: up.data.size,
+      };
+    }
+    const res = await api.post<ChatMessage>(`internal-chat/${activePeer.id}/messages`, { body: draft.trim(), ...attachment });
     setLoading(false);
     if (res.ok && res.data) {
       setMessages((prev) => [...prev, res.data!]);
       setDraft('');
+      setPendingFile(null);
       void loadThreads();
     }
   }
@@ -221,7 +246,8 @@ export function InternalChatModal({
                           : 'bg-zinc-100 text-zinc-900 rounded-bl-md'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                      {m.attachment_url && <AttachmentPreview m={m} mine={isMine} />}
+                      {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                       <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-zinc-400'}`}>
                         {new Date(m.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
@@ -231,11 +257,45 @@ export function InternalChatModal({
               })}
               <div ref={bottomRef} />
             </div>
-            <div className="px-5 py-3 border-t border-zinc-100 shrink-0">
+            <div className="border-t border-zinc-100 shrink-0">
+              {pendingFile && (
+                <div className="px-5 pt-3 flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 rounded-xl bg-zinc-100 px-3 py-2 text-xs">
+                    {pendingFile.type.startsWith('image/')
+                      ? <ImageIcon className="w-4 h-4 text-primary-600" />
+                      : <FileText className="w-4 h-4 text-primary-600" />}
+                    <span className="font-bold truncate flex-1">{pendingFile.name}</span>
+                    <span className="text-zinc-500">{formatBytes(pendingFile.size)}</span>
+                  </div>
+                  <button type="button" onClick={() => setPendingFile(null)} className="p-1 rounded-lg hover:bg-zinc-100">
+                    <X className="w-4 h-4 text-zinc-500" />
+                  </button>
+                </div>
+              )}
               <form
                 onSubmit={(e) => { e.preventDefault(); void sendMessage(); }}
-                className="flex items-center gap-2"
+                className="px-5 py-3 flex items-center gap-2"
               >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 15 * 1024 * 1024) { alert('Fichier trop volumineux (max 15 Mo).'); e.target.value = ''; return; }
+                    setPendingFile(f);
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Joindre un fichier ou une image"
+                  className="p-2.5 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -245,10 +305,11 @@ export function InternalChatModal({
                 />
                 <button
                   type="submit"
-                  disabled={loading || !draft.trim()}
+                  disabled={loading || uploading || (!draft.trim() && !pendingFile)}
                   className="p-2.5 rounded-xl bg-primary-600 text-white disabled:opacity-50"
+                  title={uploading ? 'Téléversement…' : 'Envoyer'}
                 >
-                  <Send className="w-4 h-4" />
+                  {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </form>
             </div>
@@ -257,4 +318,40 @@ export function InternalChatModal({
       </div>
     </div>
   );
+}
+
+/** Renders an attachment inline: images as thumbnails, everything else as a download link. */
+function AttachmentPreview({ m, mine }: { m: { attachment_url?: string | null; attachment_name?: string | null; attachment_mime?: string | null; attachment_size?: number | null }; mine: boolean }) {
+  if (!m.attachment_url) return null;
+  const url = resolvePublicAssetUrl(m.attachment_url);
+  const isImage = (m.attachment_mime ?? '').startsWith('image/');
+  if (isImage) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block mb-2">
+        <img src={url} alt={m.attachment_name ?? 'image'} className="rounded-lg max-h-52 w-auto object-cover" />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      download={m.attachment_name ?? undefined}
+      className={`mb-2 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${
+        mine ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-white text-zinc-800 hover:bg-zinc-50 border border-zinc-200'
+      }`}
+    >
+      <FileText className="w-4 h-4 shrink-0" />
+      <span className="truncate max-w-[160px]">{m.attachment_name ?? 'Fichier'}</span>
+      {m.attachment_size ? <span className={`text-[10px] ${mine ? 'text-white/70' : 'text-zinc-500'}`}>{formatBytes(m.attachment_size)}</span> : null}
+      <Download className="w-3.5 h-3.5 opacity-60" />
+    </a>
+  );
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} o`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} Ko`;
+  return `${(n / (1024 * 1024)).toFixed(1)} Mo`;
 }
