@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart3, LineChart, Package, RefreshCw, Truck, Wallet } from 'lucide-react';
+import { BarChart3, FileDown, LineChart, Package, RefreshCw, Truck, Wallet } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -51,6 +51,15 @@ type AdsRollup = {
 };
 
 type TabId = 'global' | 'ads' | 'commercial' | 'stock' | 'delivery' | 'finance';
+
+const TAB_LABELS: Record<TabId, string> = {
+  global: 'Vue globale',
+  ads: 'Ads',
+  commercial: 'Commercial',
+  stock: 'Stock',
+  delivery: 'Livraison',
+  finance: 'Finance',
+};
 
 const LEAD_STATUS_FR: Record<string, string> = {
   new: 'Nouveau',
@@ -463,22 +472,51 @@ export function ReportingScreen() {
 
   return (
     <div className="space-y-6">
+      <div className="no-print">
       <PageHeader
         title="Reportings"
         subtitle={activeBrand ? `Marque: ${activeBrand.name}` : 'KPI et agrégations API.'}
         right={
-          <button
-            type="button"
-            onClick={() => void loadTab()}
-            className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Actualiser
-          </button>
+          <div className="flex flex-wrap items-center gap-2 no-print">
+            <button
+              type="button"
+              onClick={() => void loadTab()}
+              className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Print the currently-visible tab. Chrome's dialog lets the
+                // user save it as PDF. The @media print rules in index.css
+                // strip the shell and only render the report card grid.
+                document.body.dataset.printMode = 'report';
+                const cleanup = () => { delete document.body.dataset.printMode; window.removeEventListener('afterprint', cleanup); };
+                window.addEventListener('afterprint', cleanup);
+                window.print();
+              }}
+              className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
+            >
+              <FileDown className="w-4 h-4" />
+              Exporter PDF
+            </button>
+          </div>
         }
       />
+      </div>
 
-      <div className="card p-4 flex flex-wrap items-end gap-4">
+      {/* Report header that only shows in print mode — otherwise hidden. */}
+      <div className="hidden print:block mb-4">
+        <p className="text-2xl font-black text-zinc-900">Rapport — {TAB_LABELS[tab]}</p>
+        <p className="text-xs text-zinc-600">
+          {activeBrand ? `Marque : ${activeBrand.name} · ` : ''}
+          {dateFrom || '…'} → {dateTo || '…'} · Généré le {new Date().toLocaleString('fr-FR')}
+        </p>
+      </div>
+
+      <div className="card p-4 flex flex-wrap items-end gap-4 no-print">
         <label className="text-[10px] font-black uppercase text-zinc-400 block w-full sm:w-auto">
           Du
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1 block px-3 py-2 rounded-xl border border-zinc-200 font-bold" />
@@ -489,7 +527,7 @@ export function ReportingScreen() {
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-zinc-100 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-zinc-100 pb-2 no-print">
         {(
           [
             { id: 'global' as const, label: 'Vue globale', icon: BarChart3 },

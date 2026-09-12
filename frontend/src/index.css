@@ -93,6 +93,34 @@ html, body {
   }
 }
 
+/* Reporting → PDF: when the user clicks "Exporter PDF" we tag the body
+ * with data-print-mode="report" and call window.print(). Chrome's
+ * "Save as PDF" then captures the report main region only, without
+ * sidebar, topbar, or filter chrome. */
+@media print {
+  body[data-print-mode="report"] header,
+  body[data-print-mode="report"] aside,
+  body[data-print-mode="report"] nav,
+  body[data-print-mode="report"] .no-print {
+    display: none !important;
+  }
+  body[data-print-mode="report"] {
+    background: #fff !important;
+  }
+  body[data-print-mode="report"] main {
+    padding: 0 !important;
+  }
+  body[data-print-mode="report"] .card {
+    box-shadow: none !important;
+    border: 1px solid #e4e4e7 !important;
+    break-inside: avoid;
+  }
+  body[data-print-mode="report"] .recharts-wrapper,
+  body[data-print-mode="report"] table {
+    break-inside: avoid;
+  }
+}
+
 /* Mobile: let tables that are direct card children scroll horizontally
  * instead of getting clipped by the card's overflow-hidden. Uses :has()
  * so cards that don't contain a table keep their default overflow behavior. */
