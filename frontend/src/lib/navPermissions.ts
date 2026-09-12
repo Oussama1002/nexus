@@ -61,6 +61,8 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   // Everyone gets internal messaging — no permission required (the endpoint
   // itself scopes to the caller's own threads/groups).
   internalComms: [],
+  // Everyone gets their own notifications feed too.
+  notifications: [],
   treasury: ['finance.view'],
   budgets: ['finance.view'],
   budgetRequests: ['finance.view'],
@@ -106,6 +108,7 @@ const ALL_VIEWS: View[] = [
   'influenceHub',
   'amWorkspace',
   'amConfig',
+  'notifications',
   'comptabilite',
   'complaints',
   'teamPerformance',

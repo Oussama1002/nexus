@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
   Barcode,
+  Bell,
   BookOpen,
   Bot,
   Briefcase,
@@ -99,7 +100,8 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // BLOC PILOTAGE
   // ═══════════════════════════════════════════
   { id: 'tableau-de-bord', label: 'Tableau de bord', level: 1, block: 'pilotage', parentId: null, order: 1, icon: Home, view: 'dashboard' },
-  { id: 'rapports', label: 'Rapports', level: 1, block: 'pilotage', parentId: null, order: 2, icon: PieChart, view: 'reporting' },
+  { id: 'notifications', label: 'Notifications', level: 1, block: 'pilotage', parentId: null, order: 2, icon: Bell, view: 'notifications', brandScoped: false },
+  { id: 'rapports', label: 'Rapports', level: 1, block: 'pilotage', parentId: null, order: 3, icon: PieChart, view: 'reporting' },
 
   // ═══════════════════════════════════════════
   // BLOC OPÉRATIONS

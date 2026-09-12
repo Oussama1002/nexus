@@ -45,6 +45,7 @@ import { CustomersScreen } from './screens/CustomersScreen';
 import { SocialMediaWorkspaceScreen } from './screens/SocialMediaWorkspaceScreen';
 import { AmWorkspaceScreen } from './screens/AmWorkspaceScreen';
 import { AmConfigScreen } from './screens/AmConfigScreen';
+import { NotificationsScreen } from './screens/NotificationsScreen';
 import { InfluenceWorkspaceScreen } from './screens/InfluenceWorkspaceScreen';
 import { BrandKnowledgeBaseScreen } from './screens/BrandKnowledgeBaseScreen';
 import { AcademyScreen } from './screens/AcademyScreen';
@@ -544,6 +545,8 @@ export function MainApp() {
         return <AmWorkspaceScreen />;
       case 'amConfig':
         return <AmConfigScreen />;
+      case 'notifications':
+        return <NotificationsScreen />;
       case 'profile':
         return <ProfileScreen />;
       case 'myTrainings':

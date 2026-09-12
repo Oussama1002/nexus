@@ -32,6 +32,7 @@ export type View =
   | 'influenceHub'
   | 'amWorkspace'
   | 'amConfig'
+  | 'notifications'
   | 'comptabilite'
   | 'profile'
   | 'complaints'
