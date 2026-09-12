@@ -175,7 +175,7 @@ export function LogoUploadField({
             <button
               type="button"
               className="text-xs font-bold text-rose-700 hover:underline text-left"
-              onClick={() => onChange('')}
+              onClick={() => { if (window.confirm('Retirer le logo actuel ?')) onChange(''); }}
             >
               Retirer le logo
             </button>
