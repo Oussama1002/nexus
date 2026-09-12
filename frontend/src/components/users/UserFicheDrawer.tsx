@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Clock, MessageSquare, Shield, Activity } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
 import * as api from '../../lib/api';
-import { AUDIT_ENTITY_LABELS_FR, AUDIT_ACTION_LABELS_FR } from '../../lib/auditDisplayFr';
+import { auditActionLabelFr, auditEntitySummaryFr } from '../../lib/auditDisplayFr';
 import { organizationRoleLabel } from '../../lib/organizationRoles';
 
 type AttendanceRecord = {
@@ -274,15 +274,15 @@ export function UserFicheDrawer({ userId, open, onClose }: Props) {
               ) : (
                 <div className="space-y-2">
                   {user.recent_activity.map((a) => {
-                    const actionLabel = AUDIT_ACTION_LABELS_FR[a.action] ?? a.action;
-                    const entityLabel = a.entity_type ? (AUDIT_ENTITY_LABELS_FR[a.entity_type] ?? a.entity_type.split('\\').pop()) : '';
+                    const actionLabel = auditActionLabelFr(a.action);
+                    const entitySummary = auditEntitySummaryFr(a.entity_type, a.entity_id);
                     return (
                       <div key={a.id} className="flex items-start gap-3 py-2 border-b border-zinc-100 last:border-0">
                         <div className="w-2 h-2 mt-1.5 rounded-full bg-primary-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-zinc-900">{actionLabel}</p>
-                          {entityLabel && a.entity_id && (
-                            <p className="text-[10px] text-zinc-500">{entityLabel} #{a.entity_id}</p>
+                          {entitySummary !== '—' && (
+                            <p className="text-[10px] text-zinc-500">{entitySummary}</p>
                           )}
                           <p className="text-[10px] text-zinc-400 mt-0.5">{fmtFullDateTime(a.created_at)}</p>
                         </div>

@@ -57,6 +57,11 @@ export const AUDIT_ENTITY_LABELS_FR: Record<string, string> = {
   'App\\Models\\SocialPublication': 'Publication sociale',
   'App\\Models\\AccountingAccount': 'Compte comptable',
   'App\\Models\\AccountingEntry': 'Écriture comptable',
+  'App\\Models\\Role': 'Rôle',
+  'App\\Models\\Permission': 'Permission',
+  'App\\Models\\BugIncident': 'Bug / incident',
+  'App\\Models\\ChatConversation': 'Groupe interne',
+  'App\\Models\\ChatConversationMember': 'Membre de groupe interne',
 };
 
 /** Libellés FR pour actions API (slug technique → phrase lisible). */
@@ -190,6 +195,11 @@ export const AUDIT_ACTION_LABELS_FR: Record<string, string> = {
   'accounting_accounts.delete': 'Suppression compte comptable',
   'accounting_entries.create': 'Création écriture comptable',
   'accounting_entries.delete': 'Suppression écriture comptable',
+  'role.landing_view.update': 'Modification de l’écran d’accueil du rôle',
+  'roles.update': 'Modification du rôle',
+  'roles.create': 'Création de rôle',
+  'roles.delete': 'Suppression de rôle',
+  'roles.permissions_update': 'Mise à jour des permissions du rôle',
 };
 
 export function auditEntityLabelFr(entityType: string | null | undefined): string {
