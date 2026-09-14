@@ -14,6 +14,7 @@ import type {
 import { NAV_CATALOG, NAV_BLOCKS, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
 import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TagListField, TextField, ToggleRow } from './SettingsUi';
 import * as api from '../../../lib/api';
+import { useBrand } from '../../../context/BrandContext';
 
 export function GeneralPanel({
   value,
@@ -330,6 +331,8 @@ export function DeliveryPanel({
 type WaTemplate = { name: string; language: string; category: string; status: string; body: string; param_count: number };
 
 function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
+  const { activeBrandId } = useBrand();
+  const brandOpt = activeBrandId ? { brandId: String(activeBrandId) } : undefined;
   const [templates, setTemplates] = React.useState<WaTemplate[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -345,13 +348,14 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
   const [saving, setSaving] = React.useState(false);
 
   const load = React.useCallback(async () => {
+    if (!activeBrandId) { setError('Sélectionnez une marque active pour voir les modèles.'); setTemplates([]); return; }
     setLoading(true);
     setError(null);
-    const res = await api.get<WaTemplate[]>('whatsapp/templates?all=1');
+    const res = await api.get<WaTemplate[]>('whatsapp/templates?all=1', brandOpt);
     setLoading(false);
     if (!res.ok) { setError(res.message); return; }
     setTemplates(res.data ?? []);
-  }, []);
+  }, [activeBrandId, brandOpt]);
 
   React.useEffect(() => { void load(); }, [load]);
 
@@ -372,7 +376,7 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
       category: form.category,
       body: form.body.trim(),
       body_samples: samples,
-    });
+    }, brandOpt);
     setSaving(false);
     if (!res.ok) { alert(res.message ?? 'Erreur.'); return; }
     setCreateOpen(false);
@@ -383,7 +387,7 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
   const remove = async (name: string) => {
     if (!confirm(`Supprimer le modèle "${name}" ?\n\nMeta bloquera le nom pendant 30 jours.`)) return;
     setBusyName(name);
-    const res = await api.del(`whatsapp/templates/${name}`);
+    const res = await api.del(`whatsapp/templates/${name}`, brandOpt);
     setBusyName(null);
     if (!res.ok) { alert(res.message ?? 'Erreur.'); return; }
     await load();
