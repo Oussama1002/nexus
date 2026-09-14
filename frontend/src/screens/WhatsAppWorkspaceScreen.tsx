@@ -348,7 +348,36 @@ export function WhatsAppWorkspaceScreen({
 
   function openTemplateForSend(t: WaTemplate) {
     setSelectedTemplate(t);
-    setTemplateParams(new Array(t.param_count).fill(''));
+    // Auto-fill variables from the active conversation's customer, so the
+    // agent doesn't retype the client's name every time. Best-effort:
+    // - {{1}} → first name (first word of full_name)
+    // - {{2}} → last name or full name when {{1}} used the first token
+    // - {{3}}+ → left blank for the agent to fill (order id, amount, …)
+    // Body regex scan overrides these when the template's {{N}} placeholders
+    // clearly reference a phone or order field.
+    const fullName = (selected?.customer?.full_name ?? '').trim();
+    const phone = (selected?.customer?.phone ?? '').trim();
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    const firstName = parts[0] ?? '';
+    const lastName = parts.slice(1).join(' ');
+
+    const body = t.body.toLowerCase();
+    const guess = (idx: number): string => {
+      // Heuristic: try to match nearby words in the template body around {{N}}.
+      const marker = `{{${idx + 1}}}`;
+      const pos = body.indexOf(marker);
+      const window = body.slice(Math.max(0, pos - 40), pos + 40);
+      if (/tél|téléphone|phone|numéro/.test(window)) return phone;
+      if (/commande|order|référence|ref\b|n°/.test(window)) return '';
+      if (/prénom|first ?name/.test(window)) return firstName;
+      if (/nom complet|full ?name/.test(window)) return fullName;
+      // Default: {{1}} → first name, {{2}} → last (if any), others → empty.
+      if (idx === 0) return firstName;
+      if (idx === 1) return lastName;
+      return '';
+    };
+
+    setTemplateParams(new Array(t.param_count).fill('').map((_, i) => guess(i)));
   }
 
   async function sendSelectedTemplate() {
