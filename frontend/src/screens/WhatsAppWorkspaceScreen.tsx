@@ -280,9 +280,6 @@ export function WhatsAppWorkspaceScreen({
   }, [activeBrandId, newOpen]);
 
   const selected = useMemo(() => conversations.find((c) => c.id === selectedId) ?? null, [conversations, selectedId]);
-  const selectedOpenedAt = selectedId ? openedAtByConversation[selectedId] ?? null : null;
-  const onReadMinutes = selectedOpenedAt ? Math.floor((nowTick - selectedOpenedAt) / 60000) : 0;
-  const showOnReadAlert = Boolean(selected?.is_waiting_agent_reply) && onReadMinutes >= ON_READ_ALERT_MINUTES;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowTick(Date.now()), 30000);
@@ -714,7 +711,6 @@ export function WhatsAppWorkspaceScreen({
                           <StatusChip tone="info">{selected.assigned_user.name}</StatusChip>
                         )}
                         {selected.needs_reply_alert ? <StatusChip tone="warning">Reponse en retard</StatusChip> : null}
-                        {showOnReadAlert ? <StatusChip tone="warning">Client en read trop longtemps</StatusChip> : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
