@@ -506,32 +506,45 @@ class WhatsAppCloudService
             })
             ->first();
 
-        if ($customer) {
-            return $customer;
-        }
-
-        $customer = Customer::query()->create([
-            'brand_id' => $brandId,
-            'full_name' => $profileName ?: ('WhatsApp ' . $waId),
-            'phone' => $phone,
-            'client_source' => 'whatsapp',
-            'status' => 'active',
-        ]);
-
-        // Auto-create lead from WhatsApp conversation
-        try {
-            Lead::query()->create([
+        if (! $customer) {
+            $customer = Customer::query()->create([
                 'brand_id' => $brandId,
-                'customer_id' => $customer->id,
-                'source' => 'WhatsApp',
-                'status' => 'new',
-                'notes' => 'Lead auto-cree depuis une conversation WhatsApp.',
+                'full_name' => $profileName ?: ('WhatsApp ' . $waId),
+                'phone' => $phone,
+                'client_source' => 'whatsapp',
+                'status' => 'active',
             ]);
-        } catch (\Throwable $e) {
-            Log::warning('whatsapp.auto_lead_failed', ['customer_id' => $customer->id, 'error' => $e->getMessage()]);
         }
+
+        // Ensure a WhatsApp lead exists for this customer — covers both
+        // brand-new customers and customers who already existed (imported,
+        // manually added, seeded from an order) but were never listed as
+        // leads yet.
+        $this->ensureWhatsappLead($brandId, $customer->id);
 
         return $customer;
+    }
+
+    private function ensureWhatsappLead(int $brandId, int $customerId): void
+    {
+        try {
+            $exists = Lead::query()
+                ->where('brand_id', $brandId)
+                ->where('customer_id', $customerId)
+                ->exists();
+            if ($exists) return;
+
+            Lead::query()->create([
+                'brand_id' => $brandId,
+                'customer_id' => $customerId,
+                'source' => 'WhatsApp',
+                'status' => 'new',
+                'notes' => 'Lead auto-créé depuis une conversation WhatsApp.',
+                'first_contact_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('whatsapp.auto_lead_failed', ['customer_id' => $customerId, 'error' => $e->getMessage()]);
+        }
     }
 
     private function findOrCreateConversation(int $brandId, ?WhatsAppNumber $number, Customer $customer, string $waId): Conversation
