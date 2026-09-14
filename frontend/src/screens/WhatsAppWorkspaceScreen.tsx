@@ -348,36 +348,7 @@ export function WhatsAppWorkspaceScreen({
 
   function openTemplateForSend(t: WaTemplate) {
     setSelectedTemplate(t);
-    // Auto-fill variables from the active conversation's customer, so the
-    // agent doesn't retype the client's name every time. Best-effort:
-    // - {{1}} → first name (first word of full_name)
-    // - {{2}} → last name or full name when {{1}} used the first token
-    // - {{3}}+ → left blank for the agent to fill (order id, amount, …)
-    // Body regex scan overrides these when the template's {{N}} placeholders
-    // clearly reference a phone or order field.
-    const fullName = (selected?.customer?.full_name ?? '').trim();
-    const phone = (selected?.customer?.phone ?? '').trim();
-    const parts = fullName.split(/\s+/).filter(Boolean);
-    const firstName = parts[0] ?? '';
-    const lastName = parts.slice(1).join(' ');
-
-    const body = t.body.toLowerCase();
-    const guess = (idx: number): string => {
-      // Heuristic: try to match nearby words in the template body around {{N}}.
-      const marker = `{{${idx + 1}}}`;
-      const pos = body.indexOf(marker);
-      const window = body.slice(Math.max(0, pos - 40), pos + 40);
-      if (/tél|téléphone|phone|numéro/.test(window)) return phone;
-      if (/commande|order|référence|ref\b|n°/.test(window)) return '';
-      if (/prénom|first ?name/.test(window)) return firstName;
-      if (/nom complet|full ?name/.test(window)) return fullName;
-      // Default: {{1}} → first name, {{2}} → last (if any), others → empty.
-      if (idx === 0) return firstName;
-      if (idx === 1) return lastName;
-      return '';
-    };
-
-    setTemplateParams(new Array(t.param_count).fill('').map((_, i) => guess(i)));
+    setTemplateParams(guessTemplateParams(t, selected?.customer?.full_name ?? '', selected?.customer?.phone ?? ''));
   }
 
   async function sendSelectedTemplate() {
@@ -1167,7 +1138,9 @@ export function WhatsAppWorkspaceScreen({
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-zinc-600 whitespace-pre-wrap line-clamp-3">{t.body}</p>
+                        <p className="text-xs text-zinc-600 whitespace-pre-wrap line-clamp-3">
+                          {renderTemplatePreview(t.body, guessTemplateParams(t, selected?.customer?.full_name ?? '', selected?.customer?.phone ?? ''))}
+                        </p>
                       </button>
                     ))}
                   </div>
@@ -1180,24 +1153,42 @@ export function WhatsAppWorkspaceScreen({
                   <button onClick={() => { setSelectedTemplate(null); setTemplateParams([]); }} className="p-1 rounded-lg hover:bg-zinc-100"><ArrowLeft className="w-4 h-4" /></button>
                 </div>
                 <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm whitespace-pre-wrap">
-                  {selectedTemplate.body || <em>(pas de corps)</em>}
+                  {selectedTemplate.body ? renderTemplatePreview(selectedTemplate.body, templateParams) : <em>(pas de corps)</em>}
                 </div>
-                {selectedTemplate.param_count > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-zinc-700">Variables à remplir :</p>
-                    {Array.from({ length: selectedTemplate.param_count }).map((_, i) => (
-                      <label key={i} className="block text-xs font-semibold text-zinc-600">
-                        {`{{${i + 1}}}`}
-                        <input
-                          value={templateParams[i] ?? ''}
-                          onChange={(e) => setTemplateParams((prev) => { const next = [...prev]; next[i] = e.target.value; return next; })}
-                          className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                          placeholder={`Valeur pour {{${i + 1}}}`}
-                        />
-                      </label>
-                    ))}
-                  </div>
-                )}
+                {/*
+                  Only show manual variable inputs for placeholders we couldn't
+                  auto-fill from the customer (blank strings in templateParams).
+                  {{1}} usually resolves from the customer name → hidden.
+                */}
+                {(() => {
+                  const missing = templateParams
+                    .map((v, i) => ({ idx: i, val: v }))
+                    .filter((p) => !p.val || !p.val.trim());
+                  if (missing.length === 0) return null;
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-zinc-700">À compléter :</p>
+                      {missing.map(({ idx }) => {
+                        // Extract a nearby word to hint what the variable represents.
+                        const marker = `{{${idx + 1}}}`;
+                        const before = selectedTemplate.body.split(marker)[0]?.split(/\s+/).slice(-3).join(' ') ?? '';
+                        const hint = before || `variable ${idx + 1}`;
+                        return (
+                          <label key={idx} className="block text-xs font-semibold text-zinc-600">
+                            {hint}…
+                            <input
+                              value={templateParams[idx] ?? ''}
+                              onChange={(e) => setTemplateParams((prev) => { const next = [...prev]; next[idx] = e.target.value; return next; })}
+                              className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
+                              placeholder="Valeur…"
+                              autoFocus
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
                   <button onClick={() => { setSelectedTemplate(null); setTemplateParams([]); }} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Retour</button>
                   <button
@@ -1215,4 +1206,58 @@ export function WhatsAppWorkspaceScreen({
       )}
     </div>
   );
+}
+
+/**
+ * Guess auto-fill values for a template's {{N}} placeholders based on the
+ * customer's name + phone. {{1}} defaults to the first name; {{2}} to the
+ * remaining tokens (last name). Nearby keywords in the template body
+ * override this — e.g. "téléphone {{2}}" pulls the phone number instead.
+ */
+function guessTemplateParams(t: { body: string; param_count: number }, fullName: string, phone: string): string[] {
+  const name = (fullName ?? '').trim();
+  const ph = (phone ?? '').trim();
+  const parts = name.split(/\s+/).filter(Boolean);
+  const firstName = parts[0] ?? '';
+  const lastName = parts.slice(1).join(' ');
+  const body = t.body.toLowerCase();
+
+  return Array.from({ length: t.param_count }).map((_, idx) => {
+    const marker = `{{${idx + 1}}}`;
+    const pos = body.indexOf(marker);
+    const window = pos >= 0 ? body.slice(Math.max(0, pos - 40), pos + 40) : '';
+    if (/tél|téléphone|phone|numéro/.test(window)) return ph;
+    if (/commande|order|référence|ref\b|n°/.test(window)) return '';
+    if (/prénom|first ?name/.test(window)) return firstName;
+    if (/nom complet|full ?name/.test(window)) return name;
+    if (idx === 0) return firstName;
+    if (idx === 1) return lastName;
+    return '';
+  });
+}
+
+/**
+ * Render a template body with {{N}} replaced by the corresponding value
+ * from `values`. Empty values fall back to a highlighted placeholder so
+ * the agent still sees where the gap is in the preview.
+ */
+function renderTemplatePreview(body: string, values: string[]): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const regex = /\{\{(\d+)\}\}/g;
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = regex.exec(body)) !== null) {
+    if (m.index > lastIndex) parts.push(body.slice(lastIndex, m.index));
+    const idx = parseInt(m[1], 10) - 1;
+    const v = values[idx];
+    if (v && v.trim()) {
+      parts.push(<strong key={`f-${key++}`} className="font-black">{v}</strong>);
+    } else {
+      parts.push(<span key={`b-${key++}`} className="italic text-amber-700">[{`{{${idx + 1}}}`}]</span>);
+    }
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < body.length) parts.push(body.slice(lastIndex));
+  return <>{parts}</>;
 }
