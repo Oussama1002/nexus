@@ -3,6 +3,7 @@
 namespace App\Services\Delivery;
 
 use App\Models\Customer;
+use App\Models\Lead;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
@@ -10,6 +11,7 @@ use App\Models\User;
 use App\Services\Delivery\Providers\AmeexDeliveryProvider;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AmeexInboundSyncService
 {
@@ -238,6 +240,10 @@ class AmeexInboundSyncService
             ]);
         }
 
+        if ($customer) {
+            $this->ensureLead($customer, 'Ameex');
+        }
+
         $statusMap = [
             'delivered' => 'delivered', 'returned' => 'returned', 'cancelled' => 'cancelled',
             'in_transit' => 'confirmed', 'shipped' => 'confirmed', 'picked_up' => 'confirmed',
@@ -353,5 +359,31 @@ class AmeexInboundSyncService
             'pages' => 0, 'total' => 0, 'errors' => $errors,
             'has_more' => false, 'next_page' => 1,
         ];
+    }
+
+    private function ensureLead(Customer $customer, string $carrier): void
+    {
+        try {
+            $exists = Lead::query()
+                ->where('brand_id', $customer->brand_id)
+                ->where('customer_id', $customer->id)
+                ->exists();
+            if ($exists) return;
+
+            Lead::query()->create([
+                'brand_id' => $customer->brand_id,
+                'customer_id' => $customer->id,
+                'source' => $carrier,
+                'status' => 'new',
+                'notes' => 'Lead auto-créé depuis un import livraison (' . $carrier . ').',
+                'first_contact_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('delivery.auto_lead_failed', [
+                'customer_id' => $customer->id,
+                'carrier' => $carrier,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
