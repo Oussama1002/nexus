@@ -364,12 +364,59 @@ class ConversationController extends Controller
     public function listTemplates(Request $request, WhatsAppCloudService $wa): JsonResponse
     {
         $brandId = \App\Support\ApiBrandContext::resolveBrandId($request);
+        // Admin panel calls this with all=1 to see PENDING / REJECTED too.
+        $approvedOnly = ! $request->boolean('all');
         try {
-            $templates = $wa->fetchTemplates($brandId);
+            $templates = $wa->fetchTemplates($brandId, $approvedOnly);
         } catch (\Throwable $e) {
             return ApiResponse::error($e->getMessage(), null, 502);
         }
         return ApiResponse::success($templates);
+    }
+
+    /**
+     * Submit a new template to Meta.
+     * POST /api/whatsapp/templates { name, language, category, body, body_samples[] }
+     */
+    public function createTemplate(Request $request, WhatsAppCloudService $wa): JsonResponse
+    {
+        $brandId = \App\Support\ApiBrandContext::resolveBrandId($request);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'regex:/^[a-z0-9_]+$/', 'max:512'],
+            'language' => ['required', 'string', 'max:10'],
+            'category' => ['required', 'string', 'in:UTILITY,MARKETING,AUTHENTICATION,utility,marketing,authentication'],
+            'body' => ['required', 'string', 'max:1024'],
+            'body_samples' => ['nullable', 'array'],
+            'body_samples.*' => ['string', 'max:200'],
+        ]);
+        try {
+            $out = $wa->createTemplate(
+                $brandId,
+                $data['name'],
+                $data['language'],
+                $data['category'],
+                $data['body'],
+                $data['body_samples'] ?? [],
+            );
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage(), null, 502);
+        }
+        return ApiResponse::success($out, 'Modèle soumis à Meta pour révision.', 201);
+    }
+
+    /**
+     * Delete a template by name.
+     * DELETE /api/whatsapp/templates/{name}
+     */
+    public function deleteTemplate(Request $request, string $name, WhatsAppCloudService $wa): JsonResponse
+    {
+        $brandId = \App\Support\ApiBrandContext::resolveBrandId($request);
+        try {
+            $wa->deleteTemplate($brandId, $name);
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage(), null, 502);
+        }
+        return ApiResponse::success(null, 'Modèle supprimé.');
     }
 
     public function sendTemplate(Request $request, string $id, WhatsAppCloudService $wa): JsonResponse

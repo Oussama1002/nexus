@@ -112,7 +112,7 @@ class WhatsAppCloudService
      *
      * @return list<array{name: string, language: string, category: string, status: string, body: string, param_count: int}>
      */
-    public function fetchTemplates(int $brandId): array
+    public function fetchTemplates(int $brandId, bool $approvedOnly = true): array
     {
         $rows = SystemSetting::query()
             ->where('brand_id', $brandId)
@@ -152,7 +152,7 @@ class WhatsAppCloudService
         foreach ((array) $res->json('data', []) as $row) {
             if (! is_array($row)) continue;
             $status = (string) ($row['status'] ?? '');
-            if (strtoupper($status) !== 'APPROVED') continue;
+            if ($approvedOnly && strtoupper($status) !== 'APPROVED') continue;
             $body = '';
             $paramCount = 0;
             foreach ((array) ($row['components'] ?? []) as $comp) {
@@ -178,6 +178,107 @@ class WhatsAppCloudService
         // Sort: category then name.
         usort($out, fn ($a, $b) => strcmp($a['category'] . '|' . $a['name'], $b['category'] . '|' . $b['name']));
         return $out;
+    }
+
+    /**
+     * Submit a new WhatsApp template to Meta for review.
+     * Meta accepts: name (lowercase snake), language, category, body text
+     * with {{N}} placeholders, and body_samples for each placeholder.
+     * Approval is asynchronous — the returned status is usually PENDING.
+     *
+     * @return array{id: string, name: string, status: string}
+     */
+    public function createTemplate(
+        int $brandId,
+        string $name,
+        string $language,
+        string $category,
+        string $body,
+        array $bodySamples = [],
+    ): array {
+        [$baseUrl, $token, $wabaId] = $this->requireWabaConfig($brandId);
+        $url = "{$baseUrl}/{$wabaId}/message_templates";
+
+        $components = [[
+            'type' => 'BODY',
+            'text' => $body,
+        ]];
+        // Meta requires an example set (one per {{N}}) when placeholders exist.
+        if (!empty($bodySamples)) {
+            $components[0]['example'] = ['body_text' => [array_values($bodySamples)]];
+        }
+
+        $res = Http::withToken($token)
+            ->acceptJson()
+            ->asJson()
+            ->timeout(20)
+            ->post($url, [
+                'name' => $name,
+                'language' => $language,
+                'category' => strtoupper($category),
+                'components' => $components,
+            ]);
+
+        if (! $res->successful()) {
+            $err = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
+            Log::warning('whatsapp.template.create_failed', ['brand_id' => $brandId, 'status' => $res->status(), 'body' => $res->body()]);
+            throw new \RuntimeException(\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
+        }
+
+        $data = (array) $res->json();
+        return [
+            'id' => (string) ($data['id'] ?? ''),
+            'name' => $name,
+            'status' => (string) ($data['status'] ?? 'PENDING'),
+        ];
+    }
+
+    /**
+     * Delete a template by name from the brand's WABA.
+     * Meta soft-deletes: the name becomes unusable for 30 days.
+     */
+    public function deleteTemplate(int $brandId, string $name): void
+    {
+        [$baseUrl, $token, $wabaId] = $this->requireWabaConfig($brandId);
+        $url = "{$baseUrl}/{$wabaId}/message_templates";
+
+        $res = Http::withToken($token)
+            ->acceptJson()
+            ->timeout(20)
+            ->delete($url, ['name' => $name]);
+
+        if (! $res->successful()) {
+            $err = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
+            Log::warning('whatsapp.template.delete_failed', ['brand_id' => $brandId, 'name' => $name, 'status' => $res->status(), 'body' => $res->body()]);
+            throw new \RuntimeException(\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
+        }
+    }
+
+    /** @return array{string, string, string} [baseUrl, token, wabaId] */
+    private function requireWabaConfig(int $brandId): array
+    {
+        $rows = SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->whereIn('setting_key', [
+                'wa_api_base_url', 'wa_api_token', 'wa_business_account_id', 'whatsapp_api_token',
+            ])
+            ->pluck('setting_value', 'setting_key')
+            ->all();
+
+        $baseUrl = rtrim((string) ($rows['wa_api_base_url'] ?? 'https://graph.facebook.com/v25.0'), '/');
+        $token = trim((string) ($rows['wa_api_token'] ?? $rows['whatsapp_api_token'] ?? ''));
+        $wabaId = trim((string) ($rows['wa_business_account_id'] ?? ''));
+
+        if ($token === '' || preg_match('/^\*+$/', $token)) {
+            throw new \RuntimeException('Jeton API WhatsApp manquant. Renseignez-le dans Paramètres → WhatsApp.');
+        }
+        if ($wabaId === '') {
+            throw new \RuntimeException('WhatsApp Business Account ID (WABA) manquant. Renseignez-le dans Paramètres → WhatsApp.');
+        }
+
+        return [$baseUrl, $token, $wabaId];
     }
 
     /** Resolve the stored WhatsApp number by incoming phone_number_id (Meta payload metadata). */

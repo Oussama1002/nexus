@@ -13,6 +13,7 @@ import type {
 } from '../../../lib/settingsCenterApi';
 import { NAV_CATALOG, NAV_BLOCKS, mergeSidebarVisibility } from '../../../lib/sidebarNavCatalog';
 import { ConnectionTestButton, LogoUploadField, SectionCard, SecretField, TagListField, TextField, ToggleRow } from './SettingsUi';
+import * as api from '../../../lib/api';
 
 export function GeneralPanel({
   value,
@@ -326,6 +327,185 @@ export function DeliveryPanel({
   );
 }
 
+type WaTemplate = { name: string; language: string; category: string; status: string; body: string; param_count: number };
+
+function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
+  const [templates, setTemplates] = React.useState<WaTemplate[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [busyName, setBusyName] = React.useState<string | null>(null);
+  const [form, setForm] = React.useState({
+    name: '',
+    language: 'fr',
+    category: 'UTILITY' as 'UTILITY' | 'MARKETING' | 'AUTHENTICATION',
+    body: '',
+    samples: '' as string,
+  });
+  const [saving, setSaving] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const res = await api.get<WaTemplate[]>('whatsapp/templates?all=1');
+    setLoading(false);
+    if (!res.ok) { setError(res.message); return; }
+    setTemplates(res.data ?? []);
+  }, []);
+
+  React.useEffect(() => { void load(); }, [load]);
+
+  const submit = async () => {
+    if (!form.name.trim() || !form.body.trim()) return;
+    const samples = form.samples.split(/[,\n]/).map((s) => s.trim()).filter(Boolean);
+    // Auto-check placeholder count matches samples
+    const placeholders = Array.from(form.body.matchAll(/\{\{(\d+)\}\}/g)).map((m) => parseInt(m[1], 10));
+    const paramCount = placeholders.length ? Math.max(...placeholders) : 0;
+    if (paramCount > 0 && samples.length < paramCount) {
+      alert(`Ce modèle a ${paramCount} variable(s) — fournissez ${paramCount} exemple(s) séparés par des virgules.`);
+      return;
+    }
+    setSaving(true);
+    const res = await api.post('whatsapp/templates', {
+      name: form.name.trim(),
+      language: form.language.trim(),
+      category: form.category,
+      body: form.body.trim(),
+      body_samples: samples,
+    });
+    setSaving(false);
+    if (!res.ok) { alert(res.message ?? 'Erreur.'); return; }
+    setCreateOpen(false);
+    setForm({ name: '', language: 'fr', category: 'UTILITY', body: '', samples: '' });
+    await load();
+  };
+
+  const remove = async (name: string) => {
+    if (!confirm(`Supprimer le modèle "${name}" ?\n\nMeta bloquera le nom pendant 30 jours.`)) return;
+    setBusyName(name);
+    const res = await api.del(`whatsapp/templates/${name}`);
+    setBusyName(null);
+    if (!res.ok) { alert(res.message ?? 'Erreur.'); return; }
+    await load();
+  };
+
+  const statusColor = (s: string) => {
+    const S = s.toUpperCase();
+    if (S === 'APPROVED') return 'bg-emerald-100 text-emerald-800';
+    if (S === 'PENDING' || S === 'IN_REVIEW') return 'bg-amber-100 text-amber-800';
+    if (S === 'REJECTED') return 'bg-rose-100 text-rose-800';
+    return 'bg-zinc-100 text-zinc-700';
+  };
+
+  return (
+    <SectionCard
+      title="Modèles de messages"
+      description="Modèles WhatsApp approuvés par Meta. Nécessaires pour écrire à un client hors fenêtre 24h."
+      actions={
+        <div className="flex gap-2">
+          <button onClick={() => void load()} disabled={loading} className="text-xs font-bold px-3 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 disabled:opacity-40">
+            {loading ? 'Chargement…' : 'Actualiser'}
+          </button>
+          <button onClick={() => setCreateOpen(true)} disabled={disabled} className="text-xs font-black px-3 py-1.5 rounded-xl bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-40">
+            + Nouveau modèle
+          </button>
+        </div>
+      }
+    >
+      {error && (
+        <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 mb-3">{error}</div>
+      )}
+      {templates.length === 0 ? (
+        <p className="text-sm text-zinc-500">
+          Aucun modèle. Créez-en un avec le bouton ci-dessus — Meta répond en ~1–24h.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {templates.map((t) => (
+            <div key={`${t.name}-${t.language}`} className="rounded-xl border border-zinc-200 p-3 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="text-sm font-black text-zinc-900">{t.name}</span>
+                  <span className={`text-[10px] font-bold uppercase rounded-full px-2 py-0.5 ${statusColor(t.status)}`}>{t.status}</span>
+                  <span className="text-[10px] font-bold uppercase text-zinc-500">{t.category}</span>
+                  <span className="text-[10px] font-semibold text-zinc-400">{t.language}</span>
+                  {t.param_count > 0 && (
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">{t.param_count} variable{t.param_count > 1 ? 's' : ''}</span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-600 whitespace-pre-wrap line-clamp-3">{t.body}</p>
+              </div>
+              <button
+                onClick={() => void remove(t.name)}
+                disabled={disabled || busyName === t.name}
+                className="text-[10px] font-black text-rose-600 hover:text-rose-800 disabled:opacity-40 shrink-0"
+              >
+                {busyName === t.name ? '…' : 'Supprimer'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {createOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-3 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-black text-zinc-900">Nouveau modèle WhatsApp</h3>
+            <p className="text-xs text-zinc-500">Une fois soumis, Meta le révise en 1–24h. Vous ne pourrez pas l'utiliser tant qu'il n'est pas APPROVED.</p>
+            <label className="block text-xs font-bold text-zinc-700">
+              Nom (minuscules, chiffres, underscores)
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="contact_generique" />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-bold text-zinc-700">
+                Langue
+                <select value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })}
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm">
+                  <option value="fr">Français (fr)</option>
+                  <option value="en">English (en)</option>
+                  <option value="ar">العربية (ar)</option>
+                  <option value="es">Español (es)</option>
+                </select>
+              </label>
+              <label className="block text-xs font-bold text-zinc-700">
+                Catégorie
+                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as any })}
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm">
+                  <option value="UTILITY">Utility (le moins cher)</option>
+                  <option value="MARKETING">Marketing</option>
+                  <option value="AUTHENTICATION">Authentication</option>
+                </select>
+              </label>
+            </div>
+            <label className="block text-xs font-bold text-zinc-700">
+              Corps du message
+              <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })}
+                rows={4}
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
+                placeholder="Bonjour {{1}}, votre commande {{2}} est prête." />
+              <span className="text-[10px] text-zinc-500">Utilisez {`{{1}}`}, {`{{2}}`}, … pour les variables.</span>
+            </label>
+            <label className="block text-xs font-bold text-zinc-700">
+              Exemples pour la révision Meta (un par variable, séparés par une virgule)
+              <input value={form.samples} onChange={(e) => setForm({ ...form, samples: e.target.value })}
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Fatima, #10245" />
+              <span className="text-[10px] text-zinc-500">Ces exemples ne seront pas envoyés — Meta les utilise juste pour évaluer votre modèle.</span>
+            </label>
+            <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
+              <button onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+              <button onClick={() => void submit()} disabled={saving || !form.name || !form.body}
+                className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-50">
+                {saving ? 'Envoi…' : 'Soumettre à Meta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 function WhatsappNumbersManager({
   disabled,
   brandName,
@@ -606,6 +786,8 @@ export function WhatsappPanel({
           onDeleteNumber={onDeleteNumber}
         />
       ) : null}
+      <WhatsappTemplatesManager disabled={disabled} />
+
       <SectionCard
         title="Connexion"
         description="Jeton API et paramètres par défaut de la marque (utilisés si un numéro n’a pas son propre jeton)."
