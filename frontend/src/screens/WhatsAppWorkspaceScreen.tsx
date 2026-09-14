@@ -359,10 +359,20 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setSendingTemplate(true);
+    // Pre-render the body with parameters so the chat bubble immediately
+    // shows the real message instead of "[Modèle : name]" (avoids depending
+    // on Meta's templates API for the local echo).
+    const previewBody = selectedTemplate.body
+      ? templateParams.reduce(
+          (acc, v, i) => acc.split(`{{${i + 1}}}`).join(v || `{{${i + 1}}}`),
+          selectedTemplate.body,
+        )
+      : '';
     const res = await api.post(`conversations/${selectedId}/send-template`, {
       template_name: selectedTemplate.name,
       language_code: selectedTemplate.language,
       parameters: templateParams,
+      preview_content: previewBody,
     });
     setSendingTemplate(false);
     if (!res.ok) { toast.error(res.message); return; }

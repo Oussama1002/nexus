@@ -170,21 +170,30 @@ class WhatsAppTemplateAutomationService
      */
     private function renderBody(int $brandId, string $templateName, array $params, ?WhatsAppNumber $number): string
     {
+        $findBody = function (array $templates) use ($templateName): string {
+            foreach ($templates as $t) {
+                if (($t['name'] ?? null) === $templateName) {
+                    return (string) ($t['body'] ?? '');
+                }
+            }
+            return '';
+        };
+        $body = '';
         try {
             $templates = Cache::remember(
                 "wa_templates_brand_{$brandId}",
                 300,
                 fn () => $this->wa->fetchTemplates($brandId),
             );
-        } catch (\Throwable $e) {
-            return '';
-        }
-        $body = '';
-        foreach ($templates as $t) {
-            if (($t['name'] ?? null) === $templateName) {
-                $body = (string) ($t['body'] ?? '');
-                break;
+            $body = $findBody($templates);
+            // Cache might hold approved-only list but template is PENDING
+            // (still deliverable to the phone as far as Meta is concerned
+            // once approved). Retry with full list before giving up.
+            if ($body === '') {
+                $body = $findBody($this->wa->fetchTemplates($brandId, false));
             }
+        } catch (\Throwable $e) {
+            $body = '';
         }
         if ($body === '') return '';
         $i = 1;

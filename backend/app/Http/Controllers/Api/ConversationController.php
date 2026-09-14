@@ -427,6 +427,7 @@ class ConversationController extends Controller
             'language_code' => ['nullable', 'string', 'max:10'],
             'parameters' => ['nullable', 'array'],
             'parameters.*' => ['string'],
+            'preview_content' => ['nullable', 'string', 'max:4096'],
         ]);
 
         $recipient = $conversation->external_thread_id;
@@ -464,18 +465,21 @@ class ConversationController extends Controller
             return ApiResponse::error($e->getMessage(), null, 502);
         }
 
-        $rendered = \App\Services\WhatsAppTemplateAutomationService::renderStoredBody(
-            $conversation->brand_id,
-            $data['template_name'],
-            array_values($data['parameters'] ?? []),
-            $wa,
-        );
+        $rendered = trim((string) ($data['preview_content'] ?? ''));
+        if ($rendered === '') {
+            $rendered = \App\Services\WhatsAppTemplateAutomationService::renderStoredBody(
+                $conversation->brand_id,
+                $data['template_name'],
+                array_values($data['parameters'] ?? []),
+                $wa,
+            );
+        }
 
         $message = Message::query()->create([
             'conversation_id' => $conversation->id,
             'sender_user_id' => $request->user()->id,
             'direction' => 'outbound',
-            'content' => $rendered !== '' ? $rendered : ('[Template: ' . $data['template_name'] . ']'),
+            'content' => $rendered !== '' ? $rendered : ('[Modèle : ' . $data['template_name'] . ']'),
             'message_type' => 'template',
             'external_message_id' => $externalId,
             'sent_at' => now(),

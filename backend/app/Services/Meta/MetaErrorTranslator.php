@@ -102,6 +102,17 @@ class MetaErrorTranslator
             return 'Impossible d’envoyer un message libre : le client n’a pas écrit dans les dernières 24 h. Utilisez un modèle WhatsApp approuvé, ou attendez qu’il vous écrive d’abord.';
         }
 
+        // Compte WABA sans moyen de paiement valide (#131042 + variantes).
+        if (
+            $code === 131042
+            || str_contains($normalized, 'business eligibility payment')
+            || str_contains($normalized, 'payment method')
+            || str_contains($normalized, 'not eligible to send')
+            || str_contains($normalized, 'business account is not eligible')
+        ) {
+            return 'Le compte WhatsApp Business n’a pas de moyen de paiement valide. Ouvrez business.facebook.com → Paramètres du compte → Facturation & paiements et ajoutez une carte au WABA (les 1 000 conversations gratuites/mois nécessitent quand même une carte enregistrée).';
+        }
+
         // Repli : préfixe français conservant le détail Meta.
         return 'Erreur Meta : '.$raw;
     }
