@@ -545,7 +545,7 @@ export function WhatsAppWorkspaceScreen({
       </div>
 
       <div className="rounded-2xl border border-zinc-200/90 bg-white shadow-[0_2px_24px_rgba(15,23,42,0.06)]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[calc(100dvh-13rem)] lg:max-h-[calc(100dvh-13rem)] overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[calc(100dvh-8rem)] lg:max-h-[calc(100dvh-8rem)] overflow-hidden">
           <aside className={cn(
             'lg:col-span-4 flex flex-col min-w-0 min-h-0 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-100/90 bg-zinc-50/30',
             // On mobile: hide the conversation list while a conversation is open,
