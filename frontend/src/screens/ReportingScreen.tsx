@@ -500,7 +500,7 @@ export function ReportingScreen() {
               className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
             >
               <FileDown className="w-4 h-4" />
-              Exporter PDF
+              Exporter PDF rapport {TAB_LABELS[tab]}
             </button>
           </div>
         }
