@@ -679,7 +679,7 @@ export function MainApp() {
                 value={activeBrandId}
                 onChange={(e) => setActiveBrandId(e.target.value)}
               >
-                {isAdmin && brands.length > 1 && (
+                {brands.length > 1 && (
                   <option value="all">Toutes les marques</option>
                 )}
                 {brands.map((b) => (
