@@ -95,6 +95,7 @@ type AuditLogRow = {
   ip_address: string | null;
   created_at: string;
   user?: AuditUser | null;
+  context?: { customer_id?: number; customer_name?: string; customer_phone?: string; conversation_id?: number } | null;
 };
 
 function hasAuditPayload(values: Record<string, unknown> | null | undefined): boolean {
@@ -494,6 +495,9 @@ export function TrackingScreen() {
               <p className="mt-1 text-sm font-black text-zinc-900">{auditActionLabelFr(r.action)}</p>
               <p className="text-xs text-zinc-600 mt-1">
                 {r.user?.name ?? resolveEntityName(r.entity_type, r.entity_id, lookups) ?? '—'} · {resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditEntitySummaryFr(r.entity_type, r.entity_id)}
+                {r.context?.customer_name ? (
+                  <span className="text-zinc-500"> · Client : <span className="font-black text-zinc-900">{r.context.customer_name}</span></span>
+                ) : null}
               </p>
             </div>
             <span className="text-[10px] font-mono text-zinc-400">{r.ip_address}</span>
@@ -534,6 +538,15 @@ export function TrackingScreen() {
                 <span className="text-zinc-500">Objet concerné : </span>
                 <span className="font-bold text-zinc-900">{resolveEntityName(detail.entity_type, detail.entity_id, lookups) ?? auditEntitySummaryFr(detail.entity_type, detail.entity_id)}</span>
               </p>
+              {detail.context?.customer_name ? (
+                <p>
+                  <span className="text-zinc-500">Client : </span>
+                  <span className="font-bold text-zinc-900">{detail.context.customer_name}</span>
+                  {detail.context.customer_phone ? (
+                    <span className="text-zinc-600 font-medium"> · {detail.context.customer_phone}</span>
+                  ) : null}
+                </p>
+              ) : null}
               {detail.ip_address ? (
                 <p className="text-xs text-zinc-500">
                   IP : <span className="font-mono">{detail.ip_address}</span>
