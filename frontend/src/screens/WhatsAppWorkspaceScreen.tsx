@@ -531,11 +531,6 @@ export function WhatsAppWorkspaceScreen({
         <div>
           <h1 className="text-xl font-black text-zinc-900">Conversations</h1>
           <p className="text-sm font-medium text-zinc-500 mt-1">Marque active: {activeBrand.name}</p>
-          {isConfirmatrice ? (
-            <p className="text-xs font-semibold text-zinc-500 mt-2 max-w-xl">
-              Répondez aux clients depuis cette interface ; l’application WhatsApp sur téléphone n’est pas utilisée.
-            </p>
-          ) : null}
         </div>
         {canCreateConversations ? (
           <button type="button" onClick={() => setNewOpen(true)} className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700">
