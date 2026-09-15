@@ -385,6 +385,26 @@ export function UsersAdminScreen() {
           </span>
         ),
       },
+      {
+        key: 'brands',
+        header: 'Marques',
+        className: '!align-top text-left',
+        cell: (u) => {
+          if (!u.brands || u.brands.length === 0) return <span className="text-xs text-zinc-400">—</span>;
+          if (brands.length > 0 && u.brands.length === brands.length) {
+            return <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-black uppercase tracking-wide">Toutes</span>;
+          }
+          return (
+            <div className="flex flex-wrap gap-1">
+              {u.brands.map((b) => (
+                <span key={b.id} className="inline-flex items-center px-2 py-0.5 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-[10px] font-bold">
+                  {b.name}
+                </span>
+              ))}
+            </div>
+          );
+        },
+      },
       { key: 'status', header: 'Statut', className: '!align-top text-left', cell: (u) => <span className="text-xs font-black uppercase">{u.status}</span> },
       {
         key: 'actions',
@@ -445,7 +465,7 @@ export function UsersAdminScreen() {
         ),
       },
     ],
-    [canUpdate, canDelete],
+    [canUpdate, canDelete, brands.length],
   );
 
   if (!canView) {
