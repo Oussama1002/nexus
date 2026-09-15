@@ -107,8 +107,22 @@ html, body {
   body[data-print-mode="report"] {
     background: #fff !important;
   }
+  /* The AppShell clamps everything to the viewport with max-h-screen +
+   * overflow-hidden so the sidebar/topbar/content fit on-screen. That
+   * makes only the first viewport print. Release those clamps so the
+   * report content flows across as many pages as it needs. */
+  body[data-print-mode="report"],
+  body[data-print-mode="report"] #root,
+  body[data-print-mode="report"] main,
+  body[data-print-mode="report"] main > div {
+    max-height: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
   body[data-print-mode="report"] main {
     padding: 0 !important;
+    display: block !important;
   }
   body[data-print-mode="report"] .card {
     box-shadow: none !important;
