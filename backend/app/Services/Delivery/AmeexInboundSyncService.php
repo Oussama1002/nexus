@@ -374,7 +374,9 @@ class AmeexInboundSyncService
                 'brand_id' => $customer->brand_id,
                 'customer_id' => $customer->id,
                 'source' => $carrier,
-                'status' => 'new',
+                // Le client existe déjà côté transporteur (colis émis) → il
+                // est confirmé, pas un simple prospect « nouveau ».
+                'status' => 'confirmed',
                 'notes' => 'Lead auto-créé depuis un import livraison (' . $carrier . ').',
                 'first_contact_at' => now(),
             ]);
