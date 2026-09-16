@@ -208,16 +208,22 @@ class WhatsAppCloudService
             $components[0]['example'] = ['body_text' => [array_values($bodySamples)]];
         }
 
-        $res = Http::withToken($token)
-            ->acceptJson()
-            ->asJson()
-            ->timeout(20)
-            ->post($url, [
-                'name' => $name,
-                'language' => $language,
-                'category' => strtoupper($category),
-                'components' => $components,
-            ]);
+        try {
+            $res = Http::withToken($token)
+                ->acceptJson()
+                ->asJson()
+                ->connectTimeout(10)
+                ->timeout(45)
+                ->post($url, [
+                    'name' => $name,
+                    'language' => $language,
+                    'category' => strtoupper($category),
+                    'components' => $components,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('whatsapp.template.create_http_error', ['brand_id' => $brandId, 'error' => $e->getMessage()]);
+            throw new \RuntimeException('Impossible de joindre Meta (' . $e->getMessage() . '). Réessayez dans un instant.');
+        }
 
         if (! $res->successful()) {
             $err = (string) ($res->json('error.message') ?? $res->body());

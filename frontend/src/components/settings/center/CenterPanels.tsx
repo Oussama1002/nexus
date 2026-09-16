@@ -393,7 +393,16 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
       body_samples: samples,
     }, brandOpt);
     setSaving(false);
-    if (!res.ok) { alert(res.message ?? 'Erreur.'); return; }
+    if (!res.ok) {
+      // "Failed to fetch" is a browser fetch-level TypeError: the request
+      // never got a response (proxy timeout, connection dropped). Give the
+      // user something actionable.
+      const msg = res.message === 'Failed to fetch'
+        ? "Le serveur n'a pas répondu (délai proxy dépassé). Meta prend parfois >30 s pour créer un modèle : réessayez, ou vérifiez dans quelques minutes si le modèle apparaît quand même dans la liste."
+        : res.message ?? 'Erreur.';
+      alert(msg);
+      return;
+    }
     setCreateOpen(false);
     setForm({ name: '', language: 'fr', category: 'UTILITY', body: '', samples: '' });
     await load();
