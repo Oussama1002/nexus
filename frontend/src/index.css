@@ -104,6 +104,17 @@ html, body {
   body[data-print-mode="report"] .no-print {
     display: none !important;
   }
+  /* The shell uses max-h-screen + overflow-hidden on the app wrapper and
+   * <main>, plus overflow-y-auto on the inner scroll container. In print
+   * that clips everything below the viewport, leaving a blank PDF. Force
+   * every ancestor of the report content to lay out its full height and
+   * let overflow spill so the browser can paginate it. */
+  html, body, #root,
+  body[data-print-mode="report"] * {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
   body[data-print-mode="report"] {
     background: #fff !important;
   }
@@ -128,10 +139,20 @@ html, body {
     box-shadow: none !important;
     border: 1px solid #e4e4e7 !important;
     break-inside: avoid;
+    page-break-inside: avoid;
   }
   body[data-print-mode="report"] .recharts-wrapper,
   body[data-print-mode="report"] table {
     break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Force Chrome to print colored backgrounds (chart fills, badges). */
+  body[data-print-mode="report"] * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page {
+    margin: 12mm;
   }
 }
 
