@@ -283,6 +283,92 @@ function Kpi({
   );
 }
 
+type CarrierKpi = {
+  name: string;
+  code?: string;
+  total: number;
+  delivered: number;
+  returned: number;
+  cancelled: number;
+  pending: number;
+  in_transit: number;
+  failed: number;
+  cod_total: number;
+  fee_total: number;
+  delivery_rate: number | null;
+  avg_cod: number | null;
+  avg_fee: number | null;
+};
+
+function CarrierKpiSection({ carriers }: { carriers: unknown[] }) {
+  const rows = (carriers as CarrierKpi[]).filter((c) => c && typeof c === 'object');
+  if (rows.length === 0) {
+    return (
+      <div className="card p-4">
+        <h3 className="text-sm font-black text-zinc-900 mb-1">Par transporteur</h3>
+        <p className="text-xs text-zinc-500">Aucun colis rattaché à un transporteur sur cette période.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-black text-zinc-900">Par transporteur</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {rows.map((c) => (
+          <div key={`${c.name}-${c.code ?? ''}`} className="card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-black text-zinc-900 truncate">{c.name}</p>
+                {c.code ? <p className="text-[10px] font-bold uppercase text-zinc-400 mt-0.5">{c.code}</p> : null}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[10px] font-black uppercase text-zinc-400">Colis</p>
+                <p className="text-lg font-black text-zinc-900">{c.total}</p>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-2 py-1.5">
+                <p className="text-[9px] font-black uppercase text-emerald-700">Taux livraison</p>
+                <p className="text-sm font-black text-emerald-900">{c.delivery_rate == null ? '—' : `${c.delivery_rate.toFixed(1)} %`}</p>
+              </div>
+              <div className="rounded-lg bg-rose-50 border border-rose-100 px-2 py-1.5">
+                <p className="text-[9px] font-black uppercase text-rose-700">Retours</p>
+                <p className="text-sm font-black text-rose-900">{c.returned}</p>
+              </div>
+              <div className="rounded-lg bg-amber-50 border border-amber-100 px-2 py-1.5">
+                <p className="text-[9px] font-black uppercase text-amber-700">En transit</p>
+                <p className="text-sm font-black text-amber-900">{c.in_transit}</p>
+              </div>
+              <div className="rounded-lg bg-zinc-50 border border-zinc-100 px-2 py-1.5">
+                <p className="text-[9px] font-black uppercase text-zinc-500">Annulés</p>
+                <p className="text-sm font-black text-zinc-900">{c.cancelled}</p>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <p className="text-[9px] font-black uppercase text-zinc-400">Total COD</p>
+                <p className="text-sm font-black text-zinc-900">{formatCurrency(c.cod_total)}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase text-zinc-400">Coût livraison total</p>
+                <p className="text-sm font-black text-zinc-900">{formatCurrency(c.fee_total)}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase text-zinc-400">COD moyen (livré)</p>
+                <p className="text-sm font-bold text-zinc-800">{c.avg_cod == null ? '—' : formatCurrency(c.avg_cod)}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase text-zinc-400">Coût moyen / colis</p>
+                <p className="text-sm font-bold text-zinc-800">{c.avg_fee == null ? '—' : formatCurrency(c.avg_fee)}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function startOfMonth(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -756,6 +842,7 @@ export function ReportingScreen() {
               emptyHint="Pas d’expéditions à afficher."
             />
           </div>
+          <CarrierKpiSection carriers={(deliveryRep.by_carrier as unknown[]) ?? []} />
         </div>
       )}
 

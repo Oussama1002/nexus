@@ -226,9 +226,75 @@ class ReportService
             ->whereBetween('created_at', [$from, $to])
             ->selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status');
 
+        // Per-carrier KPIs. Groups shipments by delivery_company (Ameex,
+        // Sendit, …) — status breakdown, delivery rate, average COD, average
+        // delivery fee, unlabelled shipments (no delivery_company set) fall
+        // under "Sans transporteur" so nothing is dropped.
+        $rows = Shipment::query()
+            ->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
+            ->whereBetween('shipments.created_at', [$from, $to])
+            ->leftJoin('delivery_companies as dc', 'dc.id', '=', 'shipments.delivery_company_id')
+            ->selectRaw("
+                COALESCE(dc.name, 'Sans transporteur') AS carrier_name,
+                COALESCE(dc.code, '')                   AS carrier_code,
+                shipments.status                        AS status,
+                COUNT(*)                                AS c,
+                COALESCE(SUM(shipments.cod_amount), 0)  AS cod_total,
+                COALESCE(SUM(shipments.delivery_fee), 0) AS fee_total
+            ")
+            ->groupBy('carrier_name', 'carrier_code', 'shipments.status')
+            ->get();
+
+        $byCarrier = [];
+        foreach ($rows as $r) {
+            $key = (string) $r->carrier_name;
+            $bucket = $byCarrier[$key] ?? [
+                'name' => (string) $r->carrier_name,
+                'code' => (string) $r->carrier_code,
+                'total' => 0,
+                'delivered' => 0,
+                'returned' => 0,
+                'cancelled' => 0,
+                'pending' => 0,
+                'in_transit' => 0,
+                'failed' => 0,
+                'cod_total' => 0.0,
+                'fee_total' => 0.0,
+                'by_status' => [],
+            ];
+            $count = (int) $r->c;
+            $bucket['total'] += $count;
+            $bucket['cod_total'] += (float) $r->cod_total;
+            $bucket['fee_total'] += (float) $r->fee_total;
+            $status = (string) $r->status;
+            $bucket['by_status'][$status] = ($bucket['by_status'][$status] ?? 0) + $count;
+            $mapped = match ($status) {
+                'delivered' => 'delivered',
+                'returned' => 'returned',
+                'cancelled' => 'cancelled',
+                'in_transit', 'shipped', 'picked_up', 'out_for_delivery' => 'in_transit',
+                'failed' => 'failed',
+                default => 'pending',
+            };
+            $bucket[$mapped] += $count;
+            $byCarrier[$key] = $bucket;
+        }
+        // Delivery rate per carrier (livrés / (livrés + retournés + annulés + échec) — colis à statut final).
+        $carrierList = array_values(array_map(function (array $b) {
+            $final = $b['delivered'] + $b['returned'] + $b['cancelled'] + $b['failed'];
+            $b['delivery_rate'] = $final > 0 ? round($b['delivered'] * 100 / $final, 1) : null;
+            $b['avg_cod'] = $b['delivered'] > 0 ? round($b['cod_total'] / $b['delivered'], 2) : null;
+            $b['avg_fee'] = $b['total'] > 0 ? round($b['fee_total'] / $b['total'], 2) : null;
+            $b['cod_total'] = round($b['cod_total'], 2);
+            $b['fee_total'] = round($b['fee_total'], 2);
+            return $b;
+        }, $byCarrier));
+        usort($carrierList, fn ($a, $b) => $b['total'] <=> $a['total']);
+
         return [
             'period' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
             'shipments_by_status' => $shipments,
+            'by_carrier' => $carrierList,
         ];
     }
 
