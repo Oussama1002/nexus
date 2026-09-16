@@ -526,7 +526,7 @@ export function WhatsAppWorkspaceScreen({
   }
 
   return (
-    <div className="space-y-8 min-h-0 pb-4">
+    <div className="space-y-3 min-h-0 pb-2">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-zinc-900">Conversations</h1>
@@ -540,7 +540,7 @@ export function WhatsAppWorkspaceScreen({
       </div>
 
       <div className="rounded-2xl border border-zinc-200/90 bg-white shadow-[0_2px_24px_rgba(15,23,42,0.06)]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[calc(100dvh-8rem)] lg:max-h-[calc(100dvh-8rem)] overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-0 lg:h-[calc(100dvh-5rem)] lg:max-h-[calc(100dvh-5rem)] overflow-hidden">
           <aside className={cn(
             'lg:col-span-4 flex flex-col min-w-0 min-h-0 lg:h-full border-b lg:border-b-0 lg:border-r border-zinc-100/90 bg-zinc-50/30',
             // On mobile: hide the conversation list while a conversation is open,
@@ -668,7 +668,7 @@ export function WhatsAppWorkspaceScreen({
           )}>
             {selected ? (
               <>
-                <div className="px-5 sm:px-7 py-5 border-b border-zinc-100/90 shrink-0 bg-white">
+                <div className="px-5 sm:px-7 py-3 border-b border-zinc-100/90 shrink-0 bg-white">
                   <button
                     type="button"
                     onClick={() => setSelectedId(null)}
@@ -770,7 +770,7 @@ export function WhatsAppWorkspaceScreen({
                   })()}
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-6 space-y-5 bg-gradient-to-b from-zinc-50/50 to-white">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-4 space-y-4 bg-gradient-to-b from-zinc-50/50 to-white">
                   {msgLoading ? (
                     <p className="text-sm font-bold text-zinc-500">Chargement messages…</p>
                   ) : (
