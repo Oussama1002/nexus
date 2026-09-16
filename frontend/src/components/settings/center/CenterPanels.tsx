@@ -332,7 +332,13 @@ type WaTemplate = { name: string; language: string; category: string; status: st
 
 function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
   const { activeBrandId } = useBrand();
-  const brandOpt = activeBrandId ? { brandId: String(activeBrandId) } : undefined;
+  // Memoize so the reference is stable across renders — otherwise the load
+  // callback identity changes every render and the useEffect below fires
+  // in a tight loop ("Failed to fetch"), and the UI blinks.
+  const brandOpt = React.useMemo(
+    () => (activeBrandId ? { brandId: String(activeBrandId) } : undefined),
+    [activeBrandId],
+  );
   const [templates, setTemplates] = React.useState<WaTemplate[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
