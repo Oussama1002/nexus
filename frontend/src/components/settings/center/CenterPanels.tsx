@@ -357,10 +357,19 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
     if (!activeBrandId) { setError('Sélectionnez une marque active pour voir les modèles.'); setTemplates([]); return; }
     setLoading(true);
     setError(null);
-    const res = await api.get<WaTemplate[]>('whatsapp/templates?all=1', brandOpt);
+    const res = await api.get<WaTemplate[] | { data?: WaTemplate[] }>('whatsapp/templates?all=1', brandOpt);
     setLoading(false);
     if (!res.ok) { setError(res.message); return; }
-    setTemplates(res.data ?? []);
+    // The endpoint returns ApiResponse::success([...]) — normalize gives us
+    // that inner array as res.data. Some proxy setups strip the envelope
+    // and hand back a bare list, so accept either shape.
+    const raw = res.data as unknown;
+    const list: WaTemplate[] = Array.isArray(raw)
+      ? (raw as WaTemplate[])
+      : raw && typeof raw === 'object' && Array.isArray((raw as { data?: unknown }).data)
+        ? ((raw as { data: WaTemplate[] }).data)
+        : [];
+    setTemplates(list);
   }, [activeBrandId, brandOpt]);
 
   React.useEffect(() => { void load(); }, [load]);

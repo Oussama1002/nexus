@@ -87,6 +87,11 @@ async function parseJson(res: Response): Promise<unknown> {
 }
 
 function normalize<T>(status: number, body: unknown): NormalizedResponse<T> {
+  // A 2xx with a bare JSON array (no ApiResponse envelope) — some legacy
+  // endpoints and some proxy setups strip the wrapper. Treat it as data:T.
+  if (status >= 200 && status < 300 && Array.isArray(body)) {
+    return { ok: true, status, message: 'OK', data: body as unknown as T };
+  }
   if (body && typeof body === 'object' && 'success' in body) {
     const b = body as Partial<ApiEnvelopeSuccess<T>> & Partial<ApiEnvelopeError>;
     if (b.success === true) {
