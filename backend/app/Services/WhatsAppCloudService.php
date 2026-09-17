@@ -209,11 +209,16 @@ class WhatsAppCloudService
         }
 
         try {
+            // Keep the total HTTP time well under the typical proxy read
+            // timeout (nginx/apache default 30-60s) so a slow Meta reply
+            // still surfaces as a proper JSON 502 from Laravel instead of
+            // the proxy's own HTML "Bad Gateway" page. Meta's create
+            // endpoint normally answers in 2-5s.
             $res = Http::withToken($token)
                 ->acceptJson()
                 ->asJson()
-                ->connectTimeout(10)
-                ->timeout(45)
+                ->connectTimeout(5)
+                ->timeout(15)
                 ->post($url, [
                     'name' => $name,
                     'language' => $language,
