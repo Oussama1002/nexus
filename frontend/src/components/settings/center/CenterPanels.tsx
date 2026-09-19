@@ -193,6 +193,7 @@ export function CataloguePanel({
 const SMTP_PRESETS = [
   { id: 'gmail', label: 'Gmail / Google Workspace', host: 'smtp.gmail.com', port: '587', encryption: 'tls' },
   { id: 'outlook', label: 'Outlook / Microsoft 365', host: 'smtp.office365.com', port: '587', encryption: 'tls' },
+  { id: 'titan', label: 'Titan Mail', host: 'smtp.titan.email', port: '465', encryption: 'ssl' },
   { id: 'hostinger', label: 'Hostinger', host: 'smtp.hostinger.com', port: '465', encryption: 'ssl' },
   { id: 'ovh', label: 'OVH', host: 'ssl0.ovh.net', port: '465', encryption: 'ssl' },
   { id: 'zoho', label: 'Zoho Mail', host: 'smtp.zoho.com', port: '465', encryption: 'ssl' },

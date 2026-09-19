@@ -71,7 +71,7 @@ class BrandMailer
     {
         $m = strtolower($raw);
         if (str_contains($m, 'authenticate') || str_contains($m, '535') || str_contains($m, 'username and password')) {
-            return 'Adresse e-mail ou mot de passe refusé par le serveur. Pour Gmail, il faut un « mot de passe d’application », pas le mot de passe habituel.';
+            return 'Adresse e-mail ou mot de passe refusé par le serveur. Vérifiez que le fournisseur choisi est bien celui qui héberge cette boîte mail (ex. Titan Mail pour une adresse @medicaldine.ma), et que le mot de passe est celui de la boîte. Pour Gmail, il faut un « mot de passe d’application ».';
         }
         if (str_contains($m, 'could not be established') || str_contains($m, 'timed out') || str_contains($m, 'getaddrinfo') || str_contains($m, 'connection refused')) {
             return 'Impossible de joindre le serveur e-mail. Vérifiez le fournisseur choisi (hôte / port).';
