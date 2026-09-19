@@ -426,11 +426,14 @@ class SenditInboundSyncService
     private function ensureLead(Customer $customer, string $carrier): void
     {
         try {
-            $exists = Lead::query()
+            $existing = Lead::query()
                 ->where('brand_id', $customer->brand_id)
-                ->where('customer_id', $customer->id)
-                ->exists();
-            if ($exists) return;
+                ->where('customer_id', $customer->id);
+            if ($existing->exists()) {
+                // Déjà un lead (ex. venu de WhatsApp) : un colis transporteur le confirme.
+                (clone $existing)->where('status', 'new')->update(['status' => 'confirmed']);
+                return;
+            }
 
             Lead::query()->create([
                 'brand_id' => $customer->brand_id,
