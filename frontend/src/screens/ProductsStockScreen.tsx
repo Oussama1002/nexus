@@ -891,7 +891,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                   >
                     <option value="">— Choisir un produit —</option>
                     {products.filter((p) => p.category.toLowerCase() !== 'packs' && p.category.toLowerCase() !== 'pack').map((p) => (
-                      <option key={p.apiId} value={p.apiId}>{p.name} ({p.sku})</option>
+                      <option key={p.apiId} value={p.apiId}>{p.name}</option>
                     ))}
                   </select>
                   <input
@@ -1060,7 +1060,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                   >
                     <option value="">— Choisir un produit —</option>
                     {products.filter((p) => p.category.toLowerCase() !== 'packs' && p.category.toLowerCase() !== 'pack').map((p) => (
-                      <option key={p.apiId} value={p.apiId}>{p.name} ({p.sku})</option>
+                      <option key={p.apiId} value={p.apiId}>{p.name}</option>
                     ))}
                   </select>
                   <input

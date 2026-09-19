@@ -85,7 +85,7 @@ export function StockMovementsScreen() {
 
   const productLabel = useMemo(() => {
     const p = products.find((p) => String(p.id) === form.product_id);
-    return p ? `${p.sku} — ${p.name} (stock ${p.stock_quantity})` : '';
+    return p ? `${p.name} (stock ${p.stock_quantity})` : '';
   }, [products, form.product_id]);
 
   async function submitCreate() {
@@ -272,7 +272,7 @@ export function StockMovementsScreen() {
               >
                 <option value="">— Sélectionner —</option>
                 {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.sku} — {p.name} (stock {p.stock_quantity})</option>
+                  <option key={p.id} value={p.id}>{p.name} (stock {p.stock_quantity})</option>
                 ))}
               </select>
               {productLabel && <p className="mt-1 text-[11px] text-zinc-500">{productLabel}</p>}

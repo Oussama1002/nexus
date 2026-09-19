@@ -402,7 +402,7 @@ export function OrdersNewScreen({
                       <option value="">— Saisie manuelle —</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.sku} — {p.name}
+                          {p.name}
                         </option>
                       ))}
                     </select>

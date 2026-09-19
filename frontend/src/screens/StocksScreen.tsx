@@ -230,7 +230,7 @@ export function StocksScreen() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-1">
               <h2 className="text-xl font-black text-zinc-900">Mouvement de stock</h2>
-              <p className="text-sm font-bold text-zinc-900">{adjustProduct.sku} — {adjustProduct.name}</p>
+              <p className="text-sm font-bold text-zinc-900">{adjustProduct.name}</p>
               <p className="text-sm text-zinc-700">Stock actuel : <span className="font-black text-zinc-900">{adjustProduct.stock_quantity}</span> (dont {adjustProduct.reserved_quantity} réservés)</p>
             </div>
             <label className="block text-sm font-bold text-zinc-900">
