@@ -81,6 +81,7 @@ Repo: `github.com/Oussama1002/nexus` — user branch `main`.
   - `2026_09_14_110000_backfill_leads_for_all_customers`
   - `2026_09_16_100000_promote_carrier_leads_to_confirmed`
   - `2026_09_19_100000_confirm_leads_of_customers_with_shipments` (existing "new" leads, e.g. WhatsApp, whose customer has a carrier parcel → confirmed; sync does the same live)
+  - `2026_09_19_110000_backfill_leads_for_all_conversations` (lead for every client with a conversation, any channel)
 
 ## Open / unresolved issues
 

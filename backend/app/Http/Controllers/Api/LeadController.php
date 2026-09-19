@@ -41,7 +41,12 @@ class LeadController extends Controller
 
         $user = $request->user();
         if ($user && ! $user->isAdmin() && ! $user->isManagerOperational() && $user->shouldRestrictShipmentsToAssignedOrders()) {
-            $q->where('assigned_user_id', $user->id);
+            // Also the leads of clients this agent is chatting with in Conversations.
+            $q->where(fn ($w) => $w->where('assigned_user_id', $user->id)
+                ->orWhereExists(fn ($c) => $c->selectRaw('1')->from('conversations')
+                    ->whereColumn('conversations.customer_id', 'leads.customer_id')
+                    ->whereColumn('conversations.brand_id', 'leads.brand_id')
+                    ->where('conversations.assigned_user_id', $user->id)));
         } elseif ($assigned !== null && $assigned !== '') {
             $q->where('assigned_user_id', (int) $assigned);
         }

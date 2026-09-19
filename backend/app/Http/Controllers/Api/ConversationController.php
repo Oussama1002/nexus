@@ -129,6 +129,18 @@ class ConversationController extends Controller
         $conversation = Conversation::query()->create($data);
         AuditLogger::log($request, 'conversations.create', $conversation, null, $conversation->toArray());
 
+        if ($conversation->customer_id && ! Lead::query()->where('brand_id', $brandId)->where('customer_id', $conversation->customer_id)->exists()) {
+            Lead::query()->create([
+                'brand_id' => $brandId,
+                'customer_id' => $conversation->customer_id,
+                'source' => $conversation->channel === 'whatsapp' ? 'WhatsApp' : ucfirst((string) $conversation->channel),
+                'status' => 'new',
+                'assigned_user_id' => $conversation->assigned_user_id ?? $request->user()->id,
+                'notes' => 'Lead auto-créé depuis une conversation.',
+                'first_contact_at' => now(),
+            ]);
+        }
+
         return ApiResponse::success($conversation->fresh(['customer', 'lead']), 'Conversation created successfully.', 201);
     }
 
