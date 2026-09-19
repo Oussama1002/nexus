@@ -1156,40 +1156,27 @@ export function WhatsAppWorkspaceScreen({
                 <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm whitespace-pre-wrap">
                   {selectedTemplate.body ? renderTemplatePreview(selectedTemplate.body, templateParams) : <em>(pas de corps)</em>}
                 </div>
-                {/*
-                  Only show manual variable inputs for placeholders we couldn't
-                  auto-fill from the customer (blank strings in templateParams).
-                  {{1}} usually resolves from the customer name → hidden.
-                */}
-                {(() => {
-                  const missing = templateParams
-                    .map((v, i) => ({ idx: i, val: v }))
-                    .filter((p) => !p.val || !p.val.trim());
-                  if (missing.length === 0) return null;
-                  return (
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-zinc-700">À compléter :</p>
-                      {missing.map(({ idx }) => {
-                        // Extract a nearby word to hint what the variable represents.
-                        const marker = `{{${idx + 1}}}`;
-                        const before = selectedTemplate.body.split(marker)[0]?.split(/\s+/).slice(-3).join(' ') ?? '';
-                        const hint = before || `variable ${idx + 1}`;
-                        return (
-                          <label key={idx} className="block text-xs font-semibold text-zinc-600">
-                            {hint}…
-                            <input
-                              value={templateParams[idx] ?? ''}
-                              onChange={(e) => setTemplateParams((prev) => { const next = [...prev]; next[idx] = e.target.value; return next; })}
-                              className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                              placeholder="Valeur…"
-                              autoFocus
-                            />
-                          </label>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                {templateParams.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-zinc-700">Variables du modèle (modifiables) :</p>
+                    {templateParams.map((val, idx) => {
+                      const marker = `{{${idx + 1}}}`;
+                      const before = selectedTemplate.body.split(marker)[0]?.split(/\s+/).slice(-3).join(' ') ?? '';
+                      return (
+                        <label key={idx} className="block text-xs font-semibold text-zinc-600">
+                          <span className="font-black text-zinc-400">{marker}</span> {before ? `${before}…` : ''}
+                          <input
+                            value={val}
+                            onChange={(e) => setTemplateParams((prev) => { const next = [...prev]; next[idx] = e.target.value; return next; })}
+                            className={`mt-1 w-full px-3 py-2 rounded-xl border text-sm ${val.trim() ? 'border-zinc-200' : 'border-amber-300 bg-amber-50'}`}
+                            placeholder="Valeur…"
+                            autoFocus={idx === templateParams.findIndex((v) => !v.trim())}
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
                   <button onClick={() => { setSelectedTemplate(null); setTemplateParams([]); }} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Retour</button>
                   <button
