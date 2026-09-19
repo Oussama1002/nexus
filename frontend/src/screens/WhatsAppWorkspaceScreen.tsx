@@ -804,7 +804,17 @@ export function WhatsAppWorkspaceScreen({
                                   : 'bg-white text-zinc-800 border-zinc-100 rounded-tl-none',
                               )}
                             >
-                              {m.message_type === 'image' && m.media_url ? (
+                              {m.message_type === 'audio' && m.media_url ? (
+                                <div className="space-y-2">
+                                  <audio controls preload="metadata" src={`${window.location.origin}${m.media_url}`} className="w-64 max-w-full" />
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                </div>
+                              ) : m.message_type === 'video' && m.media_url ? (
+                                <div className="space-y-2">
+                                  <video controls preload="metadata" src={`${window.location.origin}${m.media_url}`} className="max-w-[260px] rounded-xl" />
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                </div>
+                              ) : (m.message_type === 'image' || m.message_type === 'sticker') && m.media_url ? (
                                 <div className="space-y-2">
                                   <a href={`${window.location.origin}${m.media_url}`} target="_blank" rel="noopener noreferrer">
                                     <img src={`${window.location.origin}${m.media_url}`} alt="" className="max-w-[240px] rounded-xl" />

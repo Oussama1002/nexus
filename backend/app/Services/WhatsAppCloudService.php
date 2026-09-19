@@ -11,6 +11,7 @@ use App\Models\WhatsAppNumber;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class WhatsAppCloudService
 {
@@ -459,12 +460,22 @@ class WhatsAppCloudService
         // one is configured for the brand.
         $isFirstInbound = ! $conversation->messages()->where('direction', 'inbound')->exists();
 
+        $mediaUrl = null;
+        $mediaId = in_array($type, self::MEDIA_TYPES, true) ? (string) ($msg[$type]['id'] ?? '') : '';
+        if ($mediaId !== '') {
+            $mediaUrl = $this->downloadMedia($brandId, $number, $mediaId, $conversation->id);
+            if ($mediaUrl) {
+                $body = $msg[$type]['caption'] ?? $msg[$type]['filename'] ?? null;
+            }
+        }
+
         Message::query()->create([
             'conversation_id' => $conversation->id,
             'sender_user_id' => null,
             'direction' => 'inbound',
             'content' => $body,
             'message_type' => $type,
+            'media_url' => $mediaUrl,
             'external_message_id' => $externalId ?: null,
             'sent_at' => $sentAt,
         ]);
@@ -483,6 +494,50 @@ class WhatsAppCloudService
         }
 
         return true;
+    }
+
+    public const MEDIA_TYPES = ['image', 'video', 'audio', 'document', 'sticker'];
+
+    /**
+     * Download an inbound media (voice note, image…) from Meta and store it
+     * next to the conversation attachments. Returns the public /storage URL,
+     * or null if Meta refused / the media expired (~30 days).
+     */
+    public function downloadMedia(int $brandId, ?WhatsAppNumber $number, string $mediaId, int $conversationId): ?string
+    {
+        try {
+            $cfg = $this->resolveSendConfig($brandId, $number);
+            $meta = Http::withToken($cfg['token'])->timeout(10)->get($cfg['base_url'].'/'.$mediaId);
+            $url = $meta->json('url');
+            if (! $meta->successful() || ! $url) {
+                Log::warning('whatsapp.media.lookup_failed', ['media_id' => $mediaId, 'body' => $meta->body()]);
+
+                return null;
+            }
+
+            $file = Http::withToken($cfg['token'])->timeout(20)->get($url);
+            if (! $file->successful()) {
+                Log::warning('whatsapp.media.download_failed', ['media_id' => $mediaId, 'status' => $file->status()]);
+
+                return null;
+            }
+
+            $mime = strtolower(trim(explode(';', (string) $meta->json('mime_type'))[0]));
+            $ext = [
+                'audio/ogg' => 'ogg', 'audio/mpeg' => 'mp3', 'audio/mp4' => 'm4a', 'audio/aac' => 'aac', 'audio/amr' => 'amr',
+                'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp',
+                'video/mp4' => 'mp4', 'video/3gpp' => '3gp', 'application/pdf' => 'pdf',
+            ][$mime] ?? 'bin';
+
+            $path = "conversation-attachments/{$conversationId}/wa_{$mediaId}.{$ext}";
+            Storage::disk('public')->put($path, $file->body());
+
+            return '/storage/'.$path;
+        } catch (\Throwable $e) {
+            Log::warning('whatsapp.media.error', ['media_id' => $mediaId, 'error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     private function extractBody(array $msg, string $type): ?string
