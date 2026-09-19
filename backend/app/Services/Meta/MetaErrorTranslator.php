@@ -113,6 +113,11 @@ class MetaErrorTranslator
             return 'Le compte WhatsApp Business n’a pas de moyen de paiement valide. Ouvrez business.facebook.com → Paramètres du compte → Facturation & paiements et ajoutez une carte au WABA (les 1 000 conversations gratuites/mois nécessitent quand même une carte enregistrée).';
         }
 
+        // Expérience Meta : certains utilisateurs ne reçoivent pas les modèles Marketing (#130472).
+        if ($code === 130472 || str_contains($normalized, 'part of an experiment')) {
+            return 'Meta bloque les modèles « Marketing » pour ce client (il fait partie d’un groupe test de WhatsApp). Ce n’est pas une erreur du CRM : envoyez un modèle de catégorie « Utilitaire », ou attendez qu’il vous écrive pour lui répondre en message libre.';
+        }
+
         // Repli : préfixe français conservant le détail Meta.
         return 'Erreur Meta : '.$raw;
     }
