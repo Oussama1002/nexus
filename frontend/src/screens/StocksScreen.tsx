@@ -135,7 +135,7 @@ export function StocksScreen() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             className="pl-9 pr-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium w-full max-w-xs"
-            placeholder="Rechercher SKU ou nom…"
+            placeholder="Rechercher un produit…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -172,7 +172,6 @@ export function StocksScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/60">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">SKU</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</th>
                 <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock</th>
@@ -185,7 +184,7 @@ export function StocksScreen() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-zinc-400">Chargement…</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-zinc-400">Chargement…</td></tr>
               ) : filtered.map((r) => {
                 const available = r.stock_quantity - r.reserved_quantity;
                 const tone: Parameters<typeof StatusChip>[0]['tone'] =
@@ -198,7 +197,6 @@ export function StocksScreen() {
                       : 'En stock';
                 return (
                   <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 align-top">
-                    <td className="px-4 py-3 text-sm font-black text-zinc-700">{r.sku}</td>
                     <td className="px-4 py-3 text-sm font-bold text-zinc-900">{r.name}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{r.category ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-right font-black">{r.stock_quantity}</td>
