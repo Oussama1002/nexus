@@ -11,6 +11,16 @@ class Order extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        // A cancelled/returned order has no cash-on-delivery to collect.
+        static::saving(function (Order $order) {
+            if (in_array($order->status, ['cancelled', 'returned'], true) && $order->payment_state === 'cod_pending') {
+                $order->payment_state = 'unpaid';
+            }
+        });
+    }
+
     protected $fillable = [
         'brand_id',
         'campaign_id',

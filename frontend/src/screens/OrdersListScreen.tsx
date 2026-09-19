@@ -95,7 +95,10 @@ function statusApi(s: OrderStatus): string {
   }
 }
 
-function paymentFr(p: string, method?: string | null, transferStatus?: string | null): PaymentState {
+function paymentFr(p: string, method?: string | null, transferStatus?: string | null, status?: string | null): PaymentState {
+  if ((status === 'cancelled' || status === 'returned') && !['paid', 'partial', 'refunded'].includes(p)) {
+    return status === 'cancelled' ? 'Annulé' : 'Retourné';
+  }
   if (method === 'transfer' && p !== 'paid') {
     if (transferStatus === 'verified') return 'Payé';
     return 'Virement en vérification';
@@ -137,7 +140,7 @@ function mapOrder(o: ApiOrderRow, brandName: string): Order {
     city: o.customer?.city ?? '—',
     address: '',
     status: statusFr(o.status),
-    payment: paymentFr(o.payment_state, o.payment_method, o.bank_transfer_verification_status),
+    payment: paymentFr(o.payment_state, o.payment_method, o.bank_transfer_verification_status, o.status),
     paymentMethod: o.payment_method ?? undefined,
     bankTransferDeclaredPaid: Boolean(o.bank_transfer_declared_paid ?? false),
     bankTransferReference: o.bank_transfer_reference ?? undefined,
