@@ -49,7 +49,7 @@ export function StocksScreen() {
   const [adjustType, setAdjustType] = useState<(typeof MOVEMENT_TYPES)[number]>('in');
   const [adjustQty, setAdjustQty] = useState('1');
   const [adjustDelta, setAdjustDelta] = useState('');
-  const [adjustReason, setAdjustReason] = useState('manual_adjustment');
+  const [adjustReason, setAdjustReason] = useState('');
   const [adjustSaving, setAdjustSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -102,7 +102,7 @@ export function StocksScreen() {
     const payload: Record<string, unknown> = {
       product_id: adjustProduct.id,
       movement_type: adjustType,
-      reason: adjustReason || null,
+      reason: adjustReason.trim() || null,
     };
     if (adjustType === 'adjustment') payload.signed_delta = Number(adjustDelta);
     else payload.quantity = Number(adjustQty);
@@ -111,7 +111,7 @@ export function StocksScreen() {
     if (!res.ok) { toast.error(res.message); return; }
     toast.success('Mouvement enregistré.');
     setAdjustProduct(null);
-    setAdjustQty('1'); setAdjustDelta(''); setAdjustReason('manual_adjustment'); setAdjustType('in');
+    setAdjustQty('1'); setAdjustDelta(''); setAdjustReason(''); setAdjustType('in');
     await load();
   }
 
@@ -227,35 +227,35 @@ export function StocksScreen() {
 
       {adjustProduct && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setAdjustProduct(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Mouvement de stock</p>
-              <p className="text-lg font-black text-zinc-900">{adjustProduct.sku} — {adjustProduct.name}</p>
-              <p className="text-xs text-zinc-500">Stock actuel : <span className="font-black">{adjustProduct.stock_quantity}</span> (dont {adjustProduct.reserved_quantity} réservés)</p>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-1">
+              <h2 className="text-xl font-black text-zinc-900">Mouvement de stock</h2>
+              <p className="text-sm font-bold text-zinc-900">{adjustProduct.sku} — {adjustProduct.name}</p>
+              <p className="text-sm text-zinc-700">Stock actuel : <span className="font-black text-zinc-900">{adjustProduct.stock_quantity}</span> (dont {adjustProduct.reserved_quantity} réservés)</p>
             </div>
-            <label className="block text-xs font-bold text-zinc-500">
+            <label className="block text-sm font-bold text-zinc-900">
               Type
-              <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={adjustType} onChange={(e) => setAdjustType(e.target.value as typeof adjustType)}>
+              <select className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900" value={adjustType} onChange={(e) => setAdjustType(e.target.value as typeof adjustType)}>
                 {MOVEMENT_TYPES.map((t) => <option key={t} value={t}>{MOVEMENT_TYPE_FR[t] ?? t}</option>)}
               </select>
             </label>
             {adjustType === 'adjustment' ? (
-              <label className="block text-xs font-bold text-zinc-500">
-                Delta signé (+/-)
-                <input type="number" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={adjustDelta} onChange={(e) => setAdjustDelta(e.target.value)} />
+              <label className="block text-sm font-bold text-zinc-900">
+                Correction (+ / -)
+                <input type="number" className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900" placeholder="ex. -2 ou 5" value={adjustDelta} onChange={(e) => setAdjustDelta(e.target.value)} />
               </label>
             ) : (
-              <label className="block text-xs font-bold text-zinc-500">
+              <label className="block text-sm font-bold text-zinc-900">
                 Quantité
-                <input type="number" min={1} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={adjustQty} onChange={(e) => setAdjustQty(e.target.value)} />
+                <input type="number" min={1} className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900" value={adjustQty} onChange={(e) => setAdjustQty(e.target.value)} />
               </label>
             )}
-            <label className="block text-xs font-bold text-zinc-500">
-              Raison
-              <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} />
+            <label className="block text-sm font-bold text-zinc-900">
+              Notes
+              <textarea rows={3} className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 resize-none" placeholder="ex. Réception fournisseur, casse, inventaire…" value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} />
             </label>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setAdjustProduct(null)} className="flex-1 py-2.5 rounded-xl border font-black text-sm">Annuler</button>
+              <button type="button" onClick={() => setAdjustProduct(null)} className="flex-1 py-2.5 rounded-xl border border-zinc-300 font-black text-sm text-zinc-900 hover:bg-zinc-50">Annuler</button>
               <button type="button" disabled={adjustSaving} onClick={() => void submitAdjust()} className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white font-black text-sm disabled:opacity-50">
                 {adjustSaving ? 'Enregistrement…' : 'Enregistrer'}
               </button>

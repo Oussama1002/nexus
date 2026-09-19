@@ -72,7 +72,7 @@ export function StockMovementsScreen() {
     movement_type: 'in' as (typeof MOVEMENT_TYPES)[number],
     quantity: '1',
     signed_delta: '',
-    reason: 'manual_adjustment',
+    reason: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -103,7 +103,7 @@ export function StockMovementsScreen() {
     if (!res.ok) { toast.error(res.message); return; }
     toast.success('Mouvement enregistré.');
     setCreateOpen(false);
-    setForm({ product_id: '', movement_type: 'in', quantity: '1', signed_delta: '', reason: 'manual_adjustment' });
+    setForm({ product_id: '', movement_type: 'in', quantity: '1', signed_delta: '', reason: '' });
     setRefreshTick((t) => t + 1);
     void loadProducts();
   }
@@ -262,14 +262,11 @@ export function StockMovementsScreen() {
       {createOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setCreateOpen(false)}>
           <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nouveau mouvement</p>
-              <p className="text-lg font-black text-zinc-900">Enregistrer un mouvement de stock</p>
-            </div>
-            <label className="block text-xs font-bold text-zinc-500">
+            <h2 className="text-xl font-black text-zinc-900">Nouveau mouvement de stock</h2>
+            <label className="block text-sm font-bold text-zinc-900">
               Produit
               <select
-                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
+                className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900"
                 value={form.product_id}
                 onChange={(e) => setForm((f) => ({ ...f, product_id: e.target.value }))}
               >
@@ -280,10 +277,10 @@ export function StockMovementsScreen() {
               </select>
               {productLabel && <p className="mt-1 text-[11px] text-zinc-500">{productLabel}</p>}
             </label>
-            <label className="block text-xs font-bold text-zinc-500">
+            <label className="block text-sm font-bold text-zinc-900">
               Type
               <select
-                className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
+                className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900"
                 value={form.movement_type}
                 onChange={(e) => setForm((f) => ({ ...f, movement_type: e.target.value as typeof f.movement_type }))}
               >
@@ -291,22 +288,22 @@ export function StockMovementsScreen() {
               </select>
             </label>
             {form.movement_type === 'adjustment' ? (
-              <label className="block text-xs font-bold text-zinc-500">
-                Delta signé (+/-)
-                <input type="number" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={form.signed_delta} onChange={(e) => setForm((f) => ({ ...f, signed_delta: e.target.value }))} />
+              <label className="block text-sm font-bold text-zinc-900">
+                Correction (+ / -)
+                <input type="number" className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900" value={form.signed_delta} onChange={(e) => setForm((f) => ({ ...f, signed_delta: e.target.value }))} />
               </label>
             ) : (
-              <label className="block text-xs font-bold text-zinc-500">
+              <label className="block text-sm font-bold text-zinc-900">
                 Quantité
-                <input type="number" min={1} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={form.quantity} onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))} />
+                <input type="number" min={1} className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900" value={form.quantity} onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))} />
               </label>
             )}
-            <label className="block text-xs font-bold text-zinc-500">
-              Raison
-              <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold" value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} />
+            <label className="block text-sm font-bold text-zinc-900">
+              Notes
+              <textarea rows={3} className="mt-1.5 w-full px-3 py-2.5 rounded-xl border border-zinc-300 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 resize-none" placeholder="ex. Réception fournisseur, casse, inventaire…" value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} />
             </label>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setCreateOpen(false)} className="flex-1 py-2.5 rounded-xl border font-black text-sm">Annuler</button>
+              <button type="button" onClick={() => setCreateOpen(false)} className="flex-1 py-2.5 rounded-xl border border-zinc-300 font-black text-sm text-zinc-900 hover:bg-zinc-50">Annuler</button>
               <button type="button" disabled={saving || !form.product_id} onClick={() => void submitCreate()} className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white font-black text-sm disabled:opacity-50">
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </button>
