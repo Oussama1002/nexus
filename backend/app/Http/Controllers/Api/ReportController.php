@@ -93,7 +93,7 @@ class ReportController extends Controller
         [$from, $to] = $this->parsePeriod($request);
 
         return ApiResponse::success(
-            $this->reportService->delivery($brandId, $from, $to),
+            $this->reportService->delivery($brandId, $from, $to, $request->integer('delivery_company_id') ?: null),
             'Delivery report retrieved successfully.'
         );
     }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CampaignMetric;
 use App\Models\Charge;
 use App\Models\Customer;
+use App\Models\DeliveryCompany;
 use App\Models\Lead;
 use App\Models\Message;
 use App\Models\Order;
@@ -217,22 +218,64 @@ class ReportService
     /**
      * @return array<string, mixed>
      */
-    public function delivery(?int $brandId, string $dateFrom, string $dateTo): array
+    public function delivery(?int $brandId, string $dateFrom, string $dateTo, ?int $deliveryCompanyId = null): array
     {
         $from = Carbon::parse($dateFrom)->startOfDay();
         $to = Carbon::parse($dateTo)->endOfDay();
 
-        $shipments = Shipment::query()->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
-            ->whereBetween('created_at', [$from, $to])
-            ->selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status');
+        // Same basis as Livraison — tableau de bord: carrier-imported parcels use their ship date, not the import date.
+        $base = fn () => Shipment::query()
+            ->when($brandId, fn ($q) => $q->where('shipments.brand_id', $brandId))
+            ->when($deliveryCompanyId, fn ($q) => $q->where('shipments.delivery_company_id', $deliveryCompanyId))
+            ->whereRaw('COALESCE(shipments.shipped_at, shipments.created_at) BETWEEN ? AND ?', [$from, $to]);
+
+        $shipments = $base()->selectRaw('status, COUNT(*) as c')->groupBy('status')->pluck('c', 'status');
+
+        $count = fn (string ...$s) => array_sum(array_map(fn ($k) => (int) ($shipments[$k] ?? 0), $s));
+        $delivered = $count('delivered');
+        $returned = $count('returned');
+        $failed = $count('failed');
+        $terminal = max(1, $delivered + $returned + $failed);
+
+        $avgDays = $base()->where('status', 'delivered')->whereNotNull('delivered_at')
+            ->get(['shipped_at', 'created_at', 'delivered_at'])
+            ->map(fn (Shipment $s) => $s->delivered_at->diffInSeconds($s->shipped_at ?? $s->created_at, true) / 86400)
+            ->avg();
+
+        $kpis = [
+            'total' => (int) $shipments->sum(),
+            'pending' => $count('pending', 'created'),
+            'in_transit' => $count('in_transit', 'out_for_delivery', 'picked_up', 'shipped'),
+            'delivered' => $delivered,
+            'returned' => $returned,
+            'failed' => $failed,
+            'cancelled' => $count('cancelled'),
+            'delivery_rate' => round(100 * $delivered / $terminal, 1),
+            'return_rate' => round(100 * $returned / $terminal, 1),
+            'failure_rate' => round(100 * $failed / $terminal, 1),
+            'revenue' => round((float) $base()->where('shipments.status', 'delivered')
+                ->join('orders', 'orders.id', '=', 'shipments.order_id')->sum('orders.total'), 2),
+            'cod_total' => round((float) $base()->sum('cod_amount'), 2),
+            'cod_pending' => round((float) $base()->where('payment_status', 'cod_pending')->sum('cod_amount'), 2),
+            'cod_received' => round((float) $base()->where('payment_status', 'cod_received')->sum('cod_amount'), 2),
+            'cod_reconciled' => round((float) $base()->where('payment_status', 'reconciled')->sum('cod_amount'), 2),
+            'fee_total' => round((float) $base()->sum('delivery_fee'), 2),
+            'avg_delivery_days' => $avgDays !== null ? round((float) $avgDays, 1) : null,
+            'delayed' => $base()->whereNotIn('status', ['delivered', 'returned', 'cancelled', 'failed'])
+                ->where('shipments.created_at', '<', now()->subDays(7))->count(),
+        ];
+
+        $byCity = $base()
+            ->selectRaw('COALESCE(recipient_city, city) AS city, COUNT(*) AS c, SUM(status = \'delivered\') AS delivered')
+            ->groupBy(DB::raw('COALESCE(recipient_city, city)'))
+            ->orderByDesc('c')->limit(10)->get()
+            ->map(fn ($r) => ['city' => $r->city ?: '—', 'total' => (int) $r->c, 'delivered' => (int) $r->delivered]);
 
         // Per-carrier KPIs. Groups shipments by delivery_company (Ameex,
         // Sendit, …) — status breakdown, delivery rate, average COD, average
         // delivery fee, unlabelled shipments (no delivery_company set) fall
         // under "Sans transporteur" so nothing is dropped.
-        $rows = Shipment::query()
-            ->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
-            ->whereBetween('shipments.created_at', [$from, $to])
+        $rows = $base()
             ->leftJoin('delivery_companies as dc', 'dc.id', '=', 'shipments.delivery_company_id')
             ->selectRaw("
                 COALESCE(dc.name, 'Sans transporteur') AS carrier_name,
@@ -294,7 +337,10 @@ class ReportService
         return [
             'period' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
             'shipments_by_status' => $shipments,
+            'kpis' => $kpis,
+            'by_city' => $byCity,
             'by_carrier' => $carrierList,
+            'carriers' => DeliveryCompany::query()->orderBy('name')->get(['id', 'name']),
         ];
     }
 

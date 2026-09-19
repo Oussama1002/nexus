@@ -369,6 +369,72 @@ function CarrierKpiSection({ carriers }: { carriers: unknown[] }) {
   );
 }
 
+type DeliveryKpis = {
+  total: number;
+  pending: number;
+  in_transit: number;
+  delivered: number;
+  returned: number;
+  failed: number;
+  cancelled: number;
+  delivery_rate: number;
+  return_rate: number;
+  failure_rate: number;
+  revenue: number;
+  cod_total: number;
+  cod_pending: number;
+  cod_received: number;
+  cod_reconciled: number;
+  fee_total: number;
+  avg_delivery_days: number | null;
+  delayed: number;
+};
+
+function DeliveryKpiGrid({ k }: { k?: DeliveryKpis }) {
+  if (!k) return null;
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <Kpi label="Colis" value={k.total} />
+      <Kpi label="Livrés" value={k.delivered} />
+      <Kpi label="Taux livraison" value={`${k.delivery_rate} %`} sub="livrés / statut final" />
+      <Kpi label="Retours" value={k.returned} sub={`${k.return_rate} %`} />
+      <Kpi label="Échecs" value={k.failed} sub={`${k.failure_rate} %`} />
+      <Kpi label="Annulés" value={k.cancelled} />
+      <Kpi label="En attente" value={k.pending} />
+      <Kpi label="En transit" value={k.in_transit} />
+      <Kpi label="Retards (> 7 j)" value={k.delayed} />
+      <Kpi label="Délai moyen" value={k.avg_delivery_days == null ? '—' : `${k.avg_delivery_days} j`} />
+      <Kpi label="CA livré" value={formatCurrency(k.revenue)} />
+      <Kpi label="Coût livraison" value={formatCurrency(k.fee_total)} />
+      <Kpi label="COD total" value={formatCurrency(k.cod_total)} />
+      <Kpi label="COD en attente" value={formatCurrency(k.cod_pending)} />
+      <Kpi label="COD reçu" value={formatCurrency(k.cod_received)} />
+      <Kpi label="COD réconcilié" value={formatCurrency(k.cod_reconciled)} />
+    </div>
+  );
+}
+
+type DeliveryCityRow = { city: string; total: number; delivered: number };
+
+function DeliveryCityPanel({ rows }: { rows: DeliveryCityRow[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="card p-4">
+      <h3 className="text-sm font-black text-zinc-900 mb-3">Top villes</h3>
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <div key={r.city} className="flex justify-between gap-3 text-sm border-b border-zinc-50 pb-2">
+            <span className="font-bold text-zinc-700 truncate">{r.city}</span>
+            <span className="text-zinc-500 shrink-0">
+              <span className="font-black text-zinc-900">{r.total}</span> colis · {r.delivered} livrés
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function startOfMonth(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -393,6 +459,7 @@ export function ReportingScreen() {
   const [commercial, setCommercial] = useState<Record<string, unknown> | null>(null);
   const [stockRep, setStockRep] = useState<Record<string, unknown> | null>(null);
   const [deliveryRep, setDeliveryRep] = useState<Record<string, unknown> | null>(null);
+  const [carrierId, setCarrierId] = useState('');
   const [financeRep, setFinanceRep] = useState<Record<string, unknown> | null>(null);
 
   const q = useMemo(() => {
@@ -447,7 +514,7 @@ export function ReportingScreen() {
         return;
       }
       if (tab === 'delivery') {
-        const res = await api.get<Record<string, unknown>>(`reports/delivery?${q}`);
+        const res = await api.get<Record<string, unknown>>(`reports/delivery?${q}${carrierId ? `&delivery_company_id=${carrierId}` : ''}`);
         if (!res.ok) {
           toast.error(res.message);
           setDeliveryRep(null);
@@ -469,7 +536,7 @@ export function ReportingScreen() {
     } finally {
       setLoading(false);
     }
-  }, [activeBrandId, canView, q, tab, toast]);
+  }, [activeBrandId, canView, q, tab, toast, carrierId]);
 
   useEffect(() => {
     void loadTab();
@@ -830,6 +897,21 @@ export function ReportingScreen() {
       {tab === 'delivery' && deliveryRep && (
         <div className="space-y-6">
           <PeriodLine period={deliveryRep.period as { from?: string; to?: string }} />
+          <div className="flex flex-wrap gap-2">
+            {[{ id: '', name: 'Tous les transporteurs' }, ...((deliveryRep.carriers as { id: number; name: string }[]) ?? [])].map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCarrierId(String(c.id))}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${
+                  carrierId === String(c.id) ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                }`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+          <DeliveryKpiGrid k={deliveryRep.kpis as DeliveryKpis | undefined} />
           <div className="grid lg:grid-cols-2 gap-4">
             <BreakdownPanel
               title="Expéditions par statut"
@@ -842,7 +924,8 @@ export function ReportingScreen() {
               emptyHint="Pas d’expéditions à afficher."
             />
           </div>
-          <CarrierKpiSection carriers={(deliveryRep.by_carrier as unknown[]) ?? []} />
+          {!carrierId && <CarrierKpiSection carriers={(deliveryRep.by_carrier as unknown[]) ?? []} />}
+          <DeliveryCityPanel rows={(deliveryRep.by_city as DeliveryCityRow[]) ?? []} />
         </div>
       )}
 
