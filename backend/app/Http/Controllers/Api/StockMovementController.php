@@ -34,8 +34,22 @@ class StockMovementController extends Controller
         if ($productId) {
             $q->where('product_id', (int) $productId);
         }
+        if ($search = trim((string) $request->query('search', ''))) {
+            $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $search).'%';
+            $q->where(fn ($w) => $w->where('reason', 'like', $like)
+                ->orWhereHas('product', fn ($p) => $p->where('name', 'like', $like)->orWhere('sku', 'like', $like)));
+        }
 
-        return ApiResponse::success($q->paginate($perPage), 'Stock movements retrieved successfully.');
+        $counts = (clone $q)->reorder()->selectRaw('movement_type, COUNT(*) AS c')->groupBy('movement_type')->pluck('c', 'movement_type');
+
+        if ($type = $request->query('type')) {
+            $q->where('movement_type', $type);
+        }
+
+        return ApiResponse::success(
+            $q->paginate($perPage)->toArray() + ['counts' => $counts],
+            'Stock movements retrieved successfully.'
+        );
     }
 
     public function store(StoreStockMovementRequest $request): JsonResponse

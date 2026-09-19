@@ -20,36 +20,36 @@ const MOVEMENT_TYPE_FR_FULL: Record<string, string> = {
 
 type StockMovement = {
   id: number;
-  type: string;
-  product_name: string;
+  movement_type: string;
+  product?: { name: string } | null;
+  actor?: { name: string } | null;
   quantity: number;
-  warehouse: string;
-  reference: string | null;
-  user_name: string;
+  previous_stock: number | null;
+  new_stock: number | null;
+  reason: string | null;
+  reference_type: string | null;
+  reference_id: number | null;
+  moved_at: string | null;
   created_at: string;
 };
 
-const TYPE_OPTIONS = [
-  { value: '', label: 'Tous' },
-  { value: 'in', label: 'Entrée' },
-  { value: 'out', label: 'Sortie' },
-  { value: 'transfer', label: 'Transfert' },
-  { value: 'adjustment', label: 'Ajustement' },
-];
+const TYPE_OPTIONS = [{ value: '', label: 'Tous' }, ...MOVEMENT_TYPES.map((t) => ({ value: t, label: MOVEMENT_TYPE_FR_FULL[t] }))];
 
 const TYPE_COLORS: Record<string, string> = {
   in: 'bg-green-50 text-green-700',
   out: 'bg-red-50 text-red-700',
-  transfer: 'bg-blue-50 text-blue-700',
+  returned: 'bg-blue-50 text-blue-700',
   adjustment: 'bg-orange-50 text-orange-700',
+  damaged: 'bg-rose-50 text-rose-700',
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  in: 'Entrée',
-  out: 'Sortie',
-  transfer: 'Transfert',
-  adjustment: 'Ajustement',
-};
+const REFERENCE_FR: Record<string, string> = { order: 'Commande', purchase_order: 'Achat', shipment: 'Colis' };
+
+function signedQty(r: StockMovement): string {
+  const delta = r.previous_stock != null && r.new_stock != null ? r.new_stock - r.previous_stock : null;
+  if (delta == null || delta === 0) return String(r.quantity);
+  return delta > 0 ? `+${delta}` : String(delta);
+}
 
 export function StockMovementsScreen() {
   const { activeBrandId } = useBrand();
@@ -57,6 +57,7 @@ export function StockMovementsScreen() {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission('stock.create');
   const [rows, setRows] = useState<StockMovement[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -113,12 +114,13 @@ export function StockMovementsScreen() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await api.get<Paginated<StockMovement>>(
+        const res = await api.get<Paginated<StockMovement> & { counts?: Record<string, number> }>(
           'stock-movements' + buildQuery({ per_page: 25, page, search: search || undefined, type: typeFilter || undefined })
         );
         if (cancelled) return;
         if (res.ok) {
           setRows(res.data.data);
+          setCounts(res.data.counts ?? {});
           setTotal(res.data.total);
           setLastPage(res.data.last_page);
         } else {
@@ -140,10 +142,10 @@ export function StockMovementsScreen() {
     return () => { cancelled = true; };
   }, [page, search, typeFilter, activeBrandId, refreshTick]);
 
-  const inCount = rows.filter(r => r.type === 'in').length;
-  const outCount = rows.filter(r => r.type === 'out').length;
-  const transferCount = rows.filter(r => r.type === 'transfer').length;
-  const adjustmentCount = rows.filter(r => r.type === 'adjustment').length;
+  const inCount = Number(counts.in ?? 0);
+  const outCount = Number(counts.out ?? 0);
+  const returnedCount = Number(counts.returned ?? 0);
+  const adjustmentCount = Number(counts.adjustment ?? 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -172,8 +174,8 @@ export function StockMovementsScreen() {
           <p className="text-2xl font-black text-zinc-900 mt-1">{outCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Transferts</p>
-          <p className="text-2xl font-black text-zinc-900 mt-1">{transferCount}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Retours</p>
+          <p className="text-2xl font-black text-zinc-900 mt-1">{returnedCount}</p>
         </div>
         <div className="card p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Ajustements</p>
@@ -211,8 +213,8 @@ export function StockMovementsScreen() {
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Quantité</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Entrepôt</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Référence</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock avant → après</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Notes / Référence</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Utilisateur</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
               </tr>
@@ -224,20 +226,27 @@ export function StockMovementsScreen() {
                 <tr key={row.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                   <td className="px-4 py-3 text-sm font-medium">#{row.id}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${TYPE_COLORS[row.type] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                      {TYPE_LABELS[row.type] ?? row.type}
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${TYPE_COLORS[row.movement_type] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                      {MOVEMENT_TYPE_FR_FULL[row.movement_type] ?? row.movement_type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm">{row.product_name}</td>
-                  <td className="px-4 py-3 text-sm font-medium">
-                    <span className={row.type === 'in' ? 'text-green-600' : row.type === 'out' ? 'text-red-600' : ''}>
-                      {row.type === 'in' ? '+' : row.type === 'out' ? '-' : ''}{row.quantity}
+                  <td className="px-4 py-3 text-sm font-bold text-zinc-900">{row.product?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm font-black">
+                    <span className={signedQty(row).startsWith('+') ? 'text-green-600' : signedQty(row).startsWith('-') ? 'text-red-600' : ''}>
+                      {signedQty(row)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm">{row.warehouse}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-500">{row.reference ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-500">{row.user_name}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-500">{new Date(row.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-700">
+                    {row.previous_stock != null && row.new_stock != null ? `${row.previous_stock} → ${row.new_stock}` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-zinc-700 max-w-[260px]">
+                    <p className="truncate" title={row.reason ?? ''}>{row.reason || '—'}</p>
+                    {row.reference_type && (
+                      <p className="text-xs text-zinc-400">{REFERENCE_FR[row.reference_type] ?? row.reference_type}{row.reference_id ? ` #${row.reference_id}` : ''}</p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-zinc-700">{row.actor?.name ?? 'Système'}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-500">{new Date(row.moved_at ?? row.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                 </tr>
               ))}
             </tbody>
