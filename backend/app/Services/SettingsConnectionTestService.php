@@ -46,6 +46,9 @@ class SettingsConnectionTestService
         if (preg_match('/@(gmail|googlemail)\.com$/i', $s['user']) && strtolower($s['host']) !== 'smtp.gmail.com') {
             return ['success' => false, 'message' => 'Cette adresse est une adresse Gmail : choisissez « Gmail / Google Workspace » comme fournisseur.'];
         }
+        if (strtolower($s['host']) === 'smtp.gmail.com' && strlen($s['password']) !== 16) {
+            return ['success' => false, 'message' => 'Le mot de passe enregistré n’est pas un mot de passe d’application Google (16 lettres). Créez-en un sur myaccount.google.com/apppasswords, collez-le dans « Mot de passe », enregistrez, puis retestez.'];
+        }
 
         try {
             $brandMailer->for($brandId)->raw(

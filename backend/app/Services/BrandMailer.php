@@ -27,6 +27,10 @@ class BrandMailer
             return null;
         }
 
+        if (strtolower($host) === 'smtp.gmail.com') {
+            $password = str_replace(' ', '', $password);
+        }
+
         $encryption = strtolower($values['smtp_encryption'] ?? '');
         $port = (int) ($values['smtp_port'] ?? 0) ?: ($encryption === 'ssl' ? 465 : 587);
 
