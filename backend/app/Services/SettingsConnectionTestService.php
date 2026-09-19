@@ -37,17 +37,22 @@ class SettingsConnectionTestService
     /** @return array{success: bool, message: string} */
     public function smtp(int $brandId): array
     {
-        $host = $this->val($brandId, 'smtp_host');
-        $port = $this->val($brandId, 'smtp_port');
-        $user = $this->val($brandId, 'smtp_user');
-        if ($host === '' || $port === '' || $user === '') {
-            return ['success' => false, 'message' => 'Configuration incomplète.'];
-        }
-        if (! $this->hasSecret($brandId, 'smtp_password')) {
-            return ['success' => false, 'message' => 'Configuration incomplète.'];
+        $brandMailer = app(BrandMailer::class);
+        $s = $brandMailer->settings($brandId);
+        if (! $s) {
+            return ['success' => false, 'message' => 'Configuration incomplète : choisissez le fournisseur, saisissez l’e-mail et le mot de passe, puis enregistrez.'];
         }
 
-        return ['success' => true, 'message' => 'Paramètres SMTP présents — test réseau non exécuté dans cette version.'];
+        try {
+            $brandMailer->for($brandId)->raw(
+                "Bonjour,\n\nCet e-mail confirme que l’envoi depuis le CRM fonctionne.\n",
+                fn ($message) => $message->to($s['user'])->subject('Test e-mail CRM')
+            );
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => BrandMailer::translateError($e->getMessage())];
+        }
+
+        return ['success' => true, 'message' => 'Connexion OK — un e-mail de test a été envoyé à '.$s['user'].'.'];
     }
 
     /** @return array{success: bool, message: string} */

@@ -8,7 +8,6 @@ use App\Models\Order;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 
 class ClientInvoiceService
@@ -207,7 +206,7 @@ class ClientInvoiceService
         $filename = 'Facture-'.$invoice->invoice_number.'.pdf';
 
         try {
-            Mail::raw($body, function ($message) use ($to, $subject, $pdfContent, $filename): void {
+            app(BrandMailer::class)->for($invoice->brand_id)->raw($body, function ($message) use ($to, $subject, $pdfContent, $filename): void {
                 $message->to($to)
                     ->subject($subject)
                     ->attachData($pdfContent, $filename, ['mime' => 'application/pdf']);

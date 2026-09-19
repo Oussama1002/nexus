@@ -190,6 +190,14 @@ export function CataloguePanel({
   );
 }
 
+const SMTP_PRESETS = [
+  { id: 'gmail', label: 'Gmail / Google Workspace', host: 'smtp.gmail.com', port: '587', encryption: 'tls' },
+  { id: 'outlook', label: 'Outlook / Microsoft 365', host: 'smtp.office365.com', port: '587', encryption: 'tls' },
+  { id: 'hostinger', label: 'Hostinger', host: 'smtp.hostinger.com', port: '465', encryption: 'ssl' },
+  { id: 'ovh', label: 'OVH', host: 'ssl0.ovh.net', port: '465', encryption: 'ssl' },
+  { id: 'zoho', label: 'Zoho Mail', host: 'smtp.zoho.com', port: '465', encryption: 'ssl' },
+];
+
 export function IntegrationsPanel({
   value,
   onChange,
@@ -207,11 +215,15 @@ export function IntegrationsPanel({
 }) {
   const p = (patch: Partial<IntegrationsModel>) => onChange({ ...value, ...patch });
   const sec = !disabled && isAdmin;
+  const [smtpCustom, setSmtpCustom] = React.useState(false);
+  const smtpHost = value.email.smtpHost.trim().toLowerCase();
+  const smtpPreset = SMTP_PRESETS.find((x) => x.host === smtpHost);
+  const smtpProvider = smtpCustom ? 'other' : smtpPreset?.id ?? (smtpHost ? 'other' : '');
   return (
     <div className="space-y-8">
       <SectionCard
         title="E-mail (SMTP)"
-        description="Envoi des notifications et factures par e-mail."
+        description="Choisissez votre fournisseur, saisissez l’adresse e-mail et son mot de passe, enregistrez, puis cliquez « Tester SMTP » : un e-mail de test vous sera envoyé."
         actions={
           onTestSmtp ? (
             <ConnectionTestButton label="Tester SMTP" onClick={onTestSmtp} disabled={disabled} loading={smtpTesting} />
@@ -219,18 +231,59 @@ export function IntegrationsPanel({
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <TextField label="Hôte SMTP" value={value.email.smtpHost} onChange={(v) => p({ email: { ...value.email, smtpHost: v } })} disabled={disabled} />
-          <TextField label="Port" value={value.email.smtpPort} onChange={(v) => p({ email: { ...value.email, smtpPort: v } })} disabled={disabled} />
-          <TextField label="Utilisateur" value={value.email.smtpUser} onChange={(v) => p({ email: { ...value.email, smtpUser: v } })} disabled={disabled} />
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-zinc-800">Fournisseur e-mail</label>
+            <select
+              value={smtpProvider}
+              onChange={(e) => {
+                const preset = SMTP_PRESETS.find((x) => x.id === e.target.value);
+                setSmtpCustom(!preset);
+                if (preset) p({ email: { ...value.email, smtpHost: preset.host, smtpPort: preset.port, smtpEncryption: preset.encryption } });
+              }}
+              disabled={disabled}
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200/90 bg-white text-sm font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-zinc-50 disabled:text-zinc-500"
+            >
+              {smtpProvider === '' && <option value="">Choisir…</option>}
+              {SMTP_PRESETS.map((x) => (
+                <option key={x.id} value={x.id}>{x.label}</option>
+              ))}
+              <option value="other">Autre (paramètres avancés)</option>
+            </select>
+          </div>
+          <TextField label="Adresse e-mail" hint="ex. contact@votremarque.ma" value={value.email.smtpUser} onChange={(v) => p({ email: { ...value.email, smtpUser: v } })} disabled={disabled} />
           <SecretField
             label="Mot de passe"
+            hint={smtpProvider === 'gmail' ? 'Mot de passe d’application Google' : undefined}
             configured={value.email.smtpPasswordConfigured}
             value={value.email.smtpPassword}
             onChange={(v) => p({ email: { ...value.email, smtpPassword: v } })}
             disabled={!sec}
           />
-          <TextField label="Chiffrement" hint="TLS / SSL" value={value.email.smtpEncryption} onChange={(v) => p({ email: { ...value.email, smtpEncryption: v } })} disabled={disabled} />
-          <TextField label="Nom expéditeur" value={value.email.senderName} onChange={(v) => p({ email: { ...value.email, senderName: v } })} disabled={disabled} />
+          <TextField label="Nom expéditeur" hint="ex. Medicaldine" value={value.email.senderName} onChange={(v) => p({ email: { ...value.email, senderName: v } })} disabled={disabled} />
+          {smtpProvider === 'gmail' && (
+            <p className="md:col-span-2 text-xs text-zinc-500">
+              Gmail refuse le mot de passe habituel : créez un « mot de passe d’application » sur myaccount.google.com → Sécurité → Validation en deux étapes → Mots de passe des applications, puis collez-le ici.
+            </p>
+          )}
+          {smtpProvider === 'other' && (
+            <>
+              <TextField label="Hôte SMTP" hint="ex. mail.votredomaine.ma" value={value.email.smtpHost} onChange={(v) => p({ email: { ...value.email, smtpHost: v } })} disabled={disabled} />
+              <TextField label="Port" hint="465 (SSL) ou 587 (TLS)" value={value.email.smtpPort} onChange={(v) => p({ email: { ...value.email, smtpPort: v } })} disabled={disabled} />
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-zinc-800">Chiffrement</label>
+                <select
+                  value={value.email.smtpEncryption.toLowerCase()}
+                  onChange={(e) => p({ email: { ...value.email, smtpEncryption: e.target.value } })}
+                  disabled={disabled}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200/90 bg-white text-sm font-medium text-zinc-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-zinc-50 disabled:text-zinc-500"
+                >
+                  <option value="ssl">SSL (port 465)</option>
+                  <option value="tls">TLS (port 587)</option>
+                  <option value="">Aucun</option>
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </SectionCard>
       <SectionCard title="SMS" description="Fournisseur de SMS transactionnels.">
