@@ -43,6 +43,10 @@ class SettingsConnectionTestService
             return ['success' => false, 'message' => 'Configuration incomplète : choisissez le fournisseur, saisissez l’e-mail et le mot de passe, puis enregistrez.'];
         }
 
+        if (preg_match('/@(gmail|googlemail)\.com$/i', $s['user']) && strtolower($s['host']) !== 'smtp.gmail.com') {
+            return ['success' => false, 'message' => 'Cette adresse est une adresse Gmail : choisissez « Gmail / Google Workspace » comme fournisseur.'];
+        }
+
         try {
             $brandMailer->for($brandId)->raw(
                 "Bonjour,\n\nCet e-mail confirme que l’envoi depuis le CRM fonctionne.\n",

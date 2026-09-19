@@ -199,6 +199,18 @@ const SMTP_PRESETS = [
   { id: 'zoho', label: 'Zoho Mail', host: 'smtp.zoho.com', port: '465', encryption: 'ssl' },
 ];
 
+const SMTP_DOMAIN_PRESET: Record<string, string> = {
+  'gmail.com': 'gmail',
+  'googlemail.com': 'gmail',
+  'outlook.com': 'outlook',
+  'outlook.fr': 'outlook',
+  'hotmail.com': 'outlook',
+  'hotmail.fr': 'outlook',
+  'live.com': 'outlook',
+  'live.fr': 'outlook',
+  'medicaldine.ma': 'titan',
+};
+
 export function IntegrationsPanel({
   value,
   onChange,
@@ -251,7 +263,16 @@ export function IntegrationsPanel({
               <option value="other">Autre (paramètres avancés)</option>
             </select>
           </div>
-          <TextField label="Adresse e-mail" hint="ex. contact@votremarque.ma" value={value.email.smtpUser} onChange={(v) => p({ email: { ...value.email, smtpUser: v } })} disabled={disabled} />
+          <TextField label="Adresse e-mail" hint="ex. contact@votremarque.ma" value={value.email.smtpUser}
+            onChange={(v) => {
+              const domain = v.trim().toLowerCase().split('@')[1] ?? '';
+              const presetId = SMTP_DOMAIN_PRESET[domain];
+              const preset = SMTP_PRESETS.find((x) => x.id === presetId);
+              if (preset) setSmtpCustom(false);
+              p({ email: { ...value.email, smtpUser: v, ...(preset ? { smtpHost: preset.host, smtpPort: preset.port, smtpEncryption: preset.encryption } : {}) } });
+            }}
+            disabled={disabled}
+          />
           <SecretField
             label="Mot de passe"
             hint={smtpProvider === 'gmail' ? 'Mot de passe d’application Google' : undefined}
