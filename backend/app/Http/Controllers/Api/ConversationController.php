@@ -84,7 +84,11 @@ class ConversationController extends Controller
 
             // Last message preview
             $last = $conversation->latestMessage;
-            $conversation->setAttribute('last_message_content', $last?->content);
+            $mediaLabel = [
+                'audio' => '🎤 Message vocal', 'image' => '📷 Photo', 'video' => '🎥 Vidéo',
+                'document' => '📄 Document', 'sticker' => 'Sticker',
+            ][$last?->message_type] ?? null;
+            $conversation->setAttribute('last_message_content', $last?->content ?: $mediaLabel);
             $conversation->setAttribute('last_message_direction', $last?->direction);
 
             // Unread: inbound messages after last outbound
