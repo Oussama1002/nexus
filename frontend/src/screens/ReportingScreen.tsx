@@ -460,6 +460,11 @@ export function ReportingScreen() {
   const [stockRep, setStockRep] = useState<Record<string, unknown> | null>(null);
   const [deliveryRep, setDeliveryRep] = useState<Record<string, unknown> | null>(null);
   const [carrierId, setCarrierId] = useState('');
+  const carrierName =
+    tab === 'delivery' && carrierId
+      ? ((deliveryRep?.carriers as { id: number; name: string }[] | undefined) ?? []).find((c) => String(c.id) === carrierId)?.name ?? ''
+      : '';
+  const reportTitle = `${TAB_LABELS[tab]}${carrierName ? ` ${carrierName}` : ''}`;
   const [financeRep, setFinanceRep] = useState<Record<string, unknown> | null>(null);
 
   const q = useMemo(() => {
@@ -646,14 +651,16 @@ export function ReportingScreen() {
                 // user save it as PDF. The @media print rules in index.css
                 // strip the shell and only render the report card grid.
                 document.body.dataset.printMode = 'report';
-                const cleanup = () => { delete document.body.dataset.printMode; window.removeEventListener('afterprint', cleanup); };
+                const prevTitle = document.title;
+                document.title = `Rapport ${reportTitle} ${dateFrom} au ${dateTo}`;
+                const cleanup = () => { delete document.body.dataset.printMode; document.title = prevTitle; window.removeEventListener('afterprint', cleanup); };
                 window.addEventListener('afterprint', cleanup);
                 window.print();
               }}
               className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
             >
               <FileDown className="w-4 h-4" />
-              Exporter PDF rapport {TAB_LABELS[tab]}
+              Exporter PDF rapport {reportTitle}
             </button>
           </div>
         }
@@ -662,7 +669,7 @@ export function ReportingScreen() {
 
       {/* Report header that only shows in print mode — otherwise hidden. */}
       <div className="hidden print:block mb-4">
-        <p className="text-2xl font-black text-zinc-900">Rapport — {TAB_LABELS[tab]}</p>
+        <p className="text-2xl font-black text-zinc-900">Rapport — {reportTitle}</p>
         <p className="text-xs text-zinc-600">
           {activeBrand ? `Marque : ${activeBrand.name} · ` : ''}
           {dateFrom || '…'} → {dateTo || '…'} · Généré le {new Date().toLocaleString('fr-FR')}
@@ -897,7 +904,7 @@ export function ReportingScreen() {
       {tab === 'delivery' && deliveryRep && (
         <div className="space-y-6">
           <PeriodLine period={deliveryRep.period as { from?: string; to?: string }} />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 no-print">
             {[{ id: '', name: 'Tous les transporteurs' }, ...((deliveryRep.carriers as { id: number; name: string }[]) ?? [])].map((c) => (
               <button
                 key={c.id}
