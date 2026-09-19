@@ -809,7 +809,7 @@ export function WhatsAppWorkspaceScreen({
                                   <a href={`${window.location.origin}${m.media_url}`} target="_blank" rel="noopener noreferrer">
                                     <img src={`${window.location.origin}${m.media_url}`} alt="" className="max-w-[240px] rounded-xl" />
                                   </a>
-                                  {m.content && <p className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
                                 </div>
                               ) : m.message_type === 'document' && m.media_url ? (
                                 <div className="space-y-2">
@@ -825,10 +825,10 @@ export function WhatsAppWorkspaceScreen({
                                     <FileText className="w-4 h-4 shrink-0" />
                                     <span className="truncate">{m.media_url.split('/').pop() ?? 'Document'}</span>
                                   </a>
-                                  {m.content && <p className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
                                 </div>
                               ) : (
-                                <p className="text-sm leading-relaxed break-words">{m.content ?? '—'}</p>
+                                <p dir="auto" className="text-sm leading-relaxed break-words">{m.content ?? '—'}</p>
                               )}
                             </div>
                             {isAgent && m.delivery_status === 'failed' && m.delivery_error && (
@@ -1139,7 +1139,7 @@ export function WhatsAppWorkspaceScreen({
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-zinc-600 whitespace-pre-wrap line-clamp-3">
+                        <p dir="auto" className="text-xs text-zinc-600 whitespace-pre-wrap line-clamp-3">
                           {renderTemplatePreview(t.body, guessTemplateParams(t, selected?.customer?.full_name ?? '', selected?.customer?.phone ?? ''))}
                         </p>
                       </button>
@@ -1153,7 +1153,7 @@ export function WhatsAppWorkspaceScreen({
                   <h2 className="text-lg font-black text-zinc-900">{selectedTemplate.name}</h2>
                   <button onClick={() => { setSelectedTemplate(null); setTemplateParams([]); }} className="p-1 rounded-lg hover:bg-zinc-100"><ArrowLeft className="w-4 h-4" /></button>
                 </div>
-                <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm whitespace-pre-wrap">
+                <div dir="auto" className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm whitespace-pre-wrap">
                   {selectedTemplate.body ? renderTemplatePreview(selectedTemplate.body, templateParams) : <em>(pas de corps)</em>}
                 </div>
                 {templateParams.length > 0 && (
@@ -1169,6 +1169,7 @@ export function WhatsAppWorkspaceScreen({
                             value={val}
                             onChange={(e) => setTemplateParams((prev) => { const next = [...prev]; next[idx] = e.target.value; return next; })}
                             className={`mt-1 w-full px-3 py-2 rounded-xl border text-sm ${val.trim() ? 'border-zinc-200' : 'border-amber-300 bg-amber-50'}`}
+                            dir="auto"
                             placeholder="Valeur…"
                             autoFocus={idx === templateParams.findIndex((v) => !v.trim())}
                           />
@@ -1198,8 +1199,8 @@ export function WhatsAppWorkspaceScreen({
 
 /**
  * Guess auto-fill values for a template's {{N}} placeholders based on the
- * customer's name + phone. {{1}} defaults to the first name; {{2}} to the
- * remaining tokens (last name). Nearby keywords in the template body
+ * customer's name + phone. {{1}} defaults to the full name; other
+ * variables stay empty for the agent. Nearby keywords in the template body
  * override this — e.g. "téléphone {{2}}" pulls the phone number instead.
  */
 function guessTemplateParams(t: { body: string; param_count: number }, fullName: string, phone: string): string[] {
@@ -1207,7 +1208,6 @@ function guessTemplateParams(t: { body: string; param_count: number }, fullName:
   const ph = (phone ?? '').trim();
   const parts = name.split(/\s+/).filter(Boolean);
   const firstName = parts[0] ?? '';
-  const lastName = parts.slice(1).join(' ');
   const body = t.body.toLowerCase();
 
   return Array.from({ length: t.param_count }).map((_, idx) => {
@@ -1218,8 +1218,7 @@ function guessTemplateParams(t: { body: string; param_count: number }, fullName:
     if (/commande|order|référence|ref\b|n°/.test(window)) return '';
     if (/prénom|first ?name/.test(window)) return firstName;
     if (/nom complet|full ?name/.test(window)) return name;
-    if (idx === 0) return firstName;
-    if (idx === 1) return lastName;
+    if (idx === 0) return name;
     return '';
   });
 }
