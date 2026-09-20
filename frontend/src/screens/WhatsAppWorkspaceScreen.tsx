@@ -122,6 +122,7 @@ export function WhatsAppWorkspaceScreen({
   const [waProducts, setWaProducts] = useState<{ id: number; name: string; price: number }[]>([]);
   const [orderMode, setOrderMode] = useState(false);
   const [orderLines, setOrderLines] = useState<{ name: string; qty: string }[]>([{ name: '', qty: '1' }]);
+  const [orderPrepaid, setOrderPrepaid] = useState(false);
   const [sendingTemplate, setSendingTemplate] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [openedAtByConversation, setOpenedAtByConversation] = useState<Record<number, number>>({});
@@ -367,14 +368,16 @@ export function WhatsAppWorkspaceScreen({
   }
 
   // Templates like "suivi commande" pair each product with its quantity
-  // ({{2}} qty + {{3}} product, …) and end on the order total.
-  const orderTemplateLines = selectedTemplate && selectedTemplate.param_count >= 4 && selectedTemplate.param_count % 2 === 0
-    ? (selectedTemplate.param_count - 2) / 2
+  // ({{2}} qty + {{3}} product, …), then the order total. An odd parameter
+  // count means a last variable for the payment wording (COD vs déjà payée).
+  const orderHasPayment = (selectedTemplate?.param_count ?? 0) % 2 === 1;
+  const orderTemplateLines = selectedTemplate && selectedTemplate.param_count >= 4
+    ? Math.floor((selectedTemplate.param_count - 2 - (orderHasPayment ? 1 : 0)) / 2)
     : 0;
 
   function openTemplateForSend(t: WaTemplate) {
     setSelectedTemplate(t);
-    setOrderMode(t.param_count >= 4 && t.param_count % 2 === 0);
+    setOrderMode(t.param_count >= 4);
     setOrderLines([{ name: '', qty: '1' }]);
     setTemplateParams(guessTemplateParams(t, selected?.customer?.full_name ?? '', selected?.customer?.phone ?? ''));
   }
@@ -396,9 +399,10 @@ export function WhatsAppWorkspaceScreen({
       next[1 + 2 * i] = String(Number(l.qty) || 1);
       next[2 + 2 * i] = l.name.trim();
     });
-    next[count - 1] = formatCurrency(orderTotal);
+    next[orderHasPayment ? count - 2 : count - 1] = formatCurrency(orderTotal);
+    if (orderHasPayment) next[count - 1] = orderPrepaid ? 'تم الدفع مسبقا' : 'الدفع عند الإستلام';
     setTemplateParams(next);
-  }, [orderMode, orderLines, orderTotal, orderTemplateLines, selectedTemplate, selected]);
+  }, [orderMode, orderLines, orderTotal, orderTemplateLines, orderHasPayment, orderPrepaid, selectedTemplate, selected]);
 
   async function sendSelectedTemplate() {
     if (!selectedId || !selectedTemplate) return;
@@ -1319,6 +1323,18 @@ export function WhatsAppWorkspaceScreen({
                         </div>
                       );
                     })}
+                    {orderHasPayment && (
+                      <div className="flex flex-wrap gap-4 rounded-xl bg-zinc-50 border border-zinc-200 px-3 py-2">
+                        <label className="flex items-center gap-2 text-xs font-bold text-zinc-800">
+                          <input type="radio" name="order-paid" checked={!orderPrepaid} onChange={() => setOrderPrepaid(false)} />
+                          Paiement à la livraison
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-bold text-zinc-800">
+                          <input type="radio" name="order-paid" checked={orderPrepaid} onChange={() => setOrderPrepaid(true)} />
+                          Déjà payée
+                        </label>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-3">
                       {orderLines.length < orderTemplateLines ? (
                         <button
