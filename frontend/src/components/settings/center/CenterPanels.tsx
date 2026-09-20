@@ -492,6 +492,15 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
     await load();
   };
 
+  const statusFr = (s: string) => ({
+    APPROVED: 'Approuvé',
+    PENDING: 'En attente',
+    IN_REVIEW: 'En révision',
+    REJECTED: 'Rejeté',
+    DISABLED: 'Désactivé',
+    PAUSED: 'En pause',
+  }[s.toUpperCase()] ?? s);
+
   const statusColor = (s: string) => {
     const S = s.toUpperCase();
     if (S === 'APPROVED') return 'bg-emerald-100 text-emerald-800';
@@ -529,7 +538,7 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className="text-sm font-black text-zinc-900">{t.name}</span>
-                  <span className={`text-[10px] font-bold uppercase rounded-full px-2 py-0.5 ${statusColor(t.status)}`}>{t.status}</span>
+                  <span className={`text-[10px] font-bold uppercase rounded-full px-2 py-0.5 ${statusColor(t.status)}`}>{statusFr(t.status)}</span>
                   <span className="text-[10px] font-bold uppercase text-zinc-500">{t.category}</span>
                   <span className="text-[10px] font-semibold text-zinc-400">{t.language}</span>
                   {t.param_count > 0 && (
@@ -554,7 +563,7 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-3 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-black text-zinc-900">Nouveau modèle WhatsApp</h3>
-            <p className="text-xs text-zinc-500">Une fois soumis, Meta le révise en 1–24h. Vous ne pourrez pas l'utiliser tant qu'il n'est pas APPROVED.</p>
+            <p className="text-xs text-zinc-500">Une fois soumis, Meta le révise en 1–24h. Vous ne pourrez pas l'utiliser tant qu'il n'est pas approuvé.</p>
             <label className="block text-xs font-bold text-zinc-700">
               Nom (minuscules, chiffres, underscores)
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}

@@ -78,6 +78,12 @@ type ApiCustomer = { id: number; full_name: string; phone: string };
 const MANDATORY_CONVERSATION_STATUSES = ['en_cours_traitement', 'pas_de_reponse', 'vu_non_repondu', 'confirme', 'a_suivre', 'livre'] as const;
 const ON_READ_ALERT_MINUTES = 5;
 
+const TEMPLATE_CATEGORY_FR: Record<string, string> = {
+  MARKETING: 'Marketing',
+  UTILITY: 'Utilitaire',
+  AUTHENTICATION: 'Authentification',
+};
+
 const CONVERSATION_STATUS_OPTIONS = [
   { value: 'en_cours_traitement', label: 'En cours de traitement' },
   { value: 'pas_de_reponse', label: 'Pas de reponse' },
@@ -1257,7 +1263,7 @@ export function WhatsAppWorkspaceScreen({
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-black text-zinc-900">{t.name}</span>
-                          <span className="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-zinc-100 text-zinc-600">{t.category}</span>
+                          <span className="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-zinc-100 text-zinc-600">{TEMPLATE_CATEGORY_FR[t.category?.toUpperCase()] ?? t.category}</span>
                           <span className="text-[10px] font-semibold text-zinc-400">{t.language}</span>
                           {t.param_count > 0 && (
                             <span className="text-[10px] font-bold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
