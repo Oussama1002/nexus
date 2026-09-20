@@ -368,8 +368,13 @@ class AmeexInboundSyncService
                 ->where('brand_id', $customer->brand_id)
                 ->where('customer_id', $customer->id);
             if ($existing->exists()) {
-                // Déjà un lead (ex. venu de WhatsApp) : un colis transporteur le confirme.
-                (clone $existing)->where('status', 'new')->update(['status' => 'confirmed']);
+                // Un lead issu d'une conversation reste « nouveau » tant que
+                // l'agent n'a pas confirmé la conversation : seuls les leads
+                // transporteur sont confirmés par un colis.
+                (clone $existing)->where('status', 'new')
+                    ->whereIn('source', ['Ameex', 'Sendit', 'Livraison'])
+                    ->update(['status' => 'confirmed']);
+
                 return;
             }
 

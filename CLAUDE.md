@@ -74,7 +74,7 @@ Repo: `github.com/Oussama1002/nexus` — user branch `main`.
 
 ## Leads auto-creation policy
 
-- **WhatsApp** conversation → creates lead `source=WhatsApp`, `status=new` if customer has no lead. See `WhatsAppCloudService::findOrCreateCustomer` + `ensureWhatsappLead`.
+- **WhatsApp** conversation → creates lead `source=WhatsApp`, `status=new` if customer has no lead. It stays `new` until the agent sets the conversation status to `confirme` (ConversationController::update) — a carrier parcel does **not** confirm a conversation lead. See `WhatsAppCloudService::findOrCreateCustomer` + `ensureWhatsappLead`.
 - **Ameex/Sendit** inbound sync → creates lead `source=Ameex|Sendit`, `status=confirmed` (client already has a shipment, they're not a new prospect). See `AmeexInboundSyncService::ensureLead`, `SenditInboundSyncService::ensureLead`.
 - Backfill migrations already ran on client server:
   - `2026_09_14_100000_backfill_leads_for_whatsapp_customers`
@@ -82,6 +82,7 @@ Repo: `github.com/Oussama1002/nexus` — user branch `main`.
   - `2026_09_16_100000_promote_carrier_leads_to_confirmed`
   - `2026_09_19_100000_confirm_leads_of_customers_with_shipments` (existing "new" leads, e.g. WhatsApp, whose customer has a carrier parcel → confirmed; sync does the same live)
   - `2026_09_19_110000_backfill_leads_for_all_conversations` (lead for every client with a conversation, any channel)
+  - `2026_09_20_100000_reset_conversation_leads_to_new` (undo: conversation leads confirmed by the shipment backfill go back to `new`)
 
 ## Open / unresolved issues
 

@@ -173,6 +173,16 @@ class ConversationController extends Controller
         $conversation->fill($data);
         $conversation->save();
 
+        // Le lead suit la conversation : il n'est confirmé que quand l'agent
+        // passe la conversation en « Confirmé ».
+        if (($data['status'] ?? null) === 'confirme' && $conversation->customer_id) {
+            Lead::query()
+                ->where('brand_id', $conversation->brand_id)
+                ->where('customer_id', $conversation->customer_id)
+                ->whereIn('status', ['new', 'contacted', 'qualified'])
+                ->update(['status' => 'confirmed']);
+        }
+
         AuditLogger::log($request, 'conversations.update', $conversation, $before, $conversation->fresh()->toArray());
 
         return ApiResponse::success($conversation->fresh(['customer', 'lead']), 'Conversation updated successfully.');
