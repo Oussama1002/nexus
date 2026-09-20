@@ -118,6 +118,16 @@ class MetaErrorTranslator
             return 'Meta bloque les modèles « Marketing » pour ce client (il fait partie d’un groupe test de WhatsApp). Ce n’est pas une erreur du CRM : envoyez un modèle de catégorie « Utilitaire », ou attendez qu’il vous écrive pour lui répondre en message libre.';
         }
 
+        // Token expiré / révoqué (#190) — l'utilisateur Meta s'est déconnecté ou le token a expiré.
+        if ($code === 190 || str_contains($normalized, 'access token') || str_contains($normalized, 'session is invalid')) {
+            return 'Le token WhatsApp n’est plus valide (session Meta expirée). Générez un nouveau token permanent dans developers.facebook.com, puis collez-le dans Paramètres → WhatsApp → Token API.';
+        }
+
+        // Trop d’appels vers le compte WhatsApp (#80008).
+        if ($code === 80008 || str_contains($normalized, 'too many calls')) {
+            return 'Trop d’appels vers le compte WhatsApp en peu de temps (limite Meta). Patientez une minute puis réessayez.';
+        }
+
         // Repli : préfixe français conservant le détail Meta.
         return 'Erreur Meta : '.$raw;
     }
