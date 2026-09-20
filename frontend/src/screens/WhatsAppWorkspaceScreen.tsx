@@ -419,11 +419,16 @@ export function WhatsAppWorkspaceScreen({
     // Pre-render the body with parameters so the chat bubble immediately
     // shows the real message instead of "[Modèle : name]" (avoids depending
     // on Meta's templates API for the local echo).
+    // In mode commande, unused slots are empty on purpose: drop the marker
+    // instead of printing "{{4}}" in the chat bubble.
     const previewBody = selectedTemplate.body
-      ? templateParams.reduce(
-          (acc, v, i) => acc.split(`{{${i + 1}}}`).join(v || `{{${i + 1}}}`),
-          selectedTemplate.body,
-        )
+      ? templateParams
+          .reduce(
+            (acc, v, i) => acc.split(`{{${i + 1}}}`).join(v || (orderMode ? '' : `{{${i + 1}}}`)),
+            selectedTemplate.body,
+          )
+          .replace(/^[ \t]+$/gm, '')
+          .replace(/\n{3,}/g, '\n\n')
       : '';
     const res = await api.post(`conversations/${selectedId}/send-template`, {
       template_name: selectedTemplate.name,
@@ -1269,7 +1274,7 @@ export function WhatsAppWorkspaceScreen({
                   <button onClick={() => { setSelectedTemplate(null); setTemplateParams([]); }} className="p-1 rounded-lg hover:bg-zinc-100"><ArrowLeft className="w-4 h-4" /></button>
                 </div>
                 <div dir="auto" className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm whitespace-pre-wrap">
-                  {selectedTemplate.body ? renderTemplatePreview(selectedTemplate.body, templateParams) : <em>(pas de corps)</em>}
+                  {selectedTemplate.body ? renderTemplatePreview(selectedTemplate.body, templateParams, orderMode) : <em>(pas de corps)</em>}
                 </div>
                 {orderTemplateLines > 0 && (
                   <label className="flex items-center gap-2 text-xs font-bold text-zinc-700">
@@ -1478,7 +1483,7 @@ function guessTemplateParams(t: { body: string; param_count: number }, fullName:
  * from `values`. Empty values fall back to a highlighted placeholder so
  * the agent still sees where the gap is in the preview.
  */
-function renderTemplatePreview(body: string, values: string[]): React.ReactNode {
+function renderTemplatePreview(body: string, values: string[], hideEmpty = false): React.ReactNode {
   const parts: React.ReactNode[] = [];
   const regex = /\{\{(\d+)\}\}/g;
   let lastIndex = 0;
@@ -1490,7 +1495,7 @@ function renderTemplatePreview(body: string, values: string[]): React.ReactNode 
     const v = values[idx];
     if (v && v.trim()) {
       parts.push(<strong key={`f-${key++}`} className="font-black">{v}</strong>);
-    } else {
+    } else if (!hideEmpty) {
       parts.push(<span key={`b-${key++}`} className="italic text-amber-700">[{`{{${idx + 1}}}`}]</span>);
     }
     lastIndex = m.index + m[0].length;
