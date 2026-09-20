@@ -119,7 +119,7 @@ export function WhatsAppWorkspaceScreen({
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<WaTemplate | null>(null);
   const [templateParams, setTemplateParams] = useState<string[]>([]);
-  const [waProducts, setWaProducts] = useState<{ id: number; name: string; price: number }[]>([]);
+  const [waProducts, setWaProducts] = useState<{ id: number; name: string; price: number; stock: number }[]>([]);
   const [orderMode, setOrderMode] = useState(false);
   const [orderLines, setOrderLines] = useState<{ name: string; qty: string }[]>([{ name: '', qty: '1' }]);
   const [orderPrepaid, setOrderPrepaid] = useState(false);
@@ -361,9 +361,15 @@ export function WhatsAppWorkspaceScreen({
     setTemplatesLoading(false);
     if (!res.ok) { setTemplatesError(res.message); return; }
     setTemplates(res.data ?? []);
-    const prod = await api.get<LaravelPaginator<{ id: number; name: string; price: string }>>('products?per_page=200');
-    if (prod.ok && isPaginator<{ id: number; name: string; price: string }>(prod.data)) {
-      setWaProducts(prod.data.data.map((p) => ({ id: p.id, name: p.name, price: Number(p.price) || 0 })));
+    type ApiProd = { id: number; name: string; price: string; stock_quantity?: number; reserved_quantity?: number };
+    const prod = await api.get<LaravelPaginator<ApiProd>>('products?per_page=200');
+    if (prod.ok && isPaginator<ApiProd>(prod.data)) {
+      setWaProducts(prod.data.data.map((p) => ({
+        id: p.id,
+        name: p.name,
+        price: Number(p.price) || 0,
+        stock: Math.max(0, (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0)),
+      })));
     }
   }
 
@@ -1320,11 +1326,20 @@ export function WhatsAppWorkspaceScreen({
                               )}
                             </div>
                           </div>
-                          <p className="text-[11px] font-semibold text-zinc-500">
-                            {product
-                              ? `${formatCurrency(product.price)} l’unité · ${formatCurrency(product.price * (Number(l.qty) || 0))}`
-                              : l.name.trim() ? 'Produit inconnu — prix non compté' : 'Choisissez un produit dans la liste'}
-                          </p>
+                          {product ? (
+                            <p className={`text-[11px] font-semibold ${product.stock < (Number(l.qty) || 0) ? 'text-rose-600' : 'text-zinc-500'}`}>
+                              {formatCurrency(product.price)} l’unité · {formatCurrency(product.price * (Number(l.qty) || 0))} ·{' '}
+                              {product.stock <= 0
+                                ? 'Rupture de stock'
+                                : product.stock < (Number(l.qty) || 0)
+                                  ? `Stock insuffisant : ${product.stock} disponible(s)`
+                                  : `${product.stock} en stock`}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] font-semibold text-zinc-500">
+                              {l.name.trim() ? 'Produit inconnu — prix non compté' : 'Choisissez un produit dans la liste'}
+                            </p>
+                          )}
                         </div>
                       );
                     })}
@@ -1400,7 +1415,7 @@ function ProductCombo({
   value,
   onChange,
 }: {
-  products: { id: number; name: string; price: number }[];
+  products: { id: number; name: string; price: number; stock: number }[];
   value: string;
   onChange: (v: string) => void;
 }) {
@@ -1443,7 +1458,12 @@ function ProductCombo({
               className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-zinc-50"
             >
               <span className="truncate font-semibold text-zinc-900">{p.name}</span>
-              <span className="shrink-0 text-xs font-bold text-zinc-500">{formatCurrency(p.price)}</span>
+              <span className="shrink-0 text-xs font-bold text-zinc-500">
+                {formatCurrency(p.price)} ·{' '}
+                <span className={p.stock <= 0 ? 'text-rose-600' : 'text-emerald-600'}>
+                  {p.stock <= 0 ? 'rupture' : `${p.stock} en stock`}
+                </span>
+              </span>
             </button>
           ))}
         </div>
