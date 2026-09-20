@@ -135,7 +135,9 @@ export function WhatsAppWorkspaceScreen({
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [creatingCustomer, setCreatingCustomer] = useState(false);
-  const [sendInitTemplate, setSendInitTemplate] = useState(true);
+  const [initMode, setInitMode] = useState<'template' | 'free' | 'none'>('template');
+  const [initTemplate, setInitTemplate] = useState('');
+  const [initText, setInitText] = useState('');
   const [newError, setNewError] = useState<string | null>(null);
   const [agents, setAgents] = useState<ApiUser[]>([]);
   const [assignSaving, setAssignSaving] = useState(false);
@@ -337,6 +339,19 @@ export function WhatsAppWorkspaceScreen({
     await loadConversations();
   }
 
+  useEffect(() => {
+    if (!newOpen) return;
+    void (async () => {
+      let list = templates;
+      if (!list.length) {
+        const res = await api.get<WaTemplate[]>('whatsapp/templates');
+        list = res.ok ? res.data ?? [] : [];
+        setTemplates(list);
+      }
+      setInitTemplate((prev) => prev || list.find((t) => t.name === 'contact_generique')?.name || list[0]?.name || '');
+    })();
+  }, [newOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function openTemplatePicker() {
     setTemplatePickerOpen(true);
     setTemplatesLoading(true);
@@ -489,13 +504,26 @@ export function WhatsAppWorkspaceScreen({
     }
 
     const convId = (res.data as any)?.id;
-    if (convId && sendInitTemplate) {
-      const tplRes = await api.post(`conversations/${convId}/send-template`, {
-        template_name: 'hello_world',
-        language_code: 'en_US',
+    if (convId && initMode === 'template' && initTemplate) {
+      const tpl = templates.find((t) => t.name === initTemplate);
+      const sendRes = await api.post(`conversations/${convId}/send-template`, {
+        template_name: initTemplate,
+        language_code: tpl?.language ?? 'fr',
+        parameters: tpl?.param_count
+          ? Array.from({ length: tpl.param_count }, (_, i) => (i === 0 ? (newName.trim() || 'client') : '​'))
+          : [],
       });
-      if (!tplRes.ok) {
-        setNewError(tplRes.message);
+      if (!sendRes.ok) {
+        setNewError(sendRes.message);
+      }
+    }
+    if (convId && initMode === 'free' && initText.trim()) {
+      const msgRes = await api.post(`conversations/${convId}/messages`, {
+        direction: 'outbound',
+        content: initText.trim(),
+      });
+      if (!msgRes.ok) {
+        setNewError(msgRes.message);
       }
     }
 
@@ -505,7 +533,8 @@ export function WhatsAppWorkspaceScreen({
     setNewName('');
     setNewPhone('');
     setCustomerSearch('');
-    setSendInitTemplate(true);
+    setInitMode('template');
+    setInitText('');
     setNewError(null);
     await loadConversations();
     if (convId) {
@@ -1139,18 +1168,44 @@ export function WhatsAppWorkspaceScreen({
             </div>
           )}
 
-          <label className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-100 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={sendInitTemplate}
-              onChange={(e) => setSendInitTemplate(e.target.checked)}
-              className="accent-emerald-600 w-4 h-4"
-            />
-            <div>
-              <p className="text-xs font-bold text-emerald-800">Envoyer un message d'initiation</p>
-              <p className="text-[10px] text-emerald-600">Requis pour pouvoir envoyer des messages libres (ouvre la fenêtre 24h WhatsApp)</p>
-            </div>
-          </label>
+          <div className="space-y-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+            <p className="text-xs font-bold text-emerald-800">Premier message</p>
+            <label className="flex items-center gap-2 text-xs font-semibold text-emerald-900">
+              <input type="radio" name="init-mode" checked={initMode === 'template'} onChange={() => setInitMode('template')} className="accent-emerald-600" />
+              Envoyer un modèle
+            </label>
+            {initMode === 'template' && (
+              <select
+                value={initTemplate}
+                onChange={(e) => setInitTemplate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-sm font-semibold text-zinc-900"
+              >
+                {templates.length === 0 && <option value="">Aucun modèle disponible</option>}
+                {templates.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
+              </select>
+            )}
+            <label className="flex items-center gap-2 text-xs font-semibold text-emerald-900">
+              <input type="radio" name="init-mode" checked={initMode === 'free'} onChange={() => setInitMode('free')} className="accent-emerald-600" />
+              Message libre
+            </label>
+            {initMode === 'free' && (
+              <>
+                <textarea
+                  rows={3}
+                  dir="auto"
+                  value={initText}
+                  onChange={(e) => setInitText(e.target.value)}
+                  placeholder="Votre message…"
+                  className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-white text-sm text-zinc-900"
+                />
+                <p className="text-[10px] text-emerald-700">WhatsApp n’accepte un message libre que si le client a écrit dans les 24 h. Sinon, utilisez un modèle.</p>
+              </>
+            )}
+            <label className="flex items-center gap-2 text-xs font-semibold text-emerald-900">
+              <input type="radio" name="init-mode" checked={initMode === 'none'} onChange={() => setInitMode('none')} className="accent-emerald-600" />
+              Ne rien envoyer
+            </label>
+          </div>
         </div>
       </Modal>
 
