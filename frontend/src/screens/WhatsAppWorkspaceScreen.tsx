@@ -372,8 +372,9 @@ export function WhatsAppWorkspaceScreen({
   useEffect(() => {
     if (!orderMode || !selectedTemplate) return;
     const count = selectedTemplate.param_count;
-    // Unused product slots must not be empty — WhatsApp rejects blank variables.
-    const next = Array.from({ length: count }, () => '-');
+    // Unused product slots: zero-width space — Meta rejects truly empty
+    // variables, but this renders as nothing in the client's message.
+    const next = Array.from({ length: count }, () => '\u200B');
     next[0] = selected?.customer?.full_name ?? '';
     orderLines.slice(0, orderTemplateLines).forEach((l, i) => {
       if (!l.name.trim()) return;
@@ -852,19 +853,19 @@ export function WhatsAppWorkspaceScreen({
                               {m.message_type === 'audio' && m.media_url ? (
                                 <div className="space-y-2">
                                   <audio controls preload="metadata" src={`${window.location.origin}${m.media_url}`} className="w-64 max-w-full" />
-                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>}
                                 </div>
                               ) : m.message_type === 'video' && m.media_url ? (
                                 <div className="space-y-2">
                                   <video controls preload="metadata" src={`${window.location.origin}${m.media_url}`} className="max-w-[260px] rounded-xl" />
-                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>}
                                 </div>
                               ) : (m.message_type === 'image' || m.message_type === 'sticker') && m.media_url ? (
                                 <div className="space-y-2">
                                   <a href={`${window.location.origin}${m.media_url}`} target="_blank" rel="noopener noreferrer">
                                     <img src={`${window.location.origin}${m.media_url}`} alt="" className="max-w-[240px] rounded-xl" />
                                   </a>
-                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>}
                                 </div>
                               ) : m.message_type === 'document' && m.media_url ? (
                                 <div className="space-y-2">
@@ -880,10 +881,10 @@ export function WhatsAppWorkspaceScreen({
                                     <FileText className="w-4 h-4 shrink-0" />
                                     <span className="truncate">{m.media_url.split('/').pop() ?? 'Document'}</span>
                                   </a>
-                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words">{m.content}</p>}
+                                  {m.content && <p dir="auto" className="text-sm leading-relaxed break-words whitespace-pre-wrap">{m.content}</p>}
                                 </div>
                               ) : (
-                                <p dir="auto" className="text-sm leading-relaxed break-words">{m.content ?? '—'}</p>
+                                <p dir="auto" className="text-sm leading-relaxed break-words whitespace-pre-wrap">{m.content ?? '—'}</p>
                               )}
                             </div>
                             {isAgent && m.delivery_status === 'failed' && m.delivery_error && (
