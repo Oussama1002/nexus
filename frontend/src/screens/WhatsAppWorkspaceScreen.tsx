@@ -1219,46 +1219,47 @@ export function WhatsAppWorkspaceScreen({
                 )}
                 {orderMode ? (
                   <div className="space-y-3">
-                    <datalist id="wa-products">
-                      {waProducts.map((p) => <option key={p.id} value={p.name} />)}
-                    </datalist>
                     {orderLines.slice(0, orderTemplateLines).map((l, i) => {
                       const product = waProducts.find((x) => x.name.toLowerCase() === l.name.trim().toLowerCase());
                       return (
-                        <div key={i} className="flex items-end gap-2">
-                          <label className="flex-1 block text-xs font-bold text-zinc-700">
-                            Produit {i + 1}
-                            <input
-                              list="wa-products"
-                              value={l.name}
-                              onChange={(e) => setOrderLines((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-                              className={`mt-1 w-full px-3 py-2 rounded-xl border text-sm font-semibold text-zinc-900 ${product ? 'border-zinc-200' : 'border-amber-300 bg-amber-50'}`}
-                              placeholder="Tapez les premières lettres…"
-                            />
-                            <span className="text-[11px] font-semibold text-zinc-500">
-                              {product ? `${formatCurrency(product.price)} l’unité` : 'Produit inconnu — prix non compté'}
-                            </span>
-                          </label>
-                          <label className="w-20 block text-xs font-bold text-zinc-700">
-                            Qté
-                            <input
-                              type="number"
-                              min={1}
-                              value={l.qty}
-                              onChange={(e) => setOrderLines((prev) => prev.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)))}
-                              className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-900"
-                            />
-                          </label>
-                          {orderLines.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setOrderLines((prev) => prev.filter((_, j) => j !== i))}
-                              className="mb-1 p-2 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-rose-600"
-                              aria-label="Retirer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
+                        <div key={i} className="space-y-1">
+                          <div className="flex gap-2">
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <p className="text-xs font-bold text-zinc-700">Produit {i + 1}</p>
+                              <ProductCombo
+                                products={waProducts}
+                                value={l.name}
+                                onChange={(v) => setOrderLines((prev) => prev.map((x, j) => (j === i ? { ...x, name: v } : x)))}
+                              />
+                            </div>
+                            <div className="w-20 space-y-1">
+                              <p className="text-xs font-bold text-zinc-700">Qté</p>
+                              <input
+                                type="number"
+                                min={1}
+                                value={l.qty}
+                                onChange={(e) => setOrderLines((prev) => prev.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)))}
+                                className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-900"
+                              />
+                            </div>
+                            <div className="w-9 flex items-end">
+                              {orderLines.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setOrderLines((prev) => prev.filter((_, j) => j !== i))}
+                                  className="p-2 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-rose-600"
+                                  aria-label="Retirer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-[11px] font-semibold text-zinc-500">
+                            {product
+                              ? `${formatCurrency(product.price)} l’unité · ${formatCurrency(product.price * (Number(l.qty) || 0))}`
+                              : l.name.trim() ? 'Produit inconnu — prix non compté' : 'Choisissez un produit dans la liste'}
+                          </p>
                         </div>
                       );
                     })}
@@ -1310,6 +1311,64 @@ export function WhatsAppWorkspaceScreen({
               </>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Product picker: click to see the list, type to filter it. */
+function ProductCombo({
+  products,
+  value,
+  onChange,
+}: {
+  products: { id: number; name: string; price: number }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const boxRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  const shown = query.trim()
+    ? products.filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : products;
+  const known = products.some((p) => p.name.toLowerCase() === value.trim().toLowerCase());
+
+  return (
+    <div ref={boxRef} className="relative">
+      <input
+        value={open ? query : value}
+        onFocus={() => { setQuery(''); setOpen(true); }}
+        onChange={(e) => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+        placeholder="Choisir ou rechercher un produit…"
+        className={`w-full px-3 py-2 rounded-xl border text-sm font-semibold text-zinc-900 ${known || !value.trim() ? 'border-zinc-200' : 'border-amber-300 bg-amber-50'}`}
+      />
+      {open && (
+        <div className="absolute z-10 mt-1 w-full max-h-52 overflow-auto rounded-xl border border-zinc-200 bg-white shadow-lg">
+          {shown.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-zinc-500">Aucun produit.</p>
+          ) : shown.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => { onChange(p.name); setOpen(false); }}
+              className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-zinc-50"
+            >
+              <span className="truncate font-semibold text-zinc-900">{p.name}</span>
+              <span className="shrink-0 text-xs font-bold text-zinc-500">{formatCurrency(p.price)}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>
