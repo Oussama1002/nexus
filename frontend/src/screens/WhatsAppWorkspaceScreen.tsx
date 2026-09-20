@@ -390,9 +390,9 @@ export function WhatsAppWorkspaceScreen({
   useEffect(() => {
     if (!orderMode || !selectedTemplate) return;
     const count = selectedTemplate.param_count;
-    // Unused product slots: zero-width space — Meta rejects truly empty
-    // variables, but this renders as nothing in the client's message.
-    const next = Array.from({ length: count }, () => '\u200B');
+    // Unused product slots stay empty here; the backend swaps them for a
+    // zero-width space (Laravel trims invisible characters out of requests).
+    const next = Array.from({ length: count }, () => '');
     next[0] = selected?.customer?.full_name ?? '';
     orderLines.slice(0, orderTemplateLines).forEach((l, i) => {
       if (!l.name.trim()) return;
@@ -407,7 +407,7 @@ export function WhatsAppWorkspaceScreen({
   async function sendSelectedTemplate() {
     if (!selectedId || !selectedTemplate) return;
     // Refuse if any parameter is empty — WhatsApp rejects blank variables.
-    if (selectedTemplate.param_count > 0 && templateParams.some((p) => !p.trim())) {
+    if (!orderMode && selectedTemplate.param_count > 0 && templateParams.some((p) => !p.trim())) {
       toast.error('Remplissez toutes les variables du modèle.');
       return;
     }
@@ -514,7 +514,7 @@ export function WhatsAppWorkspaceScreen({
         template_name: initTemplate,
         language_code: tpl?.language ?? 'fr',
         parameters: tpl?.param_count
-          ? Array.from({ length: tpl.param_count }, (_, i) => (i === 0 ? (newName.trim() || 'client') : '​'))
+          ? Array.from({ length: tpl.param_count }, (_, i) => (i === 0 ? (newName.trim() || 'client') : ''))
           : [],
       });
       if (!sendRes.ok) {

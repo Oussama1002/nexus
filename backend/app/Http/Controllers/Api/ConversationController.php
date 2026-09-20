@@ -444,9 +444,18 @@ class ConversationController extends Controller
             'template_name' => ['required', 'string', 'max:191'],
             'language_code' => ['nullable', 'string', 'max:10'],
             'parameters' => ['nullable', 'array'],
-            'parameters.*' => ['string'],
+            'parameters.*' => ['nullable', 'string'],
             'preview_content' => ['nullable', 'string', 'max:4096'],
         ]);
+
+        // Meta refuses empty variables; unused slots (e.g. a 3-product template
+        // used for one product) go out as a zero-width space so nothing shows.
+        // Laravel trims every invisible character out of the request, so the
+        // placeholder is restored here instead of being sent by the frontend.
+        $data['parameters'] = array_map(
+            fn ($p) => ($p === null || trim((string) $p) === '') ? "\u{200B}" : (string) $p,
+            $data['parameters'] ?? []
+        );
 
         $recipient = $conversation->external_thread_id;
         if (! $recipient && $conversation->channel === WhatsAppCloudService::CHANNEL) {
