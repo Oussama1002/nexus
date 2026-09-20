@@ -90,6 +90,7 @@ class ConversationController extends Controller
             ][$last?->message_type] ?? null;
             $conversation->setAttribute('last_message_content', $last?->content ?: $mediaLabel);
             $conversation->setAttribute('last_message_direction', $last?->direction);
+            $conversation->setAttribute('last_message_status', $last?->delivery_status);
 
             // Unread: inbound messages after last outbound
             $unread = 0;

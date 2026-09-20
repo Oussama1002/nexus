@@ -1,5 +1,5 @@
 import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, FileText, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, FileText, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -33,6 +33,7 @@ type ApiConversation = {
   assigned_user_id?: number | null;
   last_message_at: string | null;
   last_message_content?: string | null;
+  last_message_status?: 'sent' | 'delivered' | 'read' | 'failed' | null;
   last_message_direction?: 'inbound' | 'outbound' | null;
   unread_count?: number;
   is_waiting_agent_reply?: boolean;
@@ -680,9 +681,14 @@ export function WhatsAppWorkspaceScreen({
                         </div>
                         <div className="flex items-center justify-between gap-2 mt-1">
                           <p className={cn('text-[12px] truncate', c.unread_count ? 'font-bold text-zinc-800' : 'font-medium text-zinc-500')}>
-                            {c.last_message_direction === 'outbound' && (
-                              <CheckCircle2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-primary-500" />
-                            )}
+                            {c.last_message_direction === 'outbound' && (() => {
+                              const st = c.last_message_status ?? null;
+                              if (st === 'failed') return <span className="mr-1 text-[10px] font-black text-rose-600 uppercase" title="Échec d’envoi">Échec</span>;
+                              if (st === 'read') return <CheckCircle2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-primary-500" aria-label="Lu" />;
+                              if (st === 'delivered') return <CheckCircle2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-zinc-500" aria-label="Reçu" />;
+                              if (st === 'sent') return <CheckCircle2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-zinc-300" aria-label="Envoyé" />;
+                              return <Clock className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-amber-500" aria-label="En attente d’envoi" />;
+                            })()}
                             {c.last_message_content ? (c.last_message_content.length > 40 ? c.last_message_content.slice(0, 40) + '...' : c.last_message_content) : phone || 'Aucun message'}
                           </p>
                           {(c.unread_count ?? 0) > 0 && (
@@ -908,7 +914,7 @@ export function WhatsAppWorkspaceScreen({
                                 if (s === 'read') return <CheckCircle2 className="w-3 h-3 text-primary-600" aria-label="Lu" />;
                                 if (s === 'delivered') return <CheckCircle2 className="w-3 h-3 text-zinc-500" aria-label="Reçu" />;
                                 if (s === 'sent') return <CheckCircle2 className="w-3 h-3 text-zinc-300" aria-label="Envoyé" />;
-                                return <span className="text-[10px] font-bold text-zinc-400" title="En attente d'envoi">…</span>;
+                                return <Clock className="w-3 h-3 text-amber-500" aria-label="En attente d'envoi" />;
                               })()}
                               {canDelete && (
                                 <button type="button" onClick={() => void deleteMessage(m.id)} className="ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity p-0.5 rounded hover:bg-rose-100" title="Supprimer">
