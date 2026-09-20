@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, FileText, MessageSquare, Paperclip, Search, Se
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
-import { cn } from '../lib/utils';
+import { cn, formatCurrency } from '../lib/utils';
 import type { OrderDraft } from '../domain/orders';
 import { trackSession } from '../lib/session';
 import { useBrand } from '../context/BrandContext';
@@ -118,6 +118,9 @@ export function WhatsAppWorkspaceScreen({
   const [templatesError, setTemplatesError] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<WaTemplate | null>(null);
   const [templateParams, setTemplateParams] = useState<string[]>([]);
+  const [waProducts, setWaProducts] = useState<{ id: number; name: string; price: number }[]>([]);
+  const [orderMode, setOrderMode] = useState(false);
+  const [orderLines, setOrderLines] = useState<{ name: string; qty: string }[]>([{ name: '', qty: '1' }]);
   const [sendingTemplate, setSendingTemplate] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [openedAtByConversation, setOpenedAtByConversation] = useState<Record<number, number>>({});
@@ -341,18 +344,54 @@ export function WhatsAppWorkspaceScreen({
     setTemplatesLoading(false);
     if (!res.ok) { setTemplatesError(res.message); return; }
     setTemplates(res.data ?? []);
+    const prod = await api.get<LaravelPaginator<{ id: number; name: string; price: string }>>('products?per_page=200');
+    if (prod.ok && isPaginator<{ id: number; name: string; price: string }>(prod.data)) {
+      setWaProducts(prod.data.data.map((p) => ({ id: p.id, name: p.name, price: Number(p.price) || 0 })));
+    }
   }
+
+  // Templates like "suivi commande" pair each product with its quantity
+  // ({{2}} qty + {{3}} product, …) and end on the order total.
+  const orderTemplateLines = selectedTemplate && selectedTemplate.param_count >= 4 && selectedTemplate.param_count % 2 === 0
+    ? (selectedTemplate.param_count - 2) / 2
+    : 0;
 
   function openTemplateForSend(t: WaTemplate) {
     setSelectedTemplate(t);
+    setOrderMode(t.param_count >= 4 && t.param_count % 2 === 0);
+    setOrderLines([{ name: '', qty: '1' }]);
     setTemplateParams(guessTemplateParams(t, selected?.customer?.full_name ?? '', selected?.customer?.phone ?? ''));
   }
+
+  const orderTotal = useMemo(() => orderLines.reduce((sum, l) => {
+    const p = waProducts.find((x) => x.name.toLowerCase() === l.name.trim().toLowerCase());
+    return sum + (p ? p.price * (Number(l.qty) || 0) : 0);
+  }, 0), [orderLines, waProducts]);
+
+  useEffect(() => {
+    if (!orderMode || !selectedTemplate) return;
+    const count = selectedTemplate.param_count;
+    // Unused product slots must not be empty — WhatsApp rejects blank variables.
+    const next = Array.from({ length: count }, () => '-');
+    next[0] = selected?.customer?.full_name ?? '';
+    orderLines.slice(0, orderTemplateLines).forEach((l, i) => {
+      if (!l.name.trim()) return;
+      next[1 + 2 * i] = String(Number(l.qty) || 1);
+      next[2 + 2 * i] = l.name.trim();
+    });
+    next[count - 1] = formatCurrency(orderTotal);
+    setTemplateParams(next);
+  }, [orderMode, orderLines, orderTotal, orderTemplateLines, selectedTemplate, selected]);
 
   async function sendSelectedTemplate() {
     if (!selectedId || !selectedTemplate) return;
     // Refuse if any parameter is empty — WhatsApp rejects blank variables.
     if (selectedTemplate.param_count > 0 && templateParams.some((p) => !p.trim())) {
       toast.error('Remplissez toutes les variables du modèle.');
+      return;
+    }
+    if (orderMode && !orderLines.some((l) => l.name.trim())) {
+      toast.error('Choisissez au moins un produit.');
       return;
     }
     setSendingTemplate(true);
@@ -1166,7 +1205,71 @@ export function WhatsAppWorkspaceScreen({
                 <div dir="auto" className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm whitespace-pre-wrap">
                   {selectedTemplate.body ? renderTemplatePreview(selectedTemplate.body, templateParams) : <em>(pas de corps)</em>}
                 </div>
-                {templateParams.length > 0 && (
+                {orderTemplateLines > 0 && (
+                  <label className="flex items-center gap-2 text-xs font-bold text-zinc-700">
+                    <input type="checkbox" checked={orderMode} onChange={(e) => setOrderMode(e.target.checked)} />
+                    Mode commande (produits + total calculé)
+                  </label>
+                )}
+                {orderMode ? (
+                  <div className="space-y-3">
+                    <datalist id="wa-products">
+                      {waProducts.map((p) => <option key={p.id} value={p.name} />)}
+                    </datalist>
+                    {orderLines.slice(0, orderTemplateLines).map((l, i) => {
+                      const product = waProducts.find((x) => x.name.toLowerCase() === l.name.trim().toLowerCase());
+                      return (
+                        <div key={i} className="flex items-end gap-2">
+                          <label className="flex-1 block text-xs font-bold text-zinc-700">
+                            Produit {i + 1}
+                            <input
+                              list="wa-products"
+                              value={l.name}
+                              onChange={(e) => setOrderLines((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                              className={`mt-1 w-full px-3 py-2 rounded-xl border text-sm font-semibold text-zinc-900 ${product ? 'border-zinc-200' : 'border-amber-300 bg-amber-50'}`}
+                              placeholder="Tapez les premières lettres…"
+                            />
+                            <span className="text-[11px] font-semibold text-zinc-500">
+                              {product ? `${formatCurrency(product.price)} l’unité` : 'Produit inconnu — prix non compté'}
+                            </span>
+                          </label>
+                          <label className="w-20 block text-xs font-bold text-zinc-700">
+                            Qté
+                            <input
+                              type="number"
+                              min={1}
+                              value={l.qty}
+                              onChange={(e) => setOrderLines((prev) => prev.map((x, j) => (j === i ? { ...x, qty: e.target.value } : x)))}
+                              className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-900"
+                            />
+                          </label>
+                          {orderLines.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setOrderLines((prev) => prev.filter((_, j) => j !== i))}
+                              className="mb-1 p-2 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-rose-600"
+                              aria-label="Retirer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <div className="flex items-center justify-between gap-3">
+                      {orderLines.length < orderTemplateLines ? (
+                        <button
+                          type="button"
+                          onClick={() => setOrderLines((prev) => [...prev, { name: '', qty: '1' }])}
+                          className="px-3 py-1.5 rounded-xl border border-zinc-200 text-xs font-black text-zinc-700 hover:bg-zinc-50"
+                        >
+                          + Ajouter un produit
+                        </button>
+                      ) : <span className="text-[11px] text-zinc-400">Maximum {orderTemplateLines} produits pour ce modèle.</span>}
+                      <p className="text-sm font-black text-zinc-900">Total : {formatCurrency(orderTotal)}</p>
+                    </div>
+                  </div>
+                ) : templateParams.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-zinc-700">Variables du modèle (modifiables) :</p>
                     {templateParams.map((val, idx) => {
