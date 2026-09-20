@@ -738,8 +738,9 @@ class WhatsAppCloudService
         }
 
         $upload = Http::withToken($cfg['token'])
-            ->timeout(60)
-            ->attach('file', file_get_contents($absolutePath), $filename, ['Content-Type' => $mimeType])
+            ->connectTimeout(10)
+            ->timeout(40)
+            ->attach('file', fopen($absolutePath, 'r'), $filename, ['Content-Type' => $mimeType])
             ->post(sprintf('%s/%s/media', $cfg['base_url'], $cfg['phone_id']), [
                 'messaging_product' => 'whatsapp',
                 'type' => $mimeType,

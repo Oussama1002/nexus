@@ -126,10 +126,17 @@ function normalize<T>(status: number, body: unknown): NormalizedResponse<T> {
       errors: (b.errors && typeof b.errors === 'object' ? b.errors : {}) as ApiEnvelopeError['errors'],
     };
   }
+  // Non-JSON body: proxy/PHP error page (502 timeout, 413 too large…).
+  const serverErrors: Record<number, string> = {
+    413: 'Fichier trop volumineux pour le serveur.',
+    502: 'Le serveur a coupé la requête (trop longue). Réessayez ou envoyez un fichier plus léger.',
+    504: 'Le serveur a coupé la requête (trop longue). Réessayez ou envoyez un fichier plus léger.',
+    500: 'Erreur interne du serveur.',
+  };
   return {
     ok: false,
     status,
-    message: 'Unexpected response format.',
+    message: serverErrors[status] ?? `Réponse inattendue du serveur (code ${status}).`,
     errors: {},
   };
 }
