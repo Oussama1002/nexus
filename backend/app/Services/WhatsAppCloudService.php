@@ -737,14 +737,34 @@ class WhatsAppCloudService
             throw new \RuntimeException('Identifiants WhatsApp manquants pour ce numéro/cette marque.');
         }
 
-        $upload = Http::withToken($cfg['token'])
-            ->connectTimeout(10)
-            ->timeout(40)
-            ->attach('file', fopen($absolutePath, 'r'), $filename, ['Content-Type' => $mimeType])
-            ->post(sprintf('%s/%s/media', $cfg['base_url'], $cfg['phone_id']), [
-                'messaging_product' => 'whatsapp',
-                'type' => $mimeType,
+        $startedAt = microtime(true);
+
+        try {
+            $upload = Http::withToken($cfg['token'])
+                ->connectTimeout(10)
+                ->timeout(90)
+                ->attach('file', fopen($absolutePath, 'r'), $filename, ['Content-Type' => $mimeType])
+                ->post(sprintf('%s/%s/media', $cfg['base_url'], $cfg['phone_id']), [
+                    'messaging_product' => 'whatsapp',
+                    'type' => $mimeType,
+                ]);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('whatsapp.media.upload_timeout', [
+                'file' => $filename,
+                'size' => @filesize($absolutePath),
+                'seconds' => round(microtime(true) - $startedAt, 1),
+                'error' => $e->getMessage(),
             ]);
+
+            throw new \RuntimeException('Envoi du fichier trop long : Meta n’a pas répondu à temps. Réessayez ou envoyez un fichier plus léger.');
+        }
+
+        Log::info('whatsapp.media.uploaded', [
+            'file' => $filename,
+            'size' => @filesize($absolutePath),
+            'seconds' => round(microtime(true) - $startedAt, 1),
+            'status' => $upload->status(),
+        ]);
 
         if (! $upload->successful() || ! $upload->json('id')) {
             Log::error('whatsapp.media.upload_failed', ['status' => $upload->status(), 'body' => $upload->body()]);

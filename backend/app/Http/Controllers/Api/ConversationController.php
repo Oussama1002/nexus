@@ -543,6 +543,9 @@ class ConversationController extends Controller
             return ApiResponse::error('Impossible de déterminer le numéro WhatsApp du destinataire.', null, 422);
         }
 
+        // Uploading to Meta can outlive PHP's default 30s limit on a slow link.
+        set_time_limit(180);
+
         try {
             $externalId = $wa->sendMedia(
                 $conversation->brand_id,
