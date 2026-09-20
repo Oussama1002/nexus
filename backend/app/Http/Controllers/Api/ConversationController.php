@@ -17,6 +17,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class ConversationController extends Controller
@@ -509,7 +510,7 @@ class ConversationController extends Controller
         return ApiResponse::success($message->fresh(['sender']), 'Template envoyé.', 201);
     }
 
-    public function uploadAttachment(Request $request, string $id): JsonResponse
+    public function uploadAttachment(Request $request, string $id, WhatsAppCloudService $wa): JsonResponse
     {
         $conversation = $this->findConversationForUser($request, $id);
 
@@ -519,23 +520,52 @@ class ConversationController extends Controller
         ]);
 
         $file = $request->file('file');
-        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
         $originalName = $file->getClientOriginalName();
         $dir = "conversation-attachments/{$conversation->id}";
         $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
         $path = $file->storeAs($dir, $filename, 'public');
         $mediaUrl = '/storage/' . $path;
 
-        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
-        $messageType = $isImage ? 'image' : 'document';
+        $mime = $file->getClientMimeType() ?: 'application/octet-stream';
+        $messageType = str_starts_with($mime, 'image/') ? 'image'
+            : (str_starts_with($mime, 'video/') ? 'video'
+                : (str_starts_with($mime, 'audio/') ? 'audio' : 'document'));
+        $caption = $request->input('content');
+
+        // Actually deliver the file to the client — otherwise it only lived in the CRM.
+        $recipient = $conversation->external_thread_id;
+        if (! $recipient) {
+            $conversation->loadMissing('customer');
+            $phone = $conversation->customer?->phone;
+            $recipient = $phone ? \App\Services\PhoneNormalizer::toWhatsAppId($phone) : null;
+        }
+        if (! $recipient) {
+            return ApiResponse::error('Impossible de déterminer le numéro WhatsApp du destinataire.', null, 422);
+        }
+
+        try {
+            $externalId = $wa->sendMedia(
+                $conversation->brand_id,
+                $recipient,
+                Storage::disk('public')->path($path),
+                $mime,
+                $originalName,
+                $caption,
+                $conversation->whatsappNumber,
+            );
+        } catch (\Throwable $e) {
+            return ApiResponse::error($e->getMessage(), null, 502);
+        }
 
         $message = Message::query()->create([
             'conversation_id' => $conversation->id,
             'sender_user_id' => $request->user()->id,
             'direction' => 'outbound',
-            'content' => $request->input('content') ?: $originalName,
+            'content' => $caption ?: ($messageType === 'document' ? $originalName : null),
             'message_type' => $messageType,
             'media_url' => $mediaUrl,
+            'external_message_id' => $externalId ?: null,
+            'delivery_status' => $externalId ? 'sent' : null,
             'sent_at' => now(),
         ]);
 

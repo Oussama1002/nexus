@@ -717,6 +717,75 @@ class WhatsAppCloudService
     }
 
     /**
+     * Upload a local file to Meta then send it as image/video/audio/document.
+     * Returns the external message id.
+     *
+     * @throws \RuntimeException
+     */
+    public function sendMedia(
+        int $brandId,
+        string $toWaId,
+        string $absolutePath,
+        string $mimeType,
+        string $filename,
+        ?string $caption = null,
+        ?WhatsAppNumber $number = null,
+    ): string {
+        $cfg = $this->resolveSendConfig($brandId, $number);
+
+        if ($cfg['token'] === '' || $cfg['phone_id'] === '') {
+            throw new \RuntimeException('Identifiants WhatsApp manquants pour ce numéro/cette marque.');
+        }
+
+        $upload = Http::withToken($cfg['token'])
+            ->timeout(60)
+            ->attach('file', file_get_contents($absolutePath), $filename, ['Content-Type' => $mimeType])
+            ->post(sprintf('%s/%s/media', $cfg['base_url'], $cfg['phone_id']), [
+                'messaging_product' => 'whatsapp',
+                'type' => $mimeType,
+            ]);
+
+        if (! $upload->successful() || ! $upload->json('id')) {
+            Log::error('whatsapp.media.upload_failed', ['status' => $upload->status(), 'body' => $upload->body()]);
+            $err = (string) ($upload->json('error.message') ?? $upload->body());
+            $code = $upload->json('error.code');
+            throw new \RuntimeException('Échec de l’envoi du fichier : '.\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
+        }
+
+        $type = str_starts_with($mimeType, 'image/') ? 'image'
+            : (str_starts_with($mimeType, 'video/') ? 'video'
+                : (str_starts_with($mimeType, 'audio/') ? 'audio' : 'document'));
+
+        $media = ['id' => (string) $upload->json('id')];
+        if ($caption !== null && $caption !== '' && $type !== 'audio') {
+            $media['caption'] = $caption;
+        }
+        if ($type === 'document') {
+            $media['filename'] = $filename;
+        }
+
+        $res = Http::withToken($cfg['token'])
+            ->acceptJson()
+            ->asJson()
+            ->timeout(30)
+            ->post(sprintf('%s/%s/messages', $cfg['base_url'], $cfg['phone_id']), [
+                'messaging_product' => 'whatsapp',
+                'to' => ltrim($toWaId, '+'),
+                'type' => $type,
+                $type => $media,
+            ]);
+
+        if (! $res->successful()) {
+            Log::error('whatsapp.media.send_failed', ['status' => $res->status(), 'body' => $res->body()]);
+            $err = (string) ($res->json('error.message') ?? $res->body());
+            $code = $res->json('error.code');
+            throw new \RuntimeException('Échec de l’envoi du fichier : '.\App\Services\Meta\MetaErrorTranslator::toFrench($err, is_int($code) ? $code : null));
+        }
+
+        return (string) ($res->json('messages.0.id') ?? '');
+    }
+
+    /**
      * Send a template message (required to initiate conversations outside the 24h window).
      *
      * @param  array<string, string>  $parameters  Positional body parameters for the template
