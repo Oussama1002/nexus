@@ -72,14 +72,19 @@ class AuthController extends Controller
             'password.confirmed' => 'Les deux mots de passe ne correspondent pas.',
         ]);
 
-        $status = Password::broker()->reset($data, function (User $user, string $password) {
+        $resetUser = null;
+        $status = Password::broker()->reset($data, function (User $user, string $password) use (&$resetUser) {
             $user->forceFill(['password' => Hash::make($password)])->save();
             $user->tokens()->delete();
+            $resetUser = $user;
         });
 
         if ($status !== Password::PASSWORD_RESET) {
             return ApiResponse::error('Lien invalide ou expiré. Refaites une demande de réinitialisation.', null, 422);
         }
+
+        // Feeds the admins' notification ("mot de passe réinitialisé").
+        AuditLogger::system('auth.password_reset', $resetUser, ['name' => $resetUser?->name, 'email' => $resetUser?->email]);
 
         return ApiResponse::success(null, 'Mot de passe modifié. Vous pouvez vous connecter.');
     }

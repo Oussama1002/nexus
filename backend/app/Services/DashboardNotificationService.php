@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\AutomationRun;
 use App\Models\ClientInvoice;
 use App\Models\EmployeeAttendanceRecord;
@@ -48,6 +49,10 @@ class DashboardNotificationService
 
         if ($user->hasPermissionSlug('hr.view')) {
             $items = array_merge($items, $this->pendingHrJustifications($user));
+        }
+
+        if ($user->isAdmin()) {
+            $items = array_merge($items, $this->passwordResets());
         }
 
         if ($user->hasPermissionSlug('automations.view')) {
@@ -126,6 +131,32 @@ class DashboardNotificationService
                 $count,
             ),
         ];
+    }
+
+    private function passwordResets(): array
+    {
+        return AuditLog::query()
+            ->where('action', 'auth.password_reset')
+            ->where('created_at', '>=', Carbon::now()->subDays(7))
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get()
+            ->map(function (AuditLog $log) {
+                $values = (array) ($log->new_values ?? []);
+                $who = trim((string) ($values['name'] ?? '')) ?: (string) ($values['email'] ?? 'Un utilisateur');
+
+                return $this->item(
+                    'password_reset_'.$log->id,
+                    'info',
+                    'P2',
+                    'security',
+                    "Mot de passe réinitialisé : {$who}",
+                    ($values['email'] ?? '') !== '' ? "{$values['email']} a changé son mot de passe via « Mot de passe oublié »." : 'Changement via « Mot de passe oublié ».',
+                    'usersAdmin',
+                    $log->created_at,
+                );
+            })
+            ->all();
     }
 
     private function failedAutomations(User $user): array
