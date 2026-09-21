@@ -123,7 +123,7 @@ class AuthController extends Controller
         if ($attendance) {
             $payload['attendance'] = [
                 'status' => $attendance->status,
-                'clock_in_at' => $attendance->clock_in_at?->format('H:i'),
+                'clock_in_at' => $attendance->clock_in_at?->copy()->setTimezone(AttendanceService::TIMEZONE)->format('H:i'),
                 'was_late' => $attendance->was_late,
                 'minutes_late' => $attendance->minutes_late,
             ];
@@ -139,6 +139,7 @@ class AuthController extends Controller
             AuditLogger::log($request, 'auth.logout', $actor, null, [
                 'email' => $actor->email,
             ]);
+            (new AttendanceService())->recordLogout($actor);
             $actor->currentAccessToken()?->delete();
         }
 
@@ -149,6 +150,10 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $user->loadMissing(['roles.permissions', 'brands']);
+
+        // Tokens don't expire, so someone who stays logged in never hits
+        // /login again: clock them in on their first app load of the day.
+        (new AttendanceService())->recordLoginAttendance($user);
 
         return ApiResponse::success($this->userPayload($user), 'User retrieved successfully.');
     }
