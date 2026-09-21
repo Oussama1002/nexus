@@ -24,6 +24,7 @@ class UpdateEmployeeRequest extends FormRequest
             'employee_code' => ['sometimes', 'string', 'max:50'],
             'full_name' => ['sometimes', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
             'role_title' => ['nullable', 'string', 'max:255'],
             'joined_at' => ['nullable', 'date'],

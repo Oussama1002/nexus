@@ -21,6 +21,7 @@ type EmployeeRow = {
   role_title?: string | null;
   department?: string | null;
   phone?: string | null;
+  email?: string | null;
   salary?: number | string | null;
   salary_hidden?: boolean;
   joined_at?: string | null;
@@ -46,6 +47,7 @@ function employeeToDraft(e: EmployeeRow | EmployeeDetail) {
     role_title: e.role_title ?? '',
     department: e.department ?? '',
     phone: e.phone ?? '',
+    email: e.email ?? e.user?.email ?? '',
     salary: e.salary_hidden ? '' : e.salary != null ? String(e.salary) : '',
     joined_at: joined,
     status: (STATUS_OPTS.includes(e.status as (typeof STATUS_OPTS)[number])
@@ -198,6 +200,7 @@ export function EmployeesManagementScreen() {
     role_title: '',
     department: '',
     phone: '',
+    email: '',
     salary: '' as string,
     joined_at: new Date().toISOString().slice(0, 10),
     status: 'active' as (typeof STATUS_OPTS)[number],
@@ -340,6 +343,7 @@ export function EmployeesManagementScreen() {
       role_title: '',
       department: '',
       phone: '',
+      email: '',
       salary: '',
       joined_at: new Date().toISOString().slice(0, 10),
       status: 'active',
@@ -415,7 +419,7 @@ export function EmployeesManagementScreen() {
       {
         key: 'user',
         header: 'Utilisateur',
-        cell: (e) => <span className="text-xs text-zinc-600">{e.user?.email ?? '—'}</span>,
+        cell: (e) => <span className="text-xs text-zinc-600">{e.email || e.user?.email || '—'}</span>,
       },
       {
         key: 'actions',
@@ -451,6 +455,7 @@ export function EmployeesManagementScreen() {
       role_title: draft.role_title.trim() || undefined,
       department: draft.department.trim() || undefined,
       phone: draft.phone.trim() || undefined,
+      email: draft.email.trim() || null,
       joined_at: draft.joined_at || undefined,
       status: isEdit ? draft.status : 'active',
       salary: draft.salary === '' ? undefined : Number(draft.salary),
@@ -478,6 +483,7 @@ export function EmployeesManagementScreen() {
       role_title: '',
       department: '',
       phone: '',
+      email: '',
       salary: '',
       joined_at: new Date().toISOString().slice(0, 10),
       status: 'active',
@@ -980,6 +986,16 @@ export function EmployeesManagementScreen() {
                 value={draft.phone}
                 onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
                 className={EMPLOYEE_FIELD_INPUT}
+              />
+            </label>
+            <label className={EMPLOYEE_FIELD_LABEL}>
+              E-mail
+              <input
+                type="email"
+                value={draft.email}
+                onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
+                className={EMPLOYEE_FIELD_INPUT}
+                placeholder="prenom.nom@exemple.com"
               />
             </label>
             {canViewSalary ? (

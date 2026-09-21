@@ -20,6 +20,7 @@ export type EmployeeDetail = {
   role_title?: string | null;
   department?: string | null;
   phone?: string | null;
+  email?: string | null;
   salary?: number | string | null;
   salary_hidden?: boolean;
   joined_at?: string | null;

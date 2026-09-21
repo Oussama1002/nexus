@@ -24,6 +24,7 @@ class StoreEmployeeRequest extends FormRequest
             'employee_code' => ['nullable', 'string', 'max:50', 'unique:employees,employee_code'],
             'full_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
             'role_title' => ['nullable', 'string', 'max:255'],
             'joined_at' => ['nullable', 'date'],
