@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, ArrowRight, Shield, BarChart3, Users, Package } from 'lucide-react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { pathForView } from '../lib/appPaths';
@@ -109,7 +109,12 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-zinc-400 mb-2 uppercase tracking-wider">Mot de passe</label>
+              <div className="flex items-baseline justify-between mb-2">
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">Mot de passe</label>
+                <Link to="/forgot-password" className="text-xs font-bold text-primary-400 hover:text-primary-300">
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <div className={`relative rounded-2xl transition-all duration-200 ${focused === 'password' ? 'ring-2 ring-primary-500/50' : ''}`}>
                 <input
                   type="password"

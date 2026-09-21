@@ -10,11 +10,80 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email']]);
+        $user = User::query()->where('email', $data['email'])->first();
+
+        // Same answer whether the account exists or not, so the form can't be
+        // used to probe which e-mails are registered.
+        $generic = 'Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d’être envoyé.';
+
+        if (! $user || $user->status !== 'active') {
+            return ApiResponse::success(null, $generic);
+        }
+
+        $token = Password::broker()->createToken($user);
+        $base = rtrim((string) ($request->headers->get('origin') ?: config('app.url')), '/');
+        $link = $base.'/reset-password?token='.urlencode($token).'&email='.urlencode($user->email);
+
+        // Brand SMTP from Paramètres → Intégrations: the user's brand first,
+        // then any brand that has one, else the .env mailer.
+        $brandMailer = app(\App\Services\BrandMailer::class);
+        $brandId = $user->brands()->pluck('brands.id')
+            ->merge(\App\Models\SystemSetting::query()->where('setting_key', 'smtp_host')->where('setting_value', '!=', '')->pluck('brand_id'))
+            ->first(fn ($id) => $id && $brandMailer->settings((int) $id));
+
+        try {
+            $brandMailer->for($brandId ? (int) $brandId : null)->raw(
+                "Bonjour {$user->name},\n\n"
+                ."Vous avez demandé à réinitialiser votre mot de passe du CRM.\n"
+                ."Cliquez sur ce lien pour en choisir un nouveau (valable 60 minutes) :\n\n"
+                ."{$link}\n\n"
+                ."Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.\n",
+                fn ($m) => $m->to($user->email)->subject('Réinitialisation de votre mot de passe')
+            );
+        } catch (\Throwable $e) {
+            Log::error('auth.password_reset.mail_failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            return ApiResponse::error('Impossible d’envoyer l’e-mail pour le moment. Vérifiez la configuration e-mail (Paramètres → Intégrations) ou contactez un administrateur.', null, 500);
+        }
+
+        AuditLogger::log($request, 'auth.password_reset_requested', $user, null, ['email' => $user->email]);
+
+        return ApiResponse::success(null, $generic);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'token' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'Les deux mots de passe ne correspondent pas.',
+        ]);
+
+        $status = Password::broker()->reset($data, function (User $user, string $password) {
+            $user->forceFill(['password' => Hash::make($password)])->save();
+            $user->tokens()->delete();
+        });
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return ApiResponse::error('Lien invalide ou expiré. Refaites une demande de réinitialisation.', null, 422);
+        }
+
+        return ApiResponse::success(null, 'Mot de passe modifié. Vous pouvez vous connecter.');
+    }
+
     public function login(Request $request): JsonResponse
     {
         $validated = $request->validate([

@@ -10,6 +10,7 @@ import { BrandProvider } from './context/BrandContext';
 import { ToastProvider } from './context/ToastContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './screens/LoginPage';
+import { ForgotPasswordPage, ResetPasswordPage } from './screens/PasswordResetPages';
 import { MainApp } from './MainApp';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 
@@ -24,6 +25,8 @@ export default function App() {
           <ToastProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route
                 path="/*"
                 element={

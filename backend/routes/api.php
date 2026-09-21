@@ -121,6 +121,8 @@ Route::get('health', fn () => ApiResponse::success([
 ], 'Service healthy.'));
 
 Route::post('auth/login', [AuthController::class, 'login']);
+Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
 
 Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify']);
 Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive']);
