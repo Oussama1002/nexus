@@ -53,11 +53,12 @@ function emptyDraft(brandIds: number[] = []) {
     status: 'active' as EmployeeStatus,
     all_brands: false,
     brand_ids: brandIds,
-    work_start_time: '',
-    work_end_time: '',
-    lunch_start_time: '',
-    lunch_end_time: '',
-    work_days: [] as string[],
+    // Default schedule for a new employee: 09:00–18:00, lunch 13:00–14:00, Mon–Fri.
+    work_start_time: '09:00',
+    work_end_time: '18:00',
+    lunch_start_time: '13:00',
+    lunch_end_time: '14:00',
+    work_days: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'] as string[],
   };
 }
 
