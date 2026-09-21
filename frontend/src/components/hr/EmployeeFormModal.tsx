@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useBrand } from '../../context/BrandContext';
@@ -94,7 +94,6 @@ function LookupComboField({
   onChange: (v: string) => void;
   options: string[];
 }) {
-  const listId = useId();
   const [open, setOpen] = useState(false);
 
   const filtered = useMemo(() => {
@@ -106,7 +105,6 @@ function LookupComboField({
     <label className={cn(FIELD_LABEL, 'relative')}>
       {label}
       <input
-        list={listId}
         value={value}
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
@@ -115,11 +113,6 @@ function LookupComboField({
         className={FIELD_INPUT}
         placeholder="Saisir ou choisir dans la liste…"
       />
-      <datalist id={listId}>
-        {options.map((opt) => (
-          <option key={opt} value={opt} />
-        ))}
-      </datalist>
       {open && filtered.length > 0 ? (
         <ul
           role="listbox"
@@ -340,7 +333,8 @@ export function EmployeeFormModal({
           E-mail
           <input
             type="email"
-            autoComplete="off"
+            name="employee-email"
+            autoComplete="nope"
             value={draft.email}
             onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
             className={FIELD_INPUT}
