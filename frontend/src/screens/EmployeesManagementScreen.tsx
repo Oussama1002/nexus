@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { FileText, Plus, RefreshCw, UserPlus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { EmployeeFicheDrawer, type EmployeeDetail } from '../components/hr/EmployeeFicheDrawer';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
@@ -363,6 +364,15 @@ export function EmployeesManagementScreen() {
     });
     setFormOpen(true);
   };
+
+  // "Ajouter un employé" from Fiches employés lands here with ?nouveau=1.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('nouveau') !== '1' || !canCreate) return;
+    setTab('employees');
+    openCreateEmployee();
+    setSearchParams({}, { replace: true });
+  }, [searchParams, canCreate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openEditEmployee = (row: EmployeeRow | EmployeeDetail) => {
     setEditingId(row.id);

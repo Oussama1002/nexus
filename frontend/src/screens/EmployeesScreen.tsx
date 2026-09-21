@@ -4,6 +4,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { EmployeeFicheDrawer } from '../components/hr/EmployeeFicheDrawer';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { pathForView } from '../lib/appPaths';
 import * as api from '../lib/api';
 import { buildQuery, type Paginated } from '../lib/pagination';
 
@@ -33,6 +36,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function EmployeesScreen() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -96,8 +101,8 @@ export function EmployeesScreen() {
         title="Fiches employés"
         subtitle="Répertoire complet des collaborateurs"
         right={
-          <button
-            onClick={() => toast.error("Utilisez « Ressources → RH → Tableau de bord RH » pour ajouter un employé.")}
+          hasPermission('hr.create') && <button
+            onClick={() => navigate(`${pathForView('hr')}?nouveau=1`)}
             className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Ajouter un employé
