@@ -279,18 +279,23 @@ export function WhatsAppWorkspaceScreen({
     setNewNumberId(preferred);
   }, [newOpen, numbers, numberFilter]);
 
+  // Search on the server (all clients, every phone format) instead of filtering the first 200 locally.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const t = window.setTimeout(async () => {
       if (!activeBrandId || !newOpen) return;
-      const res = await api.get<LaravelPaginator<ApiCustomer>>('customers?per_page=200');
+      const q = customerSearch.trim();
+      const res = await api.get<LaravelPaginator<ApiCustomer>>(
+        `customers?per_page=50${q ? `&search=${encodeURIComponent(q)}` : ''}`,
+      );
       if (cancelled) return;
       if (res.ok && isPaginator<ApiCustomer>(res.data)) setCustomers(res.data.data);
-    })();
+    }, 250);
     return () => {
       cancelled = true;
+      window.clearTimeout(t);
     };
-  }, [activeBrandId, newOpen]);
+  }, [activeBrandId, newOpen, customerSearch]);
 
   const selected = useMemo(() => conversations.find((c) => c.id === selectedId) ?? null, [conversations, selectedId]);
 
@@ -499,6 +504,13 @@ export function WhatsAppWorkspaceScreen({
       });
       setCreatingCustomer(false);
       if (!custRes.ok) {
+        if ((custRes as { errors?: Record<string, unknown> }).errors?.phone) {
+          // Already a client: jump to "Client existant" with that number searched.
+          setNewTab('existing');
+          setCustomerSearch(newPhone.trim());
+          setNewError('Ce numéro existe déjà : sélectionnez le client ci-dessous.');
+          return;
+        }
         setNewError(custRes.message);
         return;
       }
@@ -1119,13 +1131,7 @@ export function WhatsAppWorkspaceScreen({
                 className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800 text-sm"
               />
               <div className="max-h-48 overflow-y-auto rounded-xl border border-zinc-100">
-                {customers
-                  .filter((c) => {
-                    if (!customerSearch.trim()) return true;
-                    const s = customerSearch.toLowerCase();
-                    return c.full_name.toLowerCase().includes(s) || c.phone.toLowerCase().includes(s);
-                  })
-                  .map((c) => (
+                {customers.map((c) => (
                     <button
                       key={c.id}
                       type="button"
@@ -1142,11 +1148,7 @@ export function WhatsAppWorkspaceScreen({
                       {newCustomerId === String(c.id) && <CheckCircle2 size={16} className="text-primary-600 shrink-0" />}
                     </button>
                   ))}
-                {customers.filter((c) => {
-                  if (!customerSearch.trim()) return true;
-                  const s = customerSearch.toLowerCase();
-                  return c.full_name.toLowerCase().includes(s) || c.phone.toLowerCase().includes(s);
-                }).length === 0 && (
+                {customers.length === 0 && (
                   <p className="text-xs text-zinc-400 p-4 text-center">Aucun client trouvé.</p>
                 )}
               </div>

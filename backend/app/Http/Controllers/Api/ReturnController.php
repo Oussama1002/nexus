@@ -59,7 +59,7 @@ class ReturnController extends Controller
             || in_array($statusFilter, ['received', 'refunded'], true);
         if ($showReturnedOrders) {
             $oq = Order::query()
-                ->with(['customer:id,full_name', 'lines:id,order_id,product_name'])
+                ->with(['customer:id,full_name', 'lines:id,order_id,product_name', 'shipment.events'])
                 ->where('status', 'returned')
                 ->orderByDesc('updated_at');
             if ($brandId !== null) $oq->where('brand_id', $brandId);
@@ -73,7 +73,9 @@ class ReturnController extends Controller
                 'id' => 'O' . $o->id,
                 'order_ref' => $o->order_number,
                 'customer_name' => $o->customer?->full_name ?? '—',
-                'product_name' => $o->lines->pluck('product_name')->filter()->take(3)->join(', ') ?: '—',
+                'product_name' => $o->lines->pluck('product_name')->filter()->take(3)->join(', ')
+                    ?: $this->productFromCarrierPayload($o)
+                    ?: '—',
                 'reason' => $o->cancellation_reason ?: 'Commande retournée',
                 'status' => 'received',
                 'amount' => (float) $o->total,
@@ -133,5 +135,49 @@ class ReturnController extends Controller
         $row->fill($data)->save();
         AuditLogger::log($request, 'return.update', $row);
         return ApiResponse::success($row->fresh());
+    }
+
+    /**
+     * Carrier-imported orders have no order lines; the product is only in the
+     * raw Ameex/Sendit payload kept on the shipment events.
+     */
+    private function productFromCarrierPayload(Order $order): ?string
+    {
+        foreach ($order->shipment?->events ?? [] as $event) {
+            $found = $this->findProductValue((array) ($event->raw_payload_json ?? []));
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    private function findProductValue(array $payload, int $depth = 0): ?string
+    {
+        foreach ($payload as $key => $value) {
+            if (is_string($key) && preg_match('/product|produit|article|goods|marchandise/i', $key)) {
+                if (is_string($value) && trim($value) !== '') {
+                    return mb_substr(trim($value), 0, 120);
+                }
+                if (is_array($value)) {
+                    $names = collect($value)
+                        ->map(fn ($v) => is_array($v) ? ($v['name'] ?? $v['title'] ?? $v['product_name'] ?? $v['label'] ?? null) : $v)
+                        ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                        ->take(3);
+                    if ($names->isNotEmpty()) {
+                        return mb_substr($names->join(', '), 0, 120);
+                    }
+                }
+            }
+            if (is_array($value) && $depth < 3) {
+                $found = $this->findProductValue($value, $depth + 1);
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
     }
 }

@@ -42,8 +42,15 @@ class CustomerController extends Controller
 
         if ($search) {
             $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';
-            $q->where(function ($w) use ($s) {
+            // Phones are stored as +212… or 06…: match on the last 9 digits so
+            // "0638587557" finds "+212638587557" (same rule as the duplicate check).
+            $digits = preg_replace('/\D/', '', (string) $search);
+            $q->where(function ($w) use ($s, $digits) {
                 $w->where('full_name', 'like', $s)->orWhere('phone', 'like', $s)->orWhere('email', 'like', $s);
+                if (strlen($digits) >= 6) {
+                    $tail = '%'.substr($digits, -9).'%';
+                    $w->orWhere('phone', 'like', $tail)->orWhere('phone_secondary', 'like', $tail);
+                }
             });
         }
 

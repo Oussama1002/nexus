@@ -110,7 +110,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
 
   // ── Call Center ──
   { id: 'call-center', label: 'Call Center', level: 1, block: 'operations', parentId: null, order: 1, icon: Headphones },
-  { id: 'espace-confirmatrice', label: 'Espace Confirmatrice', confirmatriceLabel: 'Votre espace', level: 2, block: 'operations', parentId: 'call-center', order: 1, icon: Headphones, view: 'confirmatrice', confirmatriceView: 'whatsapp' },
+  { id: 'espace-confirmatrice', label: 'Espace Confirmatrice', confirmatriceLabel: 'Votre espace', level: 2, block: 'operations', parentId: 'call-center', order: 1, icon: Headphones, view: 'confirmatrice' },
   { id: 'conversations', label: 'Conversations', level: 2, block: 'operations', parentId: 'call-center', order: 2, icon: MessageCircle, view: 'whatsapp' },
   { id: 'leads', label: 'Leads', level: 2, block: 'operations', parentId: 'call-center', order: 3, icon: Users, view: 'leads' },
   { id: 'commandes', label: 'Commandes', level: 2, block: 'operations', parentId: 'call-center', order: 4, icon: Package, view: 'orders' },
