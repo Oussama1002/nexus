@@ -194,6 +194,7 @@ export function EmployeeFicheDrawer({
             <Row label="Nom complet" value={emp.full_name} />
             <Row label="Matricule" value={emp.employee_code} />
             <Row label="Téléphone" value={emp.phone} />
+            <Row label="E-mail" value={emp.email || emp.user?.email} />
             <Row label="Statut" value={STATUS_LABELS[emp.status] ?? emp.status} />
           </Section>
 

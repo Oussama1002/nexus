@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
+import { EmployeeFicheDrawer } from '../components/hr/EmployeeFicheDrawer';
 import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { buildQuery, type Paginated } from '../lib/pagination';
@@ -40,6 +41,7 @@ export function EmployeesScreen() {
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [ficheId, setFicheId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +162,12 @@ export function EmployeesScreen() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                  <tr
+                    key={r.id}
+                    onClick={() => setFicheId(r.id)}
+                    className="border-b border-zinc-50 hover:bg-zinc-50/50 cursor-pointer"
+                    title="Voir la fiche"
+                  >
                     <td className="px-4 py-3 text-sm">
                       <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-black">
                         {initials(r.full_name)}
@@ -193,6 +200,17 @@ export function EmployeesScreen() {
           </div>
         </>
       )}
+
+      {/* Read-only here; création / modification restent dans le Tableau de bord RH. */}
+      <EmployeeFicheDrawer
+        employeeId={ficheId}
+        open={ficheId !== null}
+        onClose={() => setFicheId(null)}
+        canUpdate={false}
+        canDelete={false}
+        onEdit={() => undefined}
+        onDeleted={() => setFicheId(null)}
+      />
     </div>
   );
 }
