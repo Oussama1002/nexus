@@ -229,7 +229,22 @@ export function EmployeeFicheDrawer({
 
           <Section title="Historique de présence (30 derniers jours)">
             {(!emp.attendance_history || emp.attendance_history.length === 0) ? (
-              <p className="text-xs text-zinc-500">Aucun enregistrement de présence.</p>
+              !emp.user ? (
+                <p className="text-xs font-semibold text-amber-700">
+                  Pointage impossible : aucun compte utilisateur n’est lié à cet employé. Créez son accès dans
+                  « Utilisateurs » en sélectionnant cet employé ; la présence sera enregistrée à chaque connexion.
+                </p>
+              ) : !emp.work_start_time ? (
+                <p className="text-xs font-semibold text-amber-700">
+                  Pointage impossible : l’heure de début n’est pas renseignée. Modifiez l’employé pour ajouter ses horaires
+                  (sinon les retards ne peuvent pas être calculés).
+                </p>
+              ) : (
+                <p className="text-xs text-zinc-500">
+                  Aucune présence enregistrée pour l’instant. Elle est enregistrée à la première connexion de la journée
+                  de {emp.user.name}, sur ses jours de travail.
+                </p>
+              )
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
