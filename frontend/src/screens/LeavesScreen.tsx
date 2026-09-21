@@ -3,6 +3,7 @@ import { Plus, Check, X } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
 import { buildQuery, type Paginated } from '../lib/pagination';
 
@@ -51,6 +52,10 @@ export function LeavesScreen() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const { hasPermission } = useAuth();
+  // Without HR rights the user files their own requests; the API fills in their employee.
+  const isHr = hasPermission('hr_leaves.create');
+  const canApprove = hasPermission('hr_leaves.approve');
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
@@ -81,11 +86,12 @@ export function LeavesScreen() {
   useEffect(() => { load(); }, [page, statusFilter, typeFilter]); // eslint-disable-line
 
   useEffect(() => {
+    if (!isHr) return;
     (async () => {
       const res = await api.get<Paginated<EmployeeOption>>('hr' + buildQuery({ per_page: 100 }));
       if (res.ok) setEmployees(res.data.data.map((e: any) => ({ id: e.id, full_name: e.full_name })));
     })();
-  }, []);
+  }, [isHr]);
 
   const stats = useMemo(() => {
     const enAttente = rows.filter((r) => r.status === 'en_attente').length;
@@ -96,12 +102,12 @@ export function LeavesScreen() {
   }, [rows]);
 
   const save = async () => {
-    if (!form.employee_id || !form.start_date || !form.end_date || !form.days_count) {
+    if ((isHr && !form.employee_id) || !form.start_date || !form.end_date || !form.days_count) {
       toast.error('Champs requis manquants.'); return;
     }
     setSaving(true);
     const res = await api.post('hr/leaves', {
-      employee_id: Number(form.employee_id),
+      employee_id: isHr ? Number(form.employee_id) : undefined,
       leave_type: form.leave_type,
       start_date: form.start_date,
       end_date: form.end_date,
@@ -202,7 +208,7 @@ export function LeavesScreen() {
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-500 max-w-xs truncate">{r.reason ?? r.refusal_reason ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {r.status === 'en_attente' && (
+                        {r.status === 'en_attente' && canApprove && (
                           <div className="inline-flex gap-1">
                             <button onClick={() => approve(r.id)} className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50" title="Approuver"><Check className="w-4 h-4" /></button>
                             <button onClick={() => { setRefusing({ id: r.id }); setRefuseReason(''); }} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50" title="Refuser"><X className="w-4 h-4" /></button>
@@ -231,12 +237,14 @@ export function LeavesScreen() {
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4">
             <h2 className="text-xl font-black text-zinc-900">Nouvelle demande de congé</h2>
             <div className="grid grid-cols-2 gap-3">
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Employé
-                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
-                  <option value="">— sélectionner —</option>
-                  {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
-                </select>
-              </label>
+              {isHr && (
+                <label className="col-span-2 text-sm font-bold text-zinc-700">Employé
+                  <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
+                    <option value="">— sélectionner —</option>
+                    {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="col-span-2 text-sm font-bold text-zinc-700">Type de congé
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.leave_type} onChange={(e) => setForm({ ...form, leave_type: e.target.value })}>
                   {LEAVE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}

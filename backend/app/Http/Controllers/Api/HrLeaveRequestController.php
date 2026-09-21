@@ -22,7 +22,10 @@ class HrLeaveRequestController extends Controller
             ->with(['employee:id,full_name,department', 'approvedBy:id,name'])
             ->orderByDesc('id');
 
-        if ($brandId !== null) {
+        if (! $request->user()->hasPermissionSlug('hr_leaves.view')) {
+            // Regular users only see their own requests, across brands.
+            $q->whereIn('employee_id', Employee::query()->where('user_id', $request->user()->id)->pluck('id'));
+        } elseif ($brandId !== null) {
             $q->where('brand_id', $brandId);
         }
         if ($employeeId = $request->query('employee_id')) {
@@ -41,6 +44,16 @@ class HrLeaveRequestController extends Controller
     public function store(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $isHr = $request->user()->hasPermissionSlug('hr_leaves.create');
+        if (! $isHr) {
+            // Regular users request leave for themselves only.
+            $ownEmployeeId = Employee::query()->where('user_id', $request->user()->id)->value('id');
+            if (! $ownEmployeeId) {
+                return ApiResponse::error('Aucune fiche employé n’est liée à votre compte. Contactez les RH.', null, 422);
+            }
+            $request->merge(['employee_id' => $ownEmployeeId]);
+        }
 
         $data = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],

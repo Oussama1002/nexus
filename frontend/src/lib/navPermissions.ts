@@ -50,7 +50,8 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   hrDocuments: ['hr.view'],
   orgChart: ['hr.view'],
   attendance: ['hr.view'],
-  leaves: ['hr.view'],
+  // Everyone can request their own leave; HR sees all requests.
+  leaves: [],
   payroll: ['hr.view'],
   openPositions: ['hr.view'],
   applications: ['hr.view'],
@@ -179,6 +180,8 @@ export function canAccessView(
 ): boolean {
   if (view === 'profile') return true;
   if (ctx.isAdmin) return true;
+  // Automatisations: administrators only, whatever the role permissions say.
+  if (view === 'automations') return false;
   // A view whose VIEW_PERMISSIONS entry is an explicit empty array is
   // universally accessible (e.g. internal messaging — everyone has DMs).
   const explicit = VIEW_PERMISSIONS[view];
@@ -186,8 +189,8 @@ export function canAccessView(
   if (ctx.roleSlugs.length === 1 && ctx.roleSlugs[0] === 'client_brand_owner') {
     if (view !== 'clientPortal') return false;
   }
-  /** Confirmatrices use dedicated workflows; leads, media buying & ads modules are hidden for this role. */
-  if (ctx.roleSlugs.includes('confirmatrice') && ['leads', 'mediaBuying', 'ads'].includes(view)) return false;
+  /** Confirmatrices use dedicated workflows; media buying & ads modules are hidden for this role. */
+  if (ctx.roleSlugs.includes('confirmatrice') && ['mediaBuying', 'ads'].includes(view)) return false;
   const allReq = VIEW_REQUIRES_ALL_PERMISSIONS[view];
   if (allReq?.length && hasAllPermissions(ctx.permissionSlugs, allReq)) return true;
   const required = VIEW_PERMISSIONS[view];

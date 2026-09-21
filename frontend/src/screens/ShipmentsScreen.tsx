@@ -172,6 +172,9 @@ export function ShipmentsScreen() {
   const [ordersConfirmed, setOrdersConfirmed] = useState<ApiOrderLite[]>([]);
   const [ordersPrepared, setOrdersPrepared] = useState<ApiOrderLite[]>([]);
   const [carriers, setCarriers] = useState<{ id: number; name: string }[]>([]);
+  // Only claim "no carrier configured" when the list really loaded empty — a
+  // user without delivery_companies.view gets a refusal, not an empty list.
+  const [carriersLoaded, setCarriersLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string | 'all'>('all');
@@ -255,7 +258,10 @@ export function ShipmentsScreen() {
       if (c) return;
       if (oConf.ok && isPaginator<ApiOrderLite>(oConf.data)) setOrdersConfirmed(oConf.data.data);
       if (oPrep.ok && isPaginator<ApiOrderLite>(oPrep.data)) setOrdersPrepared(oPrep.data.data);
-      if (dcRes.ok && isPaginator<{ id: number; name: string }>(dcRes.data)) setCarriers(dcRes.data.data);
+      if (dcRes.ok && isPaginator<{ id: number; name: string }>(dcRes.data)) {
+        setCarriers(dcRes.data.data);
+        setCarriersLoaded(true);
+      }
       if (citiesRes.ok && Array.isArray(citiesRes.data)) setCities(citiesRes.data as string[]);
     })();
     return () => {
@@ -609,7 +615,7 @@ export function ShipmentsScreen() {
 
       <FilterBar query={q} onQueryChange={(v) => { setQ(v); setPage(1); }} right={<span className="text-sm font-black">{loading ? '…' : `${totalRows} expéditions`}</span>} />
 
-      {rows.length === 0 && !loading && carriers.length === 0 ? (
+      {rows.length === 0 && !loading && carriersLoaded && carriers.length === 0 ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm space-y-2">
           <p className="font-black text-rose-800">API transporteur non connectée</p>
           <p className="text-rose-700">

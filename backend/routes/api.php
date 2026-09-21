@@ -597,8 +597,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('hr/dashboard/summary', [HrDashboardController::class, 'summary'])->middleware('permission:hr.view');
 
     // Leaves (Congés)
-    Route::get('hr/leaves', [HrLeaveRequestController::class, 'index'])->middleware('permission:hr_leaves.view');
-    Route::post('hr/leaves', [HrLeaveRequestController::class, 'store'])->middleware('permission:hr_leaves.create');
+    // Open to every user: without hr_leaves.* the controller limits them to their own requests.
+    Route::get('hr/leaves', [HrLeaveRequestController::class, 'index']);
+    Route::post('hr/leaves', [HrLeaveRequestController::class, 'store']);
     Route::get('hr/leaves/{id}', [HrLeaveRequestController::class, 'show'])->whereNumber('id')->middleware('permission:hr_leaves.view');
     Route::put('hr/leaves/{id}', [HrLeaveRequestController::class, 'update'])->whereNumber('id')->middleware('permission:hr_leaves.update');
     Route::patch('hr/leaves/{id}', [HrLeaveRequestController::class, 'update'])->whereNumber('id')->middleware('permission:hr_leaves.update');
