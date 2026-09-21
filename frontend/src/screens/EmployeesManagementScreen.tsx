@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileText, Plus, RefreshCw, UserPlus } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
 import { EmployeeFicheDrawer, type EmployeeDetail } from '../components/hr/EmployeeFicheDrawer';
+import { EmployeeFormModal } from '../components/hr/EmployeeFormModal';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
@@ -35,112 +35,6 @@ type EmployeeRow = {
 
 const STATUS_OPTS = ['active', 'inactive', 'terminated'] as const;
 
-const STATUS_LABELS: Record<(typeof STATUS_OPTS)[number], string> = {
-  active: 'Actif',
-  inactive: 'Inactif',
-  terminated: 'Terminé',
-};
-
-function employeeToDraft(e: EmployeeRow | EmployeeDetail) {
-  const joined = e.joined_at ? String(e.joined_at).slice(0, 10) : new Date().toISOString().slice(0, 10);
-  return {
-    full_name: e.full_name,
-    role_title: e.role_title ?? '',
-    department: e.department ?? '',
-    phone: e.phone ?? '',
-    email: e.email ?? e.user?.email ?? '',
-    salary: e.salary_hidden ? '' : e.salary != null ? String(e.salary) : '',
-    joined_at: joined,
-    status: (STATUS_OPTS.includes(e.status as (typeof STATUS_OPTS)[number])
-      ? e.status
-      : 'active') as (typeof STATUS_OPTS)[number],
-    user_id: '',
-    all_brands: e.all_brands ?? false,
-    brand_ids: e.brands?.map((b) => b.id) ?? (e.brand?.id ? [e.brand.id] : []),
-    work_start_time: (e as any).work_start_time ? String((e as any).work_start_time).slice(0, 5) : '',
-    work_end_time: (e as any).work_end_time ? String((e as any).work_end_time).slice(0, 5) : '',
-    lunch_start_time: (e as any).lunch_start_time ? String((e as any).lunch_start_time).slice(0, 5) : '',
-    lunch_end_time: (e as any).lunch_end_time ? String((e as any).lunch_end_time).slice(0, 5) : '',
-    work_days_per_week: (e as any).work_days_per_week != null ? String((e as any).work_days_per_week) : '',
-    work_days: Array.isArray((e as any).work_days) ? (e as any).work_days as string[] : [],
-  };
-}
-
-const EMPLOYEE_FIELD_LABEL = 'block text-xs font-semibold text-zinc-900';
-const EMPLOYEE_FIELD_INPUT =
-  'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500';
-
-function LookupComboField({
-  label,
-  hint,
-  value,
-  onChange,
-  options,
-  disabled,
-}: {
-  label: string;
-  hint?: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-  disabled?: boolean;
-}) {
-  const listId = useId();
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-
-  const filteredOptions = useMemo(() => {
-    const q = value.trim().toLowerCase();
-    const matches = options.filter((opt) => (q === '' ? true : opt.toLowerCase().includes(q)));
-    return matches.slice(0, 12);
-  }, [options, value]);
-
-  const showSuggestions = suggestionsOpen && !disabled && filteredOptions.length > 0;
-
-  return (
-    <label className={cn(EMPLOYEE_FIELD_LABEL, 'relative')}>
-      {label}
-      {hint ? <span className="ml-1 text-[10px] font-normal text-zinc-500">{hint}</span> : null}
-      <input
-        list={listId}
-        value={value}
-        disabled={disabled}
-        autoComplete="off"
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setSuggestionsOpen(true)}
-        onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 120)}
-        className={EMPLOYEE_FIELD_INPUT}
-        placeholder="Saisir ou choisir dans la liste…"
-      />
-      <datalist id={listId}>
-        {options.map((opt) => (
-          <option key={opt} value={opt} />
-        ))}
-      </datalist>
-      {showSuggestions ? (
-        <ul
-          role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
-        >
-          {filteredOptions.map((opt) => (
-            <li key={opt} role="option">
-              <button
-                type="button"
-                className="w-full px-4 py-2.5 text-left text-sm font-medium text-zinc-800 hover:bg-primary-50"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onChange(opt);
-                  setSuggestionsOpen(false);
-                }}
-              >
-                {opt}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </label>
-  );
-}
 const LESSON_CATEGORIES = ['sales', 'product', 'process', 'faq', 'general'] as const;
 const ATTENDANCE_STATUS = ['present', 'late', 'absent'] as const;
 
@@ -194,27 +88,8 @@ export function EmployeesManagementScreen() {
 
   const [ficheId, setFicheId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formEmployee, setFormEmployee] = useState<EmployeeRow | EmployeeDetail | null>(null);
   const [academyOpen, setAcademyOpen] = useState(false);
-  const [draft, setDraft] = useState({
-    full_name: '',
-    role_title: '',
-    department: '',
-    phone: '',
-    email: '',
-    salary: '' as string,
-    joined_at: new Date().toISOString().slice(0, 10),
-    status: 'active' as (typeof STATUS_OPTS)[number],
-    user_id: '' as string,
-    all_brands: false,
-    brand_ids: [] as number[],
-    work_start_time: '',
-    work_end_time: '',
-    lunch_start_time: '',
-    lunch_end_time: '',
-    work_days_per_week: '',
-    work_days: [] as string[],
-  });
   const [academyRows, setAcademyRows] = useState<AcademyLesson[]>([]);
   const [academySearch, setAcademySearch] = useState('');
   const [academyDraft, setAcademyDraft] = useState({
@@ -248,8 +123,6 @@ export function EmployeesManagementScreen() {
   const [payrollMonth, setPayrollMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [payrollRows, setPayrollRows] = useState<PayrollRow[]>([]);
   const [payrollLoading, setPayrollLoading] = useState(false);
-  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
-  const [roleTitleOptions, setRoleTitleOptions] = useState<string[]>([]);
 
   const canView = hasPermission('hr.view');
   const canCreate = hasPermission('hr.create');
@@ -323,60 +196,13 @@ export function EmployeesManagementScreen() {
     if (tab === 'payroll') void loadPayroll();
   }, [tab, loadPayroll]);
 
-  const loadHrLookups = useCallback(async () => {
-    const [deptRes, roleRes] = await Promise.all([
-      api.get<{ values: string[] }>('hr/lookups/department'),
-      api.get<{ values: string[] }>('hr/lookups/role_title'),
-    ]);
-    if (deptRes.ok && deptRes.data) setDepartmentOptions(deptRes.data.values ?? []);
-    if (roleRes.ok && roleRes.data) setRoleTitleOptions(roleRes.data.values ?? []);
-  }, []);
-
-  useEffect(() => {
-    if (!formOpen) return;
-    void loadHrLookups();
-  }, [formOpen, loadHrLookups]);
-
   const openCreateEmployee = () => {
-    setEditingId(null);
-    setDraft({
-      full_name: '',
-      role_title: '',
-      department: '',
-      phone: '',
-      email: '',
-      salary: '',
-      joined_at: new Date().toISOString().slice(0, 10),
-      status: 'active',
-      user_id: '',
-      all_brands: false,
-      brand_ids: activeBrandId
-        ? [Number(activeBrandId)]
-        : brands[0]
-          ? [Number(brands[0].id)]
-          : [],
-      work_start_time: '',
-      work_end_time: '',
-      lunch_start_time: '',
-      lunch_end_time: '',
-      work_days_per_week: '',
-      work_days: [],
-    });
+    setFormEmployee(null);
     setFormOpen(true);
   };
 
-  // "Ajouter un employé" from Fiches employés lands here with ?nouveau=1.
-  const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    if (searchParams.get('nouveau') !== '1' || !canCreate) return;
-    setTab('employees');
-    openCreateEmployee();
-    setSearchParams({}, { replace: true });
-  }, [searchParams, canCreate]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const openEditEmployee = (row: EmployeeRow | EmployeeDetail) => {
-    setEditingId(row.id);
-    setDraft(employeeToDraft(row));
+    setFormEmployee(row);
     setFormOpen(true);
     setFicheId(null);
   };
@@ -447,70 +273,6 @@ export function EmployeesManagementScreen() {
     ],
     [],
   );
-
-  const submitEmployeeForm = async () => {
-    const isEdit = editingId != null;
-    const savedId = editingId;
-    if (isEdit ? !canUpdate : !canCreate) return;
-    if (!draft.full_name.trim()) {
-      toast.error('Le nom complet est obligatoire.');
-      return;
-    }
-    if (!draft.all_brands && draft.brand_ids.length === 0) {
-      toast.error('Sélectionnez au moins une marque ou « Toutes les marques ».');
-      return;
-    }
-    const body: Record<string, unknown> = {
-      full_name: draft.full_name.trim(),
-      role_title: draft.role_title.trim() || undefined,
-      department: draft.department.trim() || undefined,
-      phone: draft.phone.trim() || undefined,
-      email: draft.email.trim() || null,
-      joined_at: draft.joined_at || undefined,
-      status: isEdit ? draft.status : 'active',
-      salary: draft.salary === '' ? undefined : Number(draft.salary),
-      work_start_time: draft.work_start_time || undefined,
-      work_end_time: draft.work_end_time || undefined,
-      lunch_start_time: draft.lunch_start_time || undefined,
-      lunch_end_time: draft.lunch_end_time || undefined,
-      work_days: draft.work_days.length ? draft.work_days : undefined,
-      work_days_per_week: draft.work_days.length || undefined,
-      all_brands: draft.all_brands,
-      brand_ids: draft.all_brands ? undefined : draft.brand_ids,
-    };
-    const res = isEdit
-      ? await api.put<EmployeeRow>(`hr/${editingId}`, body)
-      : await api.post<EmployeeRow>('hr', body);
-    if (!res.ok) {
-      setError(res.message);
-      toast.error(res.message);
-      return;
-    }
-    setFormOpen(false);
-    setEditingId(null);
-    setDraft({
-      full_name: '',
-      role_title: '',
-      department: '',
-      phone: '',
-      email: '',
-      salary: '',
-      joined_at: new Date().toISOString().slice(0, 10),
-      status: 'active',
-      user_id: '',
-      all_brands: false,
-      brand_ids: [],
-      work_start_time: '',
-      work_end_time: '',
-      lunch_start_time: '',
-      lunch_end_time: '',
-      work_days_per_week: '',
-      work_days: [],
-    });
-    toast.success(isEdit ? 'Employé mis à jour.' : 'Employé créé.');
-    await load();
-    if (isEdit && savedId != null && ficheId === savedId) setFicheId(savedId);
-  };
 
   const submitAcademy = async () => {
     if (!academyDraft.title.trim() || !academyDraft.content.trim()) {
@@ -882,241 +644,15 @@ export function EmployeesManagementScreen() {
         </>
       )}
 
-      {formOpen && (editingId ? canUpdate : canCreate) && (
-        <Modal
-          open={formOpen}
-          panelClassName="max-w-2xl"
-          title={editingId ? 'Modifier employé' : 'Nouvel employé'}
-          subtitle={
-            editingId
-              ? 'Mettez à jour les informations de la fiche employé.'
-              : "Renseignez les informations de l'employé et les marques concernées."
-          }
-          onClose={() => {
-            setFormOpen(false);
-            setEditingId(null);
-          }}
-          footer={
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setFormOpen(false);
-                  setEditingId(null);
-                }}
-                className="flex-1 py-3 rounded-xl border font-black text-sm"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={() => void submitEmployeeForm()}
-                className="flex-1 py-3 rounded-xl bg-primary-600 text-white font-black text-sm"
-              >
-                {editingId ? 'Enregistrer' : 'Créer'}
-              </button>
-            </div>
-          }
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className={`${EMPLOYEE_FIELD_LABEL} md:col-span-2`}>
-              Nom complet
-              <input
-                value={draft.full_name}
-                onChange={(e) => setDraft((d) => ({ ...d, full_name: e.target.value }))}
-                className={EMPLOYEE_FIELD_INPUT}
-              />
-            </label>
-            <div className={`${EMPLOYEE_FIELD_LABEL} md:col-span-2`}>
-              <span>Marque</span>
-              <label className="mt-2 flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={draft.all_brands}
-                  onChange={(e) =>
-                    setDraft((d) => ({
-                      ...d,
-                      all_brands: e.target.checked,
-                      brand_ids: e.target.checked ? [] : brands.map((b) => Number(b.id)),
-                    }))
-                  }
-                  className="rounded border-zinc-300"
-                />
-                <span className="text-sm font-medium text-zinc-800">Toutes les marques</span>
-              </label>
-              {!draft.all_brands && (
-                <div className="mt-3 flex flex-wrap gap-3">
-                  {brands.length === 0 ? (
-                    <p className="text-sm text-zinc-500">Aucune marque disponible</p>
-                  ) : (
-                    brands.map((b) => {
-                      const id = Number(b.id);
-                      const checked = draft.brand_ids.includes(id);
-                      return (
-                        <label
-                          key={b.id}
-                          className="flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 cursor-pointer hover:border-primary-400"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() =>
-                              setDraft((d) => {
-                                const next = checked ? d.brand_ids.filter((x) => x !== id) : [...d.brand_ids, id];
-                                // Every brand ticked = "Toutes les marques".
-                                return brands.length > 0 && brands.every((br) => next.includes(Number(br.id)))
-                                  ? { ...d, all_brands: true, brand_ids: [] }
-                                  : { ...d, brand_ids: next };
-                              })
-                            }
-                            className="rounded border-zinc-300"
-                          />
-                          <span className="text-sm font-medium text-zinc-800">{b.name}</span>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-            <LookupComboField
-              label="Fonction"
-              value={draft.role_title}
-              onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
-              options={roleTitleOptions}
-            />
-            <LookupComboField
-              label="Département"
-              value={draft.department}
-              onChange={(v) => setDraft((d) => ({ ...d, department: v }))}
-              options={departmentOptions}
-            />
-            <label className={EMPLOYEE_FIELD_LABEL}>
-              Téléphone
-              <input
-                value={draft.phone}
-                onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-                className={EMPLOYEE_FIELD_INPUT}
-              />
-            </label>
-            <label className={EMPLOYEE_FIELD_LABEL}>
-              E-mail
-              <input
-                type="email"
-                autoComplete="off"
-                value={draft.email}
-                onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
-                className={EMPLOYEE_FIELD_INPUT}
-                placeholder="prenom.nom@exemple.com"
-              />
-            </label>
-            {canViewSalary ? (
-              <label className={EMPLOYEE_FIELD_LABEL}>
-                Salaire
-                <input
-                  type="number"
-                  min={0}
-                  value={draft.salary}
-                  onChange={(e) => setDraft((d) => ({ ...d, salary: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT}
-                />
-              </label>
-            ) : null}
-            <label className={EMPLOYEE_FIELD_LABEL}>
-              Date d&apos;entrée
-              <input
-                type="date"
-                value={draft.joined_at}
-                onChange={(e) => setDraft((d) => ({ ...d, joined_at: e.target.value }))}
-                className={EMPLOYEE_FIELD_INPUT}
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className={EMPLOYEE_FIELD_LABEL}>
-                Heure début
-                <input
-                  type="time"
-                  value={draft.work_start_time}
-                  onChange={(e) => setDraft((d) => ({ ...d, work_start_time: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
-                />
-              </label>
-              <label className={EMPLOYEE_FIELD_LABEL}>
-                Heure fin
-                <input
-                  type="time"
-                  value={draft.work_end_time}
-                  onChange={(e) => setDraft((d) => ({ ...d, work_end_time: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
-                />
-              </label>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label className={EMPLOYEE_FIELD_LABEL}>
-                Pause déjeuner début
-                <input
-                  type="time"
-                  value={draft.lunch_start_time}
-                  onChange={(e) => setDraft((d) => ({ ...d, lunch_start_time: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
-                />
-              </label>
-              <label className={EMPLOYEE_FIELD_LABEL}>
-                Pause déjeuner fin
-                <input
-                  type="time"
-                  value={draft.lunch_end_time}
-                  onChange={(e) => setDraft((d) => ({ ...d, lunch_end_time: e.target.value }))}
-                  className={EMPLOYEE_FIELD_INPUT + ' min-w-0'}
-                />
-              </label>
-            </div>
-            <fieldset>
-              <legend className="text-xs font-semibold text-zinc-900 mb-2">Jours de travail</legend>
-              <div className="flex flex-wrap gap-2">
-                {(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'] as const).map((day) => {
-                  const checked = draft.work_days.includes(day);
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => setDraft((d) => ({
-                        ...d,
-                        work_days: checked ? d.work_days.filter((x) => x !== day) : [...d.work_days, day],
-                      }))}
-                      className={`px-3 py-2 rounded-xl border text-xs font-bold capitalize transition-colors ${
-                        checked
-                          ? 'bg-primary-600 text-white border-primary-600'
-                          : 'bg-white text-zinc-600 border-zinc-300 hover:border-primary-400'
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-            {editingId ? (
-              <label className={EMPLOYEE_FIELD_LABEL}>
-                Statut
-                <select
-                  value={draft.status}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, status: e.target.value as (typeof STATUS_OPTS)[number] }))
-                  }
-                  className={EMPLOYEE_FIELD_INPUT}
-                >
-                  {STATUS_OPTS.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[s]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </div>
-        </Modal>
-      )}
+      <EmployeeFormModal
+        open={formOpen}
+        employee={formEmployee}
+        onClose={() => setFormOpen(false)}
+        onSaved={() => {
+          setFormOpen(false);
+          void load();
+        }}
+      />
 
       {canUpdate && (
         <Modal

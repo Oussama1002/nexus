@@ -3,10 +3,9 @@ import { Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { EmployeeFicheDrawer } from '../components/hr/EmployeeFicheDrawer';
+import { EmployeeFormModal } from '../components/hr/EmployeeFormModal';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { pathForView } from '../lib/appPaths';
 import * as api from '../lib/api';
 import { buildQuery, type Paginated } from '../lib/pagination';
 
@@ -36,7 +35,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function EmployeesScreen() {
   const toast = useToast();
-  const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +45,8 @@ export function EmployeesScreen() {
   const [deptFilter, setDeptFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [ficheId, setFicheId] = useState<number | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +73,7 @@ export function EmployeesScreen() {
       setLastPage(res.data.last_page);
     })();
     return () => { cancelled = true; };
-  }, [page, search, deptFilter, statusFilter, toast]);
+  }, [page, search, deptFilter, statusFilter, toast, reloadTick]);
 
   const departments = useMemo(() => {
     const s = new Set(rows.map((r) => r.department).filter(Boolean) as string[]);
@@ -102,7 +102,7 @@ export function EmployeesScreen() {
         subtitle="Répertoire complet des collaborateurs"
         right={
           hasPermission('hr.create') && <button
-            onClick={() => navigate(`${pathForView('hr')}?nouveau=1`)}
+            onClick={() => setCreateOpen(true)}
             className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Ajouter un employé
@@ -206,7 +206,17 @@ export function EmployeesScreen() {
         </>
       )}
 
-      {/* Read-only here; création / modification restent dans le Tableau de bord RH. */}
+      <EmployeeFormModal
+        open={createOpen}
+        employee={null}
+        onClose={() => setCreateOpen(false)}
+        onSaved={() => {
+          setCreateOpen(false);
+          setReloadTick((t) => t + 1);
+        }}
+      />
+
+      {/* Fiche en lecture seule ici ; la modification reste dans le Tableau de bord RH. */}
       <EmployeeFicheDrawer
         employeeId={ficheId}
         open={ficheId !== null}
