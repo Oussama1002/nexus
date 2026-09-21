@@ -937,7 +937,7 @@ export function EmployeesManagementScreen() {
                     setDraft((d) => ({
                       ...d,
                       all_brands: e.target.checked,
-                      brand_ids: e.target.checked ? [] : d.brand_ids,
+                      brand_ids: e.target.checked ? [] : brands.map((b) => Number(b.id)),
                     }))
                   }
                   className="rounded border-zinc-300"
@@ -961,12 +961,13 @@ export function EmployeesManagementScreen() {
                             type="checkbox"
                             checked={checked}
                             onChange={() =>
-                              setDraft((d) => ({
-                                ...d,
-                                brand_ids: checked
-                                  ? d.brand_ids.filter((x) => x !== id)
-                                  : [...d.brand_ids, id],
-                              }))
+                              setDraft((d) => {
+                                const next = checked ? d.brand_ids.filter((x) => x !== id) : [...d.brand_ids, id];
+                                // Every brand ticked = "Toutes les marques".
+                                return brands.length > 0 && brands.every((br) => next.includes(Number(br.id)))
+                                  ? { ...d, all_brands: true, brand_ids: [] }
+                                  : { ...d, brand_ids: next };
+                              })
                             }
                             className="rounded border-zinc-300"
                           />
