@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { formatLateness } from '../lib/utils';
 import { Clock } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -231,7 +232,7 @@ export function AttendanceScreen() {
                         {STATUS_LABELS[r.status] ?? r.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-500">{r.minutes_late ? `${r.minutes_late} min` : '—'}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-500">{r.minutes_late ? formatLateness(r.minutes_late) : '—'}</td>
                     <td className="px-4 py-3 text-sm text-zinc-500">{r.justification_reason ?? '—'}</td>
                   </tr>
                 ))}

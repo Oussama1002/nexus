@@ -211,6 +211,10 @@ export function EmployeeFormModal({
       toast.error('Sélectionnez au moins une marque ou « Toutes les marques ».');
       return;
     }
+    if (!draft.role_title.trim() || !draft.department.trim()) {
+      toast.error('La fonction (poste) et le département sont obligatoires.');
+      return;
+    }
     const body: Record<string, unknown> = {
       full_name: draft.full_name.trim(),
       role_title: draft.role_title.trim() || undefined,
@@ -329,13 +333,13 @@ export function EmployeeFormModal({
           )}
         </div>
         <LookupComboField
-          label="Fonction"
+          label="Fonction *"
           value={draft.role_title}
           onChange={onRoleChange}
           options={roleOptionsForDepartment}
         />
         <LookupComboField
-          label="Département"
+          label="Département *"
           value={draft.department}
           onChange={(v) => setDraft((d) => ({ ...d, department: v }))}
           options={departmentOptions}

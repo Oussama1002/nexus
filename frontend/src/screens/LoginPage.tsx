@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatLateness } from '../lib/utils';
 import { Layers, ArrowRight, Shield, BarChart3, Users, Package } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -36,7 +37,7 @@ export function LoginPage() {
       return;
     }
     if (res.attendance?.was_late) {
-      toast.error(`Retard de ${res.attendance.minutes_late} min — pointage a ${res.attendance.clock_in_at}`);
+      toast.error(`Retard de ${formatLateness(res.attendance.minutes_late)} — pointage à ${res.attendance.clock_in_at}`);
       // If they haven't already given a reason, stash the attendance id so
       // the shell can pop up a justification modal once the app is loaded.
       if (res.attendance.id && !res.attendance.justification_reason) {

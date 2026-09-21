@@ -53,7 +53,10 @@ class DashboardNotificationService
 
         if ($user->isAdmin()) {
             $items = array_merge($items, $this->passwordResets());
+            $items = array_merge($items, $this->lateEmployeesToday());
         }
+
+        $items = array_merge($items, $this->ownLatenessToday($user));
 
         if ($user->hasPermissionSlug('automations.view')) {
             $items = array_merge($items, $this->failedAutomations($user));
@@ -131,6 +134,50 @@ class DashboardNotificationService
                 $count,
             ),
         ];
+    }
+
+    private function lateEmployeesToday(): array
+    {
+        return EmployeeAttendanceRecord::query()
+            ->with('employee:id,full_name')
+            ->where('attendance_date', Carbon::now(AttendanceService::TIMEZONE)->toDateString())
+            ->where('was_late', true)
+            ->orderByDesc('minutes_late')
+            ->get()
+            ->map(fn (EmployeeAttendanceRecord $r) => $this->item(
+                'late_'.$r->id,
+                'warning',
+                'P2',
+                'hr',
+                'Retard : '.($r->employee?->full_name ?? 'Employé').' — '.AttendanceService::formatLateness((int) $r->minutes_late),
+                $r->justification_reason ? 'Justification : '.mb_substr((string) $r->justification_reason, 0, 120) : 'Pas encore justifié.',
+                'attendance',
+                $r->clock_in_at,
+            ))
+            ->all();
+    }
+
+    private function ownLatenessToday(User $user): array
+    {
+        $r = EmployeeAttendanceRecord::query()
+            ->where('user_id', $user->id)
+            ->where('attendance_date', Carbon::now(AttendanceService::TIMEZONE)->toDateString())
+            ->where('was_late', true)
+            ->first();
+        if (! $r) {
+            return [];
+        }
+
+        return [$this->item(
+            'my_late_'.$r->id,
+            'warning',
+            'P2',
+            'hr',
+            'Vous êtes en retard aujourd’hui : '.AttendanceService::formatLateness((int) $r->minutes_late),
+            $r->justification_reason ? 'Justification envoyée.' : 'Pensez à justifier votre retard.',
+            null,
+            $r->clock_in_at,
+        )];
     }
 
     private function passwordResets(): array

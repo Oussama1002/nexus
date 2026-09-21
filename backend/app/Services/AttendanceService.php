@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\EmployeeAttendanceRecord;
+use App\Models\InternalMessage;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -46,6 +47,11 @@ class AttendanceService
             ->first();
 
         if ($existing && $existing->clock_in_at) {
+            // Logged out earlier today and back again: the day is open again.
+            if ($existing->clock_out_at) {
+                $existing->update(['clock_out_at' => null]);
+            }
+
             return $existing;
         }
 
@@ -85,11 +91,14 @@ class AttendanceService
                 'was_late' => $wasLate,
                 'minutes_late' => $minutesLate,
             ]);
+            if ($wasLate) {
+                $this->messageLateEmployee($user, $minutesLate);
+            }
 
             return $existing->fresh();
         }
 
-        return EmployeeAttendanceRecord::query()->create([
+        $record = EmployeeAttendanceRecord::query()->create([
             'brand_id' => $brandId,
             'employee_id' => $employee->id,
             'user_id' => $user->id,
@@ -98,6 +107,38 @@ class AttendanceService
             'status' => $status,
             'was_late' => $wasLate,
             'minutes_late' => $minutesLate,
+        ]);
+
+        // Reached once per employee per day (first clock-in), so the message isn't repeated.
+        if ($wasLate) {
+            $this->messageLateEmployee($user, $minutesLate);
+        }
+
+        return $record;
+    }
+
+    public static function formatLateness(int $minutes): string
+    {
+        return sprintf('%dh%02dmin', intdiv($minutes, 60), $minutes % 60);
+    }
+
+    /** Automatic DM from the administrator in Communications internes. */
+    private function messageLateEmployee(User $user, int $minutesLate): void
+    {
+        $admin = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('slug', 'admin'))
+            ->where('id', '!=', $user->id)
+            ->orderBy('id')
+            ->first();
+        if (! $admin) {
+            return;
+        }
+
+        InternalMessage::query()->create([
+            'sender_id' => $admin->id,
+            'receiver_id' => $user->id,
+            'body' => "Bonjour {$user->name}, vous avez pointé aujourd’hui avec un retard de ".self::formatLateness($minutesLate)
+                .'. Merci de respecter vos horaires et de justifier ce retard si nécessaire.',
         ]);
     }
 

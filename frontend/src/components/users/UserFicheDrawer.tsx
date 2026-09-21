@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatLateness } from '../../lib/utils';
 import { Clock, MessageSquare, Shield, Activity } from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
 import * as api from '../../lib/api';
@@ -255,7 +256,7 @@ export function UserFicheDrawer({ userId, open, onClose }: Props) {
                             <td className="py-1.5">
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${st.color}`}>{st.label}</span>
                             </td>
-                            <td className="py-1.5">{a.was_late ? `${a.minutes_late} min` : '—'}</td>
+                            <td className="py-1.5">{a.was_late ? formatLateness(a.minutes_late) : '—'}</td>
                           </tr>
                         );
                       })}

@@ -13,7 +13,7 @@ import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
-import { cn } from '../lib/utils';
+import { cn, formatLateness } from '../lib/utils';
 
 type EmployeeRow = {
   id: number;
@@ -585,7 +585,7 @@ export function EmployeesManagementScreen() {
               { key: 'd', header: 'Date', cell: (r) => <span>{r.attendance_date}</span> },
               { key: 's', header: 'Statut', cell: (r) => <StatusChip tone={r.status === 'absent' ? 'danger' : r.status === 'late' ? 'warning' : 'success'}>{r.status}</StatusChip> },
               { key: 'ci', header: 'Pointage', cell: (r) => <span className="text-sm">{r.clock_in_at ? new Date(r.clock_in_at).toLocaleTimeString() : '—'}</span> },
-              { key: 'late', header: 'Retard (min)', cell: (r) => <span>{r.minutes_late || 0}</span> },
+              { key: 'late', header: 'Retard', cell: (r) => <span>{formatLateness(r.minutes_late)}</span> },
               { key: 'js', header: 'Justification', cell: (r) => <StatusChip tone={r.justification_status === 'justified' ? 'success' : r.justification_status === 'unjustified' ? 'danger' : 'warning'}>{r.justification_status}</StatusChip> },
               {
                 key: 'act',

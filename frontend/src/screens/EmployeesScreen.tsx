@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
-import { EmployeeFicheDrawer } from '../components/hr/EmployeeFicheDrawer';
+import { EmployeeFicheDrawer, type EmployeeDetail } from '../components/hr/EmployeeFicheDrawer';
 import { EmployeeFormModal } from '../components/hr/EmployeeFormModal';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -46,6 +46,7 @@ export function EmployeesScreen() {
   const [statusFilter, setStatusFilter] = useState('');
   const [ficheId, setFicheId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<EmployeeDetail | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
@@ -207,24 +208,33 @@ export function EmployeesScreen() {
       )}
 
       <EmployeeFormModal
-        open={createOpen}
-        employee={null}
-        onClose={() => setCreateOpen(false)}
+        open={createOpen || editing !== null}
+        employee={editing}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditing(null);
+        }}
         onSaved={() => {
           setCreateOpen(false);
+          setEditing(null);
           setReloadTick((t) => t + 1);
         }}
       />
 
-      {/* Fiche en lecture seule ici ; la modification reste dans le Tableau de bord RH. */}
       <EmployeeFicheDrawer
         employeeId={ficheId}
         open={ficheId !== null}
         onClose={() => setFicheId(null)}
-        canUpdate={false}
-        canDelete={false}
-        onEdit={() => undefined}
-        onDeleted={() => setFicheId(null)}
+        canUpdate={hasPermission('hr.update')}
+        canDelete={hasPermission('hr.delete')}
+        onEdit={(emp) => {
+          setFicheId(null);
+          setEditing(emp);
+        }}
+        onDeleted={() => {
+          setFicheId(null);
+          setReloadTick((t) => t + 1);
+        }}
       />
     </div>
   );

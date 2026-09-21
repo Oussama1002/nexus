@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatLateness } from '../../lib/utils';
 import { AlertTriangle, Clock } from 'lucide-react';
 import * as api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
@@ -55,7 +56,7 @@ export function LateJustificationModal() {
           <div className="flex-1">
             <p className="text-lg font-black text-zinc-900">Retard détecté</p>
             <p className="text-sm text-zinc-600 mt-1 leading-snug">
-              Vous avez pointé en retard de <span className="font-black text-rose-700">{pending.minutes_late} min</span>
+              Vous avez pointé en retard de <span className="font-black text-rose-700">{formatLateness(pending.minutes_late)}</span>
               {pending.clock_in_at ? <> à <span className="font-black">{pending.clock_in_at}</span></> : null}.
               Merci de justifier votre retard — la justification sera transmise à votre manager pour validation.
             </p>
