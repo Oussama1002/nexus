@@ -25,6 +25,9 @@ export function FilterBar({
         <div className="relative flex-1 min-w-0 sm:min-w-[280px] max-w-full sm:max-w-[520px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <input
+            type="search"
+            name="filter-search"
+            autoComplete="off"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium"

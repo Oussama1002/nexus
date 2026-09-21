@@ -1003,6 +1003,7 @@ export function EmployeesManagementScreen() {
               E-mail
               <input
                 type="email"
+                autoComplete="off"
                 value={draft.email}
                 onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
                 className={EMPLOYEE_FIELD_INPUT}
