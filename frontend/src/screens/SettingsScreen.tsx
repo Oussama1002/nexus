@@ -34,6 +34,7 @@ import type {
 } from '../lib/settingsCenterApi';
 import { mergeSidebarVisibility, notifySidebarNavUpdated } from '../lib/sidebarNavCatalog';
 import { cn } from '../lib/utils';
+import { HrRoleDepartmentsPanel } from '../components/settings/center/HrRoleDepartmentsPanel';
 
 type SettingsAuditApiRow = {
   id: number;
@@ -68,6 +69,7 @@ export function SettingsScreen() {
   const canUpdate = hasPermission('settings.update');
 
   const [section, setSection] = useState<SettingsCenterSection>('general');
+  const [hrTab, setHrTab] = useState(false);
   const [model, setModel] = useState<SectionModel | null>(null);
   const [baseline, setBaseline] = useState('');
   const [loading, setLoading] = useState(true);
@@ -295,23 +297,39 @@ export function SettingsScreen() {
                 key={item.id}
                 type="button"
                 onClick={() => {
+                  setHrTab(false);
                   setSection(item.id);
                   setModel(null);
                   setLoading(true);
                 }}
                 className={cn(
                   'w-full text-left px-4 py-3 rounded-xl transition-all border border-transparent',
-                  section === item.id
+                  !hrTab && section === item.id
                     ? 'bg-primary-600 text-white shadow-md shadow-primary-900/10 border-primary-700'
                     : 'hover:bg-zinc-50 text-zinc-700 border-transparent',
                 )}
               >
-                <p className={cn('text-sm font-semibold', section === item.id ? 'text-white' : 'text-zinc-900')}>{item.label}</p>
-                <p className={cn('text-[11px] mt-0.5 font-medium', section === item.id ? 'text-primary-100' : 'text-zinc-500')}>
+                <p className={cn('text-sm font-semibold', !hrTab && section === item.id ? 'text-white' : 'text-zinc-900')}>{item.label}</p>
+                <p className={cn('text-[11px] mt-0.5 font-medium', !hrTab && section === item.id ? 'text-primary-100' : 'text-zinc-500')}>
                   {item.description}
                 </p>
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setHrTab(true)}
+              className={cn(
+                'w-full text-left px-4 py-3 rounded-xl transition-all border border-transparent',
+                hrTab
+                  ? 'bg-primary-600 text-white shadow-md shadow-primary-900/10 border-primary-700'
+                  : 'hover:bg-zinc-50 text-zinc-700 border-transparent',
+              )}
+            >
+              <p className={cn('text-sm font-semibold', hrTab ? 'text-white' : 'text-zinc-900')}>RH</p>
+              <p className={cn('text-[11px] mt-0.5 font-medium', hrTab ? 'text-primary-100' : 'text-zinc-500')}>
+                Fonctions et départements
+              </p>
+            </button>
           </nav>
         </aside>
 
@@ -320,7 +338,9 @@ export function SettingsScreen() {
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">{sidebarNote}</div>
           )}
 
-          {loading ? (
+          {hrTab ? (
+            <HrRoleDepartmentsPanel canUpdate={canUpdate} />
+          ) : loading ? (
             <div className="rounded-2xl border border-zinc-200 bg-white flex flex-col items-center justify-center py-24 shadow-sm">
               <Loader2 className="w-10 h-10 animate-spin text-primary-600" />
               <p className="mt-4 text-sm font-medium text-zinc-500">Chargement des réglages…</p>
@@ -413,7 +433,7 @@ export function SettingsScreen() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-200/90 bg-white/90 backdrop-blur-lg px-6 py-4 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+      <div className={cn('fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-200/90 bg-white/90 backdrop-blur-lg px-6 py-4 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]', hrTab && 'hidden')}>
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <p className="text-xs font-semibold text-zinc-500">
             {dirty ? 'Modifications non enregistrées' : 'Toutes les modifications sont enregistrées'}

@@ -528,6 +528,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('accounting/summary', [AccountingController::class, 'summary'])->middleware('permission:accounting.view');
     Route::get('accounting/export-csv', [AccountingController::class, 'exportCsv'])->middleware('permission:accounting.view');
 
+    Route::get('hr/role-departments', [\App\Http\Controllers\Api\HrRoleDepartmentController::class, 'index'])->middleware('permission:hr.view');
+    Route::put('hr/role-departments', [\App\Http\Controllers\Api\HrRoleDepartmentController::class, 'replace'])->middleware('permission:settings.update');
     Route::get('hr/lookups/{type}', [EmployeeController::class, 'lookups'])
         ->whereIn('type', ['department', 'role_title'])
         ->middleware('permission:hr.view');

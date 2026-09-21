@@ -159,6 +159,8 @@ export function EmployeeFormModal({
   const [saving, setSaving] = useState(false);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [roleTitleOptions, setRoleTitleOptions] = useState<string[]>([]);
+  // Centre de paramètres → RH : fonction → département.
+  const [roleDepartments, setRoleDepartments] = useState<{ role_title: string; department: string }[]>([]);
 
   const isEdit = employee !== null;
   const allowed = isEdit ? hasPermission('hr.update') : hasPermission('hr.create');
@@ -173,14 +175,30 @@ export function EmployeeFormModal({
       setDraft(emptyDraft(activeId ? [activeId] : brands[0] ? [Number(brands[0].id)] : []));
     }
     void (async () => {
-      const [deptRes, roleRes] = await Promise.all([
+      const [deptRes, roleRes, mapRes] = await Promise.all([
         api.get<{ values: string[] }>('hr/lookups/department'),
         api.get<{ values: string[] }>('hr/lookups/role_title'),
+        api.get<{ role_title: string; department: string }[]>('hr/role-departments', { brandId: false }),
       ]);
       if (deptRes.ok && deptRes.data) setDepartmentOptions(deptRes.data.values ?? []);
       if (roleRes.ok && roleRes.data) setRoleTitleOptions(roleRes.data.values ?? []);
+      if (mapRes.ok) setRoleDepartments(mapRes.data ?? []);
     })();
   }, [open, employee]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+  // Choosing a department narrows the fonction list to the ones mapped to it.
+  const roleOptionsForDepartment = useMemo(() => {
+    if (!draft.department.trim()) return roleTitleOptions;
+    const mapped = roleDepartments.filter((m) => same(m.department, draft.department)).map((m) => m.role_title);
+    return mapped.length ? mapped : roleTitleOptions;
+  }, [draft.department, roleDepartments, roleTitleOptions]);
+
+  const onRoleChange = (v: string) => {
+    const match = roleDepartments.find((m) => same(m.role_title, v));
+    setDraft((d) => ({ ...d, role_title: v, department: match ? match.department : d.department }));
+  };
 
   const submit = async () => {
     if (!allowed || saving) return;
@@ -312,8 +330,8 @@ export function EmployeeFormModal({
         <LookupComboField
           label="Fonction"
           value={draft.role_title}
-          onChange={(v) => setDraft((d) => ({ ...d, role_title: v }))}
-          options={roleTitleOptions}
+          onChange={onRoleChange}
+          options={roleOptionsForDepartment}
         />
         <LookupComboField
           label="Département"
