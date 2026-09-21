@@ -85,6 +85,7 @@ import { ContentManagementScreen } from './screens/ContentManagementScreen';
 import { BugsIncidentsScreen } from './screens/BugsIncidentsScreen';
 import { SearchModal } from './components/shell/SearchModal';
 import { NotificationPanel, type NotificationItem } from './components/shell/NotificationPanel';
+import { LateJustificationModal } from './components/hr/LateJustificationModal';
 import { InternalChatModal } from './components/chat/InternalChatModal';
 import { Modal } from './components/ui/Modal';
 import { parseAppPath, pathForView } from './lib/appPaths';
@@ -757,6 +758,7 @@ export function MainApp() {
           ))}
         </div>
       </Modal>
+      <LateJustificationModal />
     </>
   );
 }

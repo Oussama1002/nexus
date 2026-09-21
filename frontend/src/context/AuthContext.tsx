@@ -41,10 +41,13 @@ export type ApiBrand = {
 };
 
 export type AttendanceInfo = {
+  id?: number;
   status: 'present' | 'late' | 'absent';
   clock_in_at: string | null;
   was_late: boolean;
   minutes_late: number;
+  justification_reason?: string | null;
+  justification_status?: 'pending' | 'justified' | 'unjustified' | null;
 };
 
 export type AuthPayload = {

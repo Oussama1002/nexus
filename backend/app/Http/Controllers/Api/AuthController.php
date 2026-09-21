@@ -122,10 +122,13 @@ class AuthController extends Controller
         $payload = $this->authPayload($user, $token);
         if ($attendance) {
             $payload['attendance'] = [
+                'id' => $attendance->id,
                 'status' => $attendance->status,
                 'clock_in_at' => $attendance->clock_in_at?->copy()->setTimezone(AttendanceService::TIMEZONE)->format('H:i'),
                 'was_late' => $attendance->was_late,
                 'minutes_late' => $attendance->minutes_late,
+                'justification_reason' => $attendance->justification_reason,
+                'justification_status' => $attendance->justification_status,
             ];
         }
 

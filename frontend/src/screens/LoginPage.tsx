@@ -37,6 +37,17 @@ export function LoginPage() {
     }
     if (res.attendance?.was_late) {
       toast.error(`Retard de ${res.attendance.minutes_late} min — pointage a ${res.attendance.clock_in_at}`);
+      // If they haven't already given a reason, stash the attendance id so
+      // the shell can pop up a justification modal once the app is loaded.
+      if (res.attendance.id && !res.attendance.justification_reason) {
+        try {
+          sessionStorage.setItem('nexus:late_justify_prompt', JSON.stringify({
+            id: res.attendance.id,
+            minutes_late: res.attendance.minutes_late,
+            clock_in_at: res.attendance.clock_in_at,
+          }));
+        } catch { /* private mode */ }
+      }
     } else if (res.attendance) {
       toast.success(`Pointage enregistre a ${res.attendance.clock_in_at}`);
     }
