@@ -208,9 +208,19 @@ class MetaOAuthController extends Controller
         );
     }
 
+    /**
+     * Laravel n'est servi que sous /api sur le serveur client : l'URL sans ce
+     * préfixe tombe sur le SPA et le callback n'est jamais exécuté.
+     * META_REDIRECT_URI permet de forcer une autre valeur si besoin.
+     */
     private function callbackUrl(): string
     {
-        return rtrim(config('app.url'), '/') . '/meta/oauth/callback';
+        $configured = trim((string) env('META_REDIRECT_URI', ''));
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        return rtrim(config('app.url'), '/') . '/api/meta/oauth/callback';
     }
 
     private function frontendUrl(string $path): string

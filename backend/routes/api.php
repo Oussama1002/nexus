@@ -120,6 +120,10 @@ Route::get('health', fn () => ApiResponse::success([
     'service' => 'nexus-backend',
 ], 'Service healthy.'));
 
+// Callback OAuth Meta : public (Facebook appelle cette URL), sous /api car
+// c'est le seul préfixe routé vers Laravel côté serveur client.
+Route::get('meta/oauth/callback', [\App\Http\Controllers\Api\MetaOAuthController::class, 'callback']);
+
 Route::post('auth/login', [AuthController::class, 'login']);
 Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
