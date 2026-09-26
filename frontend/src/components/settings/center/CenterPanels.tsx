@@ -1,4 +1,5 @@
 import React from 'react';
+import { Facebook, Instagram, Target } from 'lucide-react';
 import type {
   CatalogueModel,
   DeliveryModel,
@@ -198,6 +199,44 @@ const SMTP_PRESETS = [
   { id: 'ovh', label: 'OVH', host: 'ssl0.ovh.net', port: '465', encryption: 'ssl' },
   { id: 'zoho', label: 'Zoho Mail', host: 'smtp.zoho.com', port: '465', encryption: 'ssl' },
 ];
+
+/** Tuile d'un actif Meta : logo, nom et identifiant. */
+function MetaAssetCard({
+  icon,
+  label,
+  name,
+  id,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  name?: string;
+  id?: string;
+  accent: string;
+}) {
+  const connected = Boolean(id);
+  return (
+    <div className={`flex items-center gap-3 rounded-2xl border p-4 ${connected ? 'border-zinc-200 bg-white' : 'border-dashed border-zinc-300 bg-zinc-50'}`}>
+      <span
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
+        style={{ background: connected ? accent : '#d4d4d8' }}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-black uppercase tracking-widest text-zinc-400">{label}</p>
+        {connected ? (
+          <>
+            <p className="truncate text-sm font-bold text-zinc-900">{name || 'Sans nom'}</p>
+            <p className="truncate text-[11px] font-medium text-zinc-500">ID {id}</p>
+          </>
+        ) : (
+          <p className="text-sm font-semibold text-zinc-500">Non connecté</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const SMTP_DOMAIN_PRESET: Record<string, string> = {
   'gmail.com': 'gmail',
@@ -1052,19 +1091,29 @@ export function MetaPanel({
           </button>
         }
       >
-        {(value.credentials.pageName || value.credentials.instagramUsername || value.credentials.pixelName) && (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800">
-            {value.credentials.pageName && (
-              <p><span className="font-semibold">Page :</span> {value.credentials.pageName}</p>
-            )}
-            {value.credentials.instagramUsername && (
-              <p><span className="font-semibold">Instagram :</span> @{value.credentials.instagramUsername}</p>
-            )}
-            {value.credentials.pixelName && (
-              <p><span className="font-semibold">Pixel :</span> {value.credentials.pixelName}</p>
-            )}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <MetaAssetCard
+            icon={<Facebook className="h-5 w-5" />}
+            label="Page Facebook"
+            name={value.credentials.pageName}
+            id={value.credentials.pageId}
+            accent="#1877F2"
+          />
+          <MetaAssetCard
+            icon={<Instagram className="h-5 w-5" />}
+            label="Instagram"
+            name={value.credentials.instagramUsername ? `@${value.credentials.instagramUsername}` : undefined}
+            id={value.credentials.instagramId}
+            accent="linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)"
+          />
+          <MetaAssetCard
+            icon={<Target className="h-5 w-5" />}
+            label="Pixel Meta"
+            name={value.credentials.pixelName}
+            id={value.credentials.pixelId}
+            accent="#0866FF"
+          />
+        </div>
         {detectedPages.length > 1 && (
           <label className="block text-sm font-semibold text-zinc-800">
             Choisir la Page
