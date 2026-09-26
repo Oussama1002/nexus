@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { formatLateness } from '../lib/utils';
 import { Clock } from 'lucide-react';
+
+/** Date du jour en heure locale (toISOString donne l'UTC : mauvais jour le soir au Maroc). */
+function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useToast } from '../context/ToastContext';
@@ -55,7 +61,7 @@ export function AttendanceScreen() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [lastPage, setLastPage] = useState(1);
-  const [dateFilter, setDateFilter] = useState(new Date().toISOString().slice(0, 10));
+  const [dateFilter, setDateFilter] = useState(todayLocal);
   const [statusFilter, setStatusFilter] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [reloadTick, setReloadTick] = useState(0);
@@ -64,7 +70,7 @@ export function AttendanceScreen() {
   const [markOpen, setMarkOpen] = useState(false);
   const [markForm, setMarkForm] = useState({
     employee_id: '',
-    attendance_date: new Date().toISOString().slice(0, 10),
+    attendance_date: todayLocal(),
     status: 'present',
     minutes_late: '',
     justification_reason: '',
@@ -139,7 +145,7 @@ export function AttendanceScreen() {
       setMarkOpen(false);
       setMarkForm({
         employee_id: '',
-        attendance_date: new Date().toISOString().slice(0, 10),
+        attendance_date: todayLocal(),
         status: 'present',
         minutes_late: '',
         justification_reason: '',
@@ -202,7 +208,10 @@ export function AttendanceScreen() {
       {loading ? (
         <div className="card p-10 text-center text-sm font-bold text-zinc-500">Chargement…</div>
       ) : rows.length === 0 ? (
-        <EmptyState title="Aucun pointage" description="Les pointages du jour sélectionné apparaîtront ici." />
+        <EmptyState
+          title="Aucun pointage"
+          description="Aucun pointage pour la date choisie. Le pointage est enregistré à la connexion : l’employé doit avoir un compte utilisateur lié et une heure de début renseignée."
+        />
       ) : (
         <>
           <div className="card overflow-hidden">

@@ -23,15 +23,15 @@ class HrAttendanceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $this->requirePermission($request, 'hr.view');
-        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 50), 1), 200);
         $date = $request->query('date');
         $status = $request->query('status');
         $employeeId = $request->query('employee_id');
 
+        // Les RH ne sont pas cloisonnées par marque : un pointage reste visible
+        // quelle que soit la marque active (un employé peut couvrir plusieurs marques).
         $q = EmployeeAttendanceRecord::query()
             ->with(['employee:id,full_name,user_id,salary,status', 'managerMarkedBy:id,name', 'user:id,name'])
-            ->when($brandId, fn ($qq) => $qq->where('brand_id', $brandId))
             ->orderByDesc('attendance_date')
             ->orderByDesc('id');
 
