@@ -42,6 +42,15 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   refuse: { label: 'Refusé', cls: 'bg-red-50 text-red-700' },
 };
 
+/** Jours calendaires inclus entre deux dates (2 jours pour 01→02). */
+function daysBetween(start: string, end: string): string {
+  if (!start || !end) return '';
+  const a = new Date(`${start}T00:00:00`);
+  const b = new Date(`${end}T00:00:00`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime()) || b < a) return '';
+  return String(Math.round((b.getTime() - a.getTime()) / 86_400_000) + 1);
+}
+
 export function LeavesScreen() {
   const toast = useToast();
   const [rows, setRows] = useState<LeaveRow[]>([]);
@@ -251,12 +260,32 @@ export function LeavesScreen() {
                 </select>
               </label>
               <label className="text-sm font-bold text-zinc-700">Date début
-                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+                <input
+                  type="date"
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
+                  value={form.start_date}
+                  onChange={(e) => {
+                    const start_date = e.target.value;
+                    const end_date = form.end_date && form.end_date < start_date ? start_date : form.end_date;
+                    setForm({ ...form, start_date, end_date, days_count: daysBetween(start_date, end_date) || form.days_count });
+                  }}
+                />
               </label>
               <label className="text-sm font-bold text-zinc-700">Date fin
-                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+                <input
+                  type="date"
+                  min={form.start_date || undefined}
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
+                  value={form.end_date}
+                  onChange={(e) => {
+                    const end_date = e.target.value;
+                    setForm({ ...form, end_date, days_count: daysBetween(form.start_date, end_date) || form.days_count });
+                  }}
+                />
               </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Nombre de jours
+              <label className="col-span-2 text-sm font-bold text-zinc-700">
+                Nombre de jours
+                <span className="ml-2 text-xs font-medium text-zinc-500">calculé automatiquement — modifiable (demi-journée : 0,5)</span>
                 <input type="number" step="0.5" min="0.5" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.days_count} onChange={(e) => setForm({ ...form, days_count: e.target.value })} />
               </label>
               <label className="col-span-2 text-sm font-bold text-zinc-700">Motif
