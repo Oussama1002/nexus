@@ -26,19 +26,16 @@ class AttendanceService
             return null;
         }
 
-        if (! $employee->work_start_time) {
-            return null;
-        }
-
         $now = Carbon::now(self::TIMEZONE);
         $today = $now->copy()->startOfDay();
 
+        // Présence hors planning (jour non travaillé) : on l'enregistre quand
+        // même, mais sans retard — l'employé était bien là.
+        $isWorkingDay = true;
         if ($employee->work_days && is_array($employee->work_days)) {
             $normalizedDays = array_map('strtolower', $employee->work_days);
             $dayEn = strtolower($today->locale('en')->dayName);
-            if (! in_array($dayEn, $normalizedDays, true) && ! in_array(self::DAYS_FR[$dayEn], $normalizedDays, true)) {
-                return null;
-            }
+            $isWorkingDay = in_array($dayEn, $normalizedDays, true) || in_array(self::DAYS_FR[$dayEn], $normalizedDays, true);
         }
 
         $existing = EmployeeAttendanceRecord::query()
@@ -55,17 +52,19 @@ class AttendanceService
             return $existing;
         }
 
-        $scheduledStart = Carbon::parse($today->toDateString().' '.$employee->work_start_time, self::TIMEZONE);
-
         $minutesLate = 0;
         $wasLate = false;
         $status = 'present';
 
-        if ($now->greaterThan($scheduledStart)) {
-            $minutesLate = (int) $scheduledStart->diffInMinutes($now);
-            if ($minutesLate >= 1) {
-                $wasLate = true;
-                $status = 'late';
+        // Le retard n'a de sens qu'avec un horaire, un jour travaillé.
+        if ($employee->work_start_time && $isWorkingDay) {
+            $scheduledStart = Carbon::parse($today->toDateString().' '.$employee->work_start_time, self::TIMEZONE);
+            if ($now->greaterThan($scheduledStart)) {
+                $minutesLate = (int) $scheduledStart->diffInMinutes($now);
+                if ($minutesLate >= 1) {
+                    $wasLate = true;
+                    $status = 'late';
+                }
             }
         }
 
@@ -77,6 +76,10 @@ class AttendanceService
         if (! $brandId) {
             $firstBrand = $user->brands()->first();
             $brandId = $firstBrand?->id;
+        }
+        if (! $brandId) {
+            // Dernier recours : ne pas perdre la présence faute de marque.
+            $brandId = \App\Models\Brand::query()->orderBy('id')->value('id');
         }
         if (! $brandId) {
             return null;

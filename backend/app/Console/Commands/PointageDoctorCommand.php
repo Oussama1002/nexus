@@ -57,19 +57,20 @@ class PointageDoctorCommand extends Command
         if (! $e->user_id) {
             return 'Lier un compte utilisateur (Utilisateurs → créer le compte)';
         }
-        if (! $e->work_start_time) {
-            return 'Renseigner l’heure de début';
+        if (! $record) {
+            return 'Pas encore connecté aujourd’hui';
         }
+        if (! $e->work_start_time) {
+            return 'Présent — retard non calculé (pas d’heure de début)';
+        }
+
         $dayEn = strtolower($now->locale('en')->dayName);
         $daysFr = ['monday' => 'lundi', 'tuesday' => 'mardi', 'wednesday' => 'mercredi', 'thursday' => 'jeudi', 'friday' => 'vendredi', 'saturday' => 'samedi', 'sunday' => 'dimanche'];
         if ($e->work_days && is_array($e->work_days)) {
             $days = array_map('strtolower', $e->work_days);
             if (! in_array($dayEn, $days, true) && ! in_array($daysFr[$dayEn], $days, true)) {
-                return 'Jour non travaillé';
+                return 'Présent hors planning (jour non travaillé)';
             }
-        }
-        if (! $record) {
-            return 'Pas encore connecté aujourd’hui';
         }
 
         return $record->was_late ? 'Retard notifié' : 'À l’heure — rien à notifier';
