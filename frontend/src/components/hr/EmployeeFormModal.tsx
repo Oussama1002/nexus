@@ -52,6 +52,7 @@ function emptyDraft(brandIds: number[] = []) {
     joined_at: new Date().toISOString().slice(0, 10),
     status: 'active' as EmployeeStatus,
     all_brands: false,
+    user_id: '' as string,
     brand_ids: brandIds,
     // Default schedule for a new employee: 09:00–18:00, lunch 13:00–14:00, Mon–Fri.
     work_start_time: '09:00',
@@ -75,6 +76,7 @@ function employeeToDraft(e: EmployeeFormSource): Draft {
     joined_at: e.joined_at ? String(e.joined_at).slice(0, 10) : new Date().toISOString().slice(0, 10),
     status: (STATUS_OPTS.includes(e.status as EmployeeStatus) ? e.status : 'active') as EmployeeStatus,
     all_brands: e.all_brands ?? false,
+    user_id: e.user?.id ? String(e.user.id) : '',
     brand_ids: e.brands?.map((b) => b.id) ?? (e.brand?.id ? [e.brand.id] : []),
     work_start_time: time(x.work_start_time),
     work_end_time: time(x.work_end_time),
@@ -162,6 +164,8 @@ export function EmployeeFormModal({
   const [roleTitleOptions, setRoleTitleOptions] = useState<string[]>([]);
   // Centre de paramètres → RH : fonction → département.
   const [roleDepartments, setRoleDepartments] = useState<{ role_title: string; department: string }[]>([]);
+  // Le pointage se fait à la connexion : sans compte lié, aucun pointage possible.
+  const [users, setUsers] = useState<{ id: number; name: string; email: string }[]>([]);
 
   const isEdit = employee !== null;
   const allowed = isEdit ? hasPermission('hr.update') : hasPermission('hr.create');
@@ -184,6 +188,8 @@ export function EmployeeFormModal({
       if (deptRes.ok && deptRes.data) setDepartmentOptions(deptRes.data.values ?? []);
       if (roleRes.ok && roleRes.data) setRoleTitleOptions(roleRes.data.values ?? []);
       if (mapRes.ok) setRoleDepartments(mapRes.data ?? []);
+      const usersRes = await api.get<{ data?: { id: number; name: string; email: string }[] }>('users?per_page=200');
+      if (usersRes.ok) setUsers(usersRes.data?.data ?? []);
     })();
   }, [open, employee]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -230,6 +236,7 @@ export function EmployeeFormModal({
       lunch_end_time: draft.lunch_end_time || undefined,
       work_days: draft.work_days.length ? draft.work_days : undefined,
       work_days_per_week: draft.work_days.length || undefined,
+      user_id: draft.user_id ? Number(draft.user_id) : null,
       all_brands: draft.all_brands,
       brand_ids: draft.all_brands ? undefined : draft.brand_ids,
     };
@@ -376,6 +383,24 @@ export function EmployeeFormModal({
             />
           </label>
         ) : null}
+        {users.length > 0 && (
+          <label className={FIELD_LABEL}>
+            Compte utilisateur
+            <select
+              value={draft.user_id}
+              onChange={(e) => setDraft((d) => ({ ...d, user_id: e.target.value }))}
+              className={FIELD_INPUT}
+            >
+              <option value="">— Aucun compte —</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+              ))}
+            </select>
+            <span className="text-[11px] font-semibold text-zinc-500">
+              Sans compte lié, le pointage (présence, retards) ne peut pas être enregistré.
+            </span>
+          </label>
+        )}
         <label className={FIELD_LABEL}>
           Date d&apos;entrée
           <input

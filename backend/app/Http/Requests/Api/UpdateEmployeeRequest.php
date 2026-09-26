@@ -16,7 +16,8 @@ class UpdateEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            // Un compte ne peut être lié qu'à une seule fiche employé (sinon le pointage est ambigu).
+            'user_id' => ['nullable', 'integer', 'exists:users,id', Rule::unique('employees', 'user_id')->ignore($this->route('id'))],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'all_brands' => ['nullable', 'boolean'],
             'brand_ids' => ['nullable', 'array'],

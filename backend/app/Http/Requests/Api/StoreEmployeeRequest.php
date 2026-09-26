@@ -16,7 +16,7 @@ class StoreEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'user_id' => ['nullable', 'integer', 'exists:users,id', Rule::unique('employees', 'user_id')],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'all_brands' => ['nullable', 'boolean'],
             'brand_ids' => ['nullable', 'array'],
