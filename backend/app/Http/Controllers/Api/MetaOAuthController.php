@@ -17,11 +17,12 @@ class MetaOAuthController extends Controller
 {
     private const GRAPH_VERSION = 'v21.0';
 
+    // read_insights (stats Pages/Instagram) is refused by Facebook Login for
+    // Business without review; ad statistics already come with ads_read.
     private const SCOPES = [
         'ads_management',
         'ads_read',
         'business_management',
-        'read_insights',
     ];
 
     public function redirectUrl(Request $request): JsonResponse
