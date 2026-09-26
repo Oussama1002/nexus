@@ -153,17 +153,34 @@ class ReturnController extends Controller
         return null;
     }
 
+    /** Les payloads transporteur contiennent parfois du HTML ou un simple compteur. */
+    private function cleanProductLabel(string $value): ?string
+    {
+        $text = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = trim(preg_replace('/\s+/u', ' ', $text));
+
+        if ($text === '' || is_numeric($text) || mb_strlen($text) < 2) {
+            return null;
+        }
+
+        return mb_substr($text, 0, 120);
+    }
+
     private function findProductValue(array $payload, int $depth = 0): ?string
     {
         foreach ($payload as $key => $value) {
             if (is_string($key) && preg_match('/product|produit|article|goods|marchandise/i', $key)) {
-                if (is_string($value) && trim($value) !== '') {
-                    return mb_substr(trim($value), 0, 120);
+                if (is_string($value)) {
+                    $clean = $this->cleanProductLabel($value);
+                    if ($clean !== null) {
+                        return $clean;
+                    }
                 }
                 if (is_array($value)) {
                     $names = collect($value)
                         ->map(fn ($v) => is_array($v) ? ($v['name'] ?? $v['title'] ?? $v['product_name'] ?? $v['label'] ?? null) : $v)
-                        ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                        ->map(fn ($v) => is_string($v) ? $this->cleanProductLabel($v) : null)
+                        ->filter()
                         ->take(3);
                     if ($names->isNotEmpty()) {
                         return mb_substr($names->join(', '), 0, 120);
