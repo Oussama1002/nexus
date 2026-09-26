@@ -27,9 +27,13 @@ class ReturnController extends Controller
         $page = max((int) $request->query('page', 1), 1);
         $statusFilter = $request->query('status');
         $search = trim((string) $request->query('search', ''));
+        $carrierId = (int) $request->query('delivery_company_id', 0) ?: null;
 
         // ─── 1. Manual ReturnRecord rows ───
-        $rq = ReturnRecord::query()->orderByDesc('id');
+        $rq = ReturnRecord::query()->with('order.shipment.deliveryCompany')->orderByDesc('id');
+        if ($carrierId) {
+            $rq->whereHas('order.shipment', fn ($q) => $q->where('delivery_company_id', $carrierId));
+        }
         if ($brandId !== null) $rq->where('brand_id', $brandId);
         if ($statusFilter) $rq->where('status', $statusFilter);
         if ($search !== '') {
@@ -47,6 +51,7 @@ class ReturnController extends Controller
             'reason' => $r->reason,
             'status' => $r->status,
             'amount' => (float) $r->amount,
+            'carrier' => $r->order?->shipment?->deliveryCompany?->name ?? '—',
             'source' => 'return',
             'created_at' => $r->created_at?->toIso8601String(),
         ]);
@@ -59,10 +64,13 @@ class ReturnController extends Controller
             || in_array($statusFilter, ['received', 'refunded'], true);
         if ($showReturnedOrders) {
             $oq = Order::query()
-                ->with(['customer:id,full_name', 'lines:id,order_id,product_name', 'shipment.events'])
+                ->with(['customer:id,full_name', 'lines:id,order_id,product_name', 'shipment.events', 'shipment.deliveryCompany'])
                 ->where('status', 'returned')
                 ->orderByDesc('updated_at');
             if ($brandId !== null) $oq->where('brand_id', $brandId);
+            if ($carrierId) {
+                $oq->whereHas('shipment', fn ($q) => $q->where('delivery_company_id', $carrierId));
+            }
             if ($search !== '') {
                 $oq->where(function ($q) use ($search) {
                     $q->where('order_number', 'like', "%{$search}%")
@@ -79,6 +87,7 @@ class ReturnController extends Controller
                 'reason' => $o->cancellation_reason ?: 'Commande retournée',
                 'status' => 'received',
                 'amount' => (float) $o->total,
+                'carrier' => $o->shipment?->deliveryCompany?->name ?? '—',
                 'source' => 'order',
                 'created_at' => ($o->updated_at ?? $o->created_at)?->toIso8601String(),
             ]);
@@ -93,6 +102,7 @@ class ReturnController extends Controller
         $items = $all->slice(($page - 1) * $perPage, $perPage)->values();
 
         return ApiResponse::success([
+            'carriers' => \App\Models\DeliveryCompany::query()->orderBy('name')->get(['id', 'name']),
             'data' => $items,
             'current_page' => $page,
             'per_page' => $perPage,

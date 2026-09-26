@@ -14,6 +14,7 @@ type Return = {
   customer_name: string;
   product_name: string;
   reason: string;
+  carrier?: string | null;
   status: string;
   amount: number;
   source?: 'return' | 'order';
@@ -58,20 +59,29 @@ export function ReturnsScreen() {
   const [lastPage, setLastPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [carrierFilter, setCarrierFilter] = useState('');
+  const [carriers, setCarriers] = useState<{ id: number; name: string }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await api.get<Paginated<Return>>(
-          'returns' + buildQuery({ per_page: 25, page, search: search || undefined, status: statusFilter || undefined })
+        const res = await api.get<Paginated<Return> & { carriers?: { id: number; name: string }[] }>(
+          'returns' + buildQuery({
+            per_page: 25,
+            page,
+            search: search || undefined,
+            status: statusFilter || undefined,
+            delivery_company_id: carrierFilter || undefined,
+          })
         );
         if (cancelled) return;
         if (res.ok) {
           setRows(res.data.data);
           setTotal(res.data.total);
           setLastPage(res.data.last_page);
+          if (res.data.carriers) setCarriers(res.data.carriers);
         } else {
           setRows([]);
           setTotal(0);
@@ -89,7 +99,7 @@ export function ReturnsScreen() {
     };
     fetchData();
     return () => { cancelled = true; };
-  }, [page, search, statusFilter, activeBrandId]);
+  }, [page, search, statusFilter, carrierFilter, activeBrandId]);
 
   const totalReturns = total;
   const inTransitCount = rows.filter(r => r.status === 'in_transit').length;
@@ -136,6 +146,14 @@ export function ReturnsScreen() {
         >
           {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        <select
+          className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium"
+          value={carrierFilter}
+          onChange={e => { setCarrierFilter(e.target.value); setPage(1); }}
+        >
+          <option value="">Tous les transporteurs</option>
+          {carriers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
       </div>
 
       {!loading && rows.length === 0 ? (
@@ -149,6 +167,7 @@ export function ReturnsScreen() {
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Commande</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Client</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Transporteur</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Motif</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Montant</th>
@@ -157,7 +176,7 @@ export function ReturnsScreen() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-zinc-400">Chargement…</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-zinc-400">Chargement…</td></tr>
               ) : rows.map(row => (
                 <tr key={String(row.id)} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                   <td className="px-4 py-3 text-sm font-medium">
@@ -173,6 +192,7 @@ export function ReturnsScreen() {
                   <td className="px-4 py-3 text-sm">{row.order_ref}</td>
                   <td className="px-4 py-3 text-sm">{row.customer_name}</td>
                   <td className="px-4 py-3 text-sm">{row.product_name}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-700">{row.carrier || '—'}</td>
                   <td className="px-4 py-3 text-sm text-zinc-500">{row.reason}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[row.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
