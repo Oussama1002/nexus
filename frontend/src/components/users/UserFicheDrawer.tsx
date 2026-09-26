@@ -232,7 +232,17 @@ export function UserFicheDrawer({ userId, open, onClose }: Props) {
           {tab === 'presence' && (
             <Section title="Historique de présence (30 derniers jours)" icon={<Clock className="w-3.5 h-3.5" />}>
               {user.attendance_history.length === 0 ? (
-                <p className="text-xs text-zinc-500">Aucun enregistrement de présence.</p>
+                !user.employee ? (
+                  <p className="text-xs font-semibold text-amber-700">
+                    Aucune fiche employé n’est liée à ce compte : le pointage ne peut pas être enregistré.
+                    Ouvrez Fiches employés → Modifier → « Compte utilisateur » et sélectionnez ce compte.
+                  </p>
+                ) : (
+                  <p className="text-xs text-zinc-500">
+                    Aucune présence enregistrée. Elle est créée à la première connexion (ou au premier chargement du CRM)
+                    de la journée.
+                  </p>
+                )
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
