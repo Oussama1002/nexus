@@ -243,11 +243,6 @@ export function LeadsScreen({
     });
   }, [users]);
 
-  const adminUserId = useMemo(() => {
-    const admin = users.find((u) => u.roles?.some((r) => r.slug === 'admin'));
-    return admin ? String(admin.id) : '';
-  }, [users]);
-
   useEffect(() => {
     if (!createOpen || !newLead.brand_id) {
       setLeadProducts([]);
@@ -329,9 +324,8 @@ export function LeadsScreen({
   const selectedApi = useMemo(() => apiLeads.find((l) => String(l.id) === openId) ?? null, [apiLeads, openId]);
 
   useEffect(() => {
-    if (selectedApi?.assigned_user_id) setAssignUserId(String(selectedApi.assigned_user_id));
-    else setAssignUserId(adminUserId);
-  }, [selectedApi, adminUserId]);
+    setAssignUserId(selectedApi?.assigned_user_id ? String(selectedApi.assigned_user_id) : '');
+  }, [selectedApi]);
 
   useEffect(() => {
     if (selectedApi) {
@@ -545,7 +539,7 @@ export function LeadsScreen({
               header: 'Assigné',
               cell: (l) => {
                 const al = apiLeads.find((a) => String(a.id) === l.id);
-                const currentVal = al?.assigned_user_id ? String(al.assigned_user_id) : (adminUserId || '');
+                const currentVal = al?.assigned_user_id ? String(al.assigned_user_id) : '';
                 return (
                   <select
                     value={currentVal}

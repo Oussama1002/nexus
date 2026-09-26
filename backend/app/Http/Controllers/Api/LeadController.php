@@ -70,7 +70,9 @@ class LeadController extends Controller
 
         $data['brand_id'] = $brandId;
         $data['status'] = $data['status'] ?? 'new';
-        $data['assigned_user_id'] = $data['assigned_user_id'] ?? $request->user()->id;
+        // Un lead reste « non assigné » par défaut : tout le monde le voit et
+        // peut le prendre, l'assignation ne le réserve pas.
+        $data['assigned_user_id'] = $data['assigned_user_id'] ?? null;
 
         if (! empty($data['customer_id'])) {
             $this->assertCustomerInBrand((int) $data['customer_id'], $brandId);

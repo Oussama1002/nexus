@@ -141,7 +141,7 @@ class ConversationController extends Controller
                 'customer_id' => $conversation->customer_id,
                 'source' => $conversation->channel === 'whatsapp' ? 'WhatsApp' : ucfirst((string) $conversation->channel),
                 'status' => 'new',
-                'assigned_user_id' => $conversation->assigned_user_id ?? $request->user()->id,
+                'assigned_user_id' => null,
                 'notes' => 'Lead auto-créé depuis une conversation.',
                 'first_contact_at' => now(),
             ]);
