@@ -301,6 +301,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('sync/ad-accounts', [MetaAdsController::class, 'syncAdAccounts'])->middleware('permission:ad_accounts.update');
         Route::post('sync/campaigns', [MetaAdsController::class, 'syncCampaigns'])->middleware('permission:campaigns.update');
         Route::post('sync/insights', [MetaAdsController::class, 'syncInsights'])->middleware('permission:campaign_metrics.create');
+        Route::post('sync/social-accounts', [MetaAdsController::class, 'syncSocialAccounts'])->middleware('permission:social_accounts.update');
     });
 
     Route::get('campaigns', [CampaignController::class, 'index'])->middleware('permission:campaigns.view');

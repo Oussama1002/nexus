@@ -7,7 +7,7 @@ import type { Paginated } from '../lib/pagination';
 import { useToast } from '../context/ToastContext';
 import {
   Link2, Plus, Search, Facebook, Instagram, Music2, Youtube, Linkedin, Twitter,
-  Users, ChevronLeft, ChevronRight, Zap,
+  Users, ChevronLeft, ChevronRight, Zap, RefreshCw,
 } from 'lucide-react';
 
 type SocialAccount = {
@@ -62,6 +62,7 @@ function PlatformIcon({ platform }: { platform: string }) {
 export function SocialAccountsScreen() {
   const toast = useToast();
   const [rows, setRows] = useState<SocialAccount[]>([]);
+  const [importing, setImporting] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [lastPage, setLastPage] = useState(1);
@@ -151,18 +152,42 @@ export function SocialAccountsScreen() {
     } finally { setSaving(false); }
   };
 
+  /** Importe les Pages Facebook (et Instagram lié) via la connexion Meta. */
+  const importMeta = async () => {
+    setImporting(true);
+    const res = await api.post<{ created: number; updated: number; total: number }>('meta/sync/social-accounts', {});
+    setImporting(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success(res.message);
+    setReloadTick((t) => t + 1);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Comptes sociaux"
         subtitle="Gestion des comptes et pages connectés"
         right={
-          <button
-            onClick={() => setShowCreate(true)}
-            className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
-          >
-            <Plus size={16} /> Connecter un compte
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => void importMeta()}
+              disabled={importing}
+              title="Récupère les Pages Facebook du Business Manager et leurs comptes Instagram liés"
+              className="px-4 py-2 rounded-2xl bg-[#1877F2] text-white text-sm font-black inline-flex items-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={importing ? 'animate-spin' : ''} />
+              {importing ? 'Import…' : 'Importer les comptes Meta'}
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2"
+            >
+              <Plus size={16} /> Connecter un compte
+            </button>
+          </div>
         }
       />
 

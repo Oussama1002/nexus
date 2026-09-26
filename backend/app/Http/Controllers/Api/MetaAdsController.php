@@ -7,6 +7,7 @@ use App\Models\AdAccount;
 use App\Models\Brand;
 use App\Services\Meta\MetaAdsSyncService;
 use App\Services\Meta\MetaApiException;
+use App\Services\Meta\MetaSocialSyncService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,23 @@ class MetaAdsController extends Controller
         }
 
         return (int) Brand::query()->orderBy('id')->value('id');
+    }
+
+    /** Importe les Pages Facebook (et Instagram lié) dans « Comptes sociaux ». */
+    public function syncSocialAccounts(Request $request, MetaSocialSyncService $social): JsonResponse
+    {
+        try {
+            $brandId = $this->resolveSettingsBrand($request);
+            $stats = $social->syncPages($brandId);
+
+            return ApiResponse::success($stats, sprintf(
+                '%d compte(s) social(aux) importé(s), %d mis à jour.',
+                $stats['created'],
+                $stats['updated']
+            ));
+        } catch (MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
     }
 
     public function previewAdAccounts(Request $request): JsonResponse
