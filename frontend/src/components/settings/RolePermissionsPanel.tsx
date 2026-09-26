@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Save, Home } from 'lucide-react';
+import { RefreshCw, Save, Home, Search } from 'lucide-react';
 import * as api from '../../lib/api';
 import { buildQuery } from '../../lib/pagination';
 import type { Paginated } from '../../lib/pagination';
@@ -50,6 +50,7 @@ export function RolePermissionsPanel({
   const [roleId, setRoleId] = useState<number | ''>('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [permSearch, setPermSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
   const selectedRole = useMemo(() => roles.find((r) => r.id === roleId) ?? null, [roles, roleId]);
@@ -114,7 +115,20 @@ export function RolePermissionsPanel({
     void loadRoleDetail(Number(roleId));
   }, [canViewRoles, roleId, loadRoleDetail, showTechnicalMatrix]);
 
-  const grouped = useMemo(() => groupByModule(perms), [perms]);
+  // Recherche : slug API (« leads.view »), libellé FR ou nom du module.
+  const visiblePerms = useMemo(() => {
+    const q = permSearch.trim().toLowerCase();
+    if (!q) return perms;
+    return perms.filter((p) =>
+      p.slug.toLowerCase().includes(q)
+      || (p.name ?? '').toLowerCase().includes(q)
+      || (p.module ?? '').toLowerCase().includes(q)
+      || permissionModuleTitleFr(p.module ?? 'autre').toLowerCase().includes(q)
+      || permissionDisplayLabelFr(p.slug, p.module, p.name).toLowerCase().includes(q),
+    );
+  }, [perms, permSearch]);
+
+  const grouped = useMemo(() => groupByModule(visiblePerms), [visiblePerms]);
 
   // Admin role holds every permission implicitly. Show every box ticked
   // even if the DB row doesn't materialise each grant — the note under
@@ -288,6 +302,28 @@ export function RolePermissionsPanel({
         </div>
       )}
 
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <input
+            type="search"
+            autoComplete="off"
+            value={permSearch}
+            onChange={(e) => setPermSearch(e.target.value)}
+            placeholder="Rechercher une permission (ex. leads, commandes, stock.view…)"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium"
+          />
+        </div>
+        {permSearch.trim() ? (
+          <p className="text-xs font-bold text-zinc-500">
+            {visiblePerms.length} permission(s) trouvée(s)
+            <button type="button" onClick={() => setPermSearch('')} className="ml-2 text-primary-700 hover:underline">
+              Effacer
+            </button>
+          </p>
+        ) : null}
+      </div>
+
       {loading ? <p className="text-sm font-bold text-zinc-500">Chargement des permissions du rôle…</p> : null}
 
       <div className="space-y-4 max-h-[min(520px,55vh)] overflow-y-auto pr-1">
@@ -341,6 +377,10 @@ export function RolePermissionsPanel({
 
       {perms.length === 0 && !loading ? (
         <p className="text-sm font-bold text-zinc-500">Aucune permission chargée depuis l’API.</p>
+      ) : null}
+
+      {perms.length > 0 && visiblePerms.length === 0 ? (
+        <p className="text-sm font-bold text-zinc-500">Aucune permission ne correspond à « {permSearch} ».</p>
       ) : null}
     </div>
   );
