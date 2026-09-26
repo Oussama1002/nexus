@@ -97,13 +97,14 @@ class MetaAdsController extends Controller
                 ->where('platform', 'meta')
                 ->findOrFail($request->integer('ad_account_id'));
 
-            $to = $validated['to'] ?? now()->toDateString();
-            $from = $validated['from'] ?? now()->subDays(30)->toDateString();
+            // Pas de période fournie = tout l'historique (date_preset=maximum).
+            $from = $validated['from'] ?? null;
+            $to = $validated['to'] ?? null;
 
             $stats = $this->sync->syncInsights($brandId, $account, $from, $to);
 
             return ApiResponse::success(
-                array_merge($stats, ['from' => $from, 'to' => $to]),
+                array_merge($stats, ['from' => $from ?? 'origine', 'to' => $to ?? 'aujourd’hui']),
                 sprintf('%d ligne(s) de métriques importée(s) pour %d campagne(s).', $stats['upserted'], $stats['campaigns'])
             );
         } catch (MetaApiException $e) {

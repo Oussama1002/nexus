@@ -389,10 +389,9 @@ export function AdsScreen() {
       }
       campaigns += (campRes.data?.created ?? 0) + (campRes.data?.updated ?? 0);
 
+      // Sans from/to : tout l'historique du compte (campagnes anciennes incluses).
       const insRes = await api.post<{ upserted: number; campaigns: number }>('meta/sync/insights', {
         ad_account_id: account.id,
-        from: periodFrom,
-        to: periodTo,
       });
       if (!insRes.ok) {
         setMetaSyncing(false);

@@ -209,20 +209,26 @@ class MetaAdsSyncService
     /**
      * @return array{upserted: int, campaigns: int}
      */
-    public function syncInsights(int $brandId, AdAccount $adAccount, string $from, string $to): array
+    public function syncInsights(int $brandId, AdAccount $adAccount, ?string $from = null, ?string $to = null): array
     {
         if ($adAccount->platform !== 'meta') {
             throw new MetaApiException('Ce compte n’est pas une plateforme Meta.');
         }
 
+        // Sans période explicite : tout l'historique du compte. Les campagnes
+        // peuvent dater de plusieurs mois et seraient invisibles avec une
+        // fenêtre glissante (ex. 30 derniers jours).
+        $period = ($from && $to)
+            ? ['time_range' => json_encode(['since' => $from, 'until' => $to])]
+            : ['date_preset' => 'maximum'];
+
         $actId = $this->actPathId($adAccount->external_account_id);
-        $rows = $this->graph->paginate($brandId, $actId.'/insights', [
+        $rows = $this->graph->paginate($brandId, $actId.'/insights', array_merge([
             'level' => 'campaign',
             'fields' => self::INSIGHT_FIELDS,
-            'time_range' => json_encode(['since' => $from, 'until' => $to]),
             'time_increment' => 1,
             'limit' => 500,
-        ], 50);
+        ], $period), 50);
 
         $byExternal = Campaign::query()
             ->where('brand_id', $brandId)
