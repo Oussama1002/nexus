@@ -123,7 +123,15 @@ class EmployeeController extends Controller
         $data['work_days_per_week'] = $row->work_days_per_week;
         $data['work_days'] = $row->work_days;
 
-        $data['attendance_history'] = $row->attendanceRecords()
+        // Match on the linked account too: a pointage recorded under another
+        // (duplicate) employee row of the same person still belongs to them.
+        $data['attendance_history'] = \App\Models\EmployeeAttendanceRecord::query()
+            ->where(function ($q) use ($row) {
+                $q->where('employee_id', $row->id);
+                if ($row->user_id) {
+                    $q->orWhere('user_id', $row->user_id);
+                }
+            })
             ->orderByDesc('attendance_date')
             ->limit(30)
             ->get(['id', 'attendance_date', 'clock_in_at', 'clock_out_at', 'status', 'was_late', 'minutes_late'])

@@ -94,7 +94,8 @@ class UserController extends Controller
                 'work_end_time' => $employee->work_end_time,
                 'work_days' => $employee->work_days,
             ];
-            $data['attendance_history'] = $employee->attendanceRecords()
+            $data['attendance_history'] = \App\Models\EmployeeAttendanceRecord::query()
+                ->where(fn ($q) => $q->where('employee_id', $employee->id)->orWhere('user_id', $user->id))
                 ->orderByDesc('attendance_date')
                 ->limit(30)
                 ->get()
