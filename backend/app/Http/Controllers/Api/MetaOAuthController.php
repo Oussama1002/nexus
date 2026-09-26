@@ -23,6 +23,11 @@ class MetaOAuthController extends Controller
         'ads_management',
         'ads_read',
         'business_management',
+        // Lecture des Pages et du compte Instagram professionnel lié
+        // (détection Page / Instagram, publication des publicités).
+        'pages_show_list',
+        'pages_read_engagement',
+        'instagram_basic',
     ];
 
     public function redirectUrl(Request $request): JsonResponse
