@@ -1,5 +1,5 @@
 import React, { useId, useRef, useState, useCallback } from 'react';
-import { Eye, EyeOff, Loader2, Upload, X } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, Loader2, Upload, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { isImageAssetUrl, resolvePublicAssetUrl } from '../../../lib/publicAssetUrl';
 import * as api from '../../../lib/api';
@@ -56,9 +56,34 @@ export function ConnectionTestButton({
   );
 }
 
+/** Petit « ? » à côté d'un champ : explique où trouver la valeur. */
+export function HelpTip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        title={text}
+        aria-label="Où trouver cette valeur ?"
+        className="text-zinc-400 hover:text-primary-600"
+      >
+        <HelpCircle className="w-4 h-4" />
+      </button>
+      {open && (
+        <span className="absolute left-0 top-6 z-30 w-72 rounded-xl border border-zinc-200 bg-white p-3 text-xs font-medium leading-relaxed text-zinc-700 shadow-lg">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function TextField({
   label,
   hint,
+  help,
   value,
   onChange,
   disabled,
@@ -66,6 +91,7 @@ export function TextField({
 }: {
   label: string;
   hint?: string;
+  help?: string;
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
@@ -75,9 +101,12 @@ export function TextField({
   return (
     <div className="space-y-2">
       <div className="flex justify-between gap-3 items-baseline">
-        <label htmlFor={id} className="text-sm font-semibold text-zinc-800">
-          {label}
-        </label>
+        <span className="flex items-center gap-1.5">
+          <label htmlFor={id} className="text-sm font-semibold text-zinc-800">
+            {label}
+          </label>
+          {help && <HelpTip text={help} />}
+        </span>
         {hint && <span className="text-xs text-zinc-400 font-medium">{hint}</span>}
       </div>
       {multiline ? (
@@ -191,6 +220,7 @@ export function LogoUploadField({
 export function SecretField({
   label,
   hint,
+  help,
   value,
   onChange,
   disabled,
@@ -198,6 +228,7 @@ export function SecretField({
 }: {
   label: string;
   hint?: string;
+  help?: string;
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
@@ -211,9 +242,12 @@ export function SecretField({
   return (
     <div className="space-y-2">
       <div className="flex justify-between gap-3 items-baseline">
-        <label htmlFor={id} className="text-sm font-semibold text-zinc-800">
-          {label}
-        </label>
+        <span className="flex items-center gap-1.5">
+          <label htmlFor={id} className="text-sm font-semibold text-zinc-800">
+            {label}
+          </label>
+          {help && <HelpTip text={help} />}
+        </span>
         {hint && <span className="text-xs text-zinc-400 font-medium">{hint}</span>}
       </div>
       <div className="relative">

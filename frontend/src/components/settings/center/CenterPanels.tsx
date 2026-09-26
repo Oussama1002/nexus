@@ -1001,10 +1001,22 @@ export function MetaPanel({
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <TextField label="Meta App ID" value={value.credentials.appId} onChange={(v) => p({ credentials: { ...value.credentials, appId: v } })} disabled={disabled} />
-          <SecretField label="Meta App Secret" configured={value.credentials.appSecretConfigured} value={value.credentials.appSecret} onChange={(v) => p({ credentials: { ...value.credentials, appSecret: v } })} disabled={!sec} />
-          <SecretField label="Meta Access Token" configured={value.credentials.accessTokenConfigured} value={value.credentials.accessToken} onChange={(v) => p({ credentials: { ...value.credentials, accessToken: v } })} disabled={!sec} />
-          <TextField label="Meta Business ID" value={value.credentials.businessId} onChange={(v) => p({ credentials: { ...value.credentials, businessId: v } })} disabled={disabled} />
+          <TextField
+            label="Meta App ID"
+            help="developers.facebook.com → Mes applications → votre application. L’identifiant s’affiche sous le nom de l’app, et dans Paramètres → Général → « Identifiant de l’app »."
+            value={value.credentials.appId} onChange={(v) => p({ credentials: { ...value.credentials, appId: v } })} disabled={disabled} />
+          <SecretField
+            label="Meta App Secret"
+            help="developers.facebook.com → votre application → Paramètres → Général → « Clé secrète » : cliquez sur « Afficher » (mot de passe Facebook demandé), puis copiez la valeur."
+            configured={value.credentials.appSecretConfigured} value={value.credentials.appSecret} onChange={(v) => p({ credentials: { ...value.credentials, appSecret: v } })} disabled={!sec} />
+          <SecretField
+            label="Meta Access Token"
+            help="Jeton permanent : business.facebook.com → Paramètres → Utilisateurs système → votre utilisateur système → « Générer un nouveau token » (expiration : Jamais), avec les autorisations ads_read, ads_management et business_management. Le jeton n’est affiché qu’une seule fois."
+            configured={value.credentials.accessTokenConfigured} value={value.credentials.accessToken} onChange={(v) => p({ credentials: { ...value.credentials, accessToken: v } })} disabled={!sec} />
+          <TextField
+            label="Meta Business ID"
+            help="business.facebook.com → Paramètres → Infos sur l’entreprise → « Identifiant de la organisation ». Il apparaît aussi dans l’URL : business.facebook.com/settings/?business_id=XXXXXXXX."
+            value={value.credentials.businessId} onChange={(v) => p({ credentials: { ...value.credentials, businessId: v } })} disabled={disabled} />
         </div>
       </SectionCard>
       <SectionCard title="Publicités">
