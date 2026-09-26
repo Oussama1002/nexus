@@ -4,6 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useIdleLogout } from './hooks/useIdleLogout';
 import * as api from './lib/api';
 import { buildQuery } from './lib/pagination';
 import type { Paginated } from './lib/pagination';
@@ -186,6 +187,12 @@ export function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user: authUser, roleSlugs, logout: authLogout, isAdmin, permissionSlugs } = useAuth();
+
+  // Déconnexion automatique après 10 min sans activité (ferme aussi le pointage).
+  useIdleLogout(async () => {
+    await authLogout();
+    navigate('/login?inactif=1', { replace: true });
+  }, 10);
   const { brands, activeBrandId, setActiveBrandId, activeBrand } = useBrand();
 
   const currentUser: User = useMemo(() => {

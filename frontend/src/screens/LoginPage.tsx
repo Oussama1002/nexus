@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatLateness } from '../lib/utils';
 import { Layers, ArrowRight, Shield, BarChart3, Users, Package } from 'lucide-react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { pathForView } from '../lib/appPaths';
@@ -16,6 +16,8 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const idleLogout = searchParams.get('inactif') === '1';
 
   if (!loading && isAuthenticated) {
     // Confirmatrice historical override stays; otherwise honor the role's
@@ -140,6 +142,12 @@ export function LoginPage() {
                 />
               </div>
             </div>
+
+            {idleLogout && !error && (
+              <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-5 py-4 text-sm text-amber-300 font-medium">
+                Vous avez été déconnecté après 10 minutes d’inactivité.
+              </div>
+            )}
 
             {error && (
               <div className="rounded-2xl bg-rose-500/10 border border-rose-500/20 px-5 py-4 text-sm text-rose-400 font-medium flex items-center gap-2">
