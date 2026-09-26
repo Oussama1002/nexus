@@ -230,7 +230,14 @@ class MetaOAuthController extends Controller
 
     private function frontendUrl(string $path): string
     {
-        $base = env('FRONTEND_URL', config('app.url'));
+        $base = trim((string) env('FRONTEND_URL', '')) ?: (string) config('app.url');
+        $appUrl = (string) config('app.url');
+
+        // Garde-fou : un FRONTEND_URL resté en localhost (valeur de dev) renverrait
+        // l'utilisateur sur sa machine après la connexion Facebook.
+        if (str_contains($base, 'localhost') && ! str_contains($appUrl, 'localhost')) {
+            $base = $appUrl;
+        }
 
         return rtrim($base, '/') . '/' . ltrim($path, '/');
     }
