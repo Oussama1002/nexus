@@ -207,12 +207,15 @@ function MetaAssetCard({
   name,
   id,
   accent,
+  missingHint,
 }: {
   icon: React.ReactNode;
   label: string;
   name?: string;
   id?: string;
   accent: string;
+  /** Où trouver / comment obtenir cet identifiant quand il manque. */
+  missingHint: string;
 }) {
   const connected = Boolean(id);
   return (
@@ -231,7 +234,10 @@ function MetaAssetCard({
             <p className="truncate text-[11px] font-medium text-zinc-500">ID {id}</p>
           </>
         ) : (
-          <p className="text-sm font-semibold text-zinc-500">Non connecté</p>
+          <>
+            <p className="text-sm font-semibold text-zinc-500">Non connecté</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-zinc-500">{missingHint}</p>
+          </>
         )}
       </div>
     </div>
@@ -1098,6 +1104,7 @@ export function MetaPanel({
             name={value.credentials.pageName}
             id={value.credentials.pageId}
             accent="#1877F2"
+            missingHint="Connectez le compte Meta ci-dessus puis cliquez « Détecter ». Sinon : business.facebook.com → Paramètres → Comptes → Pages → votre Page (l’ID est sous son nom)."
           />
           <MetaAssetCard
             icon={<Instagram className="h-5 w-5" />}
@@ -1105,6 +1112,7 @@ export function MetaPanel({
             name={value.credentials.instagramUsername ? `@${value.credentials.instagramUsername}` : undefined}
             id={value.credentials.instagramId}
             accent="linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)"
+            missingHint="Reliez d’abord votre compte Instagram professionnel à la Page : business.facebook.com → Paramètres → Comptes → Comptes Instagram → Ajouter. Puis cliquez « Détecter »."
           />
           <MetaAssetCard
             icon={<Target className="h-5 w-5" />}
@@ -1112,6 +1120,7 @@ export function MetaPanel({
             name={value.credentials.pixelName}
             id={value.credentials.pixelId}
             accent="#0866FF"
+            missingHint="Créez ou récupérez le Pixel : business.facebook.com → Gestionnaire d’événements → Sources de données → votre Pixel (l’ID est affiché sous son nom). Puis cliquez « Détecter »."
           />
         </div>
         {detectedPages.length > 1 && (
@@ -1164,7 +1173,7 @@ export function MetaPanel({
           <TextField
             label="Page Facebook (ID)"
             hint={value.credentials.pageName || undefined}
-            help="Page utilisée pour publier les publicités créées depuis le CRM. Cliquez « Détecter » pour la récupérer automatiquement, ou copiez l’ID dans Meta Business Suite → Paramètres → Pages."
+            help="Page utilisée pour publier les publicités créées depuis le CRM. Le plus simple : connecter le compte Meta (section « Connexion Facebook » ci-dessus) puis cliquer « Détecter ». À la main : business.facebook.com → Paramètres → Comptes → Pages → sélectionnez la Page, l’ID à 15-16 chiffres s’affiche sous son nom."
             value={value.credentials.pageId ?? ''}
             onChange={(v) => p({ credentials: { ...value.credentials, pageId: v } })}
             disabled={disabled}
@@ -1172,7 +1181,7 @@ export function MetaPanel({
           <TextField
             label="Compte Instagram (ID)"
             hint={value.credentials.instagramUsername ? `@${value.credentials.instagramUsername}` : undefined}
-            help="Facultatif : compte Instagram lié à la Page, pour diffuser aussi sur Instagram. Détecté automatiquement s’il est relié à la Page."
+            help="Compte Instagram professionnel lié à la Page, pour diffuser aussi sur Instagram. S’il n’apparaît pas : business.facebook.com → Paramètres → Comptes → Comptes Instagram → Ajouter, reliez-le à la Page, puis cliquez « Détecter ». L’ID se voit aussi dans Business Suite sur la fiche du compte."
             value={value.credentials.instagramId ?? ''}
             onChange={(v) => p({ credentials: { ...value.credentials, instagramId: v } })}
             disabled={disabled}
@@ -1180,7 +1189,7 @@ export function MetaPanel({
           <TextField
             label="Pixel Meta (ID)"
             hint={value.credentials.pixelName ? value.credentials.pixelName : undefined}
-            help="Nécessaire pour optimiser sur les conversions (achat, lead). Meta Business Suite → Gestionnaire d’événements → Sources de données."
+            help="Nécessaire pour optimiser sur les conversions (achat, lead). business.facebook.com → Gestionnaire d’événements → Sources de données : sélectionnez le Pixel, son ID s’affiche sous son nom. Aucun Pixel ? Créez-en un depuis cette même page, puis cliquez « Détecter »."
             value={value.credentials.pixelId ?? ''}
             onChange={(v) => p({ credentials: { ...value.credentials, pixelId: v } })}
             disabled={disabled}
