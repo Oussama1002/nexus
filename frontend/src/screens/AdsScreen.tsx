@@ -352,27 +352,32 @@ export function AdsScreen() {
     void fetchMetrics(openCampId);
   }, [openCampId, fetchMetrics]);
 
-  async function syncMetaAdAccounts() {
+  /** Un seul bouton : comptes publicitaires → campagnes → métriques. */
+  async function syncMeta() {
     setMetaSyncing(true);
-    const res = await api.post<{ created: number; updated: number; total: number }>('meta/sync/ad-accounts', {});
-    setMetaSyncing(false);
-    if (!res.ok) {
-      toast.error(res.message);
-      return;
-    }
-    toast.success(res.message);
-    await loadAd();
-  }
 
-  async function syncMetaCampaignsAndInsights() {
-    const metaAccounts = adAccounts.filter((a) => a.platform === 'meta' && a.external_account_id);
-    if (metaAccounts.length === 0) {
-      toast.error('Aucun compte Meta lié. Importez d’abord les comptes publicitaires.');
+    const accRes = await api.post<{ created: number; updated: number; total: number }>('meta/sync/ad-accounts', {});
+    if (!accRes.ok) {
+      setMetaSyncing(false);
+      toast.error(accRes.message);
       return;
     }
-    setMetaSyncing(true);
-    let campMsg = '';
-    let insightMsg = '';
+
+    // Relire la liste : les comptes tout juste importés doivent être synchronisés aussi.
+    const listRes = await api.get<LaravelPaginator<AdAccountRow>>('ad-accounts?per_page=100');
+    const accounts = listRes.ok && isPaginator<AdAccountRow>(listRes.data) ? listRes.data.data : adAccounts;
+    setAdAccounts(accounts);
+
+    const metaAccounts = accounts.filter((a) => a.platform === 'meta' && a.external_account_id);
+    if (metaAccounts.length === 0) {
+      setMetaSyncing(false);
+      toast.error('Aucun compte publicitaire Meta trouvé. Vérifiez la connexion Meta dans Paramètres → Meta.');
+      await loadAd();
+      return;
+    }
+
+    let campaigns = 0;
+    let metrics = 0;
     for (const account of metaAccounts) {
       const campRes = await api.post<{ created: number; updated: number }>('meta/sync/campaigns', {
         ad_account_id: account.id,
@@ -382,7 +387,8 @@ export function AdsScreen() {
         toast.error(campRes.message);
         return;
       }
-      campMsg = campRes.message;
+      campaigns += (campRes.data?.created ?? 0) + (campRes.data?.updated ?? 0);
+
       const insRes = await api.post<{ upserted: number; campaigns: number }>('meta/sync/insights', {
         ad_account_id: account.id,
         from: periodFrom,
@@ -393,10 +399,11 @@ export function AdsScreen() {
         toast.error(insRes.message);
         return;
       }
-      insightMsg = insRes.message;
+      metrics += insRes.data?.upserted ?? 0;
     }
+
     setMetaSyncing(false);
-    toast.success(`${campMsg} ${insightMsg}`.trim());
+    toast.success(`${metaAccounts.length} compte(s) · ${campaigns} campagne(s) · ${metrics} métrique(s) synchronisées.`);
     await refresh();
   }
 
@@ -571,20 +578,12 @@ export function AdsScreen() {
                 <button
                   type="button"
                   disabled={metaSyncing || loading}
-                  onClick={() => void syncMetaAdAccounts()}
-                  className="px-4 py-2 rounded-2xl border border-blue-200 bg-blue-50 text-blue-900 text-sm font-black inline-flex items-center gap-2 disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-4 h-4 ${metaSyncing ? 'animate-spin' : ''}`} />
-                  {metaSyncing ? 'Meta…' : 'Importer comptes Meta'}
-                </button>
-                <button
-                  type="button"
-                  disabled={metaSyncing || loading}
-                  onClick={() => void syncMetaCampaignsAndInsights()}
+                  onClick={() => void syncMeta()}
+                  title="Importe les comptes publicitaires, puis les campagnes et leurs métriques"
                   className="px-4 py-2 rounded-2xl bg-[#1877F2] text-white text-sm font-black inline-flex items-center gap-2 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${metaSyncing ? 'animate-spin' : ''}`} />
-                  Sync campagnes & métriques
+                  {metaSyncing ? 'Synchronisation…' : 'Synchroniser Meta'}
                 </button>
               </>
             )}
