@@ -121,6 +121,32 @@ const MARKETING_OBJECTIVES = [
   { value: 'sales', label: 'Sales' },
 ] as const;
 
+/** Raccourcis de période : les campagnes peuvent dater de plusieurs mois. */
+function PeriodPresets({ onPick }: { onPick: (from: string, to: string) => void }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+  const presets: { label: string; from: string }[] = [
+    { label: '30 j', from: daysAgo(30) },
+    { label: '90 j', from: daysAgo(90) },
+    { label: '12 mois', from: daysAgo(365) },
+    { label: 'Tout', from: '2020-01-01' },
+  ];
+  return (
+    <div className="flex flex-wrap gap-1">
+      {presets.map((p) => (
+        <button
+          key={p.label}
+          type="button"
+          onClick={() => onPick(p.from, today)}
+          className="px-2.5 py-1 rounded-lg border border-zinc-200 text-[11px] font-black text-zinc-700 hover:bg-zinc-50"
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function isoRangeLastDays(days: number) {
   const end = new Date();
   const start = new Date(end);
@@ -620,6 +646,9 @@ export function AdsScreen() {
             <label className="text-[10px] font-black uppercase text-zinc-400">
               Au
               <input type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border font-bold" />
+              <span className="mt-2 block">
+                <PeriodPresets onPick={(f, t) => { setPeriodFrom(f); setPeriodTo(t); }} />
+              </span>
             </label>
             <label className="text-[10px] font-black uppercase text-zinc-400">
               Plateforme
@@ -762,6 +791,7 @@ export function AdsScreen() {
               <input type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} className="px-2 py-1 rounded-lg border" />
               <span>→</span>
               <input type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} className="px-2 py-1 rounded-lg border" />
+              <PeriodPresets onPick={(f, t) => { setPeriodFrom(f); setPeriodTo(t); }} />
             </div>
             {canManage && (
               <button
