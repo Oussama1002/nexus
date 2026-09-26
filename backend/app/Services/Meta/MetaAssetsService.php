@@ -20,6 +20,7 @@ class MetaAssetsService
      * @return array{
      *   pages: list<array{id: string, name: string, instagram_id: string|null}>,
      *   pixels: list<array{id: string, name: string}>,
+     *   instagram_accounts: list<array{id: string, username: string}>,
      *   saved: array<string, string>
      * }
      */
@@ -43,6 +44,18 @@ class MetaAssetsService
 
         $pixels = $this->fetchPixels($brandId, $cfg['business_id']);
 
+        // Comptes Instagram du Business Manager : un compte peut appartenir au
+        // Business sans être rattaché à la Page (cas fréquent).
+        $instagram = $this->fetchInstagramAccounts($brandId, $cfg['business_id']);
+        foreach ($pages as $page) {
+            if (! empty($page['instagram_id']) && ! in_array($page['instagram_id'], array_column($instagram, 'id'), true)) {
+                array_unshift($instagram, [
+                    'id' => (string) $page['instagram_id'],
+                    'username' => (string) ($page['instagram_username'] ?? ''),
+                ]);
+            }
+        }
+
         // On ne remplace jamais un choix déjà fait par l'utilisateur.
         $saved = [];
         if ($pages !== []) {
@@ -51,16 +64,47 @@ class MetaAssetsService
                 $saved += $this->fillIfEmpty($brandId, 'meta_instagram_id', (string) $pages[0]['instagram_id']);
             }
         }
+        if ($instagram !== []) {
+            $saved += $this->fillIfEmpty($brandId, 'meta_instagram_id', $instagram[0]['id']);
+        }
         if ($pixels !== []) {
             $saved += $this->fillIfEmpty($brandId, 'meta_pixel_id', $pixels[0]['id']);
         }
 
         // Les noms suivent toujours l'ID choisi : ce sont des libellés, pas des réglages.
         $this->labelFor($brandId, 'meta_page_id', 'meta_page_name', array_column($pages, 'name', 'id'));
-        $this->labelFor($brandId, 'meta_instagram_id', 'meta_instagram_username', array_column($pages, 'instagram_username', 'instagram_id'));
+        $this->labelFor($brandId, 'meta_instagram_id', 'meta_instagram_username', array_column($instagram, 'username', 'id'));
         $this->labelFor($brandId, 'meta_pixel_id', 'meta_pixel_name', array_column($pixels, 'name', 'id'));
 
-        return ['pages' => $pages, 'pixels' => $pixels, 'saved' => $saved];
+        return ['pages' => $pages, 'pixels' => $pixels, 'instagram_accounts' => $instagram, 'saved' => $saved];
+    }
+
+    /**
+     * Comptes Instagram professionnels visibles (Business Manager puis Pages).
+     *
+     * @return list<array{id: string, username: string}>
+     */
+    private function fetchInstagramAccounts(int $brandId, string $businessId): array
+    {
+        if ($businessId === '') {
+            return [];
+        }
+
+        foreach (['owned_instagram_accounts', 'instagram_accounts', 'client_instagram_accounts'] as $edge) {
+            try {
+                $rows = $this->graph->paginate($brandId, $businessId.'/'.$edge, ['fields' => 'id,username', 'limit' => 50], 3);
+                if ($rows !== []) {
+                    return array_map(fn ($r) => [
+                        'id' => (string) ($r['id'] ?? ''),
+                        'username' => (string) ($r['username'] ?? ''),
+                    ], $rows);
+                }
+            } catch (MetaApiException) {
+                // Droits manquants sur cette source : on essaie la suivante.
+            }
+        }
+
+        return [];
     }
 
     /** @return list<array{id: string, name: string}> */

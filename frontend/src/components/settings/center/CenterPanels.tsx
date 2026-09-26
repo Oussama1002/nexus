@@ -1022,6 +1022,7 @@ export function MetaPanel({
     const res = await api.post<{
       pages: { id: string; name: string; instagram_id: string | null; instagram_username?: string | null }[];
       pixels: { id: string; name: string }[];
+      instagram_accounts?: { id: string; username: string }[];
       saved: Record<string, string>;
     }>('meta/detect-assets', {});
     setDetecting(false);
@@ -1038,13 +1039,18 @@ export function MetaPanel({
     // sinon prendre la première — et afficher son nom, pas seulement son ID.
     const page = pages.find((x) => x.id === value.credentials.pageId) ?? pages[0];
     const pixel = pixels.find((x) => x.id === value.credentials.pixelId) ?? pixels[0];
+    // Un compte Instagram peut appartenir au Business sans être lié à la Page.
+    const igList = res.data?.instagram_accounts ?? [];
+    const ig = igList.find((x) => x.id === value.credentials.instagramId)
+      ?? (page?.instagram_id ? { id: page.instagram_id, username: page.instagram_username ?? '' } : undefined)
+      ?? igList[0];
     p({
       credentials: {
         ...value.credentials,
         pageId: value.credentials.pageId || page?.id || '',
         pageName: page?.name ?? value.credentials.pageName ?? '',
-        instagramId: value.credentials.instagramId || page?.instagram_id || '',
-        instagramUsername: page?.instagram_username ?? value.credentials.instagramUsername ?? '',
+        instagramId: value.credentials.instagramId || ig?.id || '',
+        instagramUsername: ig?.username ?? value.credentials.instagramUsername ?? '',
         pixelId: value.credentials.pixelId || pixel?.id || '',
         pixelName: pixel?.name ?? value.credentials.pixelName ?? '',
       },
@@ -1053,6 +1059,7 @@ export function MetaPanel({
       [
         res.message,
         page ? `Page : ${page.name} (${page.id})` : 'Aucune Page trouvée',
+        ig ? `Instagram : @${ig.username || ig.id}` : 'Aucun compte Instagram trouvé',
         pixel ? `Pixel : ${pixel.name} (${pixel.id})` : 'Aucun Pixel trouvé',
       ].join('\n'),
     );
