@@ -56,6 +56,48 @@ class MetaGraphClient
     }
 
     /**
+     * Écriture (Marketing API) : création de campagne, ad set, creative…
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function post(int $brandId, string $path, array $payload = []): array
+    {
+        $cfg = $this->config->forBrand($brandId);
+        if ($cfg['access_token'] === '') {
+            throw new MetaApiException('Meta access token manquant. Configurez-le dans Paramètres → Meta.');
+        }
+
+        $url = rtrim($cfg['base_url'], '/').'/'.ltrim($path, '/');
+        $payload['access_token'] = $cfg['access_token'];
+
+        $response = Http::timeout(30)->asForm()->acceptJson()->post($url, $payload);
+
+        if (! $response->successful()) {
+            $body = $response->json();
+            $err = is_array($body) ? ($body['error'] ?? []) : [];
+            $message = is_array($err) ? (string) ($err['error_user_msg'] ?? $err['message'] ?? $response->body()) : $response->body();
+            $code = is_array($err) ? ($err['code'] ?? null) : null;
+
+            Log::warning('meta.graph.post_error', [
+                'brand_id' => $brandId,
+                'path' => $path,
+                'status' => $response->status(),
+                'message' => $message,
+            ]);
+
+            throw new MetaApiException(
+                MetaErrorTranslator::toFrench($message ?: 'Erreur Meta Graph API.', is_int($code) ? $code : null),
+                is_int($code) ? $code : null
+            );
+        }
+
+        $data = $response->json();
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
      * @param  array<string, mixed>  $query
      * @return list<array<string, mixed>>
      */

@@ -7,6 +7,7 @@ use App\Models\AdAccount;
 use App\Models\Brand;
 use App\Services\Meta\MetaAdsSyncService;
 use App\Services\Meta\MetaApiException;
+use App\Services\Meta\MetaCampaignPublisher;
 use App\Services\Meta\MetaSocialSyncService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
@@ -27,6 +28,23 @@ class MetaAdsController extends Controller
         }
 
         return (int) Brand::query()->orderBy('id')->value('id');
+    }
+
+    /** Crée sur Meta une campagne saisie dans le CRM (toujours en pause). */
+    public function publishCampaign(Request $request, string $id, MetaCampaignPublisher $publisher): JsonResponse
+    {
+        try {
+            $brandId = $this->resolveSettingsBrand($request);
+            $campaign = \App\Models\Campaign::query()->where('brand_id', $brandId)->findOrFail((int) $id);
+            $result = $publisher->publish($brandId, $campaign);
+
+            return ApiResponse::success(
+                $result,
+                'Campagne créée sur Meta (en pause) — ajustez audience et visuels dans Ads Manager avant activation.'
+            );
+        } catch (MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
     }
 
     /** Importe les Pages Facebook (et Instagram lié) dans « Comptes sociaux ». */

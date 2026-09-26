@@ -57,6 +57,7 @@ type CampaignRow = {
   end_date: string | null;
   objective: string | null;
   description?: string | null;
+  external_campaign_id?: string | null;
   brand?: { id: number; name: string } | null;
   ad_account?: { id: number; account_name: string } | null;
   product?: { id: number; name: string } | null;
@@ -218,6 +219,7 @@ export function AdsScreen() {
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
   const [metaSyncing, setMetaSyncing] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const [periodFrom, setPeriodFrom] = useState(() => isoRangeLastDays(30).from);
   const [periodTo, setPeriodTo] = useState(() => isoRangeLastDays(30).to);
@@ -479,6 +481,20 @@ export function AdsScreen() {
       notes: '',
     });
     void loadAd();
+  }
+
+  /** Crée la campagne sur Meta (Ads Manager) — toujours en pause. */
+  async function publishCampaignToMeta(campaignId: number) {
+    if (!window.confirm('Créer cette campagne sur Meta ? Elle sera créée EN PAUSE : audience, budget et visuels se règlent ensuite dans Ads Manager.')) return;
+    setPublishing(true);
+    const res = await api.post<{ id: string }>(`meta/campaigns/${campaignId}/publish`, {});
+    setPublishing(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success(res.message);
+    await refresh();
   }
 
   async function saveCamp() {
@@ -880,7 +896,22 @@ export function AdsScreen() {
                 <span className="font-black text-zinc-800">Objectif:</span> {objectiveFr(openCamp.marketing_objective)}
               </p>
               {openCamp.description && <p>{openCamp.description}</p>}
+              {openCamp.external_campaign_id ? (
+                <p>
+                  <span className="font-black text-zinc-800">Meta:</span> campagne liée (id {openCamp.external_campaign_id})
+                </p>
+              ) : null}
             </div>
+            {canManage && openCamp.source === 'meta' && !openCamp.external_campaign_id && (
+              <button
+                type="button"
+                disabled={publishing}
+                onClick={() => void publishCampaignToMeta(openCamp.id)}
+                className="w-full py-2.5 rounded-xl bg-[#1877F2] text-white text-sm font-black disabled:opacity-50"
+              >
+                {publishing ? 'Création sur Meta…' : 'Créer cette campagne sur Meta'}
+              </button>
+            )}
             <div className="flex justify-between items-center">
               <p className="text-xs font-black uppercase text-zinc-400">Métriques</p>
               {canManage && (
