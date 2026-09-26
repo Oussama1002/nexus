@@ -1020,19 +1020,48 @@ export function MetaPanel({
               {"Connecté"}
             </span>
           )}
-          {hasToken && (
-            <button
-              type="button"
-              onClick={() => void detectAssets()}
-              disabled={disabled || detecting}
-              className="rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
-            >
-              {detecting ? 'Détection…' : 'Détecter Page / Instagram / Pixel'}
-            </button>
-          )}
           {!value.credentials.appId && (
             <span className="text-sm text-gray-500">{"Renseignez d’abord le Meta App ID ci-dessous"}</span>
           )}
+        </div>
+      </SectionCard>
+      <SectionCard
+        title="Pages Facebook & Instagram"
+        description="Page utilisée pour diffuser les publicités créées depuis le CRM, compte Instagram lié et Pixel de conversion."
+        actions={
+          <button
+            type="button"
+            onClick={() => void detectAssets()}
+            disabled={disabled || detecting || !hasToken}
+            title={hasToken ? undefined : 'Connectez d’abord le compte Meta ci-dessus'}
+            className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            {detecting ? 'Détection…' : 'Détecter Page / Instagram / Pixel'}
+          </button>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <TextField
+            label="Page Facebook (ID)"
+            help="Page utilisée pour publier les publicités créées depuis le CRM. Cliquez « Détecter » pour la récupérer automatiquement, ou copiez l’ID dans Meta Business Suite → Paramètres → Pages."
+            value={value.credentials.pageId ?? ''}
+            onChange={(v) => p({ credentials: { ...value.credentials, pageId: v } })}
+            disabled={disabled}
+          />
+          <TextField
+            label="Compte Instagram (ID)"
+            help="Facultatif : compte Instagram lié à la Page, pour diffuser aussi sur Instagram. Détecté automatiquement s’il est relié à la Page."
+            value={value.credentials.instagramId ?? ''}
+            onChange={(v) => p({ credentials: { ...value.credentials, instagramId: v } })}
+            disabled={disabled}
+          />
+          <TextField
+            label="Pixel Meta (ID)"
+            help="Nécessaire pour optimiser sur les conversions (achat, lead). Meta Business Suite → Gestionnaire d’événements → Sources de données."
+            value={value.credentials.pixelId ?? ''}
+            onChange={(v) => p({ credentials: { ...value.credentials, pixelId: v } })}
+            disabled={disabled}
+          />
         </div>
       </SectionCard>
       <SectionCard
@@ -1056,27 +1085,6 @@ export function MetaPanel({
             label="Meta Access Token"
             help="Jeton permanent : business.facebook.com → Paramètres → Utilisateurs système → votre utilisateur système → « Générer un nouveau token » (expiration : Jamais), avec les autorisations ads_read, ads_management et business_management. Le jeton n’est affiché qu’une seule fois."
             configured={value.credentials.accessTokenConfigured} value={value.credentials.accessToken} onChange={(v) => p({ credentials: { ...value.credentials, accessToken: v } })} disabled={!sec} />
-          <TextField
-            label="Page Facebook (ID)"
-            help="Page utilisée pour publier les publicités créées depuis le CRM. Cliquez « Détecter » pour la récupérer automatiquement depuis le compte Meta connecté, ou copiez l’ID dans Meta Business Suite → Paramètres → Pages."
-            value={value.credentials.pageId ?? ''}
-            onChange={(v) => p({ credentials: { ...value.credentials, pageId: v } })}
-            disabled={disabled}
-          />
-          <TextField
-            label="Compte Instagram (ID)"
-            help="Facultatif : compte Instagram lié à la Page, pour diffuser aussi sur Instagram. Détecté automatiquement s’il est relié à la Page."
-            value={value.credentials.instagramId ?? ''}
-            onChange={(v) => p({ credentials: { ...value.credentials, instagramId: v } })}
-            disabled={disabled}
-          />
-          <TextField
-            label="Pixel Meta (ID)"
-            help="Nécessaire pour optimiser sur les conversions (achat, lead). Meta Business Suite → Gestionnaire d’événements → Sources de données."
-            value={value.credentials.pixelId ?? ''}
-            onChange={(v) => p({ credentials: { ...value.credentials, pixelId: v } })}
-            disabled={disabled}
-          />
           <TextField
             label="Meta Business ID"
             help="business.facebook.com → Paramètres → Infos sur l’entreprise → « Identifiant de la organisation ». Il apparaît aussi dans l’URL : business.facebook.com/settings/?business_id=XXXXXXXX."
