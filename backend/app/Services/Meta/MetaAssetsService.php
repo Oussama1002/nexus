@@ -94,10 +94,22 @@ class MetaAssetsService
             try {
                 $rows = $this->graph->paginate($brandId, $businessId.'/'.$edge, ['fields' => 'id,username', 'limit' => 50], 3);
                 if ($rows !== []) {
-                    return array_map(fn ($r) => [
-                        'id' => (string) ($r['id'] ?? ''),
-                        'username' => (string) ($r['username'] ?? ''),
-                    ], $rows);
+                    return array_map(function ($r) use ($brandId) {
+                        $id = (string) ($r['id'] ?? '');
+                        $username = (string) ($r['username'] ?? '');
+
+                        // Certaines arêtes ne renvoient pas le pseudo : on lit le nœud.
+                        if ($username === '' && $id !== '') {
+                            try {
+                                $node = $this->graph->get($brandId, $id, ['fields' => 'username,name']);
+                                $username = (string) ($node['username'] ?? $node['name'] ?? '');
+                            } catch (MetaApiException) {
+                                // On garde l'ID seul.
+                            }
+                        }
+
+                        return ['id' => $id, 'username' => $username];
+                    }, $rows);
                 }
             } catch (MetaApiException) {
                 // Droits manquants sur cette source : on essaie la suivante.
