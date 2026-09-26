@@ -103,14 +103,4 @@ class User extends Authenticatable
         return in_array($mod.'.*', $slugs, true);
     }
 
-    public function shouldRestrictShipmentsToAssignedOrders(): bool
-    {
-        $this->loadMissing('roles');
-        $slugs = $this->roles->pluck('slug')->all();
-        if (array_intersect($slugs, ['admin', 'manager_operationnel', 'stock_manager'])) {
-            return false;
-        }
-
-        return in_array('confirmatrice', $slugs, true);
-    }
 }

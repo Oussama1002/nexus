@@ -31,9 +31,6 @@ class ShipmentEventController extends Controller
 
         $sq = Shipment::query()->whereKey($shipmentId);
         ApiBrandContext::scopeBrand($sq, $brandId);
-        if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
-            $sq->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));
-        }
         $sq->firstOrFail();
 
         $events = ShipmentEvent::query()

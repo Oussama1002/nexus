@@ -48,10 +48,6 @@ class ShipmentController extends Controller
         $q
             ->orderByDesc(DB::raw('GREATEST(COALESCE(delivered_at, created_at), COALESCE(shipped_at, created_at), COALESCE(returned_at, created_at), created_at)'));
 
-        if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
-            $q->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));
-        }
-
         if ($status) {
             $q->where('status', $status);
         }
@@ -241,10 +237,6 @@ class ShipmentController extends Controller
             ->with(['order.lines.product', 'order.customer', 'deliveryCompany', 'events.actor', 'brand']);
         ApiBrandContext::scopeBrand($q, $brandId);
 
-        if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
-            $q->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));
-        }
-
         $shipment = $q->findOrFail($id);
 
         return ApiResponse::success($shipment, 'Shipment retrieved successfully.');
@@ -333,13 +325,6 @@ class ShipmentController extends Controller
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
         $shipment = Shipment::query()->where('brand_id', $brandId)->findOrFail($id);
-
-        if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
-            $shipment->loadMissing('order');
-            if ((int) $shipment->order?->assigned_user_id !== (int) $request->user()->id) {
-                return ApiResponse::error('Forbidden.', null, 403);
-            }
-        }
 
         $result = $this->shipmentSyncService->syncShipment($shipment, $request->user());
         AuditLogger::log($request, 'shipments.sync', $result['shipment'], null, null);

@@ -110,10 +110,6 @@ class DashboardNotificationService
 
         $this->applyBrandScope($q, $user);
 
-        if ($user->shouldRestrictShipmentsToAssignedOrders()) {
-            $q->whereHas('order', fn (Builder $oq) => $oq->where('assigned_user_id', $user->id));
-        }
-
         $count = (clone $q)->count();
         if ($count === 0) {
             return [];

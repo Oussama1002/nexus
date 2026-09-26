@@ -46,10 +46,8 @@ class OrderController extends Controller
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('id');
 
-        $user = $request->user();
-        if ($user && ! $user->isAdmin() && ! $user->isManagerOperational() && $user->shouldRestrictShipmentsToAssignedOrders()) {
-            $q->where('assigned_user_id', $user->id);
-        } elseif ($assigned !== null && $assigned !== '') {
+        // Accès géré par les rôles & permissions : pas de filtre caché par assignation.
+        if ($assigned !== null && $assigned !== '') {
             $q->where('assigned_user_id', (int) $assigned);
         }
 

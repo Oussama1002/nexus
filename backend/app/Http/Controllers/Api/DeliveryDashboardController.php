@@ -39,10 +39,6 @@ class DeliveryDashboardController extends Controller
             $q->where('shipments.delivery_company_id', (int) $dc);
         }
 
-        if ($request->user()->shouldRestrictShipmentsToAssignedOrders()) {
-            $q->whereHas('order', fn ($w) => $w->where('assigned_user_id', $request->user()->id));
-        }
-
         $base = (clone $q);
         $total = (clone $q)->count();
 
