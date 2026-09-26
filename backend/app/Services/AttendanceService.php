@@ -134,12 +134,20 @@ class AttendanceService
             return;
         }
 
-        InternalMessage::query()->create([
-            'sender_id' => $admin->id,
-            'receiver_id' => $user->id,
-            'body' => "Bonjour {$user->name}, vous avez pointé aujourd’hui avec un retard de ".self::formatLateness($minutesLate)
-                .'. Merci de respecter vos horaires et de justifier ce retard si nécessaire.',
-        ]);
+        try {
+            InternalMessage::query()->create([
+                'sender_id' => $admin->id,
+                'receiver_id' => $user->id,
+                'body' => "Bonjour {$user->name}, vous avez pointé aujourd’hui avec un retard de ".self::formatLateness($minutesLate)
+                    .'. Merci de respecter vos horaires et de justifier ce retard si nécessaire.',
+            ]);
+        } catch (\Throwable $e) {
+            // Never break the login over a chat message.
+            \Illuminate\Support\Facades\Log::warning('attendance.late_message_failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function recordLogout(User $user): void
