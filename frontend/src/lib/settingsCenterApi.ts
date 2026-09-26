@@ -169,6 +169,9 @@ export type MetaModel = {
     accessToken: string;
     accessTokenConfigured: boolean;
     businessId: string;
+    pageId: string;
+    instagramId: string;
+    pixelId: string;
   };
   ads: {
     attributionWindowDays: string;

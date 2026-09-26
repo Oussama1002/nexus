@@ -517,6 +517,9 @@ class SettingsCenterService
                 'accessToken' => '',
                 'accessTokenConfigured' => $this->hasStoredValue($brandId, 'meta_access_token'),
                 'businessId' => $this->getRaw($brandId, 'meta_business_id') ?? '',
+                'pageId' => $this->getRaw($brandId, 'meta_page_id') ?? '',
+                'instagramId' => $this->getRaw($brandId, 'meta_instagram_id') ?? '',
+                'pixelId' => $this->getRaw($brandId, 'meta_pixel_id') ?? '',
             ],
             'ads' => [
                 'attributionWindowDays' => $this->getRaw($brandId, 'meta_attribution_window_days') ?? '',
@@ -552,6 +555,9 @@ class SettingsCenterService
             $this->upsert($brandId, 'meta', 'meta_attribution_window_days', $ad['attributionWindowDays'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_sync_frequency_minutes', $ad['syncFrequencyMinutes'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_currency', $ad['currency'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_page_id', $cr['pageId'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_instagram_id', $cr['instagramId'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_pixel_id', $cr['pixelId'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_lead_action_types', $ad['leadActionTypes'] ?? '');
             $tg = $p['targets'] ?? [];
             $this->upsert($brandId, 'meta', 'meta_target_cac', $tg['cac'] ?? '');

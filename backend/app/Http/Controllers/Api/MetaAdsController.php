@@ -7,6 +7,7 @@ use App\Models\AdAccount;
 use App\Models\Brand;
 use App\Services\Meta\MetaAdsSyncService;
 use App\Services\Meta\MetaApiException;
+use App\Services\Meta\MetaAssetsService;
 use App\Services\Meta\MetaCampaignPublisher;
 use App\Services\Meta\MetaSocialSyncService;
 use App\Support\ApiBrandContext;
@@ -28,6 +29,23 @@ class MetaAdsController extends Controller
         }
 
         return (int) Brand::query()->orderBy('id')->value('id');
+    }
+
+    /** Détecte Page Facebook, Instagram lié et Pixel du compte Meta connecté. */
+    public function detectAssets(Request $request, MetaAssetsService $assets): JsonResponse
+    {
+        try {
+            $brandId = $this->resolveSettingsBrand($request);
+            $found = $assets->detect($brandId);
+
+            return ApiResponse::success($found, sprintf(
+                '%d Page(s), %d Pixel(s) détecté(s).',
+                count($found['pages']),
+                count($found['pixels'])
+            ));
+        } catch (MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
     }
 
     /** Crée sur Meta une campagne saisie dans le CRM (toujours en pause). */

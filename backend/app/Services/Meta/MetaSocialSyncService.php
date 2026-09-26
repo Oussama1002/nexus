@@ -67,6 +67,16 @@ class MetaSocialSyncService
     }
 
     /**
+     * Pages visibles pour cette marque (réutilisé par MetaAssetsService).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function pagesForBrand(int $brandId): array
+    {
+        return $this->fetchPages($brandId, $this->config->forBrand($brandId)['business_id']);
+    }
+
+    /**
      * Pages du Business Manager ; à défaut, Pages de l'utilisateur connecté.
      *
      * @return list<array<string, mixed>>
