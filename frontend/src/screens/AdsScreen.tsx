@@ -147,6 +147,13 @@ function PeriodPresets({ onPick }: { onPick: (from: string, to: string) => void 
   );
 }
 
+/** "2026-04-01T00:00:00.000000Z" → "01/04/2026". */
+function fmtMetricDate(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 function isoRangeLastDays(days: number) {
   const end = new Date();
   const start = new Date(end);
@@ -901,7 +908,7 @@ export function AdsScreen() {
                   <tbody>
                     {metrics.map((m) => (
                       <tr key={m.id} className="border-t border-zinc-100 font-bold">
-                        <td className="p-2">{m.metric_date}</td>
+                        <td className="p-2">{fmtMetricDate(m.metric_date)}</td>
                         <td className="p-2">{formatCurrency(parseFloat(m.spend))}</td>
                         <td className="p-2">{m.leads}</td>
                         <td className="p-2">{m.cpc ?? '—'}</td>
