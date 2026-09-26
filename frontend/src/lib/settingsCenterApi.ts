@@ -172,6 +172,7 @@ export type MetaModel = {
   };
   ads: {
     attributionWindowDays: string;
+    leadActionTypes: string;
     syncFrequencyMinutes: string;
     currency: string;
   };

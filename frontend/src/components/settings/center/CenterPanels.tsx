@@ -1024,6 +1024,16 @@ export function MetaPanel({
           <TextField label="Fenêtre d’attribution (jours)" value={value.ads.attributionWindowDays} onChange={(v) => p({ ads: { ...value.ads, attributionWindowDays: v } })} disabled={disabled} />
           <TextField label="Fréquence synchro (minutes)" value={value.ads.syncFrequencyMinutes} onChange={(v) => p({ ads: { ...value.ads, syncFrequencyMinutes: v } })} disabled={disabled} />
           <TextField label="Devise" value={value.ads.currency} onChange={(v) => p({ ads: { ...value.ads, currency: v } })} disabled={disabled} />
+          <div className="md:col-span-2">
+            <TextField
+              label="Actions comptées comme leads"
+              hint="séparées par des virgules"
+              help="Types d’action Meta à compter comme leads, séparés par des virgules. Par défaut : lead, onsite_conversion.lead_grouped, offsite_conversion.fb_pixel_lead et onsite_conversion.messaging_conversation_started_7d. Pour une conversion personnalisée, indiquez son type complet (ex. offsite_conversion.custom.1303327918216835)."
+              value={value.ads.leadActionTypes ?? ''}
+              onChange={(v) => p({ ads: { ...value.ads, leadActionTypes: v } })}
+              disabled={disabled}
+            />
+          </div>
         </div>
       </SectionCard>
       <SectionCard title="Objectifs KPI">

@@ -236,10 +236,12 @@ class MetaAdsSyncService
             ->whereNotNull('external_campaign_id')
             ->pluck('id', 'external_campaign_id');
 
+        $leadTypes = $this->leadActionTypes($brandId);
+
         $upserted = 0;
         $touchedCampaigns = [];
 
-        DB::transaction(function () use ($rows, $byExternal, &$upserted, &$touchedCampaigns) {
+        DB::transaction(function () use ($rows, $byExternal, $leadTypes, &$upserted, &$touchedCampaigns) {
             foreach ($rows as $row) {
                 $extId = (string) ($row['campaign_id'] ?? '');
                 $campaignId = $byExternal[$extId] ?? null;
@@ -256,7 +258,7 @@ class MetaAdsSyncService
                 $impressions = (int) ($row['impressions'] ?? 0);
                 $clicks = (int) ($row['clicks'] ?? 0);
                 $reach = (int) ($row['reach'] ?? 0);
-                $leads = $this->countAction($row['actions'] ?? [], ['lead', 'onsite_conversion.lead_grouped', 'offsite_conversion.fb_pixel_lead']);
+                $leads = $this->countAction($row['actions'] ?? [], $leadTypes);
                 $messages = $this->countAction($row['actions'] ?? [], ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.messaging_first_reply']);
 
                 CampaignMetric::query()->updateOrCreate(
@@ -373,6 +375,31 @@ class MetaAdsSyncService
      * @param  list<mixed>  $actions
      * @param  list<string>  $types
      */
+    /**
+     * Ce qui compte comme « lead » dépend du compte : formulaire Meta, pixel,
+     * conversion personnalisée ou conversation Messenger/WhatsApp. Réglable via
+     * le paramètre meta_lead_action_types (types séparés par des virgules).
+     *
+     * @return list<string>
+     */
+    private function leadActionTypes(int $brandId): array
+    {
+        $configured = \App\Models\SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'meta_lead_action_types')
+            ->value('setting_value');
+
+        $types = array_values(array_filter(array_map('trim', explode(',', (string) $configured))));
+
+        return $types !== [] ? $types : [
+            'lead',
+            'onsite_conversion.lead_grouped',
+            'offsite_conversion.fb_pixel_lead',
+            // Beaucoup de campagnes marocaines génèrent des leads par message.
+            'onsite_conversion.messaging_conversation_started_7d',
+        ];
+    }
+
     private function countAction(array $actions, array $types): int
     {
         $sum = 0;

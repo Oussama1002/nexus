@@ -522,6 +522,7 @@ class SettingsCenterService
                 'attributionWindowDays' => $this->getRaw($brandId, 'meta_attribution_window_days') ?? '',
                 'syncFrequencyMinutes' => $this->getRaw($brandId, 'meta_sync_frequency_minutes') ?? '',
                 'currency' => $this->getRaw($brandId, 'meta_currency') ?? '',
+                'leadActionTypes' => $this->getRaw($brandId, 'meta_lead_action_types') ?? '',
             ],
             'targets' => [
                 'cac' => $this->getRaw($brandId, 'meta_target_cac') ?? '',
@@ -551,6 +552,7 @@ class SettingsCenterService
             $this->upsert($brandId, 'meta', 'meta_attribution_window_days', $ad['attributionWindowDays'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_sync_frequency_minutes', $ad['syncFrequencyMinutes'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_currency', $ad['currency'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_lead_action_types', $ad['leadActionTypes'] ?? '');
             $tg = $p['targets'] ?? [];
             $this->upsert($brandId, 'meta', 'meta_target_cac', $tg['cac'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_target_cpa', $tg['cpa'] ?? '');

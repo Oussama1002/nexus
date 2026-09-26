@@ -124,6 +124,7 @@ class SettingsCenterRules
                 'credentials.businessId' => 'nullable|string|max:128',
                 'ads' => 'nullable|array',
                 'ads.attributionWindowDays' => 'nullable|numeric|min:0',
+                'ads.leadActionTypes' => 'nullable|string|max:500',
                 'ads.syncFrequencyMinutes' => 'nullable|numeric|min:1',
                 'ads.currency' => 'nullable|string|max:16',
                 'targets' => 'nullable|array',

@@ -157,6 +157,7 @@ class SystemSettingRegistry
             'meta_attribution_window_days' => ['sensitive' => false, 'description' => 'Fenêtre d’attribution (jours)'],
             'meta_sync_frequency_minutes' => ['sensitive' => false, 'description' => 'Fréquence synchro (minutes)'],
             'meta_currency' => ['sensitive' => false, 'description' => 'Devise Ads'],
+            'meta_lead_action_types' => ['sensitive' => false, 'description' => 'Actions Meta comptées comme leads'],
             'meta_enable_utm' => ['sensitive' => false, 'description' => 'Activer suivi UTM'],
             'meta_enable_campaign_attribution' => ['sensitive' => false, 'description' => 'Attribution campagne'],
             'meta_enable_roas' => ['sensitive' => false, 'description' => 'Calcul ROAS'],
