@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Eye, EyeOff, HelpCircle, Loader2, Upload, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { isImageAssetUrl, resolvePublicAssetUrl } from '../../../lib/publicAssetUrl';
@@ -58,25 +58,58 @@ export function ConnectionTestButton({
 
 /** Petit « ? » à côté d'un champ : explique où trouver la valeur. */
 export function HelpTip({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Positionnement fixe : la carte parente a overflow-hidden, une bulle
+  // absolue serait coupée (et débordait à droite de l'écran).
+  const toggle = () => {
+    if (pos) {
+      setPos(null);
+      return;
+    }
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const width = Math.min(288, window.innerWidth - 24);
+    setPos({
+      top: r.bottom + 8,
+      left: Math.min(Math.max(12, r.left), window.innerWidth - width - 12),
+    });
+  };
+
+  useEffect(() => {
+    if (!pos) return;
+    const close = () => setPos(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [pos]);
+
   return (
-    <span className="relative inline-flex">
+    <>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        onClick={toggle}
+        onBlur={() => window.setTimeout(() => setPos(null), 150)}
         title={text}
         aria-label="Où trouver cette valeur ?"
         className="text-zinc-400 hover:text-primary-600"
       >
         <HelpCircle className="w-4 h-4" />
       </button>
-      {open && (
-        <span className="absolute left-0 top-6 z-30 w-72 rounded-xl border border-zinc-200 bg-white p-3 text-xs font-medium leading-relaxed text-zinc-700 shadow-lg">
+      {pos && (
+        <span
+          className="fixed z-50 w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-200 bg-white p-3 text-xs font-medium leading-relaxed text-zinc-700 shadow-xl"
+          style={{ top: pos.top, left: pos.left }}
+        >
           {text}
         </span>
       )}
-    </span>
+    </>
   );
 }
 
