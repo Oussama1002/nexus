@@ -984,16 +984,24 @@ export function MetaPanel({
       window.alert(res.message);
       return;
     }
-    const page = res.data?.pages?.[0];
-    const pixel = res.data?.pixels?.[0];
-    setDetectedPages(res.data?.pages ?? []);
-    setDetectedPixels(res.data?.pixels ?? []);
+    const pages = res.data?.pages ?? [];
+    const pixels = res.data?.pixels ?? [];
+    setDetectedPages(pages);
+    setDetectedPixels(pixels);
+
+    // Garder la Page déjà choisie si elle fait partie des Pages détectées,
+    // sinon prendre la première — et afficher son nom, pas seulement son ID.
+    const page = pages.find((x) => x.id === value.credentials.pageId) ?? pages[0];
+    const pixel = pixels.find((x) => x.id === value.credentials.pixelId) ?? pixels[0];
     p({
       credentials: {
         ...value.credentials,
         pageId: value.credentials.pageId || page?.id || '',
+        pageName: page?.name ?? value.credentials.pageName ?? '',
         instagramId: value.credentials.instagramId || page?.instagram_id || '',
+        instagramUsername: page?.instagram_username ?? value.credentials.instagramUsername ?? '',
         pixelId: value.credentials.pixelId || pixel?.id || '',
+        pixelName: pixel?.name ?? value.credentials.pixelName ?? '',
       },
     });
     window.alert(
@@ -1044,6 +1052,19 @@ export function MetaPanel({
           </button>
         }
       >
+        {(value.credentials.pageName || value.credentials.instagramUsername || value.credentials.pixelName) && (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800">
+            {value.credentials.pageName && (
+              <p><span className="font-semibold">Page :</span> {value.credentials.pageName}</p>
+            )}
+            {value.credentials.instagramUsername && (
+              <p><span className="font-semibold">Instagram :</span> @{value.credentials.instagramUsername}</p>
+            )}
+            {value.credentials.pixelName && (
+              <p><span className="font-semibold">Pixel :</span> {value.credentials.pixelName}</p>
+            )}
+          </div>
+        )}
         {detectedPages.length > 1 && (
           <label className="block text-sm font-semibold text-zinc-800">
             Choisir la Page
