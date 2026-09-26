@@ -162,7 +162,9 @@ export function NotificationPanel({
                         </span>
                         <span className="block mt-0.5 text-xs text-zinc-600">{n.body}</span>
                         <span className="block mt-1 text-[10px] font-bold text-zinc-400">
-                          {formatRelativeTime(n.occurred_at)}
+                          <span title={new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}>
+                            {new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · {formatRelativeTime(n.occurred_at)}
+                          </span>
                         </span>
                       </span>
                     </button>

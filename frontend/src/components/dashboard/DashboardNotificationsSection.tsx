@@ -248,7 +248,9 @@ export function DashboardNotificationsSection({
                         {catMeta.label}
                       </span>
                       <span className="text-[10px] font-bold text-zinc-400">
-                        {formatRelativeTime(n.occurred_at)}
+                        <span title={new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}>
+                          {new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · {formatRelativeTime(n.occurred_at)}
+                        </span>
                       </span>
                     </div>
                   </div>

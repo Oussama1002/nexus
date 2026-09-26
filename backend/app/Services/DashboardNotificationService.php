@@ -66,19 +66,20 @@ class DashboardNotificationService
             $items = array_merge($items, $this->returnedShipments($user));
         }
 
+        // Les plus récentes d'abord ; priorité et gravité ne départagent que
+        // les notifications du même instant.
         usort($items, function (array $a, array $b) {
+            $cmp = strcmp((string) ($b['occurred_at'] ?? ''), (string) ($a['occurred_at'] ?? ''));
+            if ($cmp !== 0) {
+                return $cmp;
+            }
             $pa = self::PRIORITY_ORDER[$a['priority'] ?? 'P3'] ?? 9;
             $pb = self::PRIORITY_ORDER[$b['priority'] ?? 'P3'] ?? 9;
             if ($pa !== $pb) {
                 return $pa <=> $pb;
             }
-            $sa = self::SEVERITY_ORDER[$a['severity']] ?? 9;
-            $sb = self::SEVERITY_ORDER[$b['severity']] ?? 9;
-            if ($sa !== $sb) {
-                return $sa <=> $sb;
-            }
 
-            return strcmp((string) ($b['occurred_at'] ?? ''), (string) ($a['occurred_at'] ?? ''));
+            return (self::SEVERITY_ORDER[$a['severity']] ?? 9) <=> (self::SEVERITY_ORDER[$b['severity']] ?? 9);
         });
 
         $items = array_slice($items, 0, $limit);

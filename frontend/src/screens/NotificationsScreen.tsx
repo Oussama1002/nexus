@@ -161,7 +161,9 @@ export function NotificationsScreen() {
                   </div>
                   <p className="text-sm text-zinc-700 mt-1 whitespace-pre-wrap">{n.body}</p>
                   <div className="flex items-center gap-3 text-xs text-zinc-500 mt-2">
-                    <span>{formatRelativeTime(n.occurred_at)}</span>
+                    <span title={new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}>
+                      {new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · {formatRelativeTime(n.occurred_at)}
+                    </span>
                     {clickable && <span className="text-blue-600 font-semibold">→ Ouvrir</span>}
                   </div>
                 </div>
