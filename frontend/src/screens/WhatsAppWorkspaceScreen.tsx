@@ -116,6 +116,7 @@ export function WhatsAppWorkspaceScreen({
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
   const [draft, setDraft] = useState('');
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const [q, setQ] = useState('');
   // Template picker
   type WaTemplate = { name: string; language: string; category: string; status: string; body: string; param_count: number };
@@ -347,6 +348,7 @@ export function WhatsAppWorkspaceScreen({
       return;
     }
     setDraft('');
+    if (composerRef.current) composerRef.current.style.height = '';
     await loadMessages(selectedId);
     await loadConversations();
   }
@@ -1043,15 +1045,22 @@ export function WhatsAppWorkspaceScreen({
                         <MessageSquare className="w-5 h-5" />
                       </button>
                       <textarea
+                        ref={composerRef}
                         value={draft}
-                        onChange={(e) => { setDraft(e.target.value); if (e.target.value.trim()) pingTyping(); }}
+                        onChange={(e) => {
+                          setDraft(e.target.value);
+                          if (e.target.value.trim()) pingTyping();
+                          // Grandit avec le texte (jusqu'à ~5 lignes) au lieu d'afficher une barre de défilement.
+                          e.target.style.height = 'auto';
+                          e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                        }}
                         onKeyDown={(e) => {
                           if (e.key !== 'Enter' || e.shiftKey) return;
                           e.preventDefault();
                           void send();
                         }}
                         rows={1}
-                        className="flex-1 h-11 px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500 resize-none leading-6"
+                        className="flex-1 h-11 max-h-32 px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500 resize-none leading-6 scrollbar-hide"
                         placeholder="Message…"
                       />
                       <button
