@@ -172,6 +172,9 @@ export type MetaModel = {
     pageId: string;
     instagramId: string;
     pixelId: string;
+    pageName?: string;
+    instagramUsername?: string;
+    pixelName?: string;
   };
   ads: {
     attributionWindowDays: string;

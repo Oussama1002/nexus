@@ -968,12 +968,14 @@ export function MetaPanel({
   const hasToken = value.credentials.accessTokenConfigured;
   const fbBlue = "#1877F2";
   const [detecting, setDetecting] = React.useState(false);
+  const [detectedPages, setDetectedPages] = React.useState<{ id: string; name: string; instagram_id: string | null; instagram_username?: string | null }[]>([]);
+  const [detectedPixels, setDetectedPixels] = React.useState<{ id: string; name: string }[]>([]);
 
   /** Récupère Page / Instagram / Pixel depuis le compte Meta connecté. */
   const detectAssets = async () => {
     setDetecting(true);
     const res = await api.post<{
-      pages: { id: string; name: string; instagram_id: string | null }[];
+      pages: { id: string; name: string; instagram_id: string | null; instagram_username?: string | null }[];
       pixels: { id: string; name: string }[];
       saved: Record<string, string>;
     }>('meta/detect-assets', {});
@@ -984,6 +986,8 @@ export function MetaPanel({
     }
     const page = res.data?.pages?.[0];
     const pixel = res.data?.pixels?.[0];
+    setDetectedPages(res.data?.pages ?? []);
+    setDetectedPixels(res.data?.pixels ?? []);
     p({
       credentials: {
         ...value.credentials,
@@ -1040,9 +1044,56 @@ export function MetaPanel({
           </button>
         }
       >
+        {detectedPages.length > 1 && (
+          <label className="block text-sm font-semibold text-zinc-800">
+            Choisir la Page
+            <select
+              value={value.credentials.pageId ?? ''}
+              onChange={(e) => {
+                const picked = detectedPages.find((x) => x.id === e.target.value);
+                p({
+                  credentials: {
+                    ...value.credentials,
+                    pageId: e.target.value,
+                    pageName: picked?.name ?? '',
+                    instagramId: picked?.instagram_id ?? '',
+                    instagramUsername: picked?.instagram_username ?? '',
+                  },
+                });
+              }}
+              disabled={disabled}
+              className="mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900"
+            >
+              <option value="">— Sélectionner —</option>
+              {detectedPages.map((pg) => (
+                <option key={pg.id} value={pg.id}>
+                  {pg.name}{pg.instagram_username ? ` · @${pg.instagram_username}` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {detectedPixels.length > 1 && (
+          <label className="block text-sm font-semibold text-zinc-800">
+            Choisir le Pixel
+            <select
+              value={value.credentials.pixelId ?? ''}
+              onChange={(e) => {
+                const picked = detectedPixels.find((x) => x.id === e.target.value);
+                p({ credentials: { ...value.credentials, pixelId: e.target.value, pixelName: picked?.name ?? '' } });
+              }}
+              disabled={disabled}
+              className="mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900"
+            >
+              <option value="">— Sélectionner —</option>
+              {detectedPixels.map((px) => <option key={px.id} value={px.id}>{px.name}</option>)}
+            </select>
+          </label>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <TextField
             label="Page Facebook (ID)"
+            hint={value.credentials.pageName || undefined}
             help="Page utilisée pour publier les publicités créées depuis le CRM. Cliquez « Détecter » pour la récupérer automatiquement, ou copiez l’ID dans Meta Business Suite → Paramètres → Pages."
             value={value.credentials.pageId ?? ''}
             onChange={(v) => p({ credentials: { ...value.credentials, pageId: v } })}
@@ -1050,6 +1101,7 @@ export function MetaPanel({
           />
           <TextField
             label="Compte Instagram (ID)"
+            hint={value.credentials.instagramUsername ? `@${value.credentials.instagramUsername}` : undefined}
             help="Facultatif : compte Instagram lié à la Page, pour diffuser aussi sur Instagram. Détecté automatiquement s’il est relié à la Page."
             value={value.credentials.instagramId ?? ''}
             onChange={(v) => p({ credentials: { ...value.credentials, instagramId: v } })}
@@ -1057,6 +1109,7 @@ export function MetaPanel({
           />
           <TextField
             label="Pixel Meta (ID)"
+            hint={value.credentials.pixelName ? value.credentials.pixelName : undefined}
             help="Nécessaire pour optimiser sur les conversions (achat, lead). Meta Business Suite → Gestionnaire d’événements → Sources de données."
             value={value.credentials.pixelId ?? ''}
             onChange={(v) => p({ credentials: { ...value.credentials, pixelId: v } })}

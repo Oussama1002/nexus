@@ -37,6 +37,7 @@ class MetaAssetsService
                 'id' => (string) ($page['id'] ?? ''),
                 'name' => (string) ($page['name'] ?? 'Page'),
                 'instagram_id' => is_array($ig) ? (string) ($ig['id'] ?? '') : null,
+                'instagram_username' => is_array($ig) ? (string) ($ig['username'] ?? '') : null,
             ];
         }
 
@@ -53,6 +54,11 @@ class MetaAssetsService
         if ($pixels !== []) {
             $saved += $this->fillIfEmpty($brandId, 'meta_pixel_id', $pixels[0]['id']);
         }
+
+        // Les noms suivent toujours l'ID choisi : ce sont des libellés, pas des réglages.
+        $this->labelFor($brandId, 'meta_page_id', 'meta_page_name', array_column($pages, 'name', 'id'));
+        $this->labelFor($brandId, 'meta_instagram_id', 'meta_instagram_username', array_column($pages, 'instagram_username', 'instagram_id'));
+        $this->labelFor($brandId, 'meta_pixel_id', 'meta_pixel_name', array_column($pixels, 'name', 'id'));
 
         return ['pages' => $pages, 'pixels' => $pixels, 'saved' => $saved];
     }
@@ -85,6 +91,25 @@ class MetaAssetsService
         }
 
         return [];
+    }
+
+    /** @param array<string, string|null> $labelsById */
+    private function labelFor(int $brandId, string $idKey, string $nameKey, array $labelsById): void
+    {
+        $id = (string) SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', $idKey)
+            ->value('setting_value');
+
+        $label = $id !== '' ? ($labelsById[$id] ?? null) : null;
+        if (! $label) {
+            return;
+        }
+
+        SystemSetting::query()->updateOrCreate(
+            ['brand_id' => $brandId, 'setting_key' => $nameKey],
+            ['setting_group' => 'meta', 'setting_value' => $label, 'is_sensitive' => false]
+        );
     }
 
     /** @return array<string, string> */

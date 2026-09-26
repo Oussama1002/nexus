@@ -520,6 +520,9 @@ class SettingsCenterService
                 'pageId' => $this->getRaw($brandId, 'meta_page_id') ?? '',
                 'instagramId' => $this->getRaw($brandId, 'meta_instagram_id') ?? '',
                 'pixelId' => $this->getRaw($brandId, 'meta_pixel_id') ?? '',
+                'pageName' => $this->getRaw($brandId, 'meta_page_name') ?? '',
+                'instagramUsername' => $this->getRaw($brandId, 'meta_instagram_username') ?? '',
+                'pixelName' => $this->getRaw($brandId, 'meta_pixel_name') ?? '',
             ],
             'ads' => [
                 'attributionWindowDays' => $this->getRaw($brandId, 'meta_attribution_window_days') ?? '',
@@ -558,6 +561,9 @@ class SettingsCenterService
             $this->upsert($brandId, 'meta', 'meta_page_id', $cr['pageId'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_instagram_id', $cr['instagramId'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_pixel_id', $cr['pixelId'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_page_name', $cr['pageName'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_instagram_username', $cr['instagramUsername'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_pixel_name', $cr['pixelName'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_lead_action_types', $ad['leadActionTypes'] ?? '');
             $tg = $p['targets'] ?? [];
             $this->upsert($brandId, 'meta', 'meta_target_cac', $tg['cac'] ?? '');
