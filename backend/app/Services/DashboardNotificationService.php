@@ -140,9 +140,11 @@ class DashboardNotificationService
     {
         return EmployeeAttendanceRecord::query()
             ->with('employee:id,full_name')
-            ->where('attendance_date', Carbon::now(AttendanceService::TIMEZONE)->toDateString())
+            ->where('attendance_date', '>=', Carbon::now(AttendanceService::TIMEZONE)->subDays(7)->toDateString())
             ->where('was_late', true)
+            ->orderByDesc('attendance_date')
             ->orderByDesc('minutes_late')
+            ->limit(30)
             ->get()
             ->map(fn (EmployeeAttendanceRecord $r) => $this->item(
                 'late_'.$r->id,
@@ -150,7 +152,8 @@ class DashboardNotificationService
                 'P2',
                 'hr',
                 'Retard : '.($r->employee?->full_name ?? 'Employé').' — '.AttendanceService::formatLateness((int) $r->minutes_late),
-                $r->justification_reason ? 'Justification : '.mb_substr((string) $r->justification_reason, 0, 120) : 'Pas encore justifié.',
+                Carbon::parse($r->attendance_date)->locale('fr')->isoFormat('dddd D MMMM').' · '
+                    .($r->justification_reason ? 'Justification : '.mb_substr((string) $r->justification_reason, 0, 120) : 'Pas encore justifié.'),
                 'attendance',
                 $r->clock_in_at,
             ))
