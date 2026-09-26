@@ -56,6 +56,13 @@ class SettingsConnectionTestService
                 fn ($message) => $message->to($s['user'])->subject('Test e-mail CRM')
             );
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('settings.smtp_test_failed', [
+                'brand_id' => $brandId,
+                'host' => $s['host'],
+                'user' => $s['user'],
+                'error' => $e->getMessage(),
+            ]);
+
             return ['success' => false, 'message' => BrandMailer::translateError($e->getMessage())];
         }
 
