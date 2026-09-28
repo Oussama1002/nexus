@@ -36,6 +36,8 @@ class StoreOrderRequest extends FormRequest
             'shipping_fee' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
             'shipping_address' => ['nullable', 'string'],
+            // Ville de livraison : sert à compléter la fiche client pour les prochaines commandes.
+            'shipping_city' => ['nullable', 'string', 'max:120'],
             'notes' => ['nullable', 'string'],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.product_id' => ['nullable', 'integer', 'exists:products,id'],

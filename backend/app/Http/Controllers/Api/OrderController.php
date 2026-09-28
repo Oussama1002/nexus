@@ -118,6 +118,18 @@ class OrderController extends Controller
 
         AuditLogger::log($request, 'orders.create', $order, null, $order->toArray());
 
+        // Adresse / ville saisies à la commande : on complète la fiche client
+        // pour qu'elles soient pré-remplies la prochaine fois.
+        if ($order->customer_id) {
+            $customerPatch = array_filter([
+                'address' => trim((string) ($data['shipping_address'] ?? '')) ?: null,
+                'city' => trim((string) ($data['shipping_city'] ?? '')) ?: null,
+            ]);
+            if ($customerPatch !== []) {
+                \App\Models\Customer::query()->whereKey($order->customer_id)->update($customerPatch);
+            }
+        }
+
         // Produit commandé sans stock : commande fournisseur + alerte interne.
         app(\App\Services\StockShortageService::class)->handleOrder($order, $request->user());
 

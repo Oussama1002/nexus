@@ -210,6 +210,8 @@ export function OrdersNewScreen({
       shipping_fee: totals.shipping,
       discount: 0,
       shipping_address: address.trim() || null,
+      // Mémorisé sur la fiche client pour les prochaines commandes.
+      shipping_city: city.trim() || null,
       notes: notes.trim() || null,
       lines: lines.map((l) => ({
         product_id: l.productId ?? null,
