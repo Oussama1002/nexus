@@ -53,7 +53,8 @@ export function CarrierDispatchModal({
   const send = async () => {
     if (!target || !carrierId) return;
     setSending(true);
-    const res = await api.post('shipments', {
+
+    const payload = {
       order_id: target.orderId,
       delivery_company_id: Number(carrierId),
       recipient_name: target.recipientName,
@@ -63,7 +64,22 @@ export function CarrierDispatchModal({
       cod_amount: target.codAmount,
       delivery_fee: target.deliveryFee ?? 0,
       send_to_carrier: true,
-    });
+    };
+
+    let res = await api.post('shipments', payload);
+
+    // Une commande « en attente » ne peut pas être expédiée : on la confirme
+    // puis on réessaie, l'envoi en livraison valant confirmation.
+    if (!res.ok && /confirmed or prepared|confirmée/i.test(res.message)) {
+      const confirmRes = await api.patch(`orders/${target.orderId}/status`, { status: 'confirmed' });
+      if (!confirmRes.ok) {
+        setSending(false);
+        toast.error(confirmRes.message);
+        return;
+      }
+      res = await api.post('shipments', payload);
+    }
+
     setSending(false);
     if (!res.ok) {
       toast.error(res.message);
@@ -120,8 +136,9 @@ export function CarrierDispatchModal({
         </div>
 
         <p className="text-xs text-zinc-500">
-          L’expédition est créée dans le CRM puis envoyée au transporteur. « Plus tard » garde la commande
-          telle quelle : vous pourrez l’envoyer depuis la liste des commandes.
+          La commande est confirmée si besoin, l’expédition est créée dans le CRM puis envoyée au
+          transporteur. « Plus tard » garde la commande telle quelle : vous pourrez l’envoyer depuis la
+          liste des commandes.
         </p>
       </div>
     </Modal>
