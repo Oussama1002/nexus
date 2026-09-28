@@ -495,10 +495,14 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         if (! is_array($data)) {
             return null;
         }
+        // Réponse réelle : {"api":{"data":{"id":…,"code":"CSA…"}}}
         $scopes = [$data];
         foreach (['data', 'api', 'parcel'] as $nested) {
             if (is_array($data[$nested] ?? null)) {
                 $scopes[] = $data[$nested];
+                if (is_array($data[$nested]['data'] ?? null)) {
+                    $scopes[] = $data[$nested]['data'];
+                }
             }
         }
 
