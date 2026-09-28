@@ -109,6 +109,7 @@ class AmeexDoctorCommand extends Command
         ]);
 
         $this->line(($result['ok'] ?? false) ? 'ACCEPTÉ — suivi '.($result['data']['tracking_number'] ?? '?') : 'REFUSÉ — '.($result['message'] ?? '?'));
+        $this->line('Réponse brute : '.json_encode($result['data']['raw'] ?? [], JSON_UNESCAPED_UNICODE));
 
         return self::SUCCESS;
     }

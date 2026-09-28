@@ -104,8 +104,13 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
 
         $tracking = $this->extractTracking($data);
 
-        // Pas de numéro de suivi = Ameex n'a rien enregistré, même sans message
-        // d'erreur explicite. Ne jamais marquer l'expédition comme envoyée.
+        // La réponse d'ajout ne contient pas toujours le code du colis : on le
+        // relit dans la liste des colis via le numéro de commande envoyé.
+        if ($tracking === null || $tracking === '') {
+            $tracking = $this->findParcelCode((string) ($body['order_num'] ?? ''), $credentials);
+        }
+
+        // Toujours rien : Ameex n'a pas confirmé l'enregistrement.
         if ($tracking === null || $tracking === '') {
             return $this->failure(
                 'ameex_no_tracking',
@@ -262,6 +267,52 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         }
 
         return $this->success('ameex_connected', 'Connexion Ameex API réussie.');
+    }
+
+    /**
+     * Code du colis Ameex à partir du numéro de commande, quand l'ajout
+     * répond « succès » sans renvoyer le code.
+     *
+     * @param  array{api_id: string, api_key: string}  $credentials
+     */
+    protected function findParcelCode(string $orderNumber, array $credentials): ?string
+    {
+        if ($orderNumber === '') {
+            return null;
+        }
+
+        try {
+            $response = $this->ameexPost('customer/Delivery/Parcels/Json', [
+                'start' => '0',
+                'length' => '25',
+                'search[value]' => $orderNumber,
+                'search[regex]' => 'false',
+                'business' => $credentials['api_id'],
+                'all_data' => '1',
+                'date[from]' => '01/01/2020',
+                'date[to]' => now()->format('m/d/Y'),
+            ], $credentials);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $data = $this->decodeJson($response);
+        $items = $data['aaData'] ?? null;
+        if (! is_array($items)) {
+            return null;
+        }
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $haystack = strip_tags(implode(' ', array_map(fn ($v) => is_scalar($v) ? (string) $v : '', $item)));
+            if (str_contains($haystack, $orderNumber) && ! empty($item['TBL_CODE'])) {
+                return (string) $item['TBL_CODE'];
+            }
+        }
+
+        return null;
     }
 
     /**
