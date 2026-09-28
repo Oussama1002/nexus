@@ -41,14 +41,49 @@ class OrderStateService
                 // reservation already held at confirm; no extra stock move
             }
 
+            $shortage = false;
             if ($toStatus === 'confirmed' && in_array($from, ['pending', 'draft'], true)) {
                 $locked->load(['lines.product']);
                 foreach ($locked->lines as $line) {
-                    if ($line->product_id && $line->product) {
-                        $this->stockService->reserveForOrderLine($line->product, $line->quantity, $locked, $user);
+                    if (! $line->product_id || ! $line->product) {
+                        continue;
+                    }
+
+                    // Le manque de stock ne doit pas bloquer la confirmation ni
+                    // l'envoi en livraison : on réserve ce qui existe, le
+                    // réapprovisionnement est traité par StockShortageService.
+                    $available = max(0, (int) $line->product->stock_quantity - (int) $line->product->reserved_quantity);
+                    $toReserve = min($available, (int) $line->quantity);
+
+                    if ($toReserve > 0) {
+                        try {
+                            $this->stockService->reserveForOrderLine($line->product, $toReserve, $locked, $user);
+                        } catch (\Throwable $e) {
+                            Log::warning('order.reserve_failed', [
+                                'order_id' => $locked->id,
+                                'product_id' => $line->product_id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+
+                    if ($toReserve < (int) $line->quantity) {
+                        $shortage = true;
+                        Log::info('order.confirmed_with_shortage', [
+                            'order_id' => $locked->id,
+                            'product_id' => $line->product_id,
+                            'ordered' => (int) $line->quantity,
+                            'reserved' => $toReserve,
+                        ]);
                     }
                 }
                 $locked->confirmed_at = now();
+
+                if ($shortage) {
+                    // Commande fournisseur + message interne (déjà fait à la
+                    // création, sans effet si la commande y est passée).
+                    app(StockShortageService::class)->handleOrder($locked, $user);
+                }
             }
 
             if ($toStatus === 'cancelled' && in_array($from, ['confirmed', 'prepared', 'shipped'], true)) {
