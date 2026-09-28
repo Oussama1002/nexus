@@ -32,8 +32,9 @@ export function CarrierDispatchModal({
   const toast = useToast();
   const [carriers, setCarriers] = useState<{ id: number; name: string }[]>([]);
   const [carrierId, setCarrierId] = useState('');
-  // Modifiable : Ameex refuse un colis sans montant à encaisser.
+  // Modifiables : Ameex refuse un colis sans ville ni montant à encaisser.
   const [cod, setCod] = useState('0');
+  const [city, setCity] = useState('');
   const [sending, setSending] = useState(false);
   // L'erreur reste visible dans la popup, en plus du toast.
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function CarrierDispatchModal({
   useEffect(() => {
     if (!target) return;
     setCod(String(target.codAmount ?? 0));
+    setCity(target.city ?? '');
     let cancelled = false;
     (async () => {
       const res = await api.get<LaravelPaginator<{ id: number; name: string }>>('delivery-companies?per_page=100');
@@ -57,6 +59,10 @@ export function CarrierDispatchModal({
 
   const send = async () => {
     if (!target || !carrierId) return;
+    if (!city.trim()) {
+      setError('La ville de livraison est obligatoire : le transporteur la refuse sans elle.');
+      return;
+    }
     setSending(true);
     setError(null);
 
@@ -65,8 +71,8 @@ export function CarrierDispatchModal({
       delivery_company_id: Number(carrierId),
       recipient_name: target.recipientName,
       recipient_phone: target.phone,
-      recipient_city: target.city,
-      recipient_address: target.address || target.city,
+      recipient_city: city.trim(),
+      recipient_address: target.address || city.trim(),
       cod_amount: Number(cod) || 0,
       delivery_fee: target.deliveryFee ?? 0,
       send_to_carrier: true,
@@ -143,6 +149,21 @@ export function CarrierDispatchModal({
         </label>
 
         <label className="block text-sm font-bold text-zinc-900">
+          Ville de livraison
+          <input
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="Casablanca"
+            className="mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900"
+          />
+          {!city.trim() && (
+            <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+              Obligatoire : le transporteur ne livre que les villes de son réseau.
+            </span>
+          )}
+        </label>
+
+        <label className="block text-sm font-bold text-zinc-900">
           À encaisser à la livraison (MAD)
           <input
             type="number"
@@ -162,7 +183,7 @@ export function CarrierDispatchModal({
 
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 space-y-1">
           <p><span className="font-bold">Destinataire :</span> {target.recipientName} · {target.phone}</p>
-          <p><span className="font-bold">Adresse :</span> {target.address || '—'}, {target.city}</p>
+          <p><span className="font-bold">Adresse :</span> {target.address || '—'}</p>
         </div>
 
         <p className="text-xs text-zinc-500">
