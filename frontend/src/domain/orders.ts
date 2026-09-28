@@ -34,7 +34,13 @@ export type Order = {
   items: OrderLine[];
   notes?: string;
   cancellationReason?: string;
-  shipment?: { tracking: string | null; status: string; carrier: string } | null;
+  shipment?: {
+    tracking: string | null;
+    status: string;
+    carrier: string;
+    sentToCarrier?: boolean;
+    syncError?: string | null;
+  } | null;
 };
 
 export type OrderDraft = {

@@ -37,7 +37,7 @@ type ApiOrderRow = {
   created_at: string;
   customer?: { full_name: string; phone: string; city?: string | null } | null;
   lines?: { product_name: string; quantity: number; unit_price: string }[];
-  shipment?: { id: number; tracking_number: string | null; status: string; carrier_status?: string | null; delivery_company?: { id: number; name: string } | null } | null;
+  shipment?: { id: number; tracking_number: string | null; external_tracking_id?: string | null; sync_error?: string | null; status: string; carrier_status?: string | null; delivery_company?: { id: number; name: string } | null } | null;
 };
 
 function statusFr(s: string): OrderStatus {
@@ -71,6 +71,36 @@ const SOURCE_LABELS: Record<string, string> = {
   facebook: 'Facebook',
   tiktok: 'TikTok',
 };
+
+const SHIPMENT_LABELS: Record<string, string> = {
+  pending: 'En attente',
+  created: 'Chez le transporteur',
+  picked_up: 'Ramassé',
+  in_transit: 'En transit',
+  out_for_delivery: 'En cours de livraison',
+  delivered: 'Livré',
+  failed: 'Échec livraison',
+  returned: 'Retourné',
+  cancelled: 'Annulé',
+  shipped: 'Expédié',
+};
+
+const SHIPMENT_TONES: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'neutral'> = {
+  pending: 'warning',
+  created: 'info',
+  picked_up: 'info',
+  in_transit: 'info',
+  out_for_delivery: 'info',
+  shipped: 'info',
+  delivered: 'success',
+  failed: 'danger',
+  returned: 'danger',
+  cancelled: 'danger',
+};
+
+function shipmentStatusFr(s: string): string {
+  return SHIPMENT_LABELS[s] ?? s.replace(/_/g, ' ');
+}
 
 function sourceFr(src: string | null | undefined): string {
   if (!src || src === '—') return '—';
@@ -157,7 +187,16 @@ function mapOrder(o: ApiOrderRow, brandName: string): Order {
       })) ?? [],
     notes: o.notes ?? undefined,
     cancellationReason: o.cancellation_reason ?? undefined,
-    shipment: o.shipment ? { tracking: o.shipment.tracking_number, status: o.shipment.status, carrier: o.shipment.delivery_company?.name ?? '-' } : null,
+    shipment: o.shipment
+      ? {
+          tracking: o.shipment.tracking_number,
+          status: o.shipment.status,
+          carrier: o.shipment.delivery_company?.name ?? '-',
+          // Seul un identifiant renvoyé par le transporteur prouve l'envoi.
+          sentToCarrier: Boolean(o.shipment.external_tracking_id),
+          syncError: o.shipment.sync_error ?? null,
+        }
+      : null,
   };
 }
 
@@ -362,6 +401,27 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
         ),
       },
       {
+        key: 'produit',
+        header: 'Produit',
+        cell: (o) => {
+          if (o.items.length === 0) return <span className="text-xs text-zinc-400">—</span>;
+          const [first, ...rest] = o.items;
+          return (
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-zinc-900">
+                {first.name}
+                {first.qty > 1 && <span className="text-zinc-500 font-medium"> ×{first.qty}</span>}
+              </p>
+              {rest.length > 0 && (
+                <p className="text-[11px] font-medium text-zinc-500">
+                  + {rest.length} autre{rest.length > 1 ? 's' : ''} produit{rest.length > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          );
+        },
+      },
+      {
         key: 'brand',
         header: 'Marque',
         cell: (o) => <span className="text-sm font-bold text-zinc-700">{o.brand}</span>,
@@ -380,14 +440,28 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
         key: 'colis',
         header: 'Colis',
         cell: (o) => {
-          if (!o.shipment) return <span className="text-xs text-zinc-400">—</span>;
-          const tones: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'neutral'> = { pending: 'warning', in_transit: 'info', shipped: 'info', delivered: 'success', returned: 'danger', cancelled: 'danger' };
-          const lbl: Record<string, string> = { pending: 'En attente', in_transit: 'En transit', shipped: 'Expédié', delivered: 'Livré', returned: 'Retourné', cancelled: 'Annulé' };
+          if (!o.shipment) return <span className="text-xs text-zinc-400">Non envoyé</span>;
+          const sh = o.shipment;
+
+          // Tant que le transporteur n'a pas renvoyé d'identifiant, le colis
+          // n'est pas chez lui : on le dit au lieu d'afficher son statut interne.
+          if (!sh.sentToCarrier) {
+            return (
+              <div className="space-y-1">
+                <StatusChip tone={sh.syncError ? 'danger' : 'warning'}>
+                  {sh.syncError ? 'Échec envoi' : 'À envoyer'}
+                </StatusChip>
+                {sh.carrier !== '-' && <p className="text-[10px] text-zinc-400">{sh.carrier}</p>}
+                {sh.syncError && <p className="text-[10px] text-rose-600 line-clamp-2">{sh.syncError}</p>}
+              </div>
+            );
+          }
+
           return (
             <div className="space-y-1">
-              <StatusChip tone={tones[o.shipment.status] ?? 'neutral'}>{lbl[o.shipment.status] ?? o.shipment.status}</StatusChip>
-              {o.shipment.tracking && <p className="text-[10px] text-zinc-500 font-mono">{o.shipment.tracking}</p>}
-              {o.shipment.carrier !== '-' && <p className="text-[10px] text-zinc-400">{o.shipment.carrier}</p>}
+              <StatusChip tone={SHIPMENT_TONES[sh.status] ?? 'info'}>{shipmentStatusFr(sh.status)}</StatusChip>
+              {sh.tracking && <p className="text-[10px] text-zinc-500 font-mono">{sh.tracking}</p>}
+              {sh.carrier !== '-' && <p className="text-[10px] text-zinc-400">{sh.carrier}</p>}
             </div>
           );
         },

@@ -42,7 +42,7 @@ class OrderController extends Controller
 
         $assigned = $request->query('assigned_user_id');
 
-        $q = Order::query()->with(['customer', 'lines', 'shipment:id,order_id,tracking_number,status,carrier_status,delivery_company_id', 'shipment.deliveryCompany:id,name']);
+        $q = Order::query()->with(['customer', 'lines', 'shipment:id,order_id,tracking_number,external_tracking_id,sync_error,status,carrier_status,delivery_company_id', 'shipment.deliveryCompany:id,name']);
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('id');
 
