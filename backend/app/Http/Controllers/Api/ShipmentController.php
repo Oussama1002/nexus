@@ -109,28 +109,42 @@ class ShipmentController extends Controller
 
         $order = Order::query()->where('brand_id', $brandId)->whereKey($data['order_id'])->firstOrFail();
 
-        // Order creation already runs SenditAutoDispatchService, which
-        // creates a Shipment row. When the user then hits "Envoyer à la
-        // livraison" from the modal, treat that as idempotent — surface the
-        // existing shipment with a clear French message instead of a 422.
+        // A shipment row may already exist from SenditAutoDispatchService
+        // (called by OrderController::store). Two cases:
+        //   - external_tracking_id set → carrier accepted it, done.
+        //   - no external_tracking_id → local-only row (auto-dispatch never
+        //     reached the carrier). Retry the dispatch on that same row
+        //     instead of throwing "This order already has a shipment".
         $existing = $order->shipment()->with(['deliveryCompany', 'order.customer'])->first();
-        if ($existing) {
+        if ($existing && $existing->external_tracking_id) {
             $carrier = $existing->deliveryCompany?->name ?? 'transporteur';
-            $tracking = $existing->tracking_number ? ' · N° suivi ' . $existing->tracking_number : '';
+            $tracking = ' · N° suivi ' . $existing->external_tracking_id;
             return ApiResponse::success([
                 'shipment' => $existing,
                 'carrier_result' => null,
-            ], "Expédition déjà créée pour cette commande ({$carrier}{$tracking}).");
+            ], "Expédition déjà envoyée à {$carrier}{$tracking}.");
         }
 
-        try {
-            $shipment = $this->shipmentOperationsService->createFromOrder(
-                $order,
-                $request->user(),
-                collect($data)->except(['order_id', 'send_to_carrier', 'products'])->all()
-            );
-        } catch (RuntimeException $e) {
-            return ApiResponse::error($e->getMessage(), null, 422);
+        if ($existing) {
+            // Complete the local-only shipment with the carrier the user
+            // just picked and try again.
+            $updates = [];
+            if (! empty($data['delivery_company_id'])) $updates['delivery_company_id'] = (int) $data['delivery_company_id'];
+            foreach (['recipient_name', 'recipient_phone', 'recipient_city', 'recipient_address', 'cod_amount', 'delivery_fee'] as $k) {
+                if (array_key_exists($k, $data) && $data[$k] !== null && $data[$k] !== '') $updates[$k] = $data[$k];
+            }
+            if ($updates) $existing->forceFill($updates)->save();
+            $shipment = $existing->refresh();
+        } else {
+            try {
+                $shipment = $this->shipmentOperationsService->createFromOrder(
+                    $order,
+                    $request->user(),
+                    collect($data)->except(['order_id', 'send_to_carrier', 'products'])->all()
+                );
+            } catch (RuntimeException $e) {
+                return ApiResponse::error($e->getMessage(), null, 422);
+            }
         }
 
         AuditLogger::log($request, 'shipments.create', $shipment, null, $shipment->toArray());
