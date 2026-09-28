@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, ChevronRight, Filter, Plus, Trash2 } from 'lucide-react';
+import { Calendar, ChevronRight, Filter, Plus, Trash2, Truck } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
@@ -17,6 +17,7 @@ import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { flattenFieldErrors } from '../lib/formErrors';
+import { CarrierDispatchModal, type DispatchTarget } from '../components/orders/CarrierDispatchModal';
 
 type ApiOrderRow = {
   id: number;
@@ -214,6 +215,8 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  // Commande non encore expédiée : popup de choix du transporteur.
+  const [dispatchTarget, setDispatchTarget] = useState<DispatchTarget | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -573,6 +576,25 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                     title="Créer une réclamation pour cette commande"
                   />
                 </div>
+                {!selected.shipment && hasPermission('shipments.create') && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDispatchTarget({
+                        orderId: selected.apiId,
+                        orderRef: selected.id,
+                        recipientName: selected.customerName,
+                        phone: selected.phone,
+                        city: selected.city,
+                        address: selected.address,
+                        codAmount: selected.paymentMethod === 'cod' ? selected.total : 0,
+                      })
+                    }
+                    className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
+                  >
+                    <Truck className="w-4 h-4" /> Envoyer à livraison
+                  </button>
+                )}
                 {hasPermission('orders.update') && (
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -676,6 +698,12 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
       >
         <p className="text-sm text-zinc-600">Cette action est irréversible. Toutes les lignes de commande seront également supprimées.</p>
       </Modal>
+
+      <CarrierDispatchModal
+        target={dispatchTarget}
+        onClose={() => setDispatchTarget(null)}
+        onSent={() => void load()}
+      />
     </div>
   );
 }

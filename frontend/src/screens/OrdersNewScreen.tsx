@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { flattenFieldErrors } from '../lib/formErrors';
+import { CarrierDispatchModal, type DispatchTarget } from '../components/orders/CarrierDispatchModal';
 
 type ApiProduct = {
   id: number;
@@ -47,6 +48,8 @@ export function OrdersNewScreen({
   };
   const [leadOptions, setLeadOptions] = useState<LeadOption[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  // Après création : popup « Envoyer à la livraison » (ou plus tard).
+  const [dispatchTarget, setDispatchTarget] = useState<DispatchTarget | null>(null);
   const customerBoxRef = useRef<HTMLDivElement>(null);
 
   const [source, setSource] = useState<OrderSource>('WhatsApp');
@@ -232,6 +235,21 @@ export function OrdersNewScreen({
       ts: Date.now(),
       meta: { brand: activeBrandName, source, city, itemsCount: lines.length },
     });
+
+    const created = oRes.data as { id?: number; order_number?: string } | null;
+    if (created?.id) {
+      setDispatchTarget({
+        orderId: created.id,
+        orderRef: created.order_number,
+        recipientName: customerName.trim(),
+        phone: phone.trim(),
+        city: city.trim(),
+        address: address.trim(),
+        codAmount: paymentMethod === 'cod' ? totals.total : 0,
+        deliveryFee: totals.shipping,
+      });
+      return;
+    }
     onBackToList();
   }
 
@@ -519,6 +537,14 @@ export function OrdersNewScreen({
           </div>
         </div>
       </div>
+
+      <CarrierDispatchModal
+        target={dispatchTarget}
+        onClose={() => {
+          setDispatchTarget(null);
+          onBackToList();
+        }}
+      />
     </div>
   );
 }
