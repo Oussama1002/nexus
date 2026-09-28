@@ -45,6 +45,13 @@ class StockShortageService
 
             $created = $this->createPurchaseOrders($order, $shortages, $actor);
             $this->notify($order, $shortages, $created, $actor);
+
+            Log::info('stock.shortage_handled', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'shortages' => count($shortages),
+                'purchase_orders' => $created,
+            ]);
         } catch (\Throwable $e) {
             // Ne jamais faire échouer la commande à cause du réapprovisionnement.
             Log::warning('stock.shortage_handling_failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
@@ -62,21 +69,20 @@ class StockShortageService
         $references = [];
 
         foreach (collect($shortages)->groupBy(fn ($s) => (string) ($s['product']->supplier_id ?? '')) as $supplierId => $group) {
-            if ($supplierId === '') {
-                // Sans fournisseur rattaché au produit, on ne peut pas créer la
-                // commande fournisseur : le message interne le signalera.
-                continue;
-            }
+            // Produit sans fournisseur : la commande fournisseur est quand même
+            // créée en brouillon, le fournisseur sera choisi à la validation.
+            $note = 'Créée automatiquement : stock insuffisant pour la commande '.$order->order_number.'.'
+                .($supplierId === '' ? ' Fournisseur à renseigner (aucun rattaché au produit).' : '');
 
-            DB::transaction(function () use ($order, $group, $supplierId, $actor, &$references) {
+            DB::transaction(function () use ($order, $group, $supplierId, $actor, $note, &$references) {
                 $po = PurchaseOrder::query()->create([
                     'brand_id' => $order->brand_id,
-                    'supplier_id' => (int) $supplierId,
+                    'supplier_id' => $supplierId === '' ? null : (int) $supplierId,
                     'created_by' => $actor?->id,
                     'reference' => PurchaseOrderService::generateReference(),
                     'status' => 'draft',
                     'currency' => $order->currency ?? 'MAD',
-                    'internal_notes' => 'Créée automatiquement : stock insuffisant pour la commande '.$order->order_number.'.',
+                    'internal_notes' => $note,
                 ]);
 
                 $subtotal = 0.0;
@@ -126,7 +132,7 @@ class StockShortageService
         $body = "Stock insuffisant pour la commande {$order->order_number} :\n{$lines}\n\n"
             .($references !== []
                 ? 'Commande(s) fournisseur créée(s) en brouillon : '.implode(', ', $references).'.'
-                : 'Aucune commande fournisseur créée : rattachez un fournisseur aux produits concernés.');
+                : 'Aucune commande fournisseur créée.');
 
         $sender = $actor?->id ?? User::query()->whereHas('roles', fn ($q) => $q->where('slug', 'admin'))->value('id');
         if (! $sender) {
@@ -138,6 +144,12 @@ class StockShortageService
             ->whereHas('roles', fn ($q) => $q->whereIn('slug', ['admin', 'stock_manager', 'manager_operationnel']))
             ->where('id', '!=', $sender)
             ->pluck('id');
+
+        // Personne d'autre à prévenir : l'auteur de la commande reçoit l'alerte,
+        // sinon la rupture passe totalement inaperçue.
+        if ($recipients->isEmpty()) {
+            $recipients = collect([$sender]);
+        }
 
         foreach ($recipients as $recipientId) {
             InternalMessage::query()->create([
