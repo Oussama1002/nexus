@@ -385,10 +385,15 @@ class OrderController extends Controller
 
         $normalizedPhone = $this->normalizePhone((string) $phone);
 
+        // Only flag double-submits (fast clicks, back-and-forth) — a
+        // returning customer placing a second order later in the day should
+        // go through cleanly. Window: last 10 minutes, and never flag on
+        // shipped orders (that's already a completed cycle).
         $base = Order::query()
             ->with('customer:id,phone')
             ->where('brand_id', $brandId)
-            ->whereIn('status', ['confirmed', 'prepared', 'shipped']);
+            ->whereIn('status', ['pending', 'confirmed', 'prepared'])
+            ->where('created_at', '>=', now()->subMinutes(10));
 
         $duplicate = null;
         if ($customerId || $leadId) {
