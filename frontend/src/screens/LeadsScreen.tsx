@@ -148,6 +148,11 @@ export function LeadsScreen({
   const [leadProducts, setLeadProducts] = useState<ApiProductRow[]>([]);
 
   const [q, setQ] = useState('');
+  // 5 000+ leads : pagination serveur, sinon les plus anciens (leads des
+  // conversations) ne sont jamais chargés.
+  const [page, setPage] = useState(1);
+  const [totalLeads, setTotalLeads] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
   const [brand, setBrand] = useState<string>('Marque active');
   const [status, setStatus] = useState<string>('Tous');
   const [source, setSource] = useState<string>('Toutes');
@@ -203,9 +208,10 @@ export function LeadsScreen({
       return;
     }
     setLoading(true);
-    const params = new URLSearchParams({ per_page: '100' });
+    const params = new URLSearchParams({ per_page: '50', page: String(page) });
     if (status !== 'Tous') params.set('status', status);
     if (assignedFilter) params.set('assigned_user_id', assignedFilter);
+    if (q.trim()) params.set('search', q.trim());
     const res = await api.get<LaravelPaginator<ApiLead>>(`leads?${params.toString()}`);
     setLoading(false);
     if (!res.ok) {
@@ -213,12 +219,24 @@ export function LeadsScreen({
       setApiLeads([]);
       return;
     }
-    setApiLeads(isPaginator<ApiLead>(res.data) ? res.data.data : []);
-  }, [activeBrandId, status, toast, assignedFilter]);
+    if (isPaginator<ApiLead>(res.data)) {
+      setApiLeads(res.data.data);
+      setTotalLeads(res.data.total);
+      setLastPage(res.data.last_page);
+    } else {
+      setApiLeads([]);
+    }
+  }, [activeBrandId, status, toast, assignedFilter, page, q]);
 
   useEffect(() => {
-    void loadLeads();
-  }, [loadLeads]);
+    const t = window.setTimeout(() => void loadLeads(), q.trim() ? 300 : 0);
+    return () => window.clearTimeout(t);
+  }, [loadLeads]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Revenir en page 1 dès qu'un filtre change.
+  useEffect(() => {
+    setPage(1);
+  }, [q, status, assignedFilter, activeBrandId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -599,6 +617,32 @@ export function LeadsScreen({
           emptyTitle="Aucun lead"
           emptyDescription="Créez un lead ou ajustez les filtres."
         />
+      )}
+
+      {lastPage > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-zinc-500">
+            Page {page} sur {lastPage} — {totalLeads} lead(s)
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-3 py-1.5 rounded-xl border border-zinc-200 text-sm font-bold disabled:opacity-40"
+            >
+              Précédent
+            </button>
+            <button
+              type="button"
+              disabled={page >= lastPage || loading}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3 py-1.5 rounded-xl border border-zinc-200 text-sm font-bold disabled:opacity-40"
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
       )}
 
       <Drawer
