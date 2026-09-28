@@ -75,6 +75,7 @@ Repo: `github.com/Oussama1002/nexus` — user branch `main`.
 ## Leads auto-creation policy
 
 - **WhatsApp** conversation → creates lead `source=WhatsApp`, `status=new` if customer has no lead. It stays `new` until the agent sets the conversation status to `confirme` (ConversationController::update) — a carrier parcel does **not** confirm a conversation lead. See `WhatsAppCloudService::findOrCreateCustomer` + `ensureWhatsappLead`.
+- **Commande créée** pour un client → son lead passe `confirmed` et le client passe `lifecycle_status=active` (OrderController::store) ; adresse/ville saisies sont enregistrées sur la fiche client.
 - **Ameex/Sendit** inbound sync → creates lead `source=Ameex|Sendit`, `status=confirmed` (client already has a shipment, they're not a new prospect). See `AmeexInboundSyncService::ensureLead`, `SenditInboundSyncService::ensureLead`.
 - Backfill migrations already ran on client server:
   - `2026_09_14_100000_backfill_leads_for_whatsapp_customers`

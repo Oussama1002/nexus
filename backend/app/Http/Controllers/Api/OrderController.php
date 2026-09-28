@@ -118,16 +118,32 @@ class OrderController extends Controller
 
         AuditLogger::log($request, 'orders.create', $order, null, $order->toArray());
 
-        // Adresse / ville saisies à la commande : on complète la fiche client
-        // pour qu'elles soient pré-remplies la prochaine fois.
+        // Le lead qui commande devient client : fiche complétée (adresse/ville
+        // pré-remplies la prochaine fois) et statuts mis à jour.
         if ($order->customer_id) {
-            $customerPatch = array_filter([
-                'address' => trim((string) ($data['shipping_address'] ?? '')) ?: null,
-                'city' => trim((string) ($data['shipping_city'] ?? '')) ?: null,
-            ]);
-            if ($customerPatch !== []) {
-                \App\Models\Customer::query()->whereKey($order->customer_id)->update($customerPatch);
+            $customer = \App\Models\Customer::query()->find($order->customer_id);
+            if ($customer) {
+                $shippingAddress = trim((string) ($data['shipping_address'] ?? ''));
+                $shippingCity = trim((string) ($data['shipping_city'] ?? ''));
+                if ($shippingAddress !== '') {
+                    $customer->address = $shippingAddress;
+                }
+                if ($shippingCity !== '') {
+                    $customer->city = $shippingCity;
+                }
+                if (in_array((string) $customer->lifecycle_status, ['', 'new'], true)) {
+                    $customer->lifecycle_status = 'active';
+                }
+                $customer->save();
             }
+
+            // Le lead correspondant passe en « confirmé » (il a commandé).
+            \App\Models\Lead::query()
+                ->where('brand_id', $order->brand_id)
+                ->where(fn ($q) => $q->where('customer_id', $order->customer_id)
+                    ->when($order->lead_id, fn ($w) => $w->orWhere('id', $order->lead_id)))
+                ->whereIn('status', ['new', 'contacted', 'qualified'])
+                ->update(['status' => 'confirmed', 'updated_at' => now()]);
         }
 
         // Produit commandé sans stock : commande fournisseur + alerte interne.
