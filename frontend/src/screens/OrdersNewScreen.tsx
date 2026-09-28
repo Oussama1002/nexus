@@ -17,7 +17,14 @@ type ApiProduct = {
   name: string;
   sku: string;
   price: string;
+  stock_quantity?: number;
+  reserved_quantity?: number;
 };
+
+/** Stock réellement disponible : total moins ce qui est déjà réservé. */
+function availableStock(p: ApiProduct): number {
+  return Math.max(0, (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0));
+}
 
 const DRAFT_KEY = 'nexus.orderDraft';
 
@@ -436,10 +443,24 @@ export function OrdersNewScreen({
                       <option value="">— Saisie manuelle —</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name}
+                          {p.name} — {availableStock(p) > 0 ? `${availableStock(p)} en stock` : 'RUPTURE'}
                         </option>
                       ))}
                     </select>
+                    {(() => {
+                      const p = products.find((x) => x.id === l.productId);
+                      if (!p) return null;
+                      const stock = availableStock(p);
+                      if (stock >= l.qty) {
+                        return <p className="text-[11px] font-semibold text-emerald-700">{stock} en stock</p>;
+                      }
+                      return (
+                        <p className="text-[11px] font-semibold text-rose-600">
+                          {stock === 0 ? 'Rupture de stock' : `Stock insuffisant : ${stock} disponible(s)`} — une commande
+                          fournisseur sera créée automatiquement.
+                        </p>
+                      );
+                    })()}
                   </div>
                   <div className="md:col-span-6 space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Libellé ligne</label>

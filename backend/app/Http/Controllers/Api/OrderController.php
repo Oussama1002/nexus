@@ -118,6 +118,9 @@ class OrderController extends Controller
 
         AuditLogger::log($request, 'orders.create', $order, null, $order->toArray());
 
+        // Produit commandé sans stock : commande fournisseur + alerte interne.
+        app(\App\Services\StockShortageService::class)->handleOrder($order, $request->user());
+
         $invoice = $this->clientInvoices->createFromOrder($order, $request->user()?->id);
 
         $senditResult = null;
