@@ -71,6 +71,24 @@ class SocialAccountController extends Controller
         return ApiResponse::success($account->toSafeArray(), 'Social account retrieved successfully.');
     }
 
+    /** Profil, abonnés et publications lus en direct chez Meta. */
+    public function insights(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $account = SocialAccount::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        try {
+            $data = app(\App\Services\Meta\MetaSocialInsightsService::class)
+                ->overview($account, min(max((int) $request->query('limit', 24), 1), 50));
+        } catch (\App\Services\Meta\MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        $data['account'] = $account->toSafeArray();
+
+        return ApiResponse::success($data, 'Compte social récupéré.');
+    }
+
     public function update(UpdateSocialAccountRequest $request, string $id): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);

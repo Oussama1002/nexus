@@ -368,6 +368,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('social-accounts', [SocialAccountController::class, 'index'])->middleware('permission:social_accounts.view');
     Route::post('social-accounts', [SocialAccountController::class, 'store'])->middleware('permission:social_accounts.create');
     Route::get('social-accounts/{id}', [SocialAccountController::class, 'show'])->whereNumber('id')->middleware('permission:social_accounts.view');
+    Route::get('social-accounts/{id}/insights', [SocialAccountController::class, 'insights'])->whereNumber('id')->middleware('permission:social_accounts.view');
     Route::put('social-accounts/{id}', [SocialAccountController::class, 'update'])->whereNumber('id')->middleware('permission:social_accounts.update');
     Route::patch('social-accounts/{id}', [SocialAccountController::class, 'update'])->whereNumber('id')->middleware('permission:social_accounts.update');
     Route::delete('social-accounts/{id}', [SocialAccountController::class, 'destroy'])->whereNumber('id')->middleware('permission:social_accounts.delete');

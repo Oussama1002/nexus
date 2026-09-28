@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
+import { SocialAccountDetail } from '../components/social/SocialAccountDetail';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
@@ -67,6 +68,8 @@ export function SocialAccountsScreen() {
   const [total, setTotal] = useState(0);
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  // Fiche détaillée d'un compte : profil, abonnés, publications.
+  const [openAccount, setOpenAccount] = useState<{ id: number; name: string } | null>(null);
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -165,6 +168,16 @@ export function SocialAccountsScreen() {
     setReloadTick((t) => t + 1);
   };
 
+  if (openAccount) {
+    return (
+      <SocialAccountDetail
+        accountId={openAccount.id}
+        accountName={openAccount.name}
+        onBack={() => setOpenAccount(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -251,16 +264,20 @@ export function SocialAccountsScreen() {
               const statusCls = STATUS_COLORS[r.status] ?? 'bg-zinc-100 text-zinc-600';
               return (
                 <div key={r.id} className="card p-5 space-y-3">
-                  <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setOpenAccount({ id: r.id, name: r.account_name })}
+                    className="flex items-center gap-3 w-full text-left"
+                  >
                     <PlatformIcon platform={r.platform} />
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-zinc-900 truncate">{r.account_name}</p>
+                      <p className="text-sm font-bold text-primary-600 truncate hover:underline">{r.account_name}</p>
                       <p className="text-xs text-zinc-500 truncate">
                         {PLATFORM_LABELS[r.platform] ?? r.platform}
                         {r.handle && <> · @{r.handle}</>}
                       </p>
                     </div>
-                  </div>
+                  </button>
 
                   <div className="flex items-center justify-between">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${statusCls}`}>
