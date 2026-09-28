@@ -69,7 +69,8 @@ export function OrdersNewScreen({
   const [leadId, setLeadId] = useState<number | undefined>(undefined);
 
   const [lines, setLines] = useState<OrderLine[]>([{ id: 'l1', name: 'Produit', qty: 1, price: 0, productId: undefined }]);
-  const [paymentMethod, setPaymentMethod] = useState<'prepaid' | 'cod' | 'transfer'>('prepaid');
+  // Le contre-remboursement est le mode par défaut au Maroc.
+  const [paymentMethod, setPaymentMethod] = useState<'prepaid' | 'cod' | 'transfer'>('cod');
   const [bankTransferDeclaredPaid, setBankTransferDeclaredPaid] = useState(false);
   const [bankTransferReference, setBankTransferReference] = useState('');
 
@@ -381,8 +382,8 @@ export function OrdersNewScreen({
                   onChange={(e) => setPaymentMethod(e.target.value as 'prepaid' | 'cod' | 'transfer')}
                   className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-black text-zinc-800 outline-none"
                 >
-                  <option value="prepaid">Prépayé</option>
                   <option value="cod">COD (contre remboursement)</option>
+                  <option value="prepaid">Prépayé</option>
                   <option value="transfer">Virement bancaire</option>
                 </select>
               </div>

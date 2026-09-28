@@ -32,12 +32,15 @@ export function CarrierDispatchModal({
   const toast = useToast();
   const [carriers, setCarriers] = useState<{ id: number; name: string }[]>([]);
   const [carrierId, setCarrierId] = useState('');
+  // Modifiable : Ameex refuse un colis sans montant à encaisser.
+  const [cod, setCod] = useState('0');
   const [sending, setSending] = useState(false);
   // L'erreur reste visible dans la popup, en plus du toast.
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!target) return;
+    setCod(String(target.codAmount ?? 0));
     let cancelled = false;
     (async () => {
       const res = await api.get<LaravelPaginator<{ id: number; name: string }>>('delivery-companies?per_page=100');
@@ -64,7 +67,7 @@ export function CarrierDispatchModal({
       recipient_phone: target.phone,
       recipient_city: target.city,
       recipient_address: target.address || target.city,
-      cod_amount: target.codAmount,
+      cod_amount: Number(cod) || 0,
       delivery_fee: target.deliveryFee ?? 0,
       send_to_carrier: true,
     };
@@ -139,10 +142,27 @@ export function CarrierDispatchModal({
           </select>
         </label>
 
+        <label className="block text-sm font-bold text-zinc-900">
+          À encaisser à la livraison (MAD)
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={cod}
+            onChange={(e) => setCod(e.target.value)}
+            className="mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900"
+          />
+          {Number(cod) <= 0 && (
+            <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+              Ameex refuse un colis sans montant à encaisser. Laissez 0 uniquement si la commande est
+              déjà payée et sera envoyée autrement.
+            </span>
+          )}
+        </label>
+
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700 space-y-1">
           <p><span className="font-bold">Destinataire :</span> {target.recipientName} · {target.phone}</p>
           <p><span className="font-bold">Adresse :</span> {target.address || '—'}, {target.city}</p>
-          <p><span className="font-bold">À encaisser (COD) :</span> {target.codAmount.toFixed(2)} MAD</p>
         </div>
 
         <p className="text-xs text-zinc-500">
