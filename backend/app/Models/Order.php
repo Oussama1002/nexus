@@ -48,9 +48,11 @@ class Order extends Model
         'confirmed_at',
         'delivered_at',
         'stock_dispatched_at',
+        'archived_at',
     ];
 
     protected $casts = [
+        'archived_at' => 'datetime',
         'confirmed_at' => 'datetime',
         'delivered_at' => 'datetime',
         'stock_dispatched_at' => 'datetime',

@@ -46,6 +46,13 @@ class OrderController extends Controller
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('id');
 
+        // Les commandes archivées ne s'affichent que sur demande (?archived=1).
+        if ($request->boolean('archived')) {
+            $q->whereNotNull('archived_at');
+        } else {
+            $q->whereNull('archived_at');
+        }
+
         // Accès géré par les rôles & permissions : pas de filtre caché par assignation.
         if ($assigned !== null && $assigned !== '') {
             $q->where('assigned_user_id', (int) $assigned);
@@ -266,6 +273,34 @@ class OrderController extends Controller
         ]);
 
         return ApiResponse::success($order->load(['lines', 'events']), 'Order status updated.');
+    }
+
+    /** Archive : la commande sort des listes sans être supprimée. */
+    public function archive(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $order = Order::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        if ($order->archived_at) {
+            return ApiResponse::error('Cette commande est déjà archivée.', null, 422);
+        }
+
+        $order->forceFill(['archived_at' => now()])->save();
+        AuditLogger::log($request, 'orders.archive', $order, null, ['archived_at' => $order->archived_at]);
+
+        return ApiResponse::success(null, 'Commande archivée.');
+    }
+
+    /** Remet une commande archivée dans la liste. */
+    public function restore(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $order = Order::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        $order->forceFill(['archived_at' => null])->save();
+        AuditLogger::log($request, 'orders.restore', $order, null, null);
+
+        return ApiResponse::success(null, 'Commande restaurée.');
     }
 
     public function destroy(Request $request, string $id): JsonResponse

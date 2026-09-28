@@ -224,6 +224,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('orders/{id}', [OrderController::class, 'update'])->whereNumber('id')->middleware('permission:orders.update');
     Route::delete('orders/{id}', [OrderController::class, 'destroy'])->whereNumber('id')->middleware('permission:orders.delete');
     Route::patch('orders/{id}/status', [OrderController::class, 'updateStatus'])->whereNumber('id')->middleware('permission:orders.update');
+    Route::post('orders/{id}/archive', [OrderController::class, 'archive'])->whereNumber('id')->middleware('permission:orders.delete');
+    Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->whereNumber('id')->middleware('permission:orders.update');
 
     $registerCrud('products', ProductController::class, 'products');
 

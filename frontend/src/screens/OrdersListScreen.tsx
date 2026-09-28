@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, ChevronRight, Filter, Plus, Trash2, Truck } from 'lucide-react';
+import { Archive, ArchiveRestore, Calendar, ChevronRight, Filter, Plus, Trash2, Truck } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
@@ -215,6 +215,9 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  // Vue « Archives » : commandes mises de côté (non supprimées).
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   // Commande non encore expédiée : popup de choix du transporteur.
   const [dispatchTarget, setDispatchTarget] = useState<DispatchTarget | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -229,6 +232,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     setLoading(true);
     const params = new URLSearchParams({ per_page: '100' });
     if (assignedFilter) params.set('assigned_user_id', assignedFilter);
+    if (showArchived) params.set('archived', '1');
     const res = await api.get<LaravelPaginator<ApiOrderRow>>(`orders?${params.toString()}`);
     setLoading(false);
     if (!res.ok) {
@@ -241,7 +245,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     const nameById: Record<string, string> = {};
     for (const b of brands) nameById[b.id] = b.name;
     setRows(data.map((o) => mapOrder(o, nameById[String(o.brand_id)] ?? activeBrand.name)));
-  }, [activeBrandId, activeBrand.name, brands, toast, assignedFilter]);
+  }, [activeBrandId, activeBrand.name, brands, toast, assignedFilter, showArchived]);
 
   useEffect(() => {
     void load();
@@ -283,6 +287,35 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
       return;
     }
     toast.success('Statut commande mis à jour.');
+    await load();
+  }
+
+  /** Archiver : la commande quitte la liste sans être supprimée. */
+  async function archiveOrder() {
+    if (!selected) return;
+    setArchiving(true);
+    const res = await api.post(`orders/${selected.apiId}/archive`, {});
+    setArchiving(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success(res.message);
+    setSelectedId(null);
+    await load();
+  }
+
+  async function restoreOrder() {
+    if (!selected) return;
+    setArchiving(true);
+    const res = await api.post(`orders/${selected.apiId}/restore`, {});
+    setArchiving(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success(res.message);
+    setSelectedId(null);
     await load();
   }
 
@@ -393,18 +426,30 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Commandes"
-        subtitle="Liste connectée à l’API (marque active)."
+        title={showArchived ? 'Commandes — Archives' : 'Commandes'}
+        subtitle={showArchived ? 'Commandes archivées (restaurables).' : 'Liste connectée à l’API (marque active).'}
         right={
-          hasPermission('orders.create') ? (
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={onNewOrder}
-              className="px-4 py-2 bg-primary-600 text-white rounded-2xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
+              onClick={() => { setSelectedId(null); setShowArchived((v) => !v); }}
+              className={cn(
+                'px-4 py-2 rounded-2xl text-sm font-black inline-flex items-center gap-2 border',
+                showArchived ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50',
+              )}
             >
-              <Plus className="w-4 h-4" /> Nouvelle commande
+              <Archive className="w-4 h-4" /> {showArchived ? 'Commandes actives' : 'Archives'}
             </button>
-          ) : null
+            {hasPermission('orders.create') && !showArchived ? (
+              <button
+                type="button"
+                onClick={onNewOrder}
+                className="px-4 py-2 bg-primary-600 text-white rounded-2xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Nouvelle commande
+              </button>
+            ) : null}
+          </div>
         }
       />
 
@@ -615,13 +660,36 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                     </button>
                   </div>
                 )}
-                {['Brouillon', 'En attente', 'Annulé'].includes(selected.status) && (
+                {showArchived ? (
+                  hasPermission('orders.update') && (
+                    <button
+                      type="button"
+                      disabled={archiving}
+                      onClick={() => void restoreOrder()}
+                      className="w-full py-3 rounded-xl border border-zinc-300 bg-white text-zinc-900 font-black text-sm hover:bg-zinc-50 transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <ArchiveRestore className="w-4 h-4" /> {archiving ? 'Restauration…' : 'Restaurer la commande'}
+                    </button>
+                  )
+                ) : (
+                  hasPermission('orders.delete') && (
+                    <button
+                      type="button"
+                      disabled={archiving}
+                      onClick={() => void archiveOrder()}
+                      className="w-full py-3 rounded-xl border border-zinc-300 bg-white text-zinc-900 font-black text-sm hover:bg-zinc-50 transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Archive className="w-4 h-4" /> {archiving ? 'Archivage…' : 'Archiver la commande'}
+                    </button>
+                  )
+                )}
+                {!showArchived && ['Brouillon', 'En attente', 'Annulé'].includes(selected.status) && (
                   <button
                     type="button"
                     onClick={() => { setDeleteError(null); setDeleteModalOpen(true); }}
                     className="w-full py-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 font-black text-sm hover:bg-rose-100 transition-colors inline-flex items-center justify-center gap-2"
                   >
-                    <Trash2 className="w-4 h-4" /> Supprimer la commande
+                    <Trash2 className="w-4 h-4" /> Supprimer définitivement
                   </button>
                 )}
               </div>
