@@ -32,7 +32,8 @@ class EnsureAmGate
 
         if (! $this->gatePassed($brandId, $requiredGate)) {
             return ApiResponse::error(
-                "Action bloquée : la porte {$requiredGate} de la feuille de route de la marque n'est pas franchie.",
+                "Action bloquée : la porte {$requiredGate} de la feuille de route de la marque n'est pas franchie. "
+                ."Ouvrez « Roadmap AM » et marquez la porte {$requiredGate} comme franchie pour débloquer cette action.",
                 ['required_gate' => $requiredGate],
                 423,
             );

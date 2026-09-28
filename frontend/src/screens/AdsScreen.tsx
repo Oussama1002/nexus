@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { ChevronRight, Plus, RefreshCw } from 'lucide-react';
+import { AdStructureExplorer } from '../components/ads/AdStructureExplorer';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable } from '../components/ui/DataTable';
@@ -245,6 +246,8 @@ export function AdsScreen() {
   const [adModal, setAdModal] = useState(false);
   const [campModal, setCampModal] = useState(false);
   const [campErrors, setCampErrors] = useState<string[]>([]);
+  // Vue « Ads Manager » : ensembles de publicités puis créatifs d'une campagne.
+  const [structureCamp, setStructureCamp] = useState<{ id: number; name: string } | null>(null);
   const [adForm, setAdForm] = useState({
     platform: 'meta' as (typeof PLATFORMS)[number],
     account_name: '',
@@ -817,7 +820,18 @@ export function AdsScreen() {
         </div>
       )}
 
-      {tab === 'Campagnes' && (
+      {tab === 'Campagnes' && structureCamp && (
+        <AdStructureExplorer
+          campaignId={structureCamp.id}
+          campaignName={structureCamp.name}
+          periodFrom={periodFrom}
+          periodTo={periodTo}
+          canSync={canManage}
+          onBack={() => setStructureCamp(null)}
+        />
+      )}
+
+      {tab === 'Campagnes' && !structureCamp && (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2 items-end justify-between">
             <div className="flex flex-wrap gap-2 text-xs font-bold text-zinc-500">
@@ -854,9 +868,18 @@ export function AdsScreen() {
                   key: 'name',
                   header: 'Campagne',
                   cell: (c) => (
-                    <button type="button" className="font-black text-primary-600 hover:underline text-left" onClick={() => setOpenCampId(c.id)}>
-                      {c.name}
-                    </button>
+                    <div className="space-y-0.5">
+                      <button type="button" className="font-black text-primary-600 hover:underline text-left" onClick={() => setOpenCampId(c.id)}>
+                        {c.name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStructureCamp({ id: c.id, name: c.name })}
+                        className="flex items-center gap-1 text-[11px] font-bold text-zinc-500 hover:text-primary-600"
+                      >
+                        Ensembles & publicités <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
                   ),
                 },
                 {

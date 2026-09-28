@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\AcademyLessonController as LegacyAcademyLessonContr
 use App\Http\Controllers\Api\Academy\StudentController as AcademyStudentController;
 use App\Http\Controllers\Api\Academy\EnrollmentController as AcademyEnrollmentController;
 use App\Http\Controllers\Api\Academy\QuizController as AcademyQuizController;
+use App\Http\Controllers\Api\AdStructureController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\CampaignMetricController;
 use App\Http\Controllers\Api\ClientContractController;
@@ -315,6 +316,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
     Route::patch('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
     Route::delete('campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id')->middleware('permission:campaigns.delete');
+
+    // Vue Ads Manager : campagne → ensembles de publicités → publicités.
+    Route::get('campaigns/{id}/ad-sets', [AdStructureController::class, 'adSets'])->whereNumber('id')->middleware('permission:campaigns.view');
+    Route::get('ad-sets/{id}/ads', [AdStructureController::class, 'ads'])->whereNumber('id')->middleware('permission:campaigns.view');
+    Route::post('ad-structure/sync', [AdStructureController::class, 'sync'])->middleware('permission:campaigns.update');
 
     Route::get('campaign-metrics', [CampaignMetricController::class, 'index'])->middleware('permission:campaign_metrics.view');
     Route::post('campaign-metrics', [CampaignMetricController::class, 'store'])->middleware('permission:campaign_metrics.create');
