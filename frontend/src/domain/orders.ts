@@ -1,4 +1,4 @@
-export type OrderStatus = 'Brouillon' | 'En attente' | 'Confirmé' | 'Annulé' | 'Retourné' | 'Livré' | 'Autre';
+export type OrderStatus = 'Brouillon' | 'En attente' | 'Confirmé' | 'Préparée' | 'Expédiée' | 'Annulé' | 'Retourné' | 'Livré' | 'Autre';
 export type PaymentState = 'Payé' | 'Impayé' | 'Partiel' | 'Remboursé' | 'COD en attente' | 'Virement en vérification' | 'Annulé' | 'Retourné';
 export type OrderSource = string;
 export type OrderBrand = string;

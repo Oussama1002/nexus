@@ -48,6 +48,10 @@ function statusFr(s: string): OrderStatus {
       return 'En attente';
     case 'confirmed':
       return 'Confirmé';
+    case 'prepared':
+      return 'Préparée';
+    case 'shipped':
+      return 'Expédiée';
     case 'cancelled':
       return 'Annulé';
     case 'returned':
@@ -121,6 +125,10 @@ function statusApi(s: OrderStatus): string {
       return 'pending';
     case 'Confirmé':
       return 'confirmed';
+    case 'Préparée':
+      return 'prepared';
+    case 'Expédiée':
+      return 'shipped';
     case 'Annulé':
       return 'cancelled';
     case 'Retourné':
@@ -211,6 +219,9 @@ function toneForStatus(s: OrderStatus): Parameters<typeof StatusChip>[0]['tone']
     case 'Confirmé':
     case 'Livré':
       return 'success';
+    case 'Préparée':
+    case 'Expédiée':
+      return 'info';
     case 'En attente':
     case 'Brouillon':
       return 'warning';
@@ -597,6 +608,8 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
               <option>Brouillon</option>
               <option>En attente</option>
               <option>Confirmé</option>
+              <option>Préparée</option>
+              <option>Expédiée</option>
               <option>Annulé</option>
               <option>Retourné</option>
               <option>Livré</option>
