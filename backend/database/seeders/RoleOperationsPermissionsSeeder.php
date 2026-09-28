@@ -49,8 +49,8 @@ class RoleOperationsPermissionsSeeder extends Seeder
         $conf = Role::query()->where('slug', 'confirmatrice')->first();
         if ($conf) {
             $slugs = [
-                'orders.view',
-                'shipments.view',
+                'orders.view', 'orders.update',
+                'shipments.view', 'shipments.create',
                 'conversations.view',
                 'conversations.create',
                 'customers.view',
