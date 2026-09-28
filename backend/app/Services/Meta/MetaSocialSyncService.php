@@ -25,14 +25,19 @@ class MetaSocialSyncService
         }
 
         $pages = $this->fetchPages($brandId, $cfg['business_id']);
-        if ($pages === []) {
-            throw new MetaApiException('Aucune Page Facebook trouvée sur ce compte Meta. Vérifiez que vos Pages appartiennent bien au Business Manager connecté.');
+
+        // Un compte Instagram professionnel peut appartenir au Business sans
+        // être rattaché à une Page : il faut le lire sur ses propres arêtes.
+        $instagram = $this->fetchInstagramAccounts($brandId, $cfg['business_id']);
+
+        if ($pages === [] && $instagram === []) {
+            throw new MetaApiException('Aucune Page Facebook ni compte Instagram trouvé sur ce compte Meta. Vérifiez qu’ils appartiennent bien au Business Manager connecté.');
         }
 
         $created = 0;
         $updated = 0;
 
-        DB::transaction(function () use ($brandId, $pages, &$created, &$updated) {
+        DB::transaction(function () use ($brandId, $pages, $instagram, &$created, &$updated) {
             foreach ($pages as $page) {
                 $pageId = (string) ($page['id'] ?? '');
                 if ($pageId === '') {
@@ -50,16 +55,16 @@ class MetaSocialSyncService
 
                 $ig = $page['instagram_business_account'] ?? null;
                 if (is_array($ig) && ! empty($ig['id'])) {
-                    $username = (string) ($ig['username'] ?? '');
-                    $this->upsert($brandId, [
-                        'platform' => 'instagram',
-                        'account_name' => $username !== '' ? '@'.$username : 'Instagram',
-                        'handle' => $username,
-                        'profile_url' => $username !== '' ? 'https://instagram.com/'.$username : '',
-                        'credential_ref' => (string) $ig['id'],
-                        'follower_count' => (int) ($ig['followers_count'] ?? 0),
+                    $this->upsertInstagram($brandId, [
+                        'id' => (string) $ig['id'],
+                        'username' => (string) ($ig['username'] ?? ''),
+                        'followers_count' => (int) ($ig['followers_count'] ?? 0),
                     ], $created, $updated);
                 }
+            }
+
+            foreach ($instagram as $account) {
+                $this->upsertInstagram($brandId, $account, $created, $updated);
             }
         });
 
@@ -103,6 +108,74 @@ class MetaSocialSyncService
         } catch (MetaApiException) {
             return [];
         }
+    }
+
+    /**
+     * Comptes Instagram professionnels du Business Manager, y compris ceux
+     * qui ne sont rattachés à aucune Page.
+     *
+     * @return list<array{id: string, username: string, followers_count: int}>
+     */
+    private function fetchInstagramAccounts(int $brandId, string $businessId): array
+    {
+        if ($businessId === '') {
+            return [];
+        }
+
+        foreach (['owned_instagram_accounts', 'instagram_accounts', 'client_instagram_accounts'] as $edge) {
+            try {
+                $rows = $this->graph->paginate($brandId, $businessId.'/'.$edge, [
+                    'fields' => 'id,username,followers_count',
+                    'limit' => 50,
+                ], 3);
+            } catch (MetaApiException) {
+                continue;
+            }
+
+            if ($rows === []) {
+                continue;
+            }
+
+            return array_values(array_filter(array_map(function ($row) use ($brandId) {
+                $id = (string) ($row['id'] ?? '');
+                if ($id === '') {
+                    return null;
+                }
+
+                $username = (string) ($row['username'] ?? '');
+                $followers = (int) ($row['followers_count'] ?? 0);
+
+                // Certaines arêtes ne renvoient que l'ID : on lit le nœud.
+                if ($username === '') {
+                    try {
+                        $node = $this->graph->get($brandId, $id, ['fields' => 'username,name,followers_count']);
+                        $username = (string) ($node['username'] ?? $node['name'] ?? '');
+                        $followers = $followers ?: (int) ($node['followers_count'] ?? 0);
+                    } catch (MetaApiException) {
+                        // Droits Instagram manquants : on garde l'ID seul.
+                    }
+                }
+
+                return ['id' => $id, 'username' => $username, 'followers_count' => $followers];
+            }, $rows)));
+        }
+
+        return [];
+    }
+
+    /** @param array{id: string, username: string, followers_count: int} $account */
+    private function upsertInstagram(int $brandId, array $account, int &$created, int &$updated): void
+    {
+        $username = $account['username'];
+
+        $this->upsert($brandId, [
+            'platform' => 'instagram',
+            'account_name' => $username !== '' ? '@'.$username : 'Instagram '.$account['id'],
+            'handle' => $username,
+            'profile_url' => $username !== '' ? 'https://instagram.com/'.$username : '',
+            'credential_ref' => $account['id'],
+            'follower_count' => $account['followers_count'],
+        ], $created, $updated);
     }
 
     /** @param array<string, mixed> $data */
