@@ -1,5 +1,5 @@
 import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Clock, FileText, MessageSquare, Paperclip, Search, Send, Smile, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, FileText, MessageSquare, Paperclip, Plus, Search, Send, Smile, Trash2 } from 'lucide-react';
 import { StatusChip } from '../components/ui/StatusChip';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -835,21 +835,24 @@ export function WhatsAppWorkspaceScreen({
                           </option>
                         ))}
                       </select>
-                      {selected.lead && (
+                      {selected.customer && (
                         <button
                           type="button"
                           onClick={() => {
                             onCreateOrderFromLead({
-                              leadId: selected.lead!.id,
+                              ...(selected.lead ? { leadId: selected.lead.id } : {}),
+                              customerId: selected.customer?.id,
                               customerName: selected.customer?.full_name ?? '',
                               phone: selected.customer?.phone ?? '',
+                              city: selected.customer?.city ?? '',
                               source: 'WhatsApp',
                             });
                             trackSession({ name: 'audit.whatsapp.order_prefill', ts: Date.now(), meta: { conversationId: selected.id } });
                           }}
-                          className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50 shrink-0"
+                          title="Créer une commande pré-remplie avec ce client"
+                          className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700 shrink-0 inline-flex items-center gap-1.5"
                         >
-                          Vers commande
+                          <Plus className="w-4 h-4" /> Nouvelle commande
                         </button>
                       )}
                     </div>
