@@ -44,7 +44,7 @@ abstract class AbstractHttpDeliveryProvider implements DeliveryProviderInterface
             'ok' => false,
             'code' => 'not_configured',
             'message' => sprintf(
-                '%s integration: configure api_url and API credentials on the delivery company.',
+                'Identifiants API %s manquants — renseignez-les dans Paramètres › Intégrations › Livraison.',
                 ucfirst($this->providerCode())
             ),
             'data' => [],

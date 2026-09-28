@@ -20,6 +20,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class ShipmentController extends Controller
@@ -157,6 +158,20 @@ class ShipmentController extends Controller
         $shipment->refresh();
         $shipment->load(['order.customer', 'deliveryCompany']);
 
+        // L'expédition existe dans le CRM mais le transporteur l'a refusée :
+        // on renvoie une erreur pour que l'utilisateur voie le message au lieu
+        // d'un « Expédition créée » trompeur.
+        if ($dispatchResult && ! ($dispatchResult['ok'] ?? false)) {
+            $carrier = $shipment->deliveryCompany?->name ?? 'transporteur';
+            $reason = $dispatchResult['message'] ?? 'refus du transporteur';
+
+            return ApiResponse::error(
+                "Expédition créée dans le CRM mais non envoyée à {$carrier} : {$reason}",
+                ['shipment' => $shipment, 'carrier_result' => $dispatchResult],
+                422
+            );
+        }
+
         $message = 'Expédition créée.';
         if ($dispatchResult) {
             $message .= ' ' . ($dispatchResult['message'] ?? '');
@@ -253,6 +268,16 @@ class ShipmentController extends Controller
         } else {
             $shipment->sync_error = $result['message'] ?? 'Échec envoi';
             $shipment->save();
+
+            Log::warning('shipment.carrier_dispatch_failed', [
+                'shipment_id' => $shipment->id,
+                'order_number' => $shipment->order?->order_number,
+                'carrier' => $company->code,
+                'has_api_id' => $resolved->api_key_ref !== null && $resolved->api_key_ref !== '',
+                'has_api_key' => $resolved->api_key !== null && $resolved->api_key !== '',
+                'api_url' => $resolved->api_url,
+                'result' => $result,
+            ]);
         }
 
         return $result;
