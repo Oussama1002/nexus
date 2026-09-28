@@ -95,7 +95,7 @@ class OrderController extends Controller
                     'customer_id' => $data['customer_id'] ?? null,
                     'lead_id' => $data['lead_id'] ?? null,
                     'assigned_user_id' => $data['assigned_user_id'] ?? $request->user()->id,
-                    'order_number' => Order::generateUniqueOrderNumber(),
+                    'order_number' => Order::generateUniqueOrderNumber($brandId),
                     'source' => $data['source'] ?? null,
                     'status' => $data['status'] ?? 'pending',
                     'payment_method' => $data['payment_method'] ?? 'prepaid',

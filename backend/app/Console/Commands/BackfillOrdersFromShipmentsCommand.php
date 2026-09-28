@@ -70,7 +70,7 @@ class BackfillOrdersFromShipmentsCommand extends Command
         $order = Order::query()->create([
             'brand_id' => $shipment->brand_id,
             'customer_id' => $customer?->id,
-            'order_number' => Order::generateUniqueOrderNumber(),
+            'order_number' => Order::generateUniqueOrderNumber($shipment->brand_id),
             'source' => 'carrier_import',
             'status' => $statusMap[$shipment->status] ?? 'pending',
             'payment_method' => 'cod',

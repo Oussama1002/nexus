@@ -110,15 +110,34 @@ class Order extends Model
         return $this->hasOne(ClientInvoice::class);
     }
 
-    public static function generateUniqueOrderNumber(): string
+    public static function generateUniqueOrderNumber(Brand|int|null $brand = null): string
     {
+        $prefix = self::resolveOrderPrefix($brand);
         for ($i = 0; $i < 12; $i++) {
-            $candidate = 'NX-'.now()->format('ymd').'-'.strtoupper(Str::random(5));
+            $candidate = $prefix.'-'.now()->format('ymd').'-'.strtoupper(Str::random(5));
             if (! static::query()->where('order_number', $candidate)->exists()) {
                 return $candidate;
             }
         }
 
         throw new RuntimeException('Could not generate unique order number.');
+    }
+
+    /**
+     * Order-number prefix = brand code (uppercase), fallback to "NX" when
+     * the brand or its code isn't set. The facture and every reference we
+     * ship to the customer key off this — MED-260928-A09XB reads far more
+     * like "Medicaldine" than the old NX-… prefix.
+     */
+    private static function resolveOrderPrefix(Brand|int|null $brand): string
+    {
+        if ($brand instanceof Brand) {
+            $code = trim((string) ($brand->code ?? ''));
+        } elseif (is_int($brand) || (is_string($brand) && ctype_digit($brand))) {
+            $code = trim((string) (Brand::query()->whereKey($brand)->value('code') ?? ''));
+        } else {
+            $code = '';
+        }
+        return $code !== '' ? strtoupper($code) : 'NX';
     }
 }

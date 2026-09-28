@@ -48,7 +48,7 @@ class LeadService
                 'customer_id' => $lead->customer_id,
                 'lead_id' => $lead->id,
                 'assigned_user_id' => $data['assigned_user_id'] ?? $user->id,
-                'order_number' => Order::generateUniqueOrderNumber(),
+                'order_number' => Order::generateUniqueOrderNumber($lead->brand_id),
                 'source' => $data['source'] ?? $lead->source,
                 'status' => 'pending',
                 'payment_state' => 'unpaid',
