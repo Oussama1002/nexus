@@ -55,6 +55,8 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             'city' => (string) ($payload['recipient_city'] ?? ''),
             'address' => (string) ($payload['recipient_address'] ?? ''),
             'cod' => (string) ((float) ($payload['cod_amount'] ?? 0)),
+            // Ameex attend le contre-remboursement sous le nom « crbt ».
+            'crbt' => (string) ((float) ($payload['cod_amount'] ?? 0)),
             'product' => (string) ($payload['products'] ?? ''),
             'comment' => (string) ($payload['comment'] ?? $payload['notes'] ?? ''),
             'open' => ! empty($payload['allow_open']) ? 'YES' : 'NO',
@@ -78,6 +80,16 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         }
 
         $tracking = $this->extractTracking($data);
+
+        // Pas de numéro de suivi = Ameex n'a rien enregistré, même sans message
+        // d'erreur explicite. Ne jamais marquer l'expédition comme envoyée.
+        if ($tracking === null || $tracking === '') {
+            return $this->failure(
+                'ameex_no_tracking',
+                $this->extractMessage($data, "Ameex n'a renvoyé aucun numéro de suivi."),
+                ['raw' => $data]
+            );
+        }
 
         return $this->success('ameex_created', 'Colis enregistré chez Ameex.', [
             'tracking_number' => $tracking,
@@ -278,6 +290,14 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         if (isset($data['error']) && $data['error'] === true) {
             return true;
         }
+        // Forme réelle d'un refus : {"login":"success","api":{"type":"error","msg":"…"}}
+        $api = $data['api'] ?? null;
+        if (is_array($api) && mb_strtolower((string) ($api['type'] ?? '')) === 'error') {
+            return true;
+        }
+        if (isset($data['login']) && mb_strtolower((string) $data['login']) !== 'success') {
+            return true;
+        }
 
         return false;
     }
@@ -291,6 +311,10 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         if (is_array($check) && ! empty($check['MESSAGE'])) {
             return (string) $check['MESSAGE'];
         }
+        $api = $data['api'] ?? null;
+        if (is_array($api) && ! empty($api['msg'])) {
+            return 'Ameex : ' . $api['msg'];
+        }
         if (! empty($data['message'])) {
             return (string) $data['message'];
         }
@@ -303,12 +327,18 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         if (! is_array($data)) {
             return null;
         }
-        foreach (['code', 'parcel_code', 'tracking', 'ref', 'Ref'] as $key) {
-            if (! empty($data[$key])) {
-                return (string) $data[$key];
+        $scopes = [$data];
+        foreach (['data', 'api', 'parcel'] as $nested) {
+            if (is_array($data[$nested] ?? null)) {
+                $scopes[] = $data[$nested];
             }
-            if (is_array($data['data'] ?? null) && ! empty($data['data'][$key])) {
-                return (string) $data['data'][$key];
+        }
+
+        foreach ($scopes as $scope) {
+            foreach (['code', 'parcel_code', 'tracking', 'tracking_number', 'ref', 'Ref', 'order_num'] as $key) {
+                if (! empty($scope[$key])) {
+                    return (string) $scope[$key];
+                }
             }
         }
 
