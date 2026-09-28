@@ -245,7 +245,22 @@ export function OrdersNewScreen({
       meta: { brand: activeBrandName, source, city, itemsCount: lines.length },
     });
 
-    const created = oRes.data as { id?: number; order_number?: string } | null;
+    const created = oRes.data as {
+      id?: number;
+      order_number?: string;
+      sendit_dispatch?: { ok?: boolean; carrier?: string; tracking_number?: string | null } | null;
+    } | null;
+    // If the backend auto-dispatch already created + sent the shipment,
+    // skip the "Envoyer à la livraison" popup — a second attempt would
+    // just hit the "expédition déjà créée" idempotent path.
+    const alreadyDispatched = Boolean(created?.sendit_dispatch?.ok);
+    if (alreadyDispatched) {
+      const carrier = created?.sendit_dispatch?.carrier ?? 'le transporteur';
+      const tracking = created?.sendit_dispatch?.tracking_number;
+      toast.success(`Expédition envoyée à ${carrier}${tracking ? ` · ${tracking}` : ''}.`);
+      onBackToList();
+      return;
+    }
     if (created?.id) {
       setDispatchTarget({
         orderId: created.id,

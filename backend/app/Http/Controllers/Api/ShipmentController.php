@@ -109,6 +109,20 @@ class ShipmentController extends Controller
 
         $order = Order::query()->where('brand_id', $brandId)->whereKey($data['order_id'])->firstOrFail();
 
+        // Order creation already runs SenditAutoDispatchService, which
+        // creates a Shipment row. When the user then hits "Envoyer à la
+        // livraison" from the modal, treat that as idempotent — surface the
+        // existing shipment with a clear French message instead of a 422.
+        $existing = $order->shipment()->with(['deliveryCompany', 'order.customer'])->first();
+        if ($existing) {
+            $carrier = $existing->deliveryCompany?->name ?? 'transporteur';
+            $tracking = $existing->tracking_number ? ' · N° suivi ' . $existing->tracking_number : '';
+            return ApiResponse::success([
+                'shipment' => $existing,
+                'carrier_result' => null,
+            ], "Expédition déjà créée pour cette commande ({$carrier}{$tracking}).");
+        }
+
         try {
             $shipment = $this->shipmentOperationsService->createFromOrder(
                 $order,
