@@ -295,8 +295,13 @@ export function LeadsScreen({
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     return leads.filter((l) => {
+      // « Marque active » ne filtre rien quand le sélecteur est sur « Toutes les marques ».
       const brandMatch =
-        brand === 'Toutes' ? true : brand === 'Marque active' ? l.brand === activeBrandName : l.brand === brand;
+        brand === 'Toutes' || (brand === 'Marque active' && activeBrandId === 'all')
+          ? true
+          : brand === 'Marque active'
+            ? l.brand === activeBrandName
+            : l.brand === brand;
       if (!brandMatch) return false;
       if (status !== 'Tous' && l.status !== status) return false;
       if (source !== 'Toutes' && l.source !== source) return false;
@@ -305,7 +310,7 @@ export function LeadsScreen({
       const blob = `${l.name} ${l.phone} ${l.brand} ${l.source} ${l.status} ${l.agent}`.toLowerCase();
       return blob.includes(s);
     });
-  }, [leads, q, brand, status, source, confirmatrice, activeBrandName]);
+  }, [leads, q, brand, status, source, confirmatrice, activeBrandName, activeBrandId]);
 
   const kpis = useMemo(() => {
     const scope = filtered;
