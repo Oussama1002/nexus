@@ -46,6 +46,17 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             return $this->notConfigured();
         }
 
+        // Ameex lit le contre-remboursement dans « cod » mais le nomme « CRBT »
+        // dans ses erreurs, et considère « 0 » comme vide : un colis déjà payé
+        // est refusé par l'API, autant le dire clairement ici.
+        $cod = (float) ($payload['cod_amount'] ?? 0);
+        if ($cod <= 0) {
+            return $this->failure(
+                'ameex_cod_required',
+                'Ameex exige un montant à encaisser (CRBT) supérieur à 0 : une commande déjà payée ne peut pas être envoyée via l\'API.'
+            );
+        }
+
         $body = [
             'type' => 'SIMPLE',
             'business' => $credentials['api_id'],
@@ -54,9 +65,8 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             'phone' => (string) ($payload['recipient_phone'] ?? ''),
             'city' => (string) ($payload['recipient_city'] ?? ''),
             'address' => (string) ($payload['recipient_address'] ?? ''),
-            'cod' => (string) ((float) ($payload['cod_amount'] ?? 0)),
-            // Ameex attend le contre-remboursement sous le nom « crbt ».
-            'crbt' => (string) ((float) ($payload['cod_amount'] ?? 0)),
+            'cod' => (string) $cod,
+            'crbt' => (string) $cod,
             'product' => (string) ($payload['products'] ?? ''),
             'comment' => (string) ($payload['comment'] ?? $payload['notes'] ?? ''),
             'open' => ! empty($payload['allow_open']) ? 'YES' : 'NO',
