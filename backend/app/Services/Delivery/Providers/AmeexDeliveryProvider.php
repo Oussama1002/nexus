@@ -3,6 +3,7 @@
 namespace App\Services\Delivery\Providers;
 
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -57,13 +58,25 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             );
         }
 
+        // Ameex attend l'identifiant de ville de son référentiel, pas son nom.
+        $cityName = (string) ($payload['recipient_city'] ?? '');
+        $cityId = $this->resolveCityId($cityName, $credentials);
+        if ($cityId === null) {
+            return $this->failure(
+                'ameex_city_unknown',
+                $cityName === ''
+                    ? 'Ville de livraison manquante : Ameex exige une ville de son référentiel.'
+                    : sprintf('Ville « %s » inconnue chez Ameex. Corrigez la ville du client avec une ville desservie par Ameex.', $cityName)
+            );
+        }
+
         $body = [
             'type' => 'SIMPLE',
             'business' => $credentials['api_id'],
             'order_num' => (string) ($payload['reference'] ?? ''),
             'receiver' => (string) ($payload['recipient_name'] ?? ''),
             'phone' => (string) ($payload['recipient_phone'] ?? ''),
-            'city' => (string) ($payload['recipient_city'] ?? ''),
+            'city' => $cityId,
             'address' => (string) ($payload['recipient_address'] ?? ''),
             'cod' => (string) $cod,
             'crbt' => (string) $cod,
@@ -249,6 +262,100 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
         }
 
         return $this->success('ameex_connected', 'Connexion Ameex API réussie.');
+    }
+
+    /**
+     * Référentiel des villes Ameex : ['id' => '1', 'name' => 'Marrakech', …].
+     *
+     * @param  array{api_id: string, api_key: string}|null  $credentials
+     * @return array<int, array{id: string, name: string}>
+     */
+    public function fetchCities(?array $credentials = null): array
+    {
+        $credentials ??= $this->credentialsReady();
+        if ($credentials === null) {
+            return [];
+        }
+
+        $cacheKey = 'ameex.cities.'.md5($credentials['api_id'].$this->apiUrl());
+
+        return Cache::remember($cacheKey, now()->addHours(12), function () use ($credentials) {
+            try {
+                $response = $this->ameexGet('customer/Delivery/Cities', [], $credentials);
+            } catch (\Throwable) {
+                return [];
+            }
+
+            $data = $this->decodeJson($response);
+            $cities = $data['api']['cities'] ?? null;
+            if (! is_array($cities)) {
+                return [];
+            }
+
+            $out = [];
+            foreach ($cities as $key => $city) {
+                if (! is_array($city)) {
+                    continue;
+                }
+                $id = (string) ($city['id'] ?? $key);
+                $name = trim((string) ($city['name'] ?? ''));
+                if ($id !== '' && $name !== '') {
+                    $out[] = ['id' => $id, 'name' => $name];
+                }
+            }
+
+            return $out;
+        });
+    }
+
+    /** @param  array{api_id: string, api_key: string}  $credentials */
+    protected function resolveCityId(string $cityName, array $credentials): ?string
+    {
+        $needle = $this->normalizeCity($cityName);
+        if ($needle === '') {
+            return null;
+        }
+
+        $cities = $this->fetchCities($credentials);
+        if ($cities === []) {
+            return null;
+        }
+
+        foreach ($cities as $city) {
+            if ($this->normalizeCity($city['name']) === $needle) {
+                return $city['id'];
+            }
+        }
+
+        // « Casablanca Ain Sebaa » saisi pour « Casablanca » : on accepte le
+        // préfixe le plus long qui corresponde à une ville du référentiel.
+        $best = null;
+        foreach ($cities as $city) {
+            $candidate = $this->normalizeCity($city['name']);
+            if ($candidate !== '' && str_starts_with($needle, $candidate)) {
+                if ($best === null || strlen($candidate) > strlen($this->normalizeCity($best['name']))) {
+                    $best = $city;
+                }
+            }
+        }
+
+        return $best['id'] ?? null;
+    }
+
+    /** Minuscules sans accents ni ponctuation, pour comparer « Salé » et « Sale ». */
+    private function normalizeCity(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+        $value = strtr($value, [
+            'à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'î' => 'i', 'ï' => 'i', 'í' => 'i',
+            'ô' => 'o', 'ö' => 'o', 'ó' => 'o', 'õ' => 'o',
+            'û' => 'u', 'ü' => 'u', 'ù' => 'u', 'ú' => 'u',
+            'ç' => 'c', 'ñ' => 'n',
+        ]);
+
+        return (string) preg_replace('/[^a-z0-9]/', '', $value);
     }
 
     protected function ameexPost(string $path, array $body, array $credentials): Response

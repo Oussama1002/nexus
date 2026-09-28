@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Services\Delivery\DeliveryCarrierResolver;
 use App\Services\Delivery\Providers\AmeexDeliveryProvider;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Diagnostic Ameex : identifiants, villes acceptées et essai d'envoi.
@@ -61,11 +60,16 @@ class AmeexDoctorCommand extends Command
         }
 
         $this->newLine();
-        $this->info('=== Recherche du référentiel des villes ===');
-        $this->probeCityEndpoints($resolved->api_url, [
-            'C-Api-Id' => (string) $resolved->api_key_ref,
-            'C-Api-Key' => (string) $resolved->api_key,
-        ]);
+        $this->info('=== Référentiel des villes Ameex ===');
+        $cities = $provider->fetchCities();
+        $this->line(count($cities).' villes desservies.');
+        if ($cities !== []) {
+            $this->line(collect($cities)->take(12)->map(fn ($c) => $c['name'].' (#'.$c['id'].')')->implode(', ').' …');
+        }
+
+        $this->newLine();
+        $this->info('=== Villes de vos expéditions non envoyées ===');
+        $this->auditPendingCities($provider);
 
         if ($city = $this->option('city')) {
             $this->newLine();
@@ -109,27 +113,43 @@ class AmeexDoctorCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @param  array<string, string>  $headers */
-    private function probeCityEndpoints(string $apiUrl, array $headers): void
+    /**
+     * Liste les expéditions bloquées et dit si leur ville est reconnue par Ameex.
+     */
+    private function auditPendingCities(AmeexDeliveryProvider $provider): void
     {
-        $paths = [
-            'customer/Delivery/Cities/Json',
-            'customer/Delivery/Cities',
-            'customer/Delivery/Parcels/Cities',
-            'customer/Cities/Json',
-            'customer/Delivery/Villes/Json',
-            'customer/Delivery/Parcels/Action/Type/Cities',
-        ];
+        $pending = \App\Models\Shipment::query()
+            ->whereNull('external_tracking_id')
+            ->latest()
+            ->take(20)
+            ->get(['id', 'recipient_city', 'city']);
 
-        foreach ($paths as $path) {
-            $url = rtrim($apiUrl, '/').'/'.$path;
-            try {
-                $response = Http::timeout(20)->acceptJson()->withHeaders($headers)->get($url);
-                $body = trim($response->body());
-                $this->line(sprintf('%-45s %s  %s', $path, $response->status(), mb_substr($body, 0, 160)));
-            } catch (\Throwable $e) {
-                $this->line(sprintf('%-45s EX  %s', $path, $e->getMessage()));
-            }
+        if ($pending->isEmpty()) {
+            $this->line('Aucune expédition en attente.');
+
+            return;
         }
+
+        $known = collect($provider->fetchCities())
+            ->mapWithKeys(fn ($c) => [$this->normalize($c['name']) => $c['id']]);
+
+        foreach ($pending as $shipment) {
+            $name = (string) ($shipment->recipient_city ?: $shipment->city);
+            $id = $known[$this->normalize($name)] ?? null;
+            $this->line(sprintf('  #%-6s %-25s %s', $shipment->id, $name !== '' ? $name : '(vide)', $id ? 'OK → #'.$id : 'INCONNUE CHEZ AMEEX'));
+        }
+    }
+
+    private function normalize(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+        $value = strtr($value, [
+            'à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'î' => 'i', 'ï' => 'i', 'ô' => 'o', 'ö' => 'o',
+            'û' => 'u', 'ü' => 'u', 'ù' => 'u', 'ç' => 'c',
+        ]);
+
+        return (string) preg_replace('/[^a-z0-9]/', '', $value);
     }
 }
