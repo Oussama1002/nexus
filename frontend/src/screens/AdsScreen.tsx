@@ -875,7 +875,7 @@ export function AdsScreen() {
                       <button
                         type="button"
                         onClick={() => setStructureCamp({ id: c.id, name: c.name })}
-                        className="flex items-center gap-1 text-[11px] font-bold text-zinc-500 hover:text-primary-600"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-primary-200 bg-primary-50 text-[11px] font-black text-primary-700 hover:bg-primary-100"
                       >
                         Ensembles & publicités <ChevronRight className="w-3 h-3" />
                       </button>
