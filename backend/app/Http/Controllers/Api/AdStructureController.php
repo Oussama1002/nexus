@@ -8,6 +8,7 @@ use App\Models\AdAccount;
 use App\Models\AdSet;
 use App\Models\Campaign;
 use App\Services\Meta\MetaAdStructureSyncService;
+use App\Services\AuditLogger;
 use App\Services\Meta\MetaApiException;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
@@ -81,6 +82,42 @@ class AdStructureController extends Controller
             'currency' => $this->currencyFor($adSet->campaign),
             'ads' => $ads,
         ], 'Publicités récupérées.');
+    }
+
+    /** Crée un créatif + une publicité sur Meta, en pause. */
+    public function publishAd(Request $request, string $adSetId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $adSet = AdSet::query()->where('brand_id', $brandId)->findOrFail($adSetId);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string', 'max:2000'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'link' => ['nullable', 'url', 'max:2048'],
+            'call_to_action' => ['nullable', 'string', 'max:40'],
+            'image_url' => ['nullable', 'url', 'max:2048'],
+            'image_base64' => ['nullable', 'string'],
+        ], [
+            'name.required' => 'Le nom de la publicité est obligatoire.',
+            'message.required' => 'Le texte de la publicité est obligatoire.',
+            'link.url' => 'Le lien de destination doit être une URL valide.',
+            'image_url.url' => 'L’URL de l’image n’est pas valide.',
+        ]);
+
+        try {
+            $ad = app(\App\Services\Meta\MetaAdPublisher::class)->publish($brandId, $adSet, $data);
+        } catch (MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        AuditLogger::log($request, 'ads.publish', $ad, null, $ad->toArray());
+
+        return ApiResponse::success(
+            $ad,
+            'Publicité créée sur Meta, en pause. Vérifiez-la dans Ads Manager avant de l’activer.',
+            201
+        );
     }
 
     /** Importe ensembles, publicités et métriques depuis Meta. */

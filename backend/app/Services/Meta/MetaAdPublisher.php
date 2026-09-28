@@ -1,0 +1,154 @@
+<?php
+
+namespace App\Services\Meta;
+
+use App\Models\Ad;
+use App\Models\AdSet;
+use App\Models\SystemSetting;
+
+/**
+ * Crée une publicité (créatif + annonce) sur Meta depuis le CRM.
+ *
+ * L'annonce est toujours créée EN PAUSE : elle est relue dans Ads Manager
+ * avant diffusion, rien ne peut dépenser par accident depuis le CRM.
+ */
+class MetaAdPublisher
+{
+    /** Appels à l'action acceptés par Meta pour une publicité avec lien. */
+    public const CALL_TO_ACTIONS = [
+        'SHOP_NOW', 'LEARN_MORE', 'SIGN_UP', 'BOOK_TRAVEL', 'CONTACT_US',
+        'ORDER_NOW', 'WHATSAPP_MESSAGE', 'MESSAGE_PAGE', 'CALL_NOW', 'GET_OFFER',
+    ];
+
+    public function __construct(private readonly MetaGraphClient $graph) {}
+
+    /**
+     * @param  array{name: string, message: string, title?: string|null, link?: string|null, call_to_action?: string|null, image_url?: string|null, image_base64?: string|null, image_name?: string|null}  $data
+     */
+    public function publish(int $brandId, AdSet $adSet, array $data): Ad
+    {
+        $adSet->loadMissing('campaign.adAccount');
+
+        $externalAdSetId = trim((string) $adSet->external_ad_set_id);
+        if ($externalAdSetId === '') {
+            throw new MetaApiException('Cet ensemble de publicités n’existe pas sur Meta. Importez d’abord la structure depuis Meta.');
+        }
+
+        $account = $adSet->campaign?->adAccount;
+        if (! $account || $account->platform !== 'meta' || ! $account->external_account_id) {
+            throw new MetaApiException('Aucun compte publicitaire Meta rattaché à cette campagne.');
+        }
+
+        $pageId = trim((string) SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'meta_page_id')
+            ->value('setting_value'));
+
+        if ($pageId === '') {
+            throw new MetaApiException('Page Facebook non configurée. Allez dans Paramètres → Meta et lancez « Détecter Page / Instagram / Pixel ».');
+        }
+
+        $actId = 'act_'.str_replace('act_', '', (string) $account->external_account_id);
+
+        $linkData = [
+            'message' => (string) ($data['message'] ?? ''),
+            'link' => (string) ($data['link'] ?? ($adSet->campaign?->landing_url ?: 'https://facebook.com/'.$pageId)),
+        ];
+
+        if (! empty($data['title'])) {
+            $linkData['name'] = (string) $data['title'];
+        }
+
+        $cta = strtoupper((string) ($data['call_to_action'] ?? ''));
+        if ($cta !== '' && in_array($cta, self::CALL_TO_ACTIONS, true)) {
+            $linkData['call_to_action'] = [
+                'type' => $cta,
+                'value' => ['link' => $linkData['link']],
+            ];
+        }
+
+        $imageHash = $this->uploadImage($brandId, $actId, $data);
+        if ($imageHash !== null) {
+            $linkData['image_hash'] = $imageHash;
+        } elseif (! empty($data['image_url'])) {
+            $linkData['picture'] = (string) $data['image_url'];
+        }
+
+        $creative = $this->graph->post($brandId, $actId.'/adcreatives', [
+            'name' => (string) $data['name'].' — créatif',
+            'object_story_spec' => json_encode([
+                'page_id' => $pageId,
+                'link_data' => $linkData,
+            ]),
+        ]);
+
+        $creativeId = (string) ($creative['id'] ?? '');
+        if ($creativeId === '') {
+            throw new MetaApiException('Meta n’a pas renvoyé d’identifiant de créatif.');
+        }
+
+        $created = $this->graph->post($brandId, $actId.'/ads', [
+            'name' => (string) $data['name'],
+            'adset_id' => $externalAdSetId,
+            'creative' => json_encode(['creative_id' => $creativeId]),
+            'status' => 'PAUSED',
+        ]);
+
+        $adId = (string) ($created['id'] ?? '');
+        if ($adId === '') {
+            throw new MetaApiException('Meta n’a pas renvoyé d’identifiant de publicité.');
+        }
+
+        return Ad::query()->updateOrCreate(
+            ['ad_set_id' => $adSet->id, 'external_ad_id' => $adId],
+            [
+                'brand_id' => $brandId,
+                'campaign_id' => $adSet->campaign_id,
+                'name' => (string) $data['name'],
+                'status' => 'PAUSED',
+                'effective_status' => 'PAUSED',
+                'creative_name' => (string) $data['name'].' — créatif',
+                'creative_title' => $data['title'] ?? null,
+                'creative_body' => $data['message'] ?? null,
+                'creative_thumbnail_url' => $data['image_url'] ?? null,
+                'creative_call_to_action' => $cta !== '' ? $cta : null,
+                'last_synced_at' => now(),
+            ]
+        );
+    }
+
+    /**
+     * Envoie l'image dans la bibliothèque du compte et renvoie son hash.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function uploadImage(int $brandId, string $actId, array $data): ?string
+    {
+        $base64 = (string) ($data['image_base64'] ?? '');
+        if ($base64 === '') {
+            return null;
+        }
+
+        // Une data-URL du navigateur : on ne garde que la charge utile.
+        if (str_contains($base64, ',')) {
+            $base64 = substr($base64, strpos($base64, ',') + 1);
+        }
+
+        $response = $this->graph->post($brandId, $actId.'/adimages', [
+            'bytes' => $base64,
+        ]);
+
+        $images = $response['images'] ?? [];
+        if (! is_array($images)) {
+            return null;
+        }
+
+        foreach ($images as $image) {
+            if (is_array($image) && ! empty($image['hash'])) {
+                return (string) $image['hash'];
+            }
+        }
+
+        return null;
+    }
+}

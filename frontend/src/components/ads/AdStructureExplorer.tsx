@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Plus, RefreshCw } from 'lucide-react';
 import { DataTable, type Column } from '../ui/DataTable';
 import { EmptyState } from '../ui/EmptyState';
+import { Modal } from '../ui/Modal';
 import { StatusChip } from '../ui/StatusChip';
 import { formatCurrency } from '../../lib/utils';
 import { useToast } from '../../context/ToastContext';
@@ -59,6 +60,22 @@ function deliveryChip(status: string | null): { label: string; tone: 'success' |
   if (s === 'ARCHIVED' || s === 'DELETED') return { label: 'Archivée', tone: 'neutral' };
   return { label: s ? s.toLowerCase().replace(/_/g, ' ') : '—', tone: 'neutral' };
 }
+
+const AD_INPUT = 'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-300 bg-white text-sm font-medium text-zinc-900';
+const AD_LABEL = 'block text-sm font-bold text-zinc-900';
+
+/** Appels à l'action acceptés par Meta pour une publicité avec lien. */
+const CTA_OPTIONS = [
+  { value: 'SHOP_NOW', label: 'Acheter' },
+  { value: 'ORDER_NOW', label: 'Commander' },
+  { value: 'LEARN_MORE', label: 'En savoir plus' },
+  { value: 'WHATSAPP_MESSAGE', label: 'Envoyer un message WhatsApp' },
+  { value: 'MESSAGE_PAGE', label: 'Envoyer un message' },
+  { value: 'CONTACT_US', label: 'Nous contacter' },
+  { value: 'CALL_NOW', label: 'Appeler' },
+  { value: 'SIGN_UP', label: "S'inscrire" },
+  { value: 'GET_OFFER', label: "Obtenir l'offre" },
+];
 
 const GOALS: Record<string, string> = {
   OFFSITE_CONVERSIONS: 'Conversions',
@@ -142,6 +159,18 @@ export function AdStructureExplorer({
   const [openAdSet, setOpenAdSet] = useState<{ id: number; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: '',
+    message: '',
+    title: '',
+    link: '',
+    cta: '',
+    imageBase64: '',
+    imagePreview: '',
+  });
   // Devise du compte publicitaire Meta (souvent USD), pas celle des commandes.
   const [currency, setCurrency] = useState('USD');
 
@@ -192,6 +221,57 @@ export function AdStructureExplorer({
     toast.success(res.message);
     await loadAdSets();
     if (openAdSet) await loadAds(openAdSet.id);
+  }
+
+  /** Le fichier est lu en base64 : Meta l'accepte tel quel sur /adimages. */
+  async function pickImage(file: File | null) {
+    if (!file) {
+      setForm((f) => ({ ...f, imageBase64: '', imagePreview: '' }));
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setCreateError('Image trop lourde : 4 Mo maximum.');
+      return;
+    }
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onerror = () => reject(new Error('lecture impossible'));
+      reader.readAsDataURL(file);
+    });
+    setCreateError(null);
+    setForm((f) => ({ ...f, imageBase64: dataUrl, imagePreview: dataUrl }));
+  }
+
+  async function publishAd() {
+    if (!openAdSet) return;
+    if (!form.name.trim() || !form.message.trim()) {
+      setCreateError('Le nom et le texte de la publicité sont obligatoires.');
+      return;
+    }
+    setPublishing(true);
+    setCreateError(null);
+
+    const res = await api.post(`ad-sets/${openAdSet.id}/ads`, {
+      name: form.name.trim(),
+      message: form.message.trim(),
+      title: form.title.trim() || null,
+      link: form.link.trim() || null,
+      call_to_action: form.cta || null,
+      image_base64: form.imageBase64 || null,
+    });
+
+    setPublishing(false);
+    if (!res.ok) {
+      setCreateError(res.message);
+      toast.error(res.message);
+      return;
+    }
+
+    toast.success(res.message);
+    setCreateOpen(false);
+    setForm({ name: '', message: '', title: '', link: '', cta: '', imageBase64: '', imagePreview: '' });
+    await loadAds(openAdSet.id);
   }
 
   const adSetColumns: Column<AdSetRow>[] = [
@@ -304,15 +384,26 @@ export function AdStructureExplorer({
           </div>
         </div>
         {canSync && (
-          <button
-            type="button"
-            onClick={() => void sync()}
-            disabled={syncing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Import…' : 'Importer depuis Meta'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {openAdSet && (
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 text-sm font-black"
+              >
+                <Plus className="w-4 h-4" /> Nouvelle publicité
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void sync()}
+              disabled={syncing}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Import…' : 'Importer depuis Meta'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -335,6 +426,92 @@ export function AdStructureExplorer({
       ) : (
         <DataTable<AdSetRow> rows={adSets} columns={adSetColumns} density="comfortable" emptyTitle="Aucun ensemble" />
       )}
+
+      <Modal
+        open={createOpen}
+        title="Nouvelle publicité"
+        subtitle={
+          openAdSet
+            ? `Créée EN PAUSE dans « ${openAdSet.name} » — à vérifier dans Ads Manager avant activation.`
+            : undefined
+        }
+        onClose={() => setCreateOpen(false)}
+        footer={
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setCreateOpen(false)} className="flex-1 py-3 rounded-xl border border-zinc-300 font-black text-sm text-zinc-900">
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={publishing}
+              onClick={() => void publishAd()}
+              className="flex-1 py-3 rounded-xl bg-primary-600 text-white font-black text-sm disabled:opacity-50"
+            >
+              {publishing ? 'Envoi à Meta…' : 'Créer sur Meta'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {createError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+              {createError}
+            </div>
+          )}
+
+          <label className={AD_LABEL}>
+            Nom de la publicité *
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={AD_INPUT} />
+          </label>
+
+          <label className={AD_LABEL}>
+            Texte de la publicité *
+            <textarea
+              rows={4}
+              value={form.message}
+              onChange={(e) => setForm({ ...form, message: e.target.value })}
+              className={AD_INPUT}
+            />
+          </label>
+
+          <label className={AD_LABEL}>
+            Titre affiché
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={AD_INPUT} />
+          </label>
+
+          <label className={AD_LABEL}>
+            Lien de destination
+            <input
+              value={form.link}
+              onChange={(e) => setForm({ ...form, link: e.target.value })}
+              placeholder="https://…"
+              className={AD_INPUT}
+            />
+          </label>
+
+          <label className={AD_LABEL}>
+            Appel à l’action
+            <select value={form.cta} onChange={(e) => setForm({ ...form, cta: e.target.value })} className={AD_INPUT}>
+              <option value="">— Aucun</option>
+              {CTA_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className={AD_LABEL}>
+            Visuel
+            <input type="file" accept="image/*" onChange={(e) => void pickImage(e.target.files?.[0] ?? null)} className={AD_INPUT} />
+            <span className="mt-1 block text-[11px] font-semibold text-zinc-500">
+              L’image est envoyée dans la bibliothèque du compte publicitaire Meta.
+            </span>
+          </label>
+
+          {form.imagePreview && (
+            <img src={form.imagePreview} alt="" className="w-full h-40 object-cover rounded-xl border border-zinc-200" />
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
