@@ -11,9 +11,10 @@ export const formatLateness = (minutes: number | null | undefined) => {
   return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}min`;
 };
 
-export const formatCurrency = (amount: number) => {
+/** MAD par défaut ; les montants publicitaires suivent la devise du compte Meta. */
+export const formatCurrency = (amount: number, currency = 'MAD') => {
   return new Intl.NumberFormat('fr-MA', {
     style: 'currency',
-    currency: 'MAD',
+    currency,
   }).format(amount);
 };

@@ -52,6 +52,7 @@ type CampaignRow = {
   source: string;
   marketing_objective?: string | null;
   budget: string;
+  campaign_currency?: string | null;
   spend: string;
   status: string;
   start_date: string | null;
@@ -60,7 +61,7 @@ type CampaignRow = {
   description?: string | null;
   external_campaign_id?: string | null;
   brand?: { id: number; name: string } | null;
-  ad_account?: { id: number; account_name: string } | null;
+  ad_account?: { id: number; account_name: string; currency?: string | null } | null;
   product?: { id: number; name: string } | null;
   confirmatrice?: { id: number; name: string } | null;
   influencer?: { id: number; full_name?: string; username?: string } | null;
@@ -193,6 +194,11 @@ function campaignStatusFr(s: string) {
   return m[s] ?? s;
 }
 
+/** Devise d'une campagne : celle saisie, sinon celle du compte Meta. */
+function campCurrency(c: { campaign_currency?: string | null; ad_account?: { currency?: string | null } | null }): string {
+  return (c.campaign_currency || c.ad_account?.currency || 'USD').toUpperCase();
+}
+
 function sourceFr(s: string) {
   const m: Record<string, string> = {
     meta: 'Meta Ads',
@@ -270,7 +276,7 @@ export function AdsScreen() {
     marketing_objective: '' as string,
     budget: '0',
     daily_budget: '',
-    campaign_currency: 'MAD',
+    campaign_currency: 'USD',
     attribution_model: '',
     ad_account_id: '' as string,
     start_date: '',
@@ -391,6 +397,13 @@ export function AdsScreen() {
     if (!activeBrandId) return;
     void loadAdsDashboard();
   }, [activeBrandId, loadAdsDashboard]);
+
+  // Les montants publicitaires suivent la devise du compte Meta ; le chiffre
+  // d'affaires vient des commandes et reste en MAD.
+  const adsCurrency = useMemo(
+    () => (adAccounts.find((a) => a.platform === 'meta')?.currency || 'USD').toUpperCase(),
+    [adAccounts],
+  );
 
   const openCamp = useMemo(() => campaigns.find((c) => c.id === openCampId) ?? null, [campaigns, openCampId]);
 
@@ -515,7 +528,7 @@ export function AdsScreen() {
       marketing_objective: campForm.marketing_objective || null,
       budget: parseFloat(campForm.budget) || 0,
       daily_budget: campForm.daily_budget ? parseFloat(campForm.daily_budget) : null,
-      campaign_currency: campForm.campaign_currency || 'MAD',
+      campaign_currency: campForm.campaign_currency || 'USD',
       attribution_model: campForm.attribution_model || null,
       ad_account_id: Number(campForm.ad_account_id),
       start_date: campForm.start_date,
@@ -554,7 +567,7 @@ export function AdsScreen() {
       marketing_objective: '',
       budget: '0',
       daily_budget: '',
-      campaign_currency: 'MAD',
+      campaign_currency: 'USD',
       attribution_model: '',
       ad_account_id: '',
       start_date: '',
@@ -737,11 +750,11 @@ export function AdsScreen() {
           {rpt ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                ['Spend total', formatCurrency(rpt.spend)],
+                ['Spend total', formatCurrency(rpt.spend, adsCurrency)],
                 ['Leads', String(rpt.leads)],
                 ['Messages', String(rpt.messages)],
-                ['CPA', rpt.cpa != null ? formatCurrency(rpt.cpa) : '—'],
-                ['CPL', rpt.cpl != null ? formatCurrency(rpt.cpl) : '—'],
+                ['CPA', rpt.cpa != null ? formatCurrency(rpt.cpa, adsCurrency) : '—'],
+                ['CPL', rpt.cpl != null ? formatCurrency(rpt.cpl, adsCurrency) : '—'],
                 ['ROAS', rpt.roas != null ? String(rpt.roas) : '—'],
                 ['Revenue', formatCurrency(rpt.revenue)],
                 ['Confirmées', String(rpt.confirmed_orders)],
@@ -896,13 +909,13 @@ export function AdsScreen() {
                 {
                   key: 'bud',
                   header: 'Budget',
-                  cell: (c) => <span className="font-black">{formatCurrency(parseFloat(c.budget))}</span>,
+                  cell: (c) => <span className="font-black">{formatCurrency(parseFloat(c.budget), campCurrency(c))}</span>,
                 },
                 {
                   key: 'sp',
                   header: 'Spend (période)',
                   cell: (c) => (
-                    <span>{c.metrics_rollups ? formatCurrency(c.metrics_rollups.spend) : '—'}</span>
+                    <span>{c.metrics_rollups ? formatCurrency(c.metrics_rollups.spend, campCurrency(c)) : '—'}</span>
                   ),
                 },
                 {
@@ -981,7 +994,7 @@ export function AdsScreen() {
                     {metrics.map((m) => (
                       <tr key={m.id} className="border-t border-zinc-100 font-bold">
                         <td className="p-2">{fmtMetricDate(m.metric_date)}</td>
-                        <td className="p-2">{formatCurrency(parseFloat(m.spend))}</td>
+                        <td className="p-2">{formatCurrency(parseFloat(m.spend), openCamp ? campCurrency(openCamp) : adsCurrency)}</td>
                         <td className="p-2">{m.leads}</td>
                         <td className="p-2">{m.cpc ?? '—'}</td>
                         <td className="p-2">{m.cpm ?? '—'}</td>

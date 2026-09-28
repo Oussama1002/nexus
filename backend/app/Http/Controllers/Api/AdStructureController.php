@@ -23,7 +23,7 @@ class AdStructureController extends Controller
     public function adSets(Request $request, string $campaignId): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
-        $campaign = Campaign::query()->where('brand_id', $brandId)->findOrFail($campaignId);
+        $campaign = Campaign::query()->with('adAccount:id,currency')->where('brand_id', $brandId)->findOrFail($campaignId);
 
         $adSets = AdSet::query()
             ->where('campaign_id', $campaign->id)
@@ -51,6 +51,7 @@ class AdStructureController extends Controller
 
         return ApiResponse::success([
             'campaign' => $campaign->only(['id', 'name', 'status', 'marketing_objective', 'external_campaign_id']),
+            'currency' => $this->currencyFor($campaign),
             'ad_sets' => $adSets,
         ], 'Ensembles de publicités récupérés.');
     }
@@ -58,7 +59,7 @@ class AdStructureController extends Controller
     public function ads(Request $request, string $adSetId): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
-        $adSet = AdSet::query()->where('brand_id', $brandId)->with('campaign:id,name')->findOrFail($adSetId);
+        $adSet = AdSet::query()->where('brand_id', $brandId)->with(['campaign:id,name,campaign_currency,ad_account_id', 'campaign.adAccount:id,currency'])->findOrFail($adSetId);
 
         $ads = Ad::query()
             ->where('ad_set_id', $adSet->id)
@@ -77,6 +78,7 @@ class AdStructureController extends Controller
 
         return ApiResponse::success([
             'ad_set' => $adSet,
+            'currency' => $this->currencyFor($adSet->campaign),
             'ads' => $ads,
         ], 'Publicités récupérées.');
     }
@@ -124,6 +126,24 @@ class AdStructureController extends Controller
         }
 
         return ApiResponse::success($totals, $message);
+    }
+
+    /**
+     * Devise des montants publicitaires : celle du compte Meta, qui n'est pas
+     * forcément celle des commandes (souvent USD côté régie).
+     */
+    private function currencyFor(?Campaign $campaign): string
+    {
+        if (! $campaign) {
+            return 'USD';
+        }
+
+        $currency = trim((string) $campaign->campaign_currency);
+        if ($currency === '') {
+            $currency = trim((string) $campaign->adAccount?->currency);
+        }
+
+        return $currency !== '' ? strtoupper($currency) : 'USD';
     }
 
     /**

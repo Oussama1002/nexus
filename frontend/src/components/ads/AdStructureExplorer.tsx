@@ -77,14 +77,14 @@ function num(v: number | null | undefined, digits = 0): string {
 }
 
 /** Colonnes de métriques communes aux ensembles et aux publicités. */
-function metricColumns<T extends { metrics_rollups: StructureRollup | null }>(): Column<T>[] {
+function metricColumns<T extends { metrics_rollups: StructureRollup | null }>(currency: string): Column<T>[] {
   const m = (r: T) => r.metrics_rollups;
   return [
     {
       key: 'spend',
       header: 'Montant dépensé',
       className: 'text-right',
-      cell: (r) => <span className="font-black">{m(r) ? formatCurrency(m(r)!.spend) : '—'}</span>,
+      cell: (r) => <span className="font-black">{m(r) ? formatCurrency(m(r)!.spend, currency) : '—'}</span>,
     },
     { key: 'reach', header: 'Couverture', className: 'text-right', cell: (r) => <span>{num(m(r)?.reach)}</span> },
     { key: 'impr', header: 'Impressions', className: 'text-right', cell: (r) => <span>{num(m(r)?.impressions)}</span> },
@@ -100,19 +100,19 @@ function metricColumns<T extends { metrics_rollups: StructureRollup | null }>():
       key: 'cpl',
       header: 'Coût par résultat',
       className: 'text-right',
-      cell: (r) => <span>{m(r)?.cpl != null ? formatCurrency(m(r)!.cpl!) : '—'}</span>,
+      cell: (r) => <span>{m(r)?.cpl != null ? formatCurrency(m(r)!.cpl!, currency) : '—'}</span>,
     },
     {
       key: 'cpc',
       header: 'CPC',
       className: 'text-right',
-      cell: (r) => <span>{m(r)?.cpc != null ? formatCurrency(m(r)!.cpc!) : '—'}</span>,
+      cell: (r) => <span>{m(r)?.cpc != null ? formatCurrency(m(r)!.cpc!, currency) : '—'}</span>,
     },
     {
       key: 'cpm',
       header: 'CPM',
       className: 'text-right',
-      cell: (r) => <span>{m(r)?.cpm != null ? formatCurrency(m(r)!.cpm!) : '—'}</span>,
+      cell: (r) => <span>{m(r)?.cpm != null ? formatCurrency(m(r)!.cpm!, currency) : '—'}</span>,
     },
   ];
 }
@@ -142,6 +142,8 @@ export function AdStructureExplorer({
   const [openAdSet, setOpenAdSet] = useState<{ id: number; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  // Devise du compte publicitaire Meta (souvent USD), pas celle des commandes.
+  const [currency, setCurrency] = useState('USD');
 
   const qs = useMemo(
     () => new URLSearchParams({ metrics_from: periodFrom, metrics_to: periodTo }).toString(),
@@ -150,17 +152,23 @@ export function AdStructureExplorer({
 
   const loadAdSets = useCallback(async () => {
     setLoading(true);
-    const res = await api.get<{ ad_sets: AdSetRow[] }>(`campaigns/${campaignId}/ad-sets?${qs}`);
+    const res = await api.get<{ ad_sets: AdSetRow[]; currency?: string }>(`campaigns/${campaignId}/ad-sets?${qs}`);
     setLoading(false);
-    if (res.ok && res.data) setAdSets(res.data.ad_sets ?? []);
+    if (res.ok && res.data) {
+      setAdSets(res.data.ad_sets ?? []);
+      if (res.data.currency) setCurrency(res.data.currency);
+    }
   }, [campaignId, qs]);
 
   const loadAds = useCallback(
     async (adSetId: number) => {
       setLoading(true);
-      const res = await api.get<{ ads: AdRow[] }>(`ad-sets/${adSetId}/ads?${qs}`);
+      const res = await api.get<{ ads: AdRow[]; currency?: string }>(`ad-sets/${adSetId}/ads?${qs}`);
       setLoading(false);
-      if (res.ok && res.data) setAds(res.data.ads ?? []);
+      if (res.ok && res.data) {
+        setAds(res.data.ads ?? []);
+        if (res.data.currency) setCurrency(res.data.currency);
+      }
     },
     [qs],
   );
@@ -219,8 +227,8 @@ export function AdStructureExplorer({
       cell: (r) => {
         const daily = r.daily_budget ? Number(r.daily_budget) : null;
         const lifetime = r.lifetime_budget ? Number(r.lifetime_budget) : null;
-        if (daily) return <span className="font-bold">{formatCurrency(daily)} <span className="text-[10px] text-zinc-400">/ jour</span></span>;
-        if (lifetime) return <span className="font-bold">{formatCurrency(lifetime)} <span className="text-[10px] text-zinc-400">total</span></span>;
+        if (daily) return <span className="font-bold">{formatCurrency(daily, currency)} <span className="text-[10px] text-zinc-400">/ jour</span></span>;
+        if (lifetime) return <span className="font-bold">{formatCurrency(lifetime, currency)} <span className="text-[10px] text-zinc-400">total</span></span>;
         return <span className="text-zinc-400">—</span>;
       },
     },
@@ -229,7 +237,7 @@ export function AdStructureExplorer({
       header: 'Optimisation',
       cell: (r) => <span className="text-xs font-semibold text-zinc-600">{GOALS[r.optimization_goal ?? ''] ?? r.optimization_goal ?? '—'}</span>,
     },
-    ...metricColumns<AdSetRow>(),
+    ...metricColumns<AdSetRow>(currency),
   ];
 
   const adColumns: Column<AdRow>[] = [
@@ -274,7 +282,7 @@ export function AdStructureExplorer({
       header: 'Appel à l’action',
       cell: (r) => <span className="text-xs font-semibold text-zinc-600">{r.creative_call_to_action?.replace(/_/g, ' ').toLowerCase() ?? '—'}</span>,
     },
-    ...metricColumns<AdRow>(),
+    ...metricColumns<AdRow>(currency),
   ];
 
   return (
