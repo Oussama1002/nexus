@@ -18,14 +18,6 @@ type ApiProduct = {
   price: string;
 };
 
-type ApiCustomer = {
-  id: number;
-  full_name: string;
-  phone: string;
-  city: string | null;
-  address: string | null;
-};
-
 const DRAFT_KEY = 'nexus.orderDraft';
 
 export function OrdersNewScreen({
@@ -45,7 +37,15 @@ export function OrdersNewScreen({
   const [saving, setSaving] = useState(false);
   const [errLines, setErrLines] = useState<string[]>([]);
   const [products, setProducts] = useState<ApiProduct[]>([]);
-  const [customers, setCustomers] = useState<ApiCustomer[]>([]);
+  // Le choix se fait sur les leads (client + statut + source), pas sur la liste brute des clients.
+  type LeadOption = {
+    id: number;
+    status: string;
+    source: string | null;
+    customer_id: number | null;
+    customer?: { id: number; full_name: string; phone: string; city?: string | null; address?: string | null } | null;
+  };
+  const [leadOptions, setLeadOptions] = useState<LeadOption[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const customerBoxRef = useRef<HTMLDivElement>(null);
 
@@ -90,18 +90,32 @@ export function OrdersNewScreen({
     let cancelled = false;
     (async () => {
       if (!activeBrandId) return;
-      const [pRes, cRes] = await Promise.all([
-        api.get<LaravelPaginator<ApiProduct>>('products?per_page=100'),
-        api.get<LaravelPaginator<ApiCustomer>>('customers?per_page=200&status=all'),
-      ]);
+      const pRes = await api.get<LaravelPaginator<ApiProduct>>('products?per_page=100');
       if (cancelled) return;
       if (pRes.ok && isPaginator<ApiProduct>(pRes.data)) setProducts(pRes.data.data);
-      if (cRes.ok && isPaginator<ApiCustomer>(cRes.data)) setCustomers(cRes.data.data);
     })();
     return () => {
       cancelled = true;
     };
   }, [activeBrandId]);
+
+  // Recherche des leads côté serveur : la base en compte plusieurs milliers.
+  useEffect(() => {
+    if (!activeBrandId) return;
+    let cancelled = false;
+    const t = window.setTimeout(async () => {
+      const q = customerName.trim();
+      const res = await api.get<LaravelPaginator<LeadOption>>(
+        `leads?per_page=30${q ? `&search=${encodeURIComponent(q)}` : ''}`,
+      );
+      if (cancelled) return;
+      if (res.ok && isPaginator<LeadOption>(res.data)) setLeadOptions(res.data.data);
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [activeBrandId, customerName]);
 
   // Close customer dropdown on click outside
   useEffect(() => {
@@ -114,19 +128,13 @@ export function OrdersNewScreen({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const filteredCustomers = useMemo(() => {
-    if (!customerName.trim()) return customers;
-    const q = customerName.trim().toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.full_name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
-        (c.city ?? '').toLowerCase().includes(q),
-    );
-  }, [customers, customerName]);
+  // Un lead sans client rattaché ne peut pas pré-remplir la commande.
+  const filteredLeads = useMemo(() => leadOptions.filter((l) => l.customer), [leadOptions]);
 
-  const selectCustomer = useCallback(
-    (c: ApiCustomer) => {
+  const selectLead = useCallback(
+    (l: LeadOption) => {
+      const c = l.customer!;
+      setLeadId(l.id);
       setCustomerId(c.id);
       setCustomerName(c.full_name);
       setPhone(c.phone);
@@ -275,7 +283,7 @@ export function OrdersNewScreen({
                       setShowCustomerDropdown(true);
                     }}
                     onFocus={() => setShowCustomerDropdown(true)}
-                    placeholder="Tapez pour chercher un client…"
+                    placeholder="Tapez pour chercher un lead (nom, téléphone)…"
                     className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 pr-10"
                   />
                   {customerId ? (
@@ -285,22 +293,30 @@ export function OrdersNewScreen({
                   )}
                 </div>
                 {customerId && (
-                  <p className="text-[11px] text-emerald-600 font-bold">Client existant sélectionné</p>
+                  <p className="text-[11px] text-emerald-600 font-bold">
+                    {leadId ? 'Lead sélectionné' : 'Client existant sélectionné'}
+                  </p>
                 )}
-                {showCustomerDropdown && filteredCustomers.length > 0 && (
+                {showCustomerDropdown && filteredLeads.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg">
-                    {filteredCustomers.slice(0, 30).map((c) => (
+                    {filteredLeads.map((l) => (
                       <button
-                        key={c.id}
+                        key={l.id}
                         type="button"
-                        onClick={() => selectCustomer(c)}
+                        onClick={() => selectLead(l)}
                         className="w-full text-left px-4 py-2.5 hover:bg-primary-50 transition-colors border-b border-zinc-100 last:border-b-0"
                       >
-                        <span className="font-bold text-sm text-zinc-800">{c.full_name}</span>
-                        <span className="ml-2 text-xs text-zinc-500">{c.phone}</span>
-                        {c.city && <span className="ml-2 text-xs text-zinc-400">— {c.city}</span>}
+                        <span className="font-bold text-sm text-zinc-800">{l.customer?.full_name}</span>
+                        <span className="ml-2 text-xs text-zinc-500">{l.customer?.phone}</span>
+                        {l.customer?.city && <span className="ml-2 text-xs text-zinc-400">— {l.customer.city}</span>}
+                        <span className="ml-2 text-[10px] font-black uppercase text-primary-700">{l.source ?? 'lead'}</span>
                       </button>
                     ))}
+                  </div>
+                )}
+                {showCustomerDropdown && filteredLeads.length === 0 && customerName.trim() && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-500 shadow-lg">
+                    Aucun lead trouvé — le client sera créé à l’enregistrement.
                   </div>
                 )}
               </div>
