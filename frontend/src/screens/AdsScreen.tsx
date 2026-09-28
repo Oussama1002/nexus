@@ -111,6 +111,11 @@ type AdsReportPayload = {
 
 const PLATFORMS = ['meta', 'tiktok', 'google', 'snap', 'linkedin', 'other'] as const;
 
+// Un seul style d'input pour toute la modale « Nouvelle campagne ».
+const CAMP_INPUT = 'w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500';
+const CAMP_LABEL = 'block text-[10px] font-black uppercase tracking-widest text-zinc-400';
+const CAMP_SECTION = 'text-[10px] font-black uppercase tracking-widest text-zinc-400 pt-2';
+
 const MARKETING_OBJECTIVES = [
   { value: '', label: '— Objectif marketing' },
   { value: 'lead_gen', label: 'Lead generation' },
@@ -1078,17 +1083,17 @@ export function AdsScreen() {
 
       <Modal open={campModal} onClose={() => setCampModal(false)} title="Nouvelle campagne">
         <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
-          <p className="text-[10px] font-black uppercase text-zinc-400">Informations générales</p>
+          <p className={CAMP_SECTION}>Informations générales</p>
           <input
             value={campForm.name}
             onChange={(e) => setCampForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="Nom campagne *"
-            className="w-full px-4 py-3 rounded-xl border font-bold"
+            className={CAMP_INPUT}
           />
           <select
             value={campForm.source}
             onChange={(e) => setCampForm((f) => ({ ...f, source: e.target.value as (typeof PLATFORMS)[number] }))}
-            className="w-full px-4 py-3 rounded-xl border font-bold"
+            className={CAMP_INPUT}
           >
             {PLATFORMS.map((p) => (
               <option key={p} value={p}>
@@ -1099,7 +1104,7 @@ export function AdsScreen() {
           <select
             value={campForm.marketing_objective}
             onChange={(e) => setCampForm((f) => ({ ...f, marketing_objective: e.target.value }))}
-            className="w-full px-4 py-3 rounded-xl border font-bold"
+            className={CAMP_INPUT}
           >
             {MARKETING_OBJECTIVES.map((o) => (
               <option key={o.value || 'empty'} value={o.value}>
@@ -1110,7 +1115,7 @@ export function AdsScreen() {
           <select
             value={campForm.ad_account_id}
             onChange={(e) => setCampForm((f) => ({ ...f, ad_account_id: e.target.value }))}
-            className="w-full px-4 py-3 rounded-xl border font-bold"
+            className={CAMP_INPUT}
             required
           >
             <option value="">— Compte publicitaire *</option>
@@ -1120,44 +1125,44 @@ export function AdsScreen() {
               </option>
             ))}
           </select>
-          <p className="text-[10px] font-black uppercase text-zinc-400">Configuration campagne</p>
-          <label className="text-[10px] font-bold text-zinc-500">
+          <p className={CAMP_SECTION}>Configuration campagne</p>
+          <label className={CAMP_LABEL}>
             Date début *
-            <input type="date" value={campForm.start_date} onChange={(e) => setCampForm((f) => ({ ...f, start_date: e.target.value }))} className="mt-1 w-full px-4 py-3 rounded-xl border" />
+            <input type="date" value={campForm.start_date} onChange={(e) => setCampForm((f) => ({ ...f, start_date: e.target.value }))} className={`mt-1 ${CAMP_INPUT}`} />
           </label>
-          <label className="text-[10px] font-bold text-zinc-500">
+          <label className={CAMP_LABEL}>
             Date fin
-            <input type="date" value={campForm.end_date} onChange={(e) => setCampForm((f) => ({ ...f, end_date: e.target.value }))} className="mt-1 w-full px-4 py-3 rounded-xl border" />
+            <input type="date" value={campForm.end_date} onChange={(e) => setCampForm((f) => ({ ...f, end_date: e.target.value }))} className={`mt-1 ${CAMP_INPUT}`} />
           </label>
           <input
             value={campForm.daily_budget}
             onChange={(e) => setCampForm((f) => ({ ...f, daily_budget: e.target.value }))}
             placeholder="Budget quotidien"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.budget}
             onChange={(e) => setCampForm((f) => ({ ...f, budget: e.target.value }))}
             placeholder="Budget total *"
-            className="w-full px-4 py-3 rounded-xl border font-black"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.campaign_currency}
             onChange={(e) => setCampForm((f) => ({ ...f, campaign_currency: e.target.value }))}
             placeholder="Devise"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.attribution_model}
             onChange={(e) => setCampForm((f) => ({ ...f, attribution_model: e.target.value }))}
             placeholder="Attribution"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           {canListProducts ? (
             <select
               value={campForm.product_id}
               onChange={(e) => setCampForm((f) => ({ ...f, product_id: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border font-bold"
+              className={CAMP_INPUT}
             >
               <option value="">— Produit lié</option>
               {products.map((p) => (
@@ -1171,13 +1176,13 @@ export function AdsScreen() {
             value={campForm.landing_url}
             onChange={(e) => setCampForm((f) => ({ ...f, landing_url: e.target.value }))}
             placeholder="Landing page URL"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           {canListUsers ? (
             <select
               value={campForm.confirmatrice_user_id}
               onChange={(e) => setCampForm((f) => ({ ...f, confirmatrice_user_id: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border font-bold"
+              className={CAMP_INPUT}
             >
               <option value="">— Confirmatrice assignée</option>
               {users.map((u) => (
@@ -1191,7 +1196,7 @@ export function AdsScreen() {
             <select
               value={campForm.influencer_id}
               onChange={(e) => setCampForm((f) => ({ ...f, influencer_id: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border font-bold"
+              className={CAMP_INPUT}
             >
               <option value="">— Influenceur lié</option>
               {influencers.map((inf) => (
@@ -1201,49 +1206,49 @@ export function AdsScreen() {
               ))}
             </select>
           ) : null}
-          <p className="text-[10px] font-black uppercase text-zinc-400">Tracking</p>
+          <p className={CAMP_SECTION}>Tracking</p>
           <input
             value={campForm.utm_source}
             onChange={(e) => setCampForm((f) => ({ ...f, utm_source: e.target.value }))}
             placeholder="UTM source"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.utm_campaign}
             onChange={(e) => setCampForm((f) => ({ ...f, utm_campaign: e.target.value }))}
             placeholder="UTM campaign"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.utm_medium}
             onChange={(e) => setCampForm((f) => ({ ...f, utm_medium: e.target.value }))}
             placeholder="UTM medium"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.pixel_id}
             onChange={(e) => setCampForm((f) => ({ ...f, pixel_id: e.target.value }))}
             placeholder="Pixel ID"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
-          <p className="text-[10px] font-black uppercase text-zinc-400">KPIs objectifs</p>
+          <p className={CAMP_SECTION}>KPIs objectifs</p>
           <input
             value={campForm.target_cpa}
             onChange={(e) => setCampForm((f) => ({ ...f, target_cpa: e.target.value }))}
             placeholder="CPA cible"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.target_roas}
             onChange={(e) => setCampForm((f) => ({ ...f, target_roas: e.target.value }))}
             placeholder="ROAS cible"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <input
             value={campForm.target_leads}
             onChange={(e) => setCampForm((f) => ({ ...f, target_leads: e.target.value }))}
             placeholder="Nombre leads cible"
-            className="w-full px-4 py-3 rounded-xl border"
+            className={CAMP_INPUT}
           />
           <textarea
             value={campForm.objective}
