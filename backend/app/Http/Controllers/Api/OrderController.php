@@ -13,6 +13,7 @@ use App\Models\OrderLine;
 use App\Models\Charge;
 use App\Models\Product;
 use App\Services\AuditLogger;
+use App\Services\Delivery\CarrierCancellationService;
 use App\Services\AutomationEngineService;
 use App\Services\ClientInvoiceService;
 use App\Services\OrderStateService;
@@ -274,10 +275,25 @@ class OrderController extends Controller
             return ApiResponse::error('Cette commande est déjà archivée.', null, 422);
         }
 
+        $cancellation = $this->cancelCarrierParcel($order, $request->boolean('force'));
+        if ($cancellation !== null && ! $cancellation['ok']) {
+            return ApiResponse::error(
+                'Colis non annulé chez le transporteur : '.$cancellation['message']
+                .' La commande n’a pas été archivée pour éviter une livraison fantôme.',
+                $cancellation,
+                422
+            );
+        }
+
         $order->forceFill(['archived_at' => now()])->save();
         AuditLogger::log($request, 'orders.archive', $order, null, ['archived_at' => $order->archived_at]);
 
-        return ApiResponse::success(null, 'Commande archivée.');
+        $message = 'Commande archivée.';
+        if ($cancellation !== null) {
+            $message .= ' Colis annulé chez le transporteur.';
+        }
+
+        return ApiResponse::success(null, $message);
     }
 
     /** Remet une commande archivée dans la liste. */
@@ -301,6 +317,16 @@ class OrderController extends Controller
             return ApiResponse::error('Seules les commandes brouillon, en attente ou annulées peuvent être supprimées.', null, 422);
         }
 
+        $cancellation = $this->cancelCarrierParcel($order, $request->boolean('force'));
+        if ($cancellation !== null && ! $cancellation['ok']) {
+            return ApiResponse::error(
+                'Colis non annulé chez le transporteur : '.$cancellation['message']
+                .' La commande n’a pas été supprimée.',
+                $cancellation,
+                422
+            );
+        }
+
         $before = $order->toArray();
         $order->lines()->delete();
         $order->events()->delete();
@@ -308,7 +334,26 @@ class OrderController extends Controller
 
         AuditLogger::log($request, 'orders.delete', null, $before, null);
 
-        return ApiResponse::success(null, 'Order deleted successfully.');
+        return ApiResponse::success(null, $cancellation !== null
+            ? 'Commande supprimée et colis annulé chez le transporteur.'
+            : 'Commande supprimée.');
+    }
+
+    /**
+     * Annule le colis chez le transporteur avant de retirer la commande.
+     * `force` laisse passer malgré un échec d'annulation.
+     *
+     * @return array{ok: bool, message: string}|null  null = aucun colis parti
+     */
+    protected function cancelCarrierParcel(Order $order, bool $force): ?array
+    {
+        $result = app(CarrierCancellationService::class)->cancelForOrder($order);
+
+        if ($result !== null && ! $result['ok'] && $force) {
+            return null;
+        }
+
+        return $result;
     }
 
     /**

@@ -358,14 +358,24 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     await load();
   }
 
-  /** Archiver : la commande quitte la liste sans être supprimée. */
-  async function archiveOrder() {
+  /**
+   * Archiver : la commande quitte la liste sans être supprimée, et le colis
+   * est annulé chez le transporteur. Si cette annulation échoue, on demande
+   * confirmation avant d'archiver quand même.
+   */
+  async function archiveOrder(force = false) {
     if (!selected) return;
     setArchiving(true);
-    const res = await api.post(`orders/${selected.apiId}/archive`, {});
+    const res = await api.post(`orders/${selected.apiId}/archive`, force ? { force: true } : {});
     setArchiving(false);
     if (!res.ok) {
       toast.error(res.message);
+      if (!force && /transporteur/i.test(res.message)) {
+        const proceed = window.confirm(
+          `${res.message}\n\nArchiver quand même ? Le colis restera actif chez le transporteur et devra être annulé manuellement.`,
+        );
+        if (proceed) await archiveOrder(true);
+      }
       return;
     }
     toast.success(res.message);
@@ -399,7 +409,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     }
     setDeleteModalOpen(false);
     setSelectedId(null);
-    toast.success('Commande supprimée.');
+    toast.success(res.message || 'Commande supprimée.');
     await load();
   }
 

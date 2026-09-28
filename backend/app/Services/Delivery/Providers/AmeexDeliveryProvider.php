@@ -174,8 +174,9 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
 
         $data = $this->decodeJson($response);
 
-        if (! $response->successful()) {
-            return $this->failure('ameex_cancel_failed', $this->responseMessage($response, 'Ameex cancel failed.'), [
+        // Ameex répond 200 même pour un refus : même détection que l'ajout.
+        if (! $response->successful() || $this->isApiError($data)) {
+            return $this->failure('ameex_cancel_failed', $this->extractMessage($data, $this->responseMessage($response, 'Ameex cancel failed.')), [
                 'tracking_number' => $trackingNumber,
                 'raw' => $data,
             ]);
