@@ -89,7 +89,10 @@ class StockShortageService
                 foreach ($group as $shortage) {
                     /** @var Product $product */
                     $product = $shortage['product'];
-                    $unit = (float) ($product->price ?? 0);
+                    // Prix d'achat = coût du produit. Le prix de vente n'a rien à
+                    // faire sur une commande fournisseur : à 0, le montant reste
+                    // vide jusqu'à la saisie du tarif fournisseur.
+                    $unit = (float) ($product->cost ?? 0);
                     $lineTotal = $unit * $shortage['missing'];
                     $subtotal += $lineTotal;
 

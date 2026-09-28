@@ -465,7 +465,11 @@ export function PurchaseOrdersScreen() {
             {
               key: 'supplier',
               header: 'Fournisseur',
-              cell: (r) => <span className="font-bold text-zinc-800">{r.supplier?.name ?? `#${r.supplier_id}`}</span>,
+              cell: (r) => (
+                <span className="font-bold text-zinc-800">
+                  {r.supplier?.name ?? (r.supplier_id ? `#${r.supplier_id}` : '—')}
+                </span>
+              ),
             },
             {
               key: 'brand',
@@ -486,11 +490,16 @@ export function PurchaseOrdersScreen() {
               key: 'total',
               header: 'Montant',
               className: 'text-right',
-              cell: (r) => (
-                <span className="font-black text-zinc-900">
-                  {formatCurrency(parseNum(r.total_amount))} {r.currency ? <span className="text-zinc-400 text-xs">{r.currency}</span> : null}
-                </span>
-              ),
+              // Prix d'achat inconnu (coût produit non renseigné) : on n'invente
+              // pas un montant à partir du prix de vente.
+              cell: (r) =>
+                parseNum(r.total_amount) > 0 ? (
+                  <span className="font-black text-zinc-900">
+                    {formatCurrency(parseNum(r.total_amount))} {r.currency ? <span className="text-zinc-400 text-xs">{r.currency}</span> : null}
+                  </span>
+                ) : (
+                  <span className="font-black text-zinc-400">—</span>
+                ),
             },
             {
               key: 'orderDate',
@@ -534,7 +543,7 @@ export function PurchaseOrdersScreen() {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="card p-3">
                 <p className="text-[10px] font-black uppercase text-zinc-400">Commande</p>
-                <p className="font-bold">{detail.supplier?.name}</p>
+                <p className="font-bold">{detail.supplier?.name ?? 'Fournisseur à renseigner'}</p>
                 <p className="text-zinc-500 mt-1">
                   {detail.ordered_at ? new Date(detail.ordered_at).toLocaleDateString('fr-FR') : ''} → prévu{' '}
                   {detail.expected_delivery_date ? new Date(detail.expected_delivery_date).toLocaleDateString('fr-FR') : '—'}
