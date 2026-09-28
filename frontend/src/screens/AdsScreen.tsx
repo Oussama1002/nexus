@@ -244,6 +244,7 @@ export function AdsScreen() {
 
   const [adModal, setAdModal] = useState(false);
   const [campModal, setCampModal] = useState(false);
+  const [campErrors, setCampErrors] = useState<string[]>([]);
   const [adForm, setAdForm] = useState({
     platform: 'meta' as (typeof PLATFORMS)[number],
     account_name: '',
@@ -536,9 +537,12 @@ export function AdsScreen() {
     if (!res.ok) {
       const e = 'errors' in res ? res.errors : {};
       const fe = flattenFieldErrors(e as Record<string, unknown>);
-      toast.error(fe.length ? fe.join(' ') : res.message);
+      // La modale reste ouverte avec le détail champ par champ.
+      setCampErrors(fe.length ? fe : [res.message]);
+      toast.error(fe.length ? fe[0] : res.message);
       return;
     }
+    setCampErrors([]);
     toast.success('Campagne créée.');
     setCampModal(false);
     setCampForm({
@@ -826,7 +830,7 @@ export function AdsScreen() {
             {canManage && (
               <button
                 type="button"
-                onClick={() => setCampModal(true)}
+                onClick={() => { setCampErrors([]); setCampModal(true); }}
                 className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex gap-2 items-center"
               >
                 <Plus className="w-4 h-4" /> Nouvelle campagne
@@ -1090,8 +1094,18 @@ export function AdsScreen() {
         </div>
       </Modal>
 
-      <Modal open={campModal} onClose={() => setCampModal(false)} title="Nouvelle campagne">
+      <Modal open={campModal} onClose={() => { setCampErrors([]); setCampModal(false); }} title="Nouvelle campagne">
         <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+          {campErrors.length > 0 && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 space-y-1">
+              <p className="text-xs font-black uppercase tracking-widest text-rose-700">
+                Campagne non enregistrée
+              </p>
+              {campErrors.map((msg) => (
+                <p key={msg} className="text-sm font-semibold text-rose-800">• {msg}</p>
+              ))}
+            </div>
+          )}
           <p className={CAMP_SECTION}>Informations générales</p>
           <input
             value={campForm.name}
