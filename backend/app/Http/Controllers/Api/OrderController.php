@@ -15,7 +15,6 @@ use App\Models\Product;
 use App\Services\AuditLogger;
 use App\Services\AutomationEngineService;
 use App\Services\ClientInvoiceService;
-use App\Services\Delivery\SenditAutoDispatchService;
 use App\Services\OrderStateService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
@@ -30,7 +29,6 @@ class OrderController extends Controller
         protected OrderStateService $orderStateService,
         protected AutomationEngineService $automationEngine,
         protected ClientInvoiceService $clientInvoices,
-        protected SenditAutoDispatchService $senditDispatch,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -158,21 +156,12 @@ class OrderController extends Controller
 
         $invoice = $this->clientInvoices->createFromOrder($order, $request->user()?->id);
 
-        $senditResult = null;
-        try {
-            $senditResult = $this->senditDispatch->dispatch($order, $request->user());
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('SenditAutoDispatch exception on order ' . $order->id, [
-                'error' => $e->getMessage(),
-            ]);
-        }
-
+        // Pas d'envoi automatique : le transporteur est choisi dans la popup
+        // qui suit la création, sinon le premier transporteur configuré
+        // récupérait toutes les commandes.
         $payload = $order->fresh(['lines', 'customer', 'shipment'])->toArray();
         if ($invoice) {
             $payload['client_invoice'] = $invoice->only(['id', 'invoice_number', 'status', 'total']);
-        }
-        if ($senditResult) {
-            $payload['sendit_dispatch'] = $senditResult;
         }
 
         return ApiResponse::success($payload, 'Order created successfully.', 201);
