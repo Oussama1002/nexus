@@ -226,8 +226,10 @@ export function AdsScreen() {
   const [metaSyncing, setMetaSyncing] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
-  const [periodFrom, setPeriodFrom] = useState(() => isoRangeLastDays(30).from);
-  const [periodTo, setPeriodTo] = useState(() => isoRangeLastDays(30).to);
+  // 12 mois par défaut : une campagne arrêtée il y a quelques mois affichait
+  // « — » partout avec une fenêtre de 30 jours.
+  const [periodFrom, setPeriodFrom] = useState(() => isoRangeLastDays(365).from);
+  const [periodTo, setPeriodTo] = useState(() => isoRangeLastDays(365).to);
   const [filterPlatform, setFilterPlatform] = useState<string>('');
   const [filterCampaignId, setFilterCampaignId] = useState<string>('');
   const [filterMediaBuyerId, setFilterMediaBuyerId] = useState<string>('');
@@ -831,6 +833,13 @@ export function AdsScreen() {
               </button>
             )}
           </div>
+          {filteredCamp.length > 0 && filteredCamp.every((c) => !c.metrics_rollups) && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+              Aucune métrique sur cette période : Spend, Leads et ROAS restent vides. Élargissez les
+              dates ci-dessus (« 12 mois » ou « Tout ») pour couvrir les jours où les campagnes ont
+              tourné.
+            </div>
+          )}
           {filteredCamp.length === 0 ? (
             <EmptyState title="Aucune campagne" description="Créez une campagne liée à un compte publicitaire." />
           ) : (
