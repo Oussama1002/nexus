@@ -255,6 +255,7 @@ export function UsersAdminScreen() {
   };
 
   const submitCreate = async () => {
+    setError(null);
     const name = createDraft.name.trim();
     const email = createDraft.email.trim();
     if (!name || !email) {
@@ -287,7 +288,7 @@ export function UsersAdminScreen() {
       employee_id: createDraft.employeeId ? Number(createDraft.employeeId) : undefined,
     });
     if (!res.ok) {
-      setError(apiErrorMessage(res.message, res.errors));
+      setError(apiErrorMessage(res.message, 'errors' in res ? res.errors : undefined));
       return;
     }
     setCreateOpen(false);
@@ -319,7 +320,7 @@ export function UsersAdminScreen() {
     }
     const res = await api.patch<UserRow>(`users/${selected.id}`, body);
     if (!res.ok) {
-      setError(apiErrorMessage(res.message, res.errors));
+      setError(apiErrorMessage(res.message, 'errors' in res ? res.errors : undefined));
       return;
     }
     setEditOpen(false);
@@ -335,7 +336,7 @@ export function UsersAdminScreen() {
     }
     const res = await api.post(`users/${selected.id}/reset-password`, { password: newPwd });
     if (!res.ok) {
-      setError(apiErrorMessage(res.message, res.errors));
+      setError(apiErrorMessage(res.message, 'errors' in res ? res.errors : undefined));
       return;
     }
     setPwdOpen(false);
@@ -347,7 +348,7 @@ export function UsersAdminScreen() {
     if (!confirm(`Supprimer ${u.email} ?`)) return;
     const res = await api.del(`users/${u.id}`);
     if (!res.ok) {
-      setError(apiErrorMessage(res.message, res.errors));
+      setError(apiErrorMessage(res.message, 'errors' in res ? res.errors : undefined));
       return;
     }
     await loadUsers();
@@ -530,6 +531,12 @@ export function UsersAdminScreen() {
           }
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* L'erreur était affichée derrière la popup : invisible. */}
+            {error && (
+              <div className="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+                {error}
+              </div>
+            )}
             {hasPermission('hr.view') ? (
               <label className={cn(USER_FIELD_LABEL, 'sm:col-span-2')}>
                 Employé source
@@ -644,6 +651,11 @@ export function UsersAdminScreen() {
           }
         >
           <div className="space-y-3">
+            {error && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+                {error}
+              </div>
+            )}
             <input
               value={editDraft.name}
               onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))}

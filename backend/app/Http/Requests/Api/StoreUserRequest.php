@@ -27,4 +27,38 @@ class StoreUserRequest extends FormRequest
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nom',
+            'email' => 'adresse e-mail',
+            'phone' => 'téléphone',
+            'password' => 'mot de passe',
+            'role_ids' => 'rôles',
+            'brand_ids' => 'marques',
+            'employee_id' => 'employé',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'required' => 'Le champ « :attribute » est obligatoire.',
+            'email.email' => 'L’adresse e-mail n’est pas valide.',
+            'email.unique' => 'Cette adresse e-mail est déjà utilisée par un autre compte.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'role_ids.required' => 'Sélectionnez au moins un rôle.',
+            'role_ids.min' => 'Sélectionnez au moins un rôle.',
+            'role_ids.*.exists' => 'Un des rôles sélectionnés n’existe plus.',
+            'brand_ids.*.exists' => 'Une des marques sélectionnées n’existe plus.',
+            'employee_id.exists' => 'Cet employé n’existe plus.',
+        ];
+    }
 }
