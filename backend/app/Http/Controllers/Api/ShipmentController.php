@@ -150,6 +150,14 @@ class ShipmentController extends Controller
 
         AuditLogger::log($request, 'shipments.create', $shipment, null, $shipment->toArray());
 
+        Log::info('shipment.store', [
+            'shipment_id' => $shipment->id,
+            'order_number' => $order->order_number,
+            'send_to_carrier' => $request->boolean('send_to_carrier'),
+            'delivery_company_id' => $shipment->delivery_company_id,
+            'reused_existing' => (bool) $existing,
+        ]);
+
         $dispatchResult = null;
         if ($request->boolean('send_to_carrier') && $shipment->delivery_company_id) {
             $dispatchResult = $this->dispatchToCarrier($shipment, $brandId, $request->input('products'));
@@ -249,7 +257,18 @@ class ShipmentController extends Controller
             'products' => $products ?? '',
         ];
 
-        $result = $provider->createShipment($payload);
+        // Une coupure réseau / un timeout vers le transporteur lève une exception :
+        // sans ce catch la requête finissait en 500 et l'expédition restait dans le
+        // CRM sans trace de l'échec.
+        try {
+            $result = $provider->createShipment($payload);
+        } catch (\Throwable $e) {
+            $result = [
+                'ok' => false,
+                'code' => 'carrier_exception',
+                'message' => "Le transporteur n'a pas répondu : " . $e->getMessage(),
+            ];
+        }
 
         if ($result['ok'] ?? false) {
             $data = $result['data'] ?? [];
