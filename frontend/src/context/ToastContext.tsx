@@ -31,7 +31,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 max-w-sm pointer-events-none">
+      {/* Au-dessus des modales (z-999), sinon les erreurs restent cachées derrière. */}
+      <div className="fixed bottom-4 right-4 z-[1200] flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}

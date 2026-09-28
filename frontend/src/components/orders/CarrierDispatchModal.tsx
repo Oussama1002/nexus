@@ -33,6 +33,8 @@ export function CarrierDispatchModal({
   const [carriers, setCarriers] = useState<{ id: number; name: string }[]>([]);
   const [carrierId, setCarrierId] = useState('');
   const [sending, setSending] = useState(false);
+  // L'erreur reste visible dans la popup, en plus du toast.
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!target) return;
@@ -53,6 +55,7 @@ export function CarrierDispatchModal({
   const send = async () => {
     if (!target || !carrierId) return;
     setSending(true);
+    setError(null);
 
     const payload = {
       order_id: target.orderId,
@@ -74,6 +77,7 @@ export function CarrierDispatchModal({
       const confirmRes = await api.patch(`orders/${target.orderId}/status`, { status: 'confirmed' });
       if (!confirmRes.ok) {
         setSending(false);
+        setError(confirmRes.message);
         toast.error(confirmRes.message);
         return;
       }
@@ -82,6 +86,7 @@ export function CarrierDispatchModal({
 
     setSending(false);
     if (!res.ok) {
+      setError(res.message);
       toast.error(res.message);
       return;
     }
@@ -115,6 +120,11 @@ export function CarrierDispatchModal({
       }
     >
       <div className="space-y-4">
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+            {error}
+          </div>
+        )}
         <label className="block text-sm font-bold text-zinc-900">
           Transporteur
           <select
