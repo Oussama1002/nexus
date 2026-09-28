@@ -102,6 +102,12 @@ function shipmentStatusFr(s: string): string {
   return SHIPMENT_LABELS[s] ?? s.replace(/_/g, ' ');
 }
 
+/** Rien chez le transporteur : ni expédition, ni identifiant renvoyé par lui. */
+function needsDispatch(o: Order): boolean {
+  if (['Annulé', 'Retourné'].includes(o.status)) return false;
+  return !o.shipment || !o.shipment.sentToCarrier;
+}
+
 function sourceFr(src: string | null | undefined): string {
   if (!src || src === '—') return '—';
   return SOURCE_LABELS[src] ?? src.replace(/_/g, ' ');
@@ -261,6 +267,18 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const [dispatchTarget, setDispatchTarget] = useState<DispatchTarget | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const openDispatch = useCallback((o: Order) => {
+    setDispatchTarget({
+      orderId: o.apiId,
+      orderRef: o.id,
+      recipientName: o.customerName,
+      phone: o.phone,
+      city: o.city,
+      address: o.address,
+      codAmount: o.paymentMethod === 'cod' ? o.total : 0,
+    });
+  }, []);
 
   const load = useCallback(async () => {
     if (!activeBrandId) {
@@ -477,17 +495,29 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
         header: '',
         className: 'text-right',
         cell: (o) => (
-          <button
-            type="button"
-            onClick={() => setSelectedId(o.id)}
-            className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700"
-          >
-            Ouvrir <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="inline-flex items-center gap-3">
+            {needsDispatch(o) && hasPermission('shipments.create') && (
+              <button
+                type="button"
+                onClick={() => openDispatch(o)}
+                title="Envoyer au transporteur"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black hover:bg-blue-700 transition-colors"
+              >
+                <Truck className="w-3.5 h-3.5" /> Envoyer
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedId(o.id)}
+              className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700"
+            >
+              Ouvrir <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         ),
       },
     ];
-  }, []);
+  }, [hasPermission, openDispatch]);
 
   if (!activeBrandId) {
     return <EmptyState title="Marque requise" description="Choisissez une marque active pour afficher les commandes." />;
@@ -619,6 +649,23 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Statut</p>
                   <StatusChip tone={toneForStatus(selected.status)}>{selected.status}</StatusChip>
                 </div>
+                <div className="space-y-1 text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Colis</p>
+                  {!selected.shipment ? (
+                    <StatusChip tone="neutral">Non envoyé</StatusChip>
+                  ) : !selected.shipment.sentToCarrier ? (
+                    <StatusChip tone={selected.shipment.syncError ? 'danger' : 'warning'}>
+                      {selected.shipment.syncError ? 'Échec envoi' : 'À envoyer'}
+                    </StatusChip>
+                  ) : (
+                    <StatusChip tone={SHIPMENT_TONES[selected.shipment.status] ?? 'info'}>
+                      {shipmentStatusFr(selected.shipment.status)}
+                    </StatusChip>
+                  )}
+                  {selected.shipment?.sentToCarrier && selected.shipment.tracking && (
+                    <p className="text-[10px] font-mono text-zinc-500">{selected.shipment.tracking}</p>
+                  )}
+                </div>
                 <div className="space-y-1 text-right">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Paiement</p>
                   <StatusChip tone={toneForPayment(selected.payment)}>{selected.payment}</StatusChip>
@@ -695,24 +742,22 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                     title="Créer une réclamation pour cette commande"
                   />
                 </div>
-                {!selected.shipment && hasPermission('shipments.create') && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDispatchTarget({
-                        orderId: selected.apiId,
-                        orderRef: selected.id,
-                        recipientName: selected.customerName,
-                        phone: selected.phone,
-                        city: selected.city,
-                        address: selected.address,
-                        codAmount: selected.paymentMethod === 'cod' ? selected.total : 0,
-                      })
-                    }
-                    className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
-                  >
-                    <Truck className="w-4 h-4" /> Envoyer à livraison
-                  </button>
+                {needsDispatch(selected) && hasPermission('shipments.create') && (
+                  <div className="space-y-2">
+                    {selected.shipment?.syncError && (
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
+                        Dernier échec d’envoi : {selected.shipment.syncError}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openDispatch(selected)}
+                      className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
+                    >
+                      <Truck className="w-4 h-4" />
+                      {selected.shipment ? 'Renvoyer au transporteur' : 'Envoyer au transporteur'}
+                    </button>
+                  </div>
                 )}
                 {hasPermission('orders.update') && (
                   <div className="grid grid-cols-2 gap-3">
