@@ -28,6 +28,10 @@ class MetaOAuthController extends Controller
         // Instagram : Meta refuse la connexion sinon.
         'pages_show_list',
         'pages_read_engagement',
+        // Publier sur la Page et modérer ses commentaires depuis le CRM
+        // (cas d'utilisation « Manage everything on your Page »).
+        'pages_manage_posts',
+        'pages_manage_engagement',
     ];
 
     /**

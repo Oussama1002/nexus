@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, ExternalLink, Heart, MessageCircle, RefreshCw, Share2 } from 'lucide-react';
 import { EmptyState } from '../ui/EmptyState';
+import { PostCommentsPanel } from './PostCommentsPanel';
 
 import * as api from '../../lib/api';
 
@@ -56,10 +57,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 export function SocialAccountDetail({
   accountId,
   accountName,
+  canModerate = false,
   onBack,
 }: {
   accountId: number;
   accountName: string;
+  canModerate?: boolean;
   onBack: () => void;
 }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -67,6 +70,8 @@ export function SocialAccountDetail({
   const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Commentaires depliables, une publication a la fois.
+  const [openComments, setOpenComments] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -210,15 +215,31 @@ export function SocialAccountDetail({
                           </span>
                         )}
                       </div>
-                      {post.permalink && (
-                        <a
-                          href={post.permalink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-black text-primary-600 hover:underline"
+                      <div className="flex items-center justify-between gap-2">
+                        {post.permalink ? (
+                          <a
+                            href={post.permalink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-black text-primary-600 hover:underline"
+                          >
+                            Voir la publication <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : <span />}
+                        <button
+                          type="button"
+                          onClick={() => setOpenComments(openComments === post.id ? null : post.id)}
+                          className="inline-flex items-center gap-1 text-[11px] font-black text-zinc-600 hover:text-primary-600"
                         >
-                          Voir la publication <ExternalLink className="w-3 h-3" />
-                        </a>
+                          <MessageCircle className="w-3 h-3" />
+                          {openComments === post.id ? 'Masquer' : 'Commentaires'}
+                        </button>
+                      </div>
+
+                      {openComments === post.id && (
+                        <div className="pt-2 border-t border-zinc-100">
+                          <PostCommentsPanel accountId={accountId} postId={post.id} canModerate={canModerate} />
+                        </div>
                       )}
                     </div>
                   </div>

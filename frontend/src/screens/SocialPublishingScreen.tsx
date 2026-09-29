@@ -1503,6 +1503,28 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
     }
   };
 
+  /** Publie reellement sur la Page / le compte, sans copier-coller de lien. */
+  const publishNow = async () => {
+    if (!detail) return;
+    setMarkSaving(true);
+    try {
+      const res = await api.post(`content-calendar/${detail.id}/publish-now`, {});
+      if (res.ok) {
+        toast(res.message || 'Contenu publie', 'success');
+        setShowMarkPublished(false);
+        setPublishedUrl('');
+        setDetail(null);
+        loadData();
+      } else {
+        toast(res.message || 'Publication refusee', 'error');
+      }
+    } catch {
+      toast('Erreur lors de la publication', 'error');
+    } finally {
+      setMarkSaving(false);
+    }
+  };
+
   const markNotPublished = async () => {
     if (!notPublishedReason.trim()) { toast('Le motif est obligatoire', 'error'); return; }
     if (!detail) return;
@@ -1613,19 +1635,28 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
         </div>
 
         {/* Mark Published modal */}
-        <Modal open={showMarkPublished} onClose={() => setShowMarkPublished(false)} title="Marquer comme publiée"
+        <Modal open={showMarkPublished} onClose={() => setShowMarkPublished(false)} title="Publier le contenu"
           footer={
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowMarkPublished(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button>
-              <button onClick={markPublished} disabled={markSaving} className="btn btn-primary flex items-center gap-2 text-sm">
-                {markSaving && <Loader2 size={14} className="animate-spin" />} Confirmer
+              <button onClick={markPublished} disabled={markSaving || !publishedUrl.trim()} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-800 disabled:opacity-50">
+                Enregistrer le lien
+              </button>
+              <button onClick={publishNow} disabled={markSaving} className="btn btn-primary flex items-center gap-2 text-sm">
+                {markSaving && <Loader2 size={14} className="animate-spin" />} Publier maintenant
               </button>
             </div>
           }
         >
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-1">Lien de la publication *</label>
-            <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={publishedUrl} onChange={e => setPublishedUrl(e.target.value)} />
+          <div className="space-y-4">
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs font-semibold text-zinc-600">
+              « Publier maintenant » envoie le contenu sur la Page Facebook ou le compte Instagram lié,
+              avec sa légende et son visuel. Sinon, publiez à la main et collez le lien ci-dessous.
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-500 mb-1">Lien d’une publication déjà faite</label>
+              <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={publishedUrl} onChange={e => setPublishedUrl(e.target.value)} />
+            </div>
           </div>
         </Modal>
 

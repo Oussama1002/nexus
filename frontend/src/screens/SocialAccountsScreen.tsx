@@ -6,6 +6,7 @@ import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import {
   Link2, Plus, Search, Facebook, Instagram, Music2, Youtube, Linkedin, Twitter,
   Users, ChevronLeft, ChevronRight, Zap, RefreshCw,
@@ -62,6 +63,7 @@ function PlatformIcon({ platform }: { platform: string }) {
 
 export function SocialAccountsScreen() {
   const toast = useToast();
+  const { hasPermission } = useAuth();
   const [rows, setRows] = useState<SocialAccount[]>([]);
   const [importing, setImporting] = useState(false);
   const [page, setPage] = useState(1);
@@ -173,6 +175,7 @@ export function SocialAccountsScreen() {
       <SocialAccountDetail
         accountId={openAccount.id}
         accountName={openAccount.name}
+        canModerate={hasPermission('social_accounts.update')}
         onBack={() => setOpenAccount(null)}
       />
     );

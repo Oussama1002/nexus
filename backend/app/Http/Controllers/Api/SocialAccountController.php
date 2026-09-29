@@ -89,6 +89,74 @@ class SocialAccountController extends Controller
         return ApiResponse::success($data, 'Compte social récupéré.');
     }
 
+    /** Commentaires d'une publication. */
+    public function comments(Request $request, string $id, string $postId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $account = SocialAccount::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        try {
+            $comments = app(\App\Services\Meta\SocialPagePublisher::class)->comments($account, $postId);
+        } catch (\App\Services\Meta\MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        return ApiResponse::success($comments, 'Commentaires récupérés.');
+    }
+
+    /** Répond à un commentaire au nom de la Page. */
+    public function replyToComment(Request $request, string $id, string $commentId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $account = SocialAccount::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        $data = $request->validate(
+            ['message' => ['required', 'string', 'max:2000']],
+            ['message.required' => 'La réponse ne peut pas être vide.']
+        );
+
+        try {
+            app(\App\Services\Meta\SocialPagePublisher::class)->reply($account, $commentId, $data['message']);
+        } catch (\App\Services\Meta\MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        AuditLogger::log($request, 'social_accounts.comment_reply', $account, null, ['comment_id' => $commentId]);
+
+        return ApiResponse::success(null, 'Réponse publiée.');
+    }
+
+    /** Masque, réaffiche ou supprime un commentaire. */
+    public function moderateComment(Request $request, string $id, string $commentId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $account = SocialAccount::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        $data = $request->validate([
+            'action' => ['required', 'in:hide,unhide,delete'],
+        ]);
+
+        $publisher = app(\App\Services\Meta\SocialPagePublisher::class);
+
+        try {
+            match ($data['action']) {
+                'hide' => $publisher->setHidden($account, $commentId, true),
+                'unhide' => $publisher->setHidden($account, $commentId, false),
+                'delete' => $publisher->deleteComment($account, $commentId),
+            };
+        } catch (\App\Services\Meta\MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        AuditLogger::log($request, 'social_accounts.comment_'.$data['action'], $account, null, ['comment_id' => $commentId]);
+
+        return ApiResponse::success(null, match ($data['action']) {
+            'hide' => 'Commentaire masqué.',
+            'unhide' => 'Commentaire réaffiché.',
+            default => 'Commentaire supprimé.',
+        });
+    }
+
     public function update(UpdateSocialAccountRequest $request, string $id): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);

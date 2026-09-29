@@ -372,6 +372,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('social-accounts', [SocialAccountController::class, 'store'])->middleware('permission:social_accounts.create');
     Route::get('social-accounts/{id}', [SocialAccountController::class, 'show'])->whereNumber('id')->middleware('permission:social_accounts.view');
     Route::get('social-accounts/{id}/insights', [SocialAccountController::class, 'insights'])->whereNumber('id')->middleware('permission:social_accounts.view');
+    Route::get('social-accounts/{id}/posts/{postId}/comments', [SocialAccountController::class, 'comments'])->whereNumber('id')->middleware('permission:social_accounts.view');
+    Route::post('social-accounts/{id}/comments/{commentId}/reply', [SocialAccountController::class, 'replyToComment'])->whereNumber('id')->middleware('permission:social_accounts.update');
+    Route::post('social-accounts/{id}/comments/{commentId}/moderate', [SocialAccountController::class, 'moderateComment'])->whereNumber('id')->middleware('permission:social_accounts.update');
     Route::put('social-accounts/{id}', [SocialAccountController::class, 'update'])->whereNumber('id')->middleware('permission:social_accounts.update');
     Route::patch('social-accounts/{id}', [SocialAccountController::class, 'update'])->whereNumber('id')->middleware('permission:social_accounts.update');
     Route::delete('social-accounts/{id}', [SocialAccountController::class, 'destroy'])->whereNumber('id')->middleware('permission:social_accounts.delete');
@@ -402,6 +405,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('content-calendar/{id}/approve', [ContentCalendarController::class, 'approveContent'])->whereNumber('id')->middleware('permission:content_calendar.approve');
     Route::post('content-calendar/{id}/request-revision', [ContentCalendarController::class, 'requestRevision'])->whereNumber('id')->middleware('permission:content_calendar.approve');
     Route::post('content-calendar/{id}/reject', [ContentCalendarController::class, 'rejectContent'])->whereNumber('id')->middleware('permission:content_calendar.approve');
+    Route::post('content-calendar/{id}/publish-now', [ContentCalendarController::class, 'publishNow'])->whereNumber('id')->middleware('permission:content_calendar.update');
     Route::post('content-calendar/{id}/mark-published', [ContentCalendarController::class, 'markPublished'])->whereNumber('id')->middleware('permission:content_calendar.update');
     Route::post('content-calendar/{id}/mark-not-published', [ContentCalendarController::class, 'markNotPublished'])->whereNumber('id')->middleware('permission:content_calendar.update');
 

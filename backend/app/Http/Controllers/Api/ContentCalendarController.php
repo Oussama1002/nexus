@@ -255,6 +255,87 @@ class ContentCalendarController extends Controller
         );
     }
 
+    /**
+     * Publie réellement le contenu sur la Page Facebook ou le compte Instagram,
+     * au lieu d'attendre que quelqu'un colle un lien à la main.
+     */
+    public function publishNow(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $row = ContentCalendar::query()->with('socialAccount')->where('brand_id', $brandId)->findOrFail($id);
+        $before = $row->toArray();
+
+        if ($row->status === 'published') {
+            return ApiResponse::error('Ce contenu est déjà publié.', null, 422);
+        }
+
+        if ($row->status !== 'approved') {
+            return ApiResponse::error('Seul un contenu approuvé peut être publié.', null, 422);
+        }
+
+        $publisher = app(\App\Services\Meta\SocialPagePublisher::class);
+
+        $account = $row->socialAccount
+            ?? $publisher->defaultAccount($brandId, (string) ($row->platform ?: 'facebook'));
+
+        if (! $account) {
+            return ApiResponse::error(
+                'Aucun compte social pour cette plateforme. Importez-les depuis Paramètres → Comptes sociaux.',
+                null,
+                422
+            );
+        }
+
+        $message = trim((string) ($row->caption ?: $row->description ?: $row->title));
+        if ($message === '') {
+            return ApiResponse::error('Le contenu n’a ni légende ni description à publier.', null, 422);
+        }
+
+        $imageUrl = $request->input('image_url') ?: $this->firstAttachmentUrl($row);
+
+        try {
+            $result = $publisher->publish($account, $message, $imageUrl, $request->input('link'));
+        } catch (\App\Services\Meta\MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        $row->status = 'published';
+        $row->published_at = now();
+        $row->published_url = $result['permalink'] ?: $row->published_url;
+        $row->social_account_id = $account->id;
+        $row->save();
+
+        AuditLogger::log($request, 'content_calendar.publish_now', $row, $before, $row->fresh()->toArray());
+        CmNotificationService::contentPublished($brandId, $request->user()->id, $row->id, $row->title);
+
+        return ApiResponse::success(
+            $row->fresh()->load(['socialAccount', 'strategy', 'assignee', 'validatedByUser:id,name,email']),
+            'Contenu publié sur '.$account->account_name.'.'
+        );
+    }
+
+    /** Première pièce jointe exploitable comme visuel de publication. */
+    private function firstAttachmentUrl(ContentCalendar $row): ?string
+    {
+        $attachments = $row->attachments_json;
+        if (is_string($attachments)) {
+            $attachments = json_decode($attachments, true);
+        }
+
+        if (! is_array($attachments)) {
+            return null;
+        }
+
+        foreach ($attachments as $attachment) {
+            $url = is_array($attachment) ? ($attachment['url'] ?? null) : $attachment;
+            if (is_string($url) && str_starts_with($url, 'http')) {
+                return $url;
+            }
+        }
+
+        return null;
+    }
+
     public function markNotPublished(Request $request, string $id): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
