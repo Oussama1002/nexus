@@ -11,7 +11,11 @@ use Illuminate\Support\Facades\Http;
  */
 class InstagramGraphService
 {
-    private const BASE = 'https://graph.instagram.com';
+    /**
+     * La version est obligatoire : graph.instagram.com/me sans préfixe est
+     * l'ancienne Basic Display API, supprimée (« Unsupported request »).
+     */
+    private const BASE = 'https://graph.instagram.com/v21.0';
 
     private const PROFILE_FIELDS = 'user_id,username,name,biography,profile_picture_url,followers_count,follows_count,media_count,website';
 

@@ -149,12 +149,15 @@ class MetaDoctorCommand extends Command
     private function instagramDirect(int $brandId): void
     {
         $service = app(\App\Services\Meta\InstagramGraphService::class);
+        $token = $service->tokenFor($brandId);
 
-        if ($service->tokenFor($brandId) === null) {
+        if ($token === null) {
             $this->warn('Aucun jeton Instagram : cliquez « Connecter Instagram » dans Parametres -> Meta.');
 
             return;
         }
+
+        $this->probeInstagramEndpoints($brandId, $token);
 
         try {
             $data = $service->overview($brandId, 3);
@@ -168,5 +171,47 @@ class MetaDoctorCommand extends Command
         } catch (MetaApiException $e) {
             $this->error('Jeton Instagram refuse : '.$e->getMessage());
         }
+    }
+
+    /**
+     * L'adresse exacte depend de l'API Instagram activee sur l'app : on essaie
+     * les variantes documentees et on affiche celle qui repond.
+     */
+    private function probeInstagramEndpoints(int $brandId, string $token): void
+    {
+        $userId = \App\Models\SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'instagram_user_id')
+            ->value('setting_value');
+        $userId = is_string($userId) ? trim($userId) : '';
+
+        $candidates = [
+            'https://graph.instagram.com/v23.0/me',
+            'https://graph.instagram.com/v22.0/me',
+            'https://graph.instagram.com/v21.0/me',
+            'https://graph.instagram.com/me',
+        ];
+
+        if ($userId !== '') {
+            $candidates[] = 'https://graph.instagram.com/v23.0/'.$userId;
+            $candidates[] = 'https://graph.instagram.com/'.$userId;
+        }
+
+        $this->line('Sondage des adresses (user_id enregistre : '.($userId !== '' ? $userId : 'aucun').') :');
+
+        foreach ($candidates as $url) {
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(20)->acceptJson()->get($url, [
+                    'fields' => 'user_id,username',
+                    'access_token' => $token,
+                ]);
+                $body = trim($response->body());
+                $this->line(sprintf('  %-46s %s  %s', str_replace('https://graph.instagram.com', '', $url), $response->status(), mb_substr($body, 0, 120)));
+            } catch (\Throwable $e) {
+                $this->line(sprintf('  %-46s EX  %s', str_replace('https://graph.instagram.com', '', $url), $e->getMessage()));
+            }
+        }
+
+        $this->newLine();
     }
 }
