@@ -63,26 +63,6 @@ class InfluencerController extends Controller
      * publications de la marque. Meta n'expose pas la liste des abonnes :
      * les commentateurs sont la seule audience nominative disponible.
      */
-    /** Fiche publique d'un compte Instagram, par son pseudo. */
-    public function instagramLookup(Request $request): JsonResponse
-    {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-
-        $data = $request->validate(
-            ['username' => ['required', 'string', 'max:100']],
-            ['username.required' => 'Indiquez un pseudo Instagram.']
-        );
-
-        try {
-            $result = app(\App\Services\Meta\InstagramAudienceImporter::class)
-                ->lookupAccount($brandId, $data['username']);
-        } catch (\App\Services\Meta\MetaApiException $e) {
-            return ApiResponse::error($e->getMessage(), null, 422);
-        }
-
-        return ApiResponse::success($result, $result['found'] ? 'Compte trouve.' : 'Compte non verifiable.');
-    }
-
     /** Pseudos candidats, sans rien creer : alimente le formulaire. */
     public function instagramSuggestions(Request $request): JsonResponse
     {

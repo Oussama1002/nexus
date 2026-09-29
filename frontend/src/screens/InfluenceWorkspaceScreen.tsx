@@ -322,39 +322,22 @@ export function InfluenceWorkspaceScreen() {
   const [igQuery, setIgQuery] = useState('');
   const [igLookupNote, setIgLookupNote] = useState<string | null>(null);
 
-  /** Cherche un compte Instagram par son pseudo et remplit la fiche. */
-  const lookupIgAccount = async () => {
+  /**
+   * Instagram ne permet pas de consulter un compte par son pseudo depuis cette
+   * app : on reprend le pseudo et le lien, les chiffres se saisissent a la main.
+   */
+  const useIgHandle = () => {
     const handle = igQuery.trim().replace(/^@/, '');
     if (!handle) return;
-    setImportingIg(true);
-    setIgLookupNote(null);
-    try {
-      const r = await api.get<{
-        username: string; name: string; followers: number; media_count: number;
-        biography: string; website: string; found: boolean; warning: string | null;
-      }>('influencers/instagram-lookup?username=' + encodeURIComponent(handle));
-      if (!r.ok) return errToast(toast, r);
-
-      const a = r.data;
-      if (!a) return;
-
-      setInfForm(p => ({
-        ...p,
-        full_name: a.name || p.full_name || '@' + a.username,
-        username: a.username,
-        platform: 'instagram',
-        bio: a.biography || p.bio,
-        audience_size: a.followers ? String(a.followers) : p.audience_size,
-        source: p.source || 'Instagram',
-      }));
-
-      setIgLookupNote(
-        a.found
-          ? a.followers.toLocaleString('fr-FR') + ' abonnes · ' + a.media_count + ' publication(s)'
-          : (a.warning || 'Compte non verifiable : la fiche est prete, completez-la a la main.'),
-      );
-      setIgSuggestions([]);
-    } finally { setImportingIg(false); }
+    setInfForm(p => ({
+      ...p,
+      full_name: p.full_name || '@' + handle,
+      username: handle,
+      platform: 'instagram',
+      source: p.source || 'Instagram',
+    }));
+    setIgLookupNote('Pseudo repris. Saisissez les abonnes et le taux d’engagement a la main.');
+    setIgSuggestions([]);
   };
 
   /** Remplit le formulaire avec le compte choisi. */
@@ -1500,25 +1483,25 @@ export function InfluenceWorkspaceScreen() {
         {!infId && (
           <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-zinc-700">Chercher un compte Instagram</p>
+              <p className="text-xs font-semibold text-zinc-700">Ajouter depuis Instagram</p>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex flex-1 items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2">
                   <span className="text-xs font-bold text-zinc-400">@</span>
                   <input
                     value={igQuery}
                     onChange={e => setIgQuery(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void lookupIgAccount(); } }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); useIgHandle(); } }}
                     placeholder="pseudo du compte"
                     className="flex-1 bg-transparent px-1 py-1.5 text-xs font-medium outline-none"
                   />
                 </div>
                 <button
                   type="button"
-                  onClick={() => void lookupIgAccount()}
-                  disabled={importingIg || !igQuery.trim()}
+                  onClick={useIgHandle}
+                  disabled={!igQuery.trim()}
                   className="flex items-center gap-1 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-zinc-800 disabled:opacity-50"
                 >
-                  <Instagram size={13} /> {importingIg ? 'Recherche…' : 'Chercher'}
+                  <Instagram size={13} /> Reprendre
                 </button>
                 <button
                   type="button"
