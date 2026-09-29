@@ -17,6 +17,8 @@ class StockMovement extends Model
         'quantity',
         'previous_stock',
         'new_stock',
+        'previous_reserved',
+        'new_reserved',
         'reason',
         'reference_type',
         'reference_id',

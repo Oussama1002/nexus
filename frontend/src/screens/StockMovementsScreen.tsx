@@ -21,6 +21,8 @@ type StockMovement = {
   quantity: number;
   previous_stock: number | null;
   new_stock: number | null;
+  previous_reserved: number | null;
+  new_reserved: number | null;
   reason: string | null;
   reference_type: string | null;
   reference_id: number | null;
@@ -40,7 +42,43 @@ const TYPE_COLORS: Record<string, string> = {
 
 const REFERENCE_FR: Record<string, string> = { order: 'Commande', purchase_order: 'Achat', shipment: 'Colis' };
 
+/** Raisons enregistrées par le back-office, en clair. */
+const REASON_FR: Record<string, string> = {
+  order_confirmed: 'Commande confirmée',
+  order_cancelled: 'Commande annulée',
+  order_delivered: 'Commande livrée',
+  order_returned: 'Commande retournée',
+  initial_stock_on_create: 'Stock initial à la création',
+  po_receipt: 'Réception commande fournisseur',
+};
+
+function reasonFr(reason: string | null): string {
+  if (!reason) return '—';
+  return REASON_FR[reason] ?? reason.replace(/_/g, ' ');
+}
+
+/**
+ * Une réservation ne bouge pas le stock physique mais le stock disponible :
+ * afficher « 10 → 10 » laissait croire qu'il ne s'était rien passé.
+ */
+function stockBeforeAfter(r: StockMovement): string {
+  if (r.previous_stock == null || r.new_stock == null) return '—';
+
+  const isReservation = r.movement_type === 'reservation' || r.movement_type === 'release';
+  if (isReservation && r.previous_reserved != null && r.new_reserved != null) {
+    const before = r.previous_stock - r.previous_reserved;
+    const after = r.new_stock - r.new_reserved;
+    return `${before} → ${after} dispo`;
+  }
+
+  return `${r.previous_stock} → ${r.new_stock}`;
+}
+
 function signedQty(r: StockMovement): string {
+  // Une réservation retire du disponible, une libération en rend.
+  if (r.movement_type === 'reservation') return `-${r.quantity}`;
+  if (r.movement_type === 'release') return `+${r.quantity}`;
+
   const delta = r.previous_stock != null && r.new_stock != null ? r.new_stock - r.previous_stock : null;
   if (delta == null || delta === 0) return String(r.quantity);
   return delta > 0 ? `+${delta}` : String(delta);
@@ -175,10 +213,10 @@ export function StockMovementsScreen() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-700">
-                    {row.previous_stock != null && row.new_stock != null ? `${row.previous_stock} → ${row.new_stock}` : '—'}
+                    {stockBeforeAfter(row)}
                   </td>
                   <td className="px-4 py-3 text-sm text-zinc-700 max-w-[260px]">
-                    <p className="truncate" title={row.reason ?? ''}>{row.reason || '—'}</p>
+                    <p className="truncate" title={reasonFr(row.reason)}>{reasonFr(row.reason)}</p>
                     {row.reference_type && (
                       <p className="text-xs text-zinc-400">{REFERENCE_FR[row.reference_type] ?? row.reference_type}{row.reference_id ? ` #${row.reference_id}` : ''}</p>
                     )}
