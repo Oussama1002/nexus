@@ -159,6 +159,7 @@ class SystemSettingRegistry
             'meta_currency' => ['sensitive' => false, 'description' => 'Devise Ads'],
             'meta_lead_action_types' => ['sensitive' => false, 'description' => 'Actions Meta comptées comme leads'],
             'meta_page_id' => ['sensitive' => false, 'description' => 'Page Facebook utilisée pour les publicités'],
+            'meta_instagram_scope' => ['sensitive' => false, 'description' => 'Demander les autorisations Instagram à la connexion Meta'],
             'meta_instagram_id' => ['sensitive' => false, 'description' => 'Compte Instagram lié aux publicités'],
             'meta_pixel_id' => ['sensitive' => false, 'description' => 'Pixel Meta (conversions)'],
             'meta_page_name' => ['sensitive' => false, 'description' => 'Nom de la Page Facebook'],

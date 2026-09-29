@@ -30,6 +30,17 @@ class MetaOAuthController extends Controller
         'pages_read_engagement',
     ];
 
+    /**
+     * Ajoutées seulement si la marque active l'option : sans le produit
+     * Instagram dans l'app Meta, Facebook refuse toute la connexion
+     * (« Invalid Scopes »). Avec elles, le champ instagram_business_account
+     * d'une Page devient lisible, et les publications Instagram avec.
+     */
+    private const INSTAGRAM_SCOPES = [
+        'instagram_basic',
+        'instagram_manage_insights',
+    ];
+
     public function redirectUrl(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false)
@@ -42,10 +53,15 @@ class MetaOAuthController extends Controller
 
         $state = $this->buildState($brandId);
 
+        $scopes = self::SCOPES;
+        if ($this->getSetting($brandId, 'meta_instagram_scope') === '1') {
+            $scopes = array_merge($scopes, self::INSTAGRAM_SCOPES);
+        }
+
         $params = http_build_query([
             'client_id' => $appId,
             'redirect_uri' => $this->callbackUrl(),
-            'scope' => implode(',', self::SCOPES),
+            'scope' => implode(',', $scopes),
             'response_type' => 'code',
             'state' => $state,
         ]);

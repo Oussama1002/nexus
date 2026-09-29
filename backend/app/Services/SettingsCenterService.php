@@ -570,6 +570,10 @@ class SettingsCenterService
                 'pageName' => $this->getRaw($brandId, 'meta_page_name') ?? '',
                 'instagramUsername' => $this->getRaw($brandId, 'meta_instagram_username') ?? '',
                 'pixelName' => $this->getRaw($brandId, 'meta_pixel_name') ?? '',
+                // Demande instagram_basic à la connexion : n'activer qu'une fois
+                // le produit Instagram ajouté à l'app Meta, sinon Facebook
+                // refuse la connexion entière (« Invalid Scopes »).
+                'instagramScope' => ($this->getRaw($brandId, 'meta_instagram_scope') ?? '0') === '1',
             ],
             'ads' => [
                 'attributionWindowDays' => $this->getRaw($brandId, 'meta_attribution_window_days') ?? '',
@@ -593,6 +597,7 @@ class SettingsCenterService
             $cr = $p['credentials'] ?? [];
             $this->upsert($brandId, 'meta', 'meta_app_id', $cr['appId'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_business_id', $cr['businessId'] ?? '');
+            $this->upsert($brandId, 'meta', 'meta_instagram_scope', ! empty($cr['instagramScope']) ? '1' : '0');
             $sec = $cr['appSecret'] ?? '';
             if ($isAdmin && ! SystemSetting::valueIsUnchangedSecretPlaceholder((string) $sec) && $sec !== '') {
                 $this->upsertSensitive($brandId, 'meta', 'meta_app_secret', (string) $sec, $defs);

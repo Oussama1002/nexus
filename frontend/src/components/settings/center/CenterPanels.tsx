@@ -1228,6 +1228,24 @@ export function MetaPanel({
             label="Meta Business ID"
             help="business.facebook.com → Paramètres → Infos sur l’entreprise → « Identifiant de la organisation ». Il apparaît aussi dans l’URL : business.facebook.com/settings/?business_id=XXXXXXXX."
             value={value.credentials.businessId} onChange={(v) => p({ credentials: { ...value.credentials, businessId: v } })} disabled={disabled} />
+          <label className="md:col-span-2 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+            <input
+              type="checkbox"
+              checked={Boolean(value.credentials.instagramScope)}
+              onChange={(e) => p({ credentials: { ...value.credentials, instagramScope: e.target.checked } })}
+              disabled={disabled}
+              className="mt-0.5 w-5 h-5 rounded accent-primary-600"
+            />
+            <span>
+              <span className="block text-sm font-black text-zinc-900">Demander les autorisations Instagram</span>
+              <span className="block text-[11px] font-semibold text-zinc-500">
+                Nécessaire pour lire le compte Instagram lié à une Page et ses publications. À cocher
+                seulement si le produit « Instagram » est ajouté à votre app sur developers.facebook.com,
+                sinon Facebook refuse toute la connexion (« Invalid Scopes »). Reconnectez ensuite avec
+                Facebook.
+              </span>
+            </span>
+          </label>
         </div>
       </SectionCard>
       <SectionCard title="Publicités">
