@@ -20,7 +20,7 @@ class EnrollmentController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = trim((string) $request->query('search', ''));
         $status = trim((string) $request->query('status', ''));
@@ -28,7 +28,7 @@ class EnrollmentController extends Controller
         $studentId = $request->query('student_id');
 
         $query = Enrollment::query()
-            ->where('brand_id', $brandId)
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
             ->with([
                 'course:id,title,slug,status',
                 'student:id,full_name,email,phone',

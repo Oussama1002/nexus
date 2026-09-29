@@ -19,8 +19,8 @@ class LessonController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($courseId);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))->findOrFail($courseId);
 
         $lessons = $course->lessons()
             ->with('section:id,title,sort_order')

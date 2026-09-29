@@ -18,13 +18,13 @@ class StudentController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = trim((string) $request->query('search', ''));
         $status = trim((string) $request->query('status', ''));
 
         $query = Student::query()
-            ->where('brand_id', $brandId)
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
             ->withCount('enrollments')
             ->orderByDesc('id');
 
@@ -97,10 +97,10 @@ class StudentController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $student = Student::query()
-            ->where('brand_id', $brandId)
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
             ->with([
                 'enrollments' => fn ($q) => $q->with('course:id,title,slug,status'),
                 'quizAttempts' => fn ($q) => $q->with('quiz:id,title')->latest()->limit(20),

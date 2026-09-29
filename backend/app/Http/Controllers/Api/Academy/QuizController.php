@@ -22,8 +22,8 @@ class QuizController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($courseId);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))->findOrFail($courseId);
 
         $quizzes = $course->quizzes()
             ->withCount(['questions', 'attempts'])
@@ -128,8 +128,8 @@ class QuizController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($courseId);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))->findOrFail($courseId);
 
         $quiz = Quiz::query()
             ->where('course_id', $course->id)
