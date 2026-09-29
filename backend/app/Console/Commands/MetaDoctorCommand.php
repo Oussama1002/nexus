@@ -185,30 +185,37 @@ class MetaDoctorCommand extends Command
             ->value('setting_value');
         $userId = is_string($userId) ? trim($userId) : '';
 
-        $candidates = [
-            'https://graph.instagram.com/v23.0/me',
-            'https://graph.instagram.com/v22.0/me',
-            'https://graph.instagram.com/v21.0/me',
-            'https://graph.instagram.com/me',
+        // Un jeton Instagram commence par « IGAA » ; un jeton Facebook par « EAA ».
+        $this->line('Jeton      : prefixe '.mb_substr($token, 0, 4).'… ('.strlen($token).' caracteres)');
+        $this->line('user_id    : '.($userId !== '' ? $userId : 'aucun'));
+        $this->newLine();
+
+        $probes = [
+            ['GET  /v23.0/me?fields=username', 'https://graph.instagram.com/v23.0/me', ['fields' => 'username'], false],
+            ['GET  /v23.0/me (sans fields)', 'https://graph.instagram.com/v23.0/me', [], false],
+            ['GET  /me?fields=username', 'https://graph.instagram.com/me', ['fields' => 'username'], false],
+            ['GET  /v23.0/me + entete Bearer', 'https://graph.instagram.com/v23.0/me', ['fields' => 'username'], true],
+            ['GET  /v23.0/me/media', 'https://graph.instagram.com/v23.0/me/media', ['fields' => 'id'], false],
+            ['GET  graph.facebook.com/v21.0/me', 'https://graph.facebook.com/v21.0/me', ['fields' => 'id,name'], false],
         ];
 
         if ($userId !== '') {
-            $candidates[] = 'https://graph.instagram.com/v23.0/'.$userId;
-            $candidates[] = 'https://graph.instagram.com/'.$userId;
+            $probes[] = ['GET  /v23.0/<user_id>?fields=username', 'https://graph.instagram.com/v23.0/'.$userId, ['fields' => 'username'], false];
         }
 
-        $this->line('Sondage des adresses (user_id enregistre : '.($userId !== '' ? $userId : 'aucun').') :');
-
-        foreach ($candidates as $url) {
+        foreach ($probes as [$label, $url, $query, $bearer]) {
             try {
-                $response = \Illuminate\Support\Facades\Http::timeout(20)->acceptJson()->get($url, [
-                    'fields' => 'user_id,username',
-                    'access_token' => $token,
-                ]);
-                $body = trim($response->body());
-                $this->line(sprintf('  %-46s %s  %s', str_replace('https://graph.instagram.com', '', $url), $response->status(), mb_substr($body, 0, 120)));
+                $request = \Illuminate\Support\Facades\Http::timeout(20)->acceptJson();
+                if ($bearer) {
+                    $request = $request->withToken($token);
+                } else {
+                    $query['access_token'] = $token;
+                }
+
+                $response = $request->get($url, $query);
+                $this->line(sprintf('  %-38s %s  %s', $label, $response->status(), mb_substr(trim($response->body()), 0, 130)));
             } catch (\Throwable $e) {
-                $this->line(sprintf('  %-46s EX  %s', str_replace('https://graph.instagram.com', '', $url), $e->getMessage()));
+                $this->line(sprintf('  %-38s EX  %s', $label, $e->getMessage()));
             }
         }
 
