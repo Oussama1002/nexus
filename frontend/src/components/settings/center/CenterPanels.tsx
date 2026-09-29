@@ -1234,9 +1234,9 @@ export function MetaPanel({
             value={value.credentials.businessId} onChange={(v) => p({ credentials: { ...value.credentials, businessId: v } })} disabled={disabled} />
           <div className="md:col-span-2">
             <TextField
-              label="Autorisations Instagram"
+              label="Autorisations Meta supplémentaires"
               hint="séparées par des virgules — laisser vide pour ne pas les demander"
-              help="Noms exacts des permissions Instagram à demander à la connexion. Ils dépendent du cas d’utilisation activé dans votre app Meta : « instagram_basic, instagram_manage_insights » pour l’API Graph historique, « instagram_business_basic » pour la nouvelle API Instagram. Le nom exact est affiché sur developers.facebook.com → votre app → Cas d’utilisation → Personnaliser. Un nom inconnu fait échouer toute la connexion (« Invalid Scopes ») : videz le champ pour revenir en arrière."
+              help="Permissions demandées en plus du socle, séparées par des virgules. « instagram_basic » pour lire un compte Instagram lié à une Page ; « pages_manage_posts, pages_manage_engagement » pour publier et modérer depuis le CRM. Chaque nom doit correspondre à un cas d’utilisation activé dans votre app (developers.facebook.com → votre app → Cas d’utilisation → Personnaliser) : un nom inconnu fait échouer toute la connexion (« Invalid Scopes »), videz le champ pour revenir en arrière."
               value={value.credentials.instagramScopes ?? ''}
               onChange={(v) => p({ credentials: { ...value.credentials, instagramScopes: v } })}
               disabled={disabled}

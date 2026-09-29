@@ -28,18 +28,15 @@ class MetaOAuthController extends Controller
         // Instagram : Meta refuse la connexion sinon.
         'pages_show_list',
         'pages_read_engagement',
-        // Publier sur la Page et modérer ses commentaires depuis le CRM
-        // (cas d'utilisation « Manage everything on your Page »).
-        'pages_manage_posts',
-        'pages_manage_engagement',
     ];
 
     /**
-     * Autorisations Instagram : les noms changent selon le cas d'utilisation
-     * activé dans l'app Meta (instagram_basic pour l'API Graph historique,
-     * instagram_business_* pour la nouvelle). Un nom inconnu fait échouer
-     * toute la connexion (« Invalid Scopes »), d'où une liste saisie dans
-     * Paramètres → Meta plutôt qu'une liste figée ici.
+     * Autorisations supplémentaires saisies par la marque : Instagram
+     * (instagram_basic…) et écriture sur les Pages (pages_manage_posts,
+     * pages_manage_engagement). Leur disponibilité dépend des cas
+     * d'utilisation activés dans l'app, et un nom inconnu fait échouer toute
+     * la connexion (« Invalid Scopes ») — d'où une liste modifiable plutôt
+     * qu'une liste figée ici.
      */
 
     public function redirectUrl(Request $request): JsonResponse
