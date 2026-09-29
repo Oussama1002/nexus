@@ -1561,7 +1561,7 @@ export function InfluenceWorkspaceScreen() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nom complet *">
-            <input className={inputClass} value={infForm.full_name} onChange={e => setInfForm(p => ({ ...p, full_name: e.target.value }))} />
+            <input className={inputClass} value={infForm.full_name} onChange={e => setInfForm(p => ({ ...p, full_name: e.target.value }))} placeholder={infForm.username ? 'Nom de @' + infForm.username : 'Prénom et nom'} />
           </Field>
           <Field label="Username">
             <input className={inputClass} value={infForm.username} onChange={e => setInfForm(p => ({ ...p, username: e.target.value }))} placeholder="@handle" />

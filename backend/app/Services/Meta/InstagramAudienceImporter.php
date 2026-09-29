@@ -61,9 +61,14 @@ class InstagramAudienceImporter
         if ($connected === '' || $connected !== mb_strtolower($username)) {
             // Compte tiers : passe par le referentiel Instagram rattache a la
             // Page Facebook, disponible seulement avec instagram_basic.
-            $discovered = $this->discover($brandId, $username);
+            [$discovered, $reason] = $this->discover($brandId, $username);
+            if ($discovered !== null) {
+                return $discovered;
+            }
 
-            return $discovered ?? $empty;
+            return array_merge($empty, [
+                'warning' => $empty['warning'].($reason !== null ? ' (Meta : '.$reason.')' : ''),
+            ]);
         }
 
         return [
@@ -85,9 +90,9 @@ class InstagramAudienceImporter
      * Necessite instagram_basic et un compte Instagram rattache a une Page :
      * renvoie null quand l'un des deux manque.
      *
-     * @return array<string, mixed>|null
+     * @return array{0: array<string, mixed>|null, 1: string|null}  fiche, raison de l'echec
      */
-    private function discover(int $brandId, string $username): ?array
+    private function discover(int $brandId, string $username): array
     {
         $igId = trim((string) \App\Models\SystemSetting::query()
             ->where('brand_id', $brandId)
@@ -95,7 +100,7 @@ class InstagramAudienceImporter
             ->value('setting_value'));
 
         if ($igId === '') {
-            return null;
+            return [null, 'Aucun compte Instagram rattache a la Page : lancez « Detecter Page / Instagram / Pixel » dans Parametres -> Meta.'];
         }
 
         $fields = sprintf(
@@ -105,16 +110,16 @@ class InstagramAudienceImporter
 
         try {
             $data = $this->graph->get($brandId, $igId, ['fields' => $fields]);
-        } catch (MetaApiException) {
-            return null;
+        } catch (MetaApiException $e) {
+            return [null, $e->getMessage()];
         }
 
         $found = $data['business_discovery'] ?? null;
         if (! is_array($found)) {
-            return null;
+            return [null, 'Instagram n’a rien renvoye pour ce pseudo.'];
         }
 
-        return [
+        return [[
             'username' => (string) ($found['username'] ?? $username),
             'name' => (string) ($found['name'] ?? ''),
             'followers' => (int) ($found['followers_count'] ?? 0),
@@ -124,7 +129,7 @@ class InstagramAudienceImporter
             'avatar' => $found['profile_picture_url'] ?? null,
             'found' => true,
             'warning' => null,
-        ];
+        ], null];
     }
 
     /**
