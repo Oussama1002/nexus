@@ -14,7 +14,9 @@ use Illuminate\Console\Command;
  */
 class MetaDoctorCommand extends Command
 {
-    protected $signature = 'meta:doctor {--brand= : Marque à diagnostiquer (la première par défaut)}';
+    protected $signature = 'meta:doctor
+        {--brand= : Marque à diagnostiquer (la première par défaut)}
+        {--instagram= : ID d’un compte Instagram à sonder avec chaque jeton de Page}';
 
     protected $description = 'Vérifie le jeton Meta : autorisations accordées, Pages accessibles, jetons de Page.';
 
@@ -98,6 +100,42 @@ class MetaDoctorCommand extends Command
             }
         } catch (MetaApiException $e) {
             $this->error('Lecture des Pages impossible : '.$e->getMessage());
+            $pages = [];
+        }
+
+        $this->newLine();
+        $this->info('=== Instagram : réponse brute de Meta ===');
+        $instagramId = (string) ($this->option('instagram') ?? '');
+
+        foreach ($pages as $page) {
+            $pageId = (string) ($page['id'] ?? '');
+            $token = (string) ($page['access_token'] ?? '');
+            if ($token === '') {
+                continue;
+            }
+
+            // Champ absent (sans erreur) = permission instagram_basic manquante.
+            try {
+                $node = $graph->get($brandId, $pageId, ['fields' => 'instagram_business_account{id,username}'], $token);
+                $this->line(sprintf(
+                    '  %-22s %s',
+                    mb_substr((string) ($page['name'] ?? '?'), 0, 22),
+                    array_key_exists('instagram_business_account', $node)
+                        ? json_encode($node['instagram_business_account'], JSON_UNESCAPED_UNICODE)
+                        : 'champ absent de la réponse'
+                ));
+            } catch (MetaApiException $e) {
+                $this->line(sprintf('  %-22s ERREUR %s', mb_substr((string) ($page['name'] ?? '?'), 0, 22), $e->getMessage()));
+            }
+
+            if ($instagramId !== '') {
+                try {
+                    $ig = $graph->get($brandId, $instagramId, ['fields' => 'username,name'], $token);
+                    $this->line('    → compte '.$instagramId.' lu : '.json_encode($ig, JSON_UNESCAPED_UNICODE));
+                } catch (MetaApiException $e) {
+                    $this->line('    → compte '.$instagramId.' refusé : '.$e->getMessage());
+                }
+            }
         }
 
         return self::SUCCESS;
