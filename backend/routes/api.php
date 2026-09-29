@@ -124,6 +124,7 @@ Route::get('health', fn () => ApiResponse::success([
 // Callback OAuth Meta : public (Facebook appelle cette URL), sous /api car
 // c'est le seul préfixe routé vers Laravel côté serveur client.
 Route::get('meta/oauth/callback', [\App\Http\Controllers\Api\MetaOAuthController::class, 'callback']);
+Route::get('instagram/oauth/callback', [\App\Http\Controllers\Api\InstagramOAuthController::class, 'callback']);
 
 Route::post('auth/login', [AuthController::class, 'login']);
 Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
@@ -300,6 +301,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('meta')->group(function () {
         Route::get('oauth/url', [MetaOAuthController::class, 'redirectUrl']);
+        Route::get('instagram/oauth/url', [\App\Http\Controllers\Api\InstagramOAuthController::class, 'redirectUrl']);
         Route::get('ad-accounts', [MetaAdsController::class, 'previewAdAccounts'])->middleware('permission:ad_accounts.view');
         Route::post('sync/ad-accounts', [MetaAdsController::class, 'syncAdAccounts'])->middleware('permission:ad_accounts.update');
         Route::post('sync/campaigns', [MetaAdsController::class, 'syncCampaigns'])->middleware('permission:campaigns.update');

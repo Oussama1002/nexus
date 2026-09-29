@@ -85,9 +85,18 @@ class MetaSocialInsightsService
 
         $brandId = (int) $account->brand_id;
 
-        return $account->platform === 'instagram'
-            ? $this->instagram($brandId, $externalId, $limit)
-            : $this->facebook($brandId, $externalId, $limit);
+        if ($account->platform !== 'instagram') {
+            return $this->facebook($brandId, $externalId, $limit);
+        }
+
+        // Connexion Instagram directe quand elle existe : la lecture par la
+        // Page Facebook est fermée aux apps récentes.
+        $instagram = app(InstagramGraphService::class);
+        if ($instagram->tokenFor($brandId) !== null) {
+            return $instagram->overview($brandId, $limit);
+        }
+
+        return $this->instagram($brandId, $externalId, $limit);
     }
 
     /**

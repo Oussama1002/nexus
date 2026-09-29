@@ -152,12 +152,25 @@ export function IntegrationsScreen() {
     return res.ok;
   }, [toast]);
 
+  const [connectingIg, setConnectingIg] = useState(false);
+
   async function connectFacebook() {
     setConnectingFb(true);
     const res = await api.get<{ url: string }>('meta/oauth/url');
     setConnectingFb(false);
     if (!res.ok || !res.data?.url) {
       toast.error(res.message || 'Impossible de générer le lien de connexion Meta.');
+      return;
+    }
+    window.location.href = res.data.url;
+  }
+
+  async function connectInstagram() {
+    setConnectingIg(true);
+    const res = await api.get<{ url: string }>('meta/instagram/oauth/url');
+    setConnectingIg(false);
+    if (!res.ok || !res.data?.url) {
+      toast.error(res.message || 'Impossible de générer le lien de connexion Instagram.');
       return;
     }
     window.location.href = res.data.url;
@@ -284,6 +297,8 @@ export function IntegrationsScreen() {
                   metaTesting={testLoading === 'meta'}
                   onConnectFacebook={canUpdate ? connectFacebook : undefined}
                   connectingFacebook={connectingFb}
+                  onConnectInstagram={canUpdate ? connectInstagram : undefined}
+                  connectingInstagram={connectingIg}
                 />
               )}
             </>

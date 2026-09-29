@@ -998,6 +998,8 @@ export function MetaPanel({
   metaTesting,
   onConnectFacebook,
   connectingFacebook,
+  onConnectInstagram,
+  connectingInstagram,
 }: {
   value: MetaModel;
   onChange: (v: MetaModel) => void;
@@ -1007,6 +1009,8 @@ export function MetaPanel({
   metaTesting?: boolean;
   onConnectFacebook?: () => void;
   connectingFacebook?: boolean;
+  onConnectInstagram?: () => void;
+  connectingInstagram?: boolean;
 }) {
   const p = (patch: Partial<MetaModel>) => onChange({ ...value, ...patch });
   const sec = !disabled && isAdmin;
@@ -1240,6 +1244,49 @@ export function MetaPanel({
           </div>
         </div>
       </SectionCard>
+
+      <SectionCard title="Instagram">
+        <p className="mb-4 text-xs font-semibold text-zinc-500">
+          Instagram se connecte séparément : les apps Meta récentes ne donnent plus accès au compte
+          Instagram via la Page Facebook. Créez l’app Instagram sur developers.facebook.com
+          (produit « Instagram »), puis reportez ici son identifiant et sa clé secrète.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <TextField
+            label="Instagram App ID"
+            help="developers.facebook.com → votre app → Instagram → Configuration de l’API avec connexion Instagram → « Identifiant de l’app Instagram »."
+            value={value.instagram?.appId ?? ''}
+            onChange={(v) => p({ instagram: { ...(value.instagram ?? {}), appId: v } })}
+            disabled={disabled}
+          />
+          <SecretField
+            label="Instagram App Secret"
+            help="Même écran que l’App ID : « Clé secrète de l’app Instagram ». Elle n’est affichée qu’une fois."
+            configured={Boolean(value.instagram?.appSecretConfigured)}
+            value={value.instagram?.appSecret ?? ''}
+            onChange={(v) => p({ instagram: { ...(value.instagram ?? {}), appSecret: v } })}
+            disabled={!sec}
+          />
+          <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onConnectInstagram}
+              disabled={disabled || connectingInstagram || !value.instagram?.appId}
+              className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white transition disabled:opacity-50"
+              style={{ background: 'linear-gradient(90deg,#F58529,#DD2A7B,#8134AF)' }}
+            >
+              <Instagram size={16} />
+              {connectingInstagram ? 'Redirection…' : 'Connecter Instagram'}
+            </button>
+            <span className="text-xs font-semibold text-zinc-500">
+              {value.instagram?.connected
+                ? `Connecté${value.instagram?.username ? ` — @${value.instagram.username}` : ''}`
+                : 'Non connecté'}
+            </span>
+          </div>
+        </div>
+      </SectionCard>
+
       <SectionCard title="Publicités">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <TextField label="Fenêtre d’attribution (jours)" value={value.ads.attributionWindowDays} onChange={(v) => p({ ads: { ...value.ads, attributionWindowDays: v } })} disabled={disabled} />

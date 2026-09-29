@@ -178,6 +178,13 @@ export type MetaModel = {
     /** Autorisations Instagram demandées à la connexion, séparées par des virgules. */
     instagramScopes?: string;
   };
+  instagram?: {
+    appId?: string;
+    appSecret?: string;
+    appSecretConfigured?: boolean;
+    connected?: boolean;
+    username?: string;
+  };
   ads: {
     attributionWindowDays: string;
     leadActionTypes: string;

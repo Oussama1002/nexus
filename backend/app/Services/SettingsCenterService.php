@@ -581,6 +581,13 @@ class SettingsCenterService
                 'currency' => $this->getRaw($brandId, 'meta_currency') ?? '',
                 'leadActionTypes' => $this->getRaw($brandId, 'meta_lead_action_types') ?? '',
             ],
+            'instagram' => [
+                'appId' => $this->getRaw($brandId, 'instagram_app_id') ?? '',
+                'appSecret' => '',
+                'appSecretConfigured' => $this->hasStoredValue($brandId, 'instagram_app_secret'),
+                'connected' => $this->hasStoredValue($brandId, 'instagram_access_token'),
+                'username' => $this->getRaw($brandId, 'instagram_username') ?? '',
+            ],
             'targets' => [
                 'cac' => $this->getRaw($brandId, 'meta_target_cac') ?? '',
                 'cpa' => $this->getRaw($brandId, 'meta_target_cpa') ?? '',
@@ -598,6 +605,12 @@ class SettingsCenterService
             $this->upsert($brandId, 'meta', 'meta_app_id', $cr['appId'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_business_id', $cr['businessId'] ?? '');
             $this->upsert($brandId, 'meta', 'meta_instagram_scopes', trim((string) ($cr['instagramScopes'] ?? '')));
+            $ig = $p['instagram'] ?? [];
+            $this->upsert($brandId, 'meta', 'instagram_app_id', $ig['appId'] ?? '');
+            $igSecret = $ig['appSecret'] ?? '';
+            if ($isAdmin && ! SystemSetting::valueIsUnchangedSecretPlaceholder((string) $igSecret) && $igSecret !== '') {
+                $this->upsertSensitive($brandId, 'meta', 'instagram_app_secret', (string) $igSecret, $defs);
+            }
             $sec = $cr['appSecret'] ?? '';
             if ($isAdmin && ! SystemSetting::valueIsUnchangedSecretPlaceholder((string) $sec) && $sec !== '') {
                 $this->upsertSensitive($brandId, 'meta', 'meta_app_secret', (string) $sec, $defs);
