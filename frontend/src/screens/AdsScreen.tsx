@@ -114,7 +114,8 @@ type AdsReportPayload = {
 const PLATFORMS = ['meta', 'tiktok', 'google', 'snap', 'linkedin', 'other'] as const;
 
 // Un seul style d'input pour toute la modale « Nouvelle campagne ».
-const CAMP_INPUT = 'w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500';
+const CAMP_INPUT = 'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500';
+const CAMP_TEXTAREA = 'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white font-medium text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500 min-h-[72px]';
 const CAMP_LABEL = 'block text-[10px] font-black uppercase tracking-widest text-zinc-400';
 const CAMP_SECTION = 'text-[10px] font-black uppercase tracking-widest text-zinc-400 pt-2';
 
@@ -1150,7 +1151,7 @@ export function AdsScreen() {
       </Modal>
 
       <Modal open={campModal} onClose={() => { setCampErrors([]); setCampModal(false); }} title="Nouvelle campagne">
-        <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+        <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
           {campErrors.length > 0 && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 space-y-1">
               <p className="text-xs font-black uppercase tracking-widest text-rose-700">
@@ -1161,197 +1162,174 @@ export function AdsScreen() {
               ))}
             </div>
           )}
-          <p className={CAMP_SECTION}>Informations générales</p>
-          <input
-            value={campForm.name}
-            onChange={(e) => setCampForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Nom campagne *"
-            className={CAMP_INPUT}
-          />
-          <select
-            value={campForm.source}
-            onChange={(e) => setCampForm((f) => ({ ...f, source: e.target.value as (typeof PLATFORMS)[number] }))}
-            className={CAMP_INPUT}
-          >
-            {PLATFORMS.map((p) => (
-              <option key={p} value={p}>
-                {sourceFr(p)}
-              </option>
-            ))}
-          </select>
-          <select
-            value={campForm.marketing_objective}
-            onChange={(e) => setCampForm((f) => ({ ...f, marketing_objective: e.target.value }))}
-            className={CAMP_INPUT}
-          >
-            {MARKETING_OBJECTIVES.map((o) => (
-              <option key={o.value || 'empty'} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={campForm.ad_account_id}
-            onChange={(e) => setCampForm((f) => ({ ...f, ad_account_id: e.target.value }))}
-            className={CAMP_INPUT}
-            required
-          >
-            <option value="">— Compte publicitaire *</option>
-            {adAccounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.account_name} ({sourceFr(a.platform)})
-              </option>
-            ))}
-          </select>
-          <p className={CAMP_SECTION}>Configuration campagne</p>
-          <label className={CAMP_LABEL}>
-            Date début *
-            <input type="date" value={campForm.start_date} onChange={(e) => setCampForm((f) => ({ ...f, start_date: e.target.value }))} className={`mt-1 ${CAMP_INPUT}`} />
-          </label>
-          <label className={CAMP_LABEL}>
-            Date fin
-            <input type="date" value={campForm.end_date} onChange={(e) => setCampForm((f) => ({ ...f, end_date: e.target.value }))} className={`mt-1 ${CAMP_INPUT}`} />
-          </label>
-          <input
-            value={campForm.daily_budget}
-            onChange={(e) => setCampForm((f) => ({ ...f, daily_budget: e.target.value }))}
-            placeholder="Budget quotidien"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.budget}
-            onChange={(e) => setCampForm((f) => ({ ...f, budget: e.target.value }))}
-            placeholder="Budget total *"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.campaign_currency}
-            onChange={(e) => setCampForm((f) => ({ ...f, campaign_currency: e.target.value }))}
-            placeholder="Devise"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.attribution_model}
-            onChange={(e) => setCampForm((f) => ({ ...f, attribution_model: e.target.value }))}
-            placeholder="Attribution"
-            className={CAMP_INPUT}
-          />
-          {canListProducts ? (
-            <select
-              value={campForm.product_id}
-              onChange={(e) => setCampForm((f) => ({ ...f, product_id: e.target.value }))}
-              className={CAMP_INPUT}
-            >
-              <option value="">— Produit lié</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <input
-            value={campForm.landing_url}
-            onChange={(e) => setCampForm((f) => ({ ...f, landing_url: e.target.value }))}
-            placeholder="Landing page URL"
-            className={CAMP_INPUT}
-          />
-          {canListUsers ? (
-            <select
-              value={campForm.confirmatrice_user_id}
-              onChange={(e) => setCampForm((f) => ({ ...f, confirmatrice_user_id: e.target.value }))}
-              className={CAMP_INPUT}
-            >
-              <option value="">— Confirmatrice assignée</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          {canListInfluencers ? (
-            <select
-              value={campForm.influencer_id}
-              onChange={(e) => setCampForm((f) => ({ ...f, influencer_id: e.target.value }))}
-              className={CAMP_INPUT}
-            >
-              <option value="">— Influenceur lié</option>
-              {influencers.map((inf) => (
-                <option key={inf.id} value={inf.id}>
-                  {inf.full_name} {inf.username ? `@${inf.username}` : ''}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <p className={CAMP_SECTION}>Tracking</p>
-          <input
-            value={campForm.utm_source}
-            onChange={(e) => setCampForm((f) => ({ ...f, utm_source: e.target.value }))}
-            placeholder="UTM source"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.utm_campaign}
-            onChange={(e) => setCampForm((f) => ({ ...f, utm_campaign: e.target.value }))}
-            placeholder="UTM campaign"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.utm_medium}
-            onChange={(e) => setCampForm((f) => ({ ...f, utm_medium: e.target.value }))}
-            placeholder="UTM medium"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.pixel_id}
-            onChange={(e) => setCampForm((f) => ({ ...f, pixel_id: e.target.value }))}
-            placeholder="Pixel ID"
-            className={CAMP_INPUT}
-          />
-          <p className={CAMP_SECTION}>KPIs objectifs</p>
-          <input
-            value={campForm.target_cpa}
-            onChange={(e) => setCampForm((f) => ({ ...f, target_cpa: e.target.value }))}
-            placeholder="CPA cible"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.target_roas}
-            onChange={(e) => setCampForm((f) => ({ ...f, target_roas: e.target.value }))}
-            placeholder="ROAS cible"
-            className={CAMP_INPUT}
-          />
-          <input
-            value={campForm.target_leads}
-            onChange={(e) => setCampForm((f) => ({ ...f, target_leads: e.target.value }))}
-            placeholder="Nombre leads cible"
-            className={CAMP_INPUT}
-          />
-          <textarea
-            value={campForm.objective}
-            onChange={(e) => setCampForm((f) => ({ ...f, objective: e.target.value }))}
-            placeholder="Notes / objectif libre"
-            className="w-full px-4 py-3 rounded-xl border min-h-[60px]"
-          />
-          <textarea
-            value={campForm.description}
-            onChange={(e) => setCampForm((f) => ({ ...f, description: e.target.value }))}
-            placeholder="Description"
-            className="w-full px-4 py-3 rounded-xl border min-h-[60px]"
-          />
-          <textarea
-            value={campForm.creatives_summary}
-            onChange={(e) => setCampForm((f) => ({ ...f, creatives_summary: e.target.value }))}
-            placeholder="Créatives utilisées"
-            className="w-full px-4 py-3 rounded-xl border min-h-[60px]"
-          />
-          <textarea
-            value={campForm.notes}
-            onChange={(e) => setCampForm((f) => ({ ...f, notes: e.target.value }))}
-            placeholder="Observations"
-            className="w-full px-4 py-3 rounded-xl border min-h-[60px]"
-          />
+          <div className="space-y-2">
+            <p className={CAMP_SECTION}>Informations générales</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className={`${CAMP_LABEL} sm:col-span-2`}>
+                Nom de la campagne *
+                <input value={campForm.name} onChange={(e) => setCampForm((f) => ({ ...f, name: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Plateforme
+                <select
+                  value={campForm.source}
+                  onChange={(e) => setCampForm((f) => ({ ...f, source: e.target.value as (typeof PLATFORMS)[number] }))}
+                  className={CAMP_INPUT}
+                >
+                  {PLATFORMS.map((pl) => <option key={pl} value={pl}>{sourceFr(pl)}</option>)}
+                </select>
+              </label>
+              <label className={CAMP_LABEL}>
+                Objectif marketing
+                <select
+                  value={campForm.marketing_objective}
+                  onChange={(e) => setCampForm((f) => ({ ...f, marketing_objective: e.target.value }))}
+                  className={CAMP_INPUT}
+                >
+                  {MARKETING_OBJECTIVES.map((o) => <option key={o.value || 'empty'} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className={`${CAMP_LABEL} sm:col-span-2`}>
+                Compte publicitaire *
+                <select
+                  value={campForm.ad_account_id}
+                  onChange={(e) => setCampForm((f) => ({ ...f, ad_account_id: e.target.value }))}
+                  className={CAMP_INPUT}
+                >
+                  <option value="">— Choisir un compte</option>
+                  {adAccounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.account_name} ({sourceFr(a.platform)})</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className={CAMP_SECTION}>Configuration campagne</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className={CAMP_LABEL}>
+                Date de début *
+                <input type="date" value={campForm.start_date} onChange={(e) => setCampForm((f) => ({ ...f, start_date: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Date de fin
+                <input type="date" value={campForm.end_date} onChange={(e) => setCampForm((f) => ({ ...f, end_date: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Budget total *
+                <input value={campForm.budget} onChange={(e) => setCampForm((f) => ({ ...f, budget: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Budget quotidien
+                <input value={campForm.daily_budget} onChange={(e) => setCampForm((f) => ({ ...f, daily_budget: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Devise
+                <input value={campForm.campaign_currency} onChange={(e) => setCampForm((f) => ({ ...f, campaign_currency: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Modèle d’attribution
+                <input value={campForm.attribution_model} onChange={(e) => setCampForm((f) => ({ ...f, attribution_model: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              {canListProducts && (
+                <label className={CAMP_LABEL}>
+                  Produit lié
+                  <select value={campForm.product_id} onChange={(e) => setCampForm((f) => ({ ...f, product_id: e.target.value }))} className={CAMP_INPUT}>
+                    <option value="">— Aucun</option>
+                    {products.map((pr) => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
+                  </select>
+                </label>
+              )}
+              {canListUsers && (
+                <label className={CAMP_LABEL}>
+                  Confirmatrice assignée
+                  <select value={campForm.confirmatrice_user_id} onChange={(e) => setCampForm((f) => ({ ...f, confirmatrice_user_id: e.target.value }))} className={CAMP_INPUT}>
+                    <option value="">— Aucune</option>
+                    {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                </label>
+              )}
+              {canListInfluencers && (
+                <label className={CAMP_LABEL}>
+                  Influenceur lié
+                  <select value={campForm.influencer_id} onChange={(e) => setCampForm((f) => ({ ...f, influencer_id: e.target.value }))} className={CAMP_INPUT}>
+                    <option value="">— Aucun</option>
+                    {influencers.map((inf) => (
+                      <option key={inf.id} value={inf.id}>{inf.full_name} {inf.username ? `@${inf.username}` : ''}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <label className={`${CAMP_LABEL} sm:col-span-2`}>
+                URL de la landing page
+                <input value={campForm.landing_url} onChange={(e) => setCampForm((f) => ({ ...f, landing_url: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className={CAMP_SECTION}>Tracking</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className={CAMP_LABEL}>
+                UTM source
+                <input value={campForm.utm_source} onChange={(e) => setCampForm((f) => ({ ...f, utm_source: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                UTM campaign
+                <input value={campForm.utm_campaign} onChange={(e) => setCampForm((f) => ({ ...f, utm_campaign: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                UTM medium
+                <input value={campForm.utm_medium} onChange={(e) => setCampForm((f) => ({ ...f, utm_medium: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Pixel ID
+                <input value={campForm.pixel_id} onChange={(e) => setCampForm((f) => ({ ...f, pixel_id: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className={CAMP_SECTION}>KPIs objectifs</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className={CAMP_LABEL}>
+                CPA cible
+                <input value={campForm.target_cpa} onChange={(e) => setCampForm((f) => ({ ...f, target_cpa: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                ROAS cible
+                <input value={campForm.target_roas} onChange={(e) => setCampForm((f) => ({ ...f, target_roas: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Leads cibles
+                <input value={campForm.target_leads} onChange={(e) => setCampForm((f) => ({ ...f, target_leads: e.target.value }))} className={CAMP_INPUT} />
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className={CAMP_SECTION}>Notes</p>
+            <div className="grid grid-cols-1 gap-3">
+              <label className={CAMP_LABEL}>
+                Objectif libre
+                <textarea value={campForm.objective} onChange={(e) => setCampForm((f) => ({ ...f, objective: e.target.value }))} className={CAMP_TEXTAREA} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Description
+                <textarea value={campForm.description} onChange={(e) => setCampForm((f) => ({ ...f, description: e.target.value }))} className={CAMP_TEXTAREA} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Créatives utilisées
+                <textarea value={campForm.creatives_summary} onChange={(e) => setCampForm((f) => ({ ...f, creatives_summary: e.target.value }))} className={CAMP_TEXTAREA} />
+              </label>
+              <label className={CAMP_LABEL}>
+                Observations
+                <textarea value={campForm.notes} onChange={(e) => setCampForm((f) => ({ ...f, notes: e.target.value }))} className={CAMP_TEXTAREA} />
+              </label>
+            </div>
+          </div>
+
           <button type="button" onClick={() => void saveCamp()} className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black">
             Créer
           </button>
