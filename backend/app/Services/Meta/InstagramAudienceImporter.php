@@ -17,6 +17,9 @@ class InstagramAudienceImporter
 {
     private const BASE = 'https://graph.instagram.com/v23.0';
 
+    /** Instagram ne publie les chiffres que des comptes Business ou Créateur. */
+    private const UNAVAILABLE_NOTE = 'Chiffres indisponibles : Instagram ne renseigne que les comptes Business ou Créateur. Le pseudo est repris, complétez la fiche à la main.';
+
     public function __construct(private readonly InstagramGraphService $instagram) {}
 
     /**
@@ -62,14 +65,12 @@ class InstagramAudienceImporter
         } catch (MetaApiException $e) {
             // Compte introuvable, personnel, ou permission absente : on rend la
             // main avec le pseudo pour que la fiche puisse etre creee quand meme.
-            return array_merge($empty, ['warning' => $e->getMessage()]);
+            return array_merge($empty, ['warning' => self::UNAVAILABLE_NOTE.' (Meta : '.$e->getMessage().')']);
         }
 
         $found = $data['business_discovery'] ?? null;
         if (! is_array($found)) {
-            return array_merge($empty, [
-                'warning' => 'Compte introuvable : vérifiez le pseudo, et sachez qu’Instagram ne renvoie que les comptes Business ou Créateur.',
-            ]);
+            return array_merge($empty, ['warning' => self::UNAVAILABLE_NOTE]);
         }
 
         return [
