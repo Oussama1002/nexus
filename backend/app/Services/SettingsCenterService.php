@@ -122,14 +122,61 @@ class SettingsCenterService
         return $this->decodeSidebarNavVisibility($brandId);
     }
 
+    /**
+     * Catégories et types proposés tant que la marque n'a pas fait les siens :
+     * sans ça la liste ne contenait que « Packs ».
+     */
+    private const DEFAULT_PRODUCT_CATEGORIES = [
+        'Produit individuel',
+        'Packs',
+        'Soin visage',
+        'Soin corps',
+        'Cheveux',
+        'Accessoire',
+        'Échantillon',
+    ];
+
+    private const DEFAULT_PRODUCT_TYPES = [
+        'Crème',
+        'Sérum',
+        'Huile',
+        'Savon',
+        'Shampoing',
+        'Gélules',
+        'Spray',
+    ];
+
     /** @return array<string, mixed> */
     private function getCatalogue(int $brandId): array
     {
         return [
-            'productCategories' => $this->decodeJsonList($brandId, 'product_categories'),
-            'productTypes' => $this->decodeJsonList($brandId, 'product_types'),
+            'productCategories' => $this->withDefaults($this->decodeJsonList($brandId, 'product_categories'), self::DEFAULT_PRODUCT_CATEGORIES),
+            'productTypes' => $this->withDefaults($this->decodeJsonList($brandId, 'product_types'), self::DEFAULT_PRODUCT_TYPES),
             'supplierCategories' => $this->decodeJsonList($brandId, 'supplier_categories'),
         ];
+    }
+
+    /**
+     * Valeurs enregistrées d'abord, puis les valeurs par défaut absentes
+     * (comparaison insensible à la casse et aux accents pour éviter les doublons).
+     *
+     * @param  string[]  $stored
+     * @param  string[]  $defaults
+     * @return string[]
+     */
+    private function withDefaults(array $stored, array $defaults): array
+    {
+        $normalize = static fn (string $v): string => mb_strtolower(trim($v));
+        $seen = array_map($normalize, $stored);
+
+        foreach ($defaults as $value) {
+            if (! in_array($normalize($value), $seen, true)) {
+                $stored[] = $value;
+                $seen[] = $normalize($value);
+            }
+        }
+
+        return array_values($stored);
     }
 
     /** @param  array<string, mixed>  $p */
@@ -153,8 +200,8 @@ class SettingsCenterService
     public function getProductOptions(int $brandId): array
     {
         return [
-            'categories' => $this->decodeJsonList($brandId, 'product_categories'),
-            'types' => $this->decodeJsonList($brandId, 'product_types'),
+            'categories' => $this->withDefaults($this->decodeJsonList($brandId, 'product_categories'), self::DEFAULT_PRODUCT_CATEGORIES),
+            'types' => $this->withDefaults($this->decodeJsonList($brandId, 'product_types'), self::DEFAULT_PRODUCT_TYPES),
         ];
     }
 
