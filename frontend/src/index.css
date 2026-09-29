@@ -64,6 +64,28 @@ html, body {
   ::selection {
     background: color-mix(in oklab, var(--color-primary-200) 70%, white);
   }
+
+  /*
+   * Les champs héritaient de la couleur de leur label (souvent gris) : la
+   * saisie paraissait délavée. Le texte saisi est noir partout, sauf classe
+   * explicite sur le champ.
+   */
+  input,
+  select,
+  textarea {
+    color: var(--color-text-0);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: color-mix(in oklab, var(--color-text-0) 45%, white);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    color: color-mix(in oklab, var(--color-text-0) 60%, white);
+  }
 }
 
 .glass-morphism {

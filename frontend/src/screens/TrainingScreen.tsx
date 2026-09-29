@@ -159,33 +159,33 @@ export function TrainingScreen() {
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-zinc-900">Nouvelle formation</h2>
             <div className="grid grid-cols-2 gap-3">
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Employé *
+              <label className="col-span-2 text-sm font-bold text-zinc-900">Employé *
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
                   <option value="">— sélectionner —</option>
                   {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
                 </select>
               </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Titre *
+              <label className="col-span-2 text-sm font-bold text-zinc-900">Titre *
                 <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </label>
-              <label className="text-sm font-bold text-zinc-700">Type
+              <label className="text-sm font-bold text-zinc-900">Type
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.training_type} onChange={(e) => setForm({ ...form, training_type: e.target.value })}>
                   {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </label>
-              <label className="text-sm font-bold text-zinc-700">Prestataire
+              <label className="text-sm font-bold text-zinc-900">Prestataire
                 <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} />
               </label>
-              <label className="text-sm font-bold text-zinc-700">Date début
+              <label className="text-sm font-bold text-zinc-900">Date début
                 <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
               </label>
-              <label className="text-sm font-bold text-zinc-700">Date fin
+              <label className="text-sm font-bold text-zinc-900">Date fin
                 <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
               </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Durée (heures)
+              <label className="col-span-2 text-sm font-bold text-zinc-900">Durée (heures)
                 <input type="number" min="1" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_hours} onChange={(e) => setForm({ ...form, duration_hours: e.target.value })} />
               </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Description
+              <label className="col-span-2 text-sm font-bold text-zinc-900">Description
                 <textarea className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </label>
             </div>

@@ -1063,7 +1063,7 @@ function QuizzesTab({
     <>
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-bold text-zinc-600">Formation :</label>
+          <label className="text-sm font-bold text-zinc-900">Formation :</label>
           <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)} className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold min-w-[200px]">
             <option value="">— Choisir une formation —</option>
             {courseOptions.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
