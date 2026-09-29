@@ -21,6 +21,59 @@ class MetaSocialInsightsService
     public function __construct(private readonly MetaGraphClient $graph) {}
 
     /**
+     * Jeton d'accès de la Page. Meta le renvoie sur le nœud de la Page, ou
+     * dans la liste des Pages de l'utilisateur connecté.
+     */
+    private function pageToken(int $brandId, string $pageId): ?string
+    {
+        try {
+            $node = $this->graph->get($brandId, $pageId, ['fields' => 'access_token']);
+            $token = trim((string) ($node['access_token'] ?? ''));
+            if ($token !== '') {
+                return $token;
+            }
+        } catch (MetaApiException) {
+            // On tente la liste des Pages ci-dessous.
+        }
+
+        try {
+            $pages = $this->graph->paginate($brandId, 'me/accounts', ['fields' => 'id,access_token', 'limit' => 100], 3);
+        } catch (MetaApiException) {
+            return null;
+        }
+
+        foreach ($pages as $page) {
+            if ((string) ($page['id'] ?? '') === $pageId && ! empty($page['access_token'])) {
+                return (string) $page['access_token'];
+            }
+        }
+
+        return null;
+    }
+
+    /** Jeton de la Page reliée à ce compte Instagram professionnel. */
+    private function pageTokenForInstagram(int $brandId, string $igId): ?string
+    {
+        try {
+            $pages = $this->graph->paginate($brandId, 'me/accounts', [
+                'fields' => 'id,access_token,instagram_business_account{id}',
+                'limit' => 100,
+            ], 3);
+        } catch (MetaApiException) {
+            return null;
+        }
+
+        foreach ($pages as $page) {
+            $linked = (string) ($page['instagram_business_account']['id'] ?? '');
+            if ($linked === $igId && ! empty($page['access_token'])) {
+                return (string) $page['access_token'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return array{profile: array<string, mixed>, posts: list<array<string, mixed>>, warning: string|null}
      */
     public function overview(SocialAccount $account, int $limit = 24): array
@@ -60,11 +113,15 @@ class MetaSocialInsightsService
         $warning = null;
         $posts = [];
 
+        // Les publications d'une Page exigent un jeton de Page, pas le jeton
+        // utilisateur : sans lui Meta renvoie une erreur 190 trompeuse.
+        $pageToken = $this->pageToken($brandId, $pageId);
+
         try {
             $rows = $this->graph->paginate($brandId, $pageId.'/posts', [
                 'fields' => self::PAGE_POST_FIELDS,
                 'limit' => min($limit, 50),
-            ], 2);
+            ], 2, $pageToken);
 
             foreach (array_slice($rows, 0, $limit) as $row) {
                 $posts[] = [
@@ -80,7 +137,9 @@ class MetaSocialInsightsService
                 ];
             }
         } catch (MetaApiException $e) {
-            $warning = 'Publications indisponibles : '.$e->getMessage();
+            $warning = $pageToken === null
+                ? 'Publications indisponibles : le CRM n’a pas pu obtenir de jeton de Page. Reconnectez Meta en acceptant les autorisations sur cette Page (pages_read_engagement).'
+                : 'Publications indisponibles : '.$e->getMessage();
         }
 
         return ['profile' => $profile, 'posts' => $posts, 'warning' => $warning];
@@ -111,11 +170,14 @@ class MetaSocialInsightsService
         $warning = null;
         $posts = [];
 
+        // Un compte Instagram pro se lit avec le jeton de la Page qui lui est liée.
+        $pageToken = $this->pageTokenForInstagram($brandId, $igId);
+
         try {
             $rows = $this->graph->paginate($brandId, $igId.'/media', [
                 'fields' => self::IG_MEDIA_FIELDS,
                 'limit' => min($limit, 50),
-            ], 2);
+            ], 2, $pageToken);
 
             foreach (array_slice($rows, 0, $limit) as $row) {
                 $type = (string) ($row['media_type'] ?? 'IMAGE');
@@ -132,7 +194,9 @@ class MetaSocialInsightsService
                 ];
             }
         } catch (MetaApiException $e) {
-            $warning = 'Publications indisponibles : '.$e->getMessage();
+            $warning = $pageToken === null
+                ? 'Publications indisponibles : le CRM n’a pas pu obtenir de jeton de Page. Reconnectez Meta en acceptant les autorisations sur cette Page (pages_read_engagement).'
+                : 'Publications indisponibles : '.$e->getMessage();
         }
 
         return ['profile' => $profile, 'posts' => $posts, 'warning' => $warning];

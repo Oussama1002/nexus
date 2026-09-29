@@ -15,15 +15,16 @@ class MetaGraphClient
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */
-    public function get(int $brandId, string $path, array $query = []): array
+    public function get(int $brandId, string $path, array $query = [], ?string $accessToken = null): array
     {
         $cfg = $this->config->forBrand($brandId);
-        if ($cfg['access_token'] === '') {
+        $token = $accessToken !== null && $accessToken !== '' ? $accessToken : $cfg['access_token'];
+        if ($token === '') {
             throw new MetaApiException('Meta access token manquant. Configurez-le dans Paramètres → Meta.');
         }
 
         $url = rtrim($cfg['base_url'], '/').'/'.ltrim($path, '/');
-        $query['access_token'] = $cfg['access_token'];
+        $query['access_token'] = $token;
 
         $response = Http::timeout(30)->acceptJson()->get($url, $query);
 
@@ -101,7 +102,7 @@ class MetaGraphClient
      * @param  array<string, mixed>  $query
      * @return list<array<string, mixed>>
      */
-    public function paginate(int $brandId, string $path, array $query = [], int $maxPages = 20): array
+    public function paginate(int $brandId, string $path, array $query = [], int $maxPages = 20, ?string $accessToken = null): array
     {
         $items = [];
         $page = 0;
@@ -109,7 +110,7 @@ class MetaGraphClient
         $nextQuery = $query;
 
         while ($page < $maxPages) {
-            $payload = $this->get($brandId, $nextPath, $nextQuery);
+            $payload = $this->get($brandId, $nextPath, $nextQuery, $accessToken);
             foreach ($payload['data'] ?? [] as $row) {
                 if (is_array($row)) {
                     $items[] = $row;
