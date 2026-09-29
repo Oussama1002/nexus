@@ -326,17 +326,38 @@ export function InfluenceWorkspaceScreen() {
    * Instagram ne permet pas de consulter un compte par son pseudo depuis cette
    * app : on reprend le pseudo et le lien, les chiffres se saisissent à la main.
    */
-  const useIgHandle = () => {
+  const useIgHandle = async () => {
     const handle = igQuery.trim().replace(/^@/, '');
     if (!handle) return;
-    setInfForm(p => ({
-      ...p,
-      username: handle,
-      platform: 'instagram',
-      source: p.source || 'Instagram',
-    }));
-    setIgLookupNote('Pseudo repris. Saisissez le nom, les abonnés et les publications à la main.');
-    setIgSuggestions([]);
+
+    setImportingIg(true);
+    setIgLookupNote(null);
+    try {
+      const r = await api.get<{
+        username: string; name: string; followers: number; media_count: number;
+        biography: string; found: boolean; warning: string | null;
+      }>('influencers/instagram-lookup?username=' + encodeURIComponent(handle));
+
+      const a = r.ok ? r.data : null;
+
+      setInfForm(p => ({
+        ...p,
+        username: a?.username || handle,
+        platform: 'instagram',
+        source: p.source || 'Instagram',
+        full_name: a?.found && a.name ? a.name : p.full_name,
+        bio: a?.found && a.biography ? a.biography : p.bio,
+        audience_size: a?.found && a.followers ? String(a.followers) : p.audience_size,
+        posts_count: a?.found && a.media_count ? String(a.media_count) : p.posts_count,
+      }));
+
+      setIgLookupNote(
+        a?.found
+          ? 'Fiche remplie depuis Instagram : ' + a.followers.toLocaleString('fr-FR') + ' abonnés, ' + a.media_count + ' publication(s).'
+          : (a?.warning || r.message),
+      );
+      setIgSuggestions([]);
+    } finally { setImportingIg(false); }
   };
 
   /** Remplit le formulaire avec le compte choisi. */
@@ -1491,18 +1512,18 @@ export function InfluenceWorkspaceScreen() {
                   <input
                     value={igQuery}
                     onChange={e => setIgQuery(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); useIgHandle(); } }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void useIgHandle(); } }}
                     placeholder="pseudo du compte"
                     className="flex-1 bg-transparent px-1 py-1.5 text-xs font-medium outline-none"
                   />
                 </div>
                 <button
                   type="button"
-                  onClick={useIgHandle}
-                  disabled={!igQuery.trim()}
+                  onClick={() => void useIgHandle()}
+                  disabled={importingIg || !igQuery.trim()}
                   className="flex items-center gap-1 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-zinc-800 disabled:opacity-50"
                 >
-                  <Instagram size={13} /> Reprendre
+                  <Instagram size={13} /> {importingIg ? 'Lecture…' : 'Reprendre'}
                 </button>
                 <button
                   type="button"

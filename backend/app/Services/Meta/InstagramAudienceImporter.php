@@ -17,7 +17,115 @@ class InstagramAudienceImporter
 {
     private const BASE = 'https://graph.instagram.com/v23.0';
 
-    public function __construct(private readonly InstagramGraphService $instagram) {}
+    public function __construct(
+        private readonly InstagramGraphService $instagram,
+        private readonly MetaGraphClient $graph,
+    ) {}
+
+    /**
+     * Fiche d'un compte Instagram par son pseudo.
+     *
+     * Cette application Meta utilise « Instagram API with Instagram Login »,
+     * qui ne donne acces qu'au compte connecte : un compte tiers ne peut pas
+     * etre consulte (il faudrait le mode « API setup with Facebook login »).
+     *
+     * @return array{username: string, name: string, followers: int, media_count: int, biography: string, website: string, avatar: string|null, found: bool, warning: string|null}
+     */
+    public function lookupAccount(int $brandId, string $username): array
+    {
+        $username = ltrim(trim($username), '@');
+        if ($username === '') {
+            throw new MetaApiException('Indiquez un pseudo Instagram.');
+        }
+
+        $empty = [
+            'username' => $username,
+            'name' => '',
+            'followers' => 0,
+            'media_count' => 0,
+            'biography' => '',
+            'website' => '',
+            'avatar' => null,
+            'found' => false,
+            'warning' => 'Compte non lisible : Instagram ne renseigne que les comptes Business ou Créateur, '
+                .'et seulement si l’autorisation instagram_basic est accordée. Saisissez le nom, les abonnés et les publications à la main.',
+        ];
+
+        try {
+            $profile = $this->instagram->overview($brandId, 1)['profile'];
+        } catch (MetaApiException $e) {
+            return array_merge($empty, ['warning' => $e->getMessage()]);
+        }
+
+        $connected = mb_strtolower((string) ($profile['handle'] ?? ''));
+        if ($connected === '' || $connected !== mb_strtolower($username)) {
+            // Compte tiers : passe par le referentiel Instagram rattache a la
+            // Page Facebook, disponible seulement avec instagram_basic.
+            $discovered = $this->discover($brandId, $username);
+
+            return $discovered ?? $empty;
+        }
+
+        return [
+            'username' => (string) $profile['handle'],
+            'name' => (string) ($profile['name'] ?? ''),
+            'followers' => (int) ($profile['followers'] ?? 0),
+            'media_count' => (int) ($profile['media_count'] ?? 0),
+            'biography' => (string) ($profile['bio'] ?? ''),
+            'website' => (string) ($profile['website'] ?? ''),
+            'avatar' => $profile['avatar'] ?? null,
+            'found' => true,
+            'warning' => null,
+        ];
+    }
+
+    /**
+     * Fiche publique d'un compte Business ou Createur, via business_discovery.
+     *
+     * Necessite instagram_basic et un compte Instagram rattache a une Page :
+     * renvoie null quand l'un des deux manque.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function discover(int $brandId, string $username): ?array
+    {
+        $igId = trim((string) \App\Models\SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'meta_instagram_id')
+            ->value('setting_value'));
+
+        if ($igId === '') {
+            return null;
+        }
+
+        $fields = sprintf(
+            'business_discovery.username(%s){username,name,biography,website,followers_count,media_count,profile_picture_url}',
+            $username
+        );
+
+        try {
+            $data = $this->graph->get($brandId, $igId, ['fields' => $fields]);
+        } catch (MetaApiException) {
+            return null;
+        }
+
+        $found = $data['business_discovery'] ?? null;
+        if (! is_array($found)) {
+            return null;
+        }
+
+        return [
+            'username' => (string) ($found['username'] ?? $username),
+            'name' => (string) ($found['name'] ?? ''),
+            'followers' => (int) ($found['followers_count'] ?? 0),
+            'media_count' => (int) ($found['media_count'] ?? 0),
+            'biography' => (string) ($found['biography'] ?? ''),
+            'website' => (string) ($found['website'] ?? ''),
+            'avatar' => $found['profile_picture_url'] ?? null,
+            'found' => true,
+            'warning' => null,
+        ];
+    }
 
     /**
      * Comptes candidats, sans rien créer : sert à proposer des pseudos dans le
