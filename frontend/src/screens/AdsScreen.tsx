@@ -553,10 +553,11 @@ export function AdsScreen() {
     });
     if (!res.ok) {
       const e = 'errors' in res ? res.errors : {};
-      const fe = flattenFieldErrors(e as Record<string, unknown>);
-      // La modale reste ouverte avec le détail champ par champ.
-      setCampErrors(fe.length ? fe : [res.message]);
-      toast.error(fe.length ? fe[0] : res.message);
+      // Le message d'abord : « errors » transporte parfois autre chose que des
+      // erreurs de champ (la porte AM y met son code, d'ou un « G3 » isole).
+      const fe = flattenFieldErrors(e as Record<string, unknown>).filter((m) => m !== res.message && m.length > 3);
+      setCampErrors([res.message, ...fe]);
+      toast.error(res.message);
       return;
     }
     setCampErrors([]);
