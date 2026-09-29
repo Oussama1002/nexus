@@ -138,6 +138,35 @@ class MetaDoctorCommand extends Command
             }
         }
 
+        $this->newLine();
+        $this->info('=== Connexion Instagram directe ===');
+        $this->instagramDirect($brandId);
+
         return self::SUCCESS;
+    }
+
+    /** Jeton Instagram propre (graph.instagram.com), independant de Facebook. */
+    private function instagramDirect(int $brandId): void
+    {
+        $service = app(\App\Services\Meta\InstagramGraphService::class);
+
+        if ($service->tokenFor($brandId) === null) {
+            $this->warn('Aucun jeton Instagram : cliquez « Connecter Instagram » dans Parametres -> Meta.');
+
+            return;
+        }
+
+        try {
+            $data = $service->overview($brandId, 3);
+            $profile = $data['profile'];
+            $this->line('Compte     : @'.($profile['handle'] ?: '?').' ('.($profile['name'] ?: '?').')');
+            $this->line('Abonnes    : '.$profile['followers']);
+            $this->line('Publications : '.count($data['posts']).' lue(s) sur '.$profile['media_count'].' au total');
+            if (! empty($data['warning'])) {
+                $this->warn($data['warning']);
+            }
+        } catch (MetaApiException $e) {
+            $this->error('Jeton Instagram refuse : '.$e->getMessage());
+        }
     }
 }
