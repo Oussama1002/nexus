@@ -15,8 +15,7 @@ use Illuminate\Console\Command;
 class MetaDoctorCommand extends Command
 {
     protected $signature = 'meta:doctor
-        {--brand= : Marque à diagnostiquer (la première par défaut)}
-        {--instagram= : ID d’un compte Instagram à sonder avec chaque jeton de Page}';
+        {--brand= : Marque à diagnostiquer (la première par défaut)}';
 
     protected $description = 'Vérifie le jeton Meta : autorisations accordées, Pages accessibles, jetons de Page.';
 
@@ -104,41 +103,6 @@ class MetaDoctorCommand extends Command
         }
 
         $this->newLine();
-        $this->info('=== Instagram : réponse brute de Meta ===');
-        $instagramId = (string) ($this->option('instagram') ?? '');
-
-        foreach ($pages as $page) {
-            $pageId = (string) ($page['id'] ?? '');
-            $token = (string) ($page['access_token'] ?? '');
-            if ($token === '') {
-                continue;
-            }
-
-            // Champ absent (sans erreur) = permission instagram_basic manquante.
-            try {
-                $node = $graph->get($brandId, $pageId, ['fields' => 'instagram_business_account{id,username}'], $token);
-                $this->line(sprintf(
-                    '  %-22s %s',
-                    mb_substr((string) ($page['name'] ?? '?'), 0, 22),
-                    array_key_exists('instagram_business_account', $node)
-                        ? json_encode($node['instagram_business_account'], JSON_UNESCAPED_UNICODE)
-                        : 'champ absent de la réponse'
-                ));
-            } catch (MetaApiException $e) {
-                $this->line(sprintf('  %-22s ERREUR %s', mb_substr((string) ($page['name'] ?? '?'), 0, 22), $e->getMessage()));
-            }
-
-            if ($instagramId !== '') {
-                try {
-                    $ig = $graph->get($brandId, $instagramId, ['fields' => 'username,name'], $token);
-                    $this->line('    → compte '.$instagramId.' lu : '.json_encode($ig, JSON_UNESCAPED_UNICODE));
-                } catch (MetaApiException $e) {
-                    $this->line('    → compte '.$instagramId.' refusé : '.$e->getMessage());
-                }
-            }
-        }
-
-        $this->newLine();
         $this->info('=== Connexion Instagram directe ===');
         $this->instagramDirect($brandId);
 
@@ -157,7 +121,6 @@ class MetaDoctorCommand extends Command
             return;
         }
 
-        $this->probeInstagramEndpoints($brandId, $token);
 
         try {
             $data = $service->overview($brandId, 3);
@@ -173,58 +136,4 @@ class MetaDoctorCommand extends Command
         }
     }
 
-    /**
-     * L'adresse exacte depend de l'API Instagram activee sur l'app : on essaie
-     * les variantes documentees et on affiche celle qui repond.
-     */
-    private function probeInstagramEndpoints(int $brandId, string $token): void
-    {
-        $userId = \App\Models\SystemSetting::query()
-            ->where('brand_id', $brandId)
-            ->where('setting_key', 'instagram_user_id')
-            ->value('setting_value');
-        $userId = is_string($userId) ? trim($userId) : '';
-
-        // Un jeton Instagram commence par « IGAA » ; un jeton Facebook par « EAA ».
-        $this->line('Jeton      : prefixe '.mb_substr($token, 0, 4).'… ('.strlen($token).' caracteres)');
-        $this->line('user_id    : '.($userId !== '' ? $userId : 'aucun'));
-
-        $permissions = \App\Models\SystemSetting::query()
-            ->where('brand_id', $brandId)
-            ->where('setting_key', 'instagram_permissions')
-            ->value('setting_value');
-        $this->line('Permissions accordees par Instagram : '.(trim((string) $permissions) !== '' ? $permissions : 'inconnues (reconnectez pour les enregistrer)'));
-        $this->newLine();
-
-        $probes = [
-            ['GET  /v23.0/me?fields=username', 'https://graph.instagram.com/v23.0/me', ['fields' => 'username'], false],
-            ['GET  /v23.0/me (sans fields)', 'https://graph.instagram.com/v23.0/me', [], false],
-            ['GET  /me?fields=username', 'https://graph.instagram.com/me', ['fields' => 'username'], false],
-            ['GET  /v23.0/me + entete Bearer', 'https://graph.instagram.com/v23.0/me', ['fields' => 'username'], true],
-            ['GET  /v23.0/me/media', 'https://graph.instagram.com/v23.0/me/media', ['fields' => 'id'], false],
-            ['GET  graph.facebook.com/v21.0/me', 'https://graph.facebook.com/v21.0/me', ['fields' => 'id,name'], false],
-        ];
-
-        if ($userId !== '') {
-            $probes[] = ['GET  /v23.0/<user_id>?fields=username', 'https://graph.instagram.com/v23.0/'.$userId, ['fields' => 'username'], false];
-        }
-
-        foreach ($probes as [$label, $url, $query, $bearer]) {
-            try {
-                $request = \Illuminate\Support\Facades\Http::timeout(20)->acceptJson();
-                if ($bearer) {
-                    $request = $request->withToken($token);
-                } else {
-                    $query['access_token'] = $token;
-                }
-
-                $response = $request->get($url, $query);
-                $this->line(sprintf('  %-38s %s  %s', $label, $response->status(), mb_substr(trim($response->body()), 0, 130)));
-            } catch (\Throwable $e) {
-                $this->line(sprintf('  %-38s EX  %s', $label, $e->getMessage()));
-            }
-        }
-
-        $this->newLine();
-    }
 }

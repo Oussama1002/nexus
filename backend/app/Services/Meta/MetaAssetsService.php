@@ -73,7 +73,22 @@ class MetaAssetsService
 
         // Les noms suivent toujours l'ID choisi : ce sont des libellés, pas des réglages.
         $this->labelFor($brandId, 'meta_page_id', 'meta_page_name', array_column($pages, 'name', 'id'));
-        $this->labelFor($brandId, 'meta_instagram_id', 'meta_instagram_username', array_column($instagram, 'username', 'id'));
+        // Facebook ne donne pas le pseudo Instagram aux apps récentes : celui
+        // de la connexion Instagram directe évite un « Sans nom » permanent.
+        $usernames = array_filter(array_column($instagram, 'username', 'id'));
+        $direct = trim((string) SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'instagram_username')
+            ->value('setting_value'));
+        $currentId = trim((string) SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'meta_instagram_id')
+            ->value('setting_value'));
+        if ($direct !== '' && $currentId !== '' && ! isset($usernames[$currentId])) {
+            $usernames[$currentId] = $direct;
+        }
+
+        $this->labelFor($brandId, 'meta_instagram_id', 'meta_instagram_username', $usernames);
         $this->labelFor($brandId, 'meta_pixel_id', 'meta_pixel_name', array_column($pixels, 'name', 'id'));
 
         return ['pages' => $pages, 'pixels' => $pixels, 'instagram_accounts' => $instagram, 'saved' => $saved];
