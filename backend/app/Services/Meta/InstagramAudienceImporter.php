@@ -63,9 +63,10 @@ class InstagramAudienceImporter
         try {
             $data = $this->get('me', ['fields' => $fields], $token);
         } catch (MetaApiException $e) {
-            // Compte introuvable, personnel, ou permission absente : on rend la
-            // main avec le pseudo pour que la fiche puisse etre creee quand meme.
-            return array_merge($empty, ['warning' => self::UNAVAILABLE_NOTE.' (Meta : '.$e->getMessage().')']);
+            // Echec possible pour deux raisons opposees : le compte cherche n'est
+            // pas un compte pro, ou la recherche n'existe pas pour cette app. On
+            // tranche en relancant la meme requete sur notre propre compte.
+            return array_merge($empty, ['warning' => $this->explainLookupFailure($brandId, $token, $e)]);
         }
 
         $found = $data['business_discovery'] ?? null;
@@ -84,6 +85,34 @@ class InstagramAudienceImporter
             'found' => true,
             'warning' => null,
         ];
+    }
+
+    /**
+     * Dit laquelle des deux causes explique l'echec, en testant la recherche
+     * sur le compte de la marque (qui est, lui, un compte professionnel).
+     */
+    private function explainLookupFailure(int $brandId, string $token, MetaApiException $original): string
+    {
+        $self = $this->selfUsername($brandId);
+
+        if ($self !== '') {
+            try {
+                $probe = $this->get('me', [
+                    'fields' => 'business_discovery.username('.$self.'){username}',
+                ], $token);
+
+                if (is_array($probe['business_discovery'] ?? null)) {
+                    // La recherche fonctionne : le compte vise n'est donc pas
+                    // un compte Business ou Createur.
+                    return self::UNAVAILABLE_NOTE;
+                }
+            } catch (MetaApiException) {
+                // La recherche ne marche pour personne : voir ci-dessous.
+            }
+        }
+
+        return 'La recherche de comptes Instagram n’est pas disponible pour cette application Meta : '
+            .'saisissez les abonnes a la main. Le pseudo est repris. (Meta : '.$original->getMessage().')';
     }
 
     /**
