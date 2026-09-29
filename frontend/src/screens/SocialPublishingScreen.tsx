@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Modal } from '../components/ui/Modal';
 import * as api from '../lib/api';
+import { LiveModerationPanel } from '../components/social/LiveModerationPanel';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 import { useToast } from '../context/ToastContext';
@@ -741,7 +742,7 @@ export function SocialPublishingScreen() {
       {activeTab === 'historique' && <TabHistorique toast={toast} userId={user?.id} />}
       {activeTab === 'publications' && <TabPublications toast={toast} userId={user?.id} />}
       {activeTab === 'influenceurs' && <TabInfluenceurs toast={toast} onNewComplaint={openComplaintModal} />}
-      {activeTab === 'moderation' && <TabModeration toast={toast} onNewComplaint={openComplaintModal} />}
+      {activeTab === 'moderation' && <TabModeration toast={toast} onNewComplaint={openComplaintModal} canModerate={hasPermission('social_accounts.update')} />}
       {activeTab === 'reclamations' && <TabReclamations toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} refreshToken={complaintRefresh} />}
 
       {/* Feature 5: Notifications panel */}
@@ -2002,7 +2003,8 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
 /*  Tab 4 : Modération (Feature 3: enhanced form)                      */
 /* ================================================================== */
 
-function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string) => void; onNewComplaint: () => void }) {
+function TabModeration({ toast, onNewComplaint, canModerate }: { toast: (m: string, t: string) => void; onNewComplaint: () => void; canModerate: boolean }) {
+  const [view, setView] = useState<'live' | 'log'>('live');
   const [rows, setRows] = useState<ModerationAction[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -2074,14 +2076,32 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black text-zinc-900">Actions de modération</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1 rounded-xl border border-zinc-200 p-1">
+          <button
+            onClick={() => setView('live')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${view === 'live' ? 'bg-zinc-900 text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
+          >
+            Commentaires en direct
+          </button>
+          <button
+            onClick={() => setView('log')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${view === 'log' ? 'bg-zinc-900 text-white' : 'text-zinc-600 hover:bg-zinc-50'}`}
+          >
+            Journal des actions
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={onNewComplaint} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"><AlertTriangle size={14} /> Réclamation</button>
-          <button onClick={openNew} className="btn btn-primary flex items-center gap-2 text-sm"><Plus size={16} /> Nouvelle action</button>
+          {view === 'log' && (
+            <button onClick={openNew} className="btn btn-primary flex items-center gap-2 text-sm"><Plus size={16} /> Nouvelle action</button>
+          )}
         </div>
       </div>
 
+      {view === 'live' && <LiveModerationPanel canModerate={canModerate} />}
+
+      {view === 'log' && (
       <div className="flex flex-wrap gap-3">
         <select className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={platform} onChange={e => { setPlatform(e.target.value); setPage(1); }}>
           <option value="">Toutes les plateformes</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option>
@@ -2092,8 +2112,9 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
         <input type="date" className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} title="Date début" />
         <input type="date" className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} title="Date fin" />
       </div>
+      )}
 
-      {loading ? <Spinner /> : rows.length === 0 ? <EmptyState title="Aucune action" description="Aucune action de modération trouvée." /> : (
+      {view === 'log' && (loading ? <Spinner /> : rows.length === 0 ? <EmptyState title="Aucune action" description="Aucune action de modération trouvée." /> : (
         <>
           <div className="card overflow-hidden">
             <table className="w-full"><thead><tr className="border-b border-zinc-100">
@@ -2125,7 +2146,7 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
             </div>
           </div>
         </>
-      )}
+      ))}
 
       {/* New moderation modal (Feature 3: enhanced with account_handle, public_comment_deleted, message_sent, complaint_id) */}
       <Modal open={showNew} onClose={() => setShowNew(false)} title="Nouvelle action de modération"
