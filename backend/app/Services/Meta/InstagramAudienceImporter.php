@@ -20,7 +20,7 @@ class InstagramAudienceImporter
     public function __construct(private readonly InstagramGraphService $instagram) {}
 
     /**
-     * Comptes candidats, sans rien creer : sert a proposer des pseudos dans le
+     * Comptes candidats, sans rien créer : sert à proposer des pseudos dans le
      * formulaire « Nouvelle influenceuse ».
      *
      * @return array{scanned_posts: int, candidates: list<array{username: string, interactions: int, existing: bool}>}
@@ -96,7 +96,7 @@ class InstagramAudienceImporter
     }
 
     /**
-     * Comptes ayant commente les dernieres publications, par frequence.
+     * Comptes ayant commenté les dernières publications, par fréquence.
      *
      * @return array{0: array<string, int>, 1: int}
      */

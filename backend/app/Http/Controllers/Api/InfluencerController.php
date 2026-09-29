@@ -60,7 +60,7 @@ class InfluencerController extends Controller
 
     /**
      * Importe comme prospects les comptes Instagram qui commentent les
-     * publications de la marque. Meta n'expose pas la liste des abonnes :
+     * publications de la marque. Meta n'expose pas la liste des abonnés :
      * les commentateurs sont la seule audience nominative disponible.
      */
     /** Pseudos candidats, sans rien creer : alimente le formulaire. */
@@ -75,7 +75,7 @@ class InfluencerController extends Controller
             return ApiResponse::error($e->getMessage(), null, 422);
         }
 
-        return ApiResponse::success($result, 'Comptes Instagram trouves.');
+        return ApiResponse::success($result, 'Comptes Instagram trouvés.');
     }
 
     public function importFromInstagram(Request $request): JsonResponse
@@ -92,9 +92,9 @@ class InfluencerController extends Controller
         AuditLogger::log($request, 'influencers.import_instagram', null, null, $result);
 
         $message = $result['created'] === 0 && $result['updated'] === 0
-            ? 'Aucun nouveau compte trouve sur les '.$result['scanned_posts'].' dernieres publications.'
+            ? 'Aucun nouveau compte trouvé sur les '.$result['scanned_posts'].' dernières publications.'
             : sprintf(
-                '%d influenceur(s) importe(s), %d mis a jour, sur %d publication(s) analysee(s).',
+                '%d influenceur(s) importé(s), %d mis à jour, sur %d publication(s) analysée(s).',
                 $result['created'],
                 $result['updated'],
                 $result['scanned_posts']

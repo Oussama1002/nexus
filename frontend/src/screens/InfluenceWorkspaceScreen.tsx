@@ -324,7 +324,7 @@ export function InfluenceWorkspaceScreen() {
 
   /**
    * Instagram ne permet pas de consulter un compte par son pseudo depuis cette
-   * app : on reprend le pseudo et le lien, les chiffres se saisissent a la main.
+   * app : on reprend le pseudo et le lien, les chiffres se saisissent à la main.
    */
   const useIgHandle = () => {
     const handle = igQuery.trim().replace(/^@/, '');
@@ -336,7 +336,7 @@ export function InfluenceWorkspaceScreen() {
       platform: 'instagram',
       source: p.source || 'Instagram',
     }));
-    setIgLookupNote('Pseudo repris. Saisissez les abonnes et le taux d’engagement a la main.');
+    setIgLookupNote('Pseudo repris. Saisissez les abonnés et le taux d’engagement à la main.');
     setIgSuggestions([]);
   };
 
@@ -1507,7 +1507,7 @@ export function InfluenceWorkspaceScreen() {
                   type="button"
                   onClick={() => void loadIgSuggestions()}
                   disabled={importingIg}
-                  title="Comptes ayant commente vos publications"
+                  title="Comptes ayant commenté vos publications"
                   className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
                 >
                   Vos commentateurs
@@ -1525,7 +1525,7 @@ export function InfluenceWorkspaceScreen() {
                     type="button"
                     disabled={c.existing}
                     onClick={() => pickIgSuggestion(c.username, c.interactions)}
-                    title={c.existing ? 'Deja dans votre liste' : 'Remplir le formulaire avec ce compte'}
+                    title={c.existing ? 'Déjà dans votre liste' : 'Remplir le formulaire avec ce compte'}
                     className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-xs font-bold text-zinc-800 hover:bg-primary-50 hover:border-primary-300 disabled:opacity-40 disabled:hover:bg-white"
                   >
                     @{c.username}
