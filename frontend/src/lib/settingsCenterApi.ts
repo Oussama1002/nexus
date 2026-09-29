@@ -175,8 +175,8 @@ export type MetaModel = {
     pageName?: string;
     instagramUsername?: string;
     pixelName?: string;
-    /** Ajoute instagram_basic au scope OAuth Meta. */
-    instagramScope?: boolean;
+    /** Autorisations Instagram demandées à la connexion, séparées par des virgules. */
+    instagramScopes?: string;
   };
   ads: {
     attributionWindowDays: string;

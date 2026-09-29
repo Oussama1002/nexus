@@ -31,15 +31,12 @@ class MetaOAuthController extends Controller
     ];
 
     /**
-     * Ajoutées seulement si la marque active l'option : sans le produit
-     * Instagram dans l'app Meta, Facebook refuse toute la connexion
-     * (« Invalid Scopes »). Avec elles, le champ instagram_business_account
-     * d'une Page devient lisible, et les publications Instagram avec.
+     * Autorisations Instagram : les noms changent selon le cas d'utilisation
+     * activé dans l'app Meta (instagram_basic pour l'API Graph historique,
+     * instagram_business_* pour la nouvelle). Un nom inconnu fait échouer
+     * toute la connexion (« Invalid Scopes »), d'où une liste saisie dans
+     * Paramètres → Meta plutôt qu'une liste figée ici.
      */
-    private const INSTAGRAM_SCOPES = [
-        'instagram_basic',
-        'instagram_manage_insights',
-    ];
 
     public function redirectUrl(Request $request): JsonResponse
     {
@@ -53,10 +50,7 @@ class MetaOAuthController extends Controller
 
         $state = $this->buildState($brandId);
 
-        $scopes = self::SCOPES;
-        if ($this->getSetting($brandId, 'meta_instagram_scope') === '1') {
-            $scopes = array_merge($scopes, self::INSTAGRAM_SCOPES);
-        }
+        $scopes = array_merge(self::SCOPES, $this->instagramScopes($brandId));
 
         $params = http_build_query([
             'client_id' => $appId,
@@ -203,6 +197,29 @@ class MetaOAuthController extends Controller
         $data = $response->json('data', []);
 
         return ! empty($data[0]['id']) ? (string) $data[0]['id'] : null;
+    }
+
+    /**
+     * Autorisations Instagram saisies par la marque, nettoyées.
+     *
+     * @return list<string>
+     */
+    private function instagramScopes(int $brandId): array
+    {
+        $raw = (string) ($this->getSetting($brandId, 'meta_instagram_scopes') ?? '');
+        if (trim($raw) === '') {
+            return [];
+        }
+
+        $scopes = [];
+        foreach (preg_split('/[\s,]+/', $raw) ?: [] as $scope) {
+            $scope = strtolower(trim($scope));
+            if ($scope !== '' && preg_match('/^[a-z0-9_]+$/', $scope)) {
+                $scopes[] = $scope;
+            }
+        }
+
+        return array_values(array_unique($scopes));
     }
 
     private function getSetting(int $brandId, string $key): ?string

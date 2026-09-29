@@ -128,7 +128,7 @@ class SettingsCenterRules
                 'credentials.pageName' => 'nullable|string|max:191',
                 'credentials.instagramUsername' => 'nullable|string|max:191',
                 'credentials.pixelName' => 'nullable|string|max:191',
-                'credentials.instagramScope' => 'nullable|boolean',
+                'credentials.instagramScopes' => 'nullable|string|max:255',
                 'ads' => 'nullable|array',
                 'ads.attributionWindowDays' => 'nullable|numeric|min:0',
                 'ads.leadActionTypes' => 'nullable|string|max:500',
