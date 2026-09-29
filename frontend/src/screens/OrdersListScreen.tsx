@@ -40,6 +40,49 @@ type ApiOrderRow = {
   shipment?: { id: number; tracking_number: string | null; external_tracking_id?: string | null; sync_error?: string | null; status: string; carrier_status?: string | null; delivery_company?: { id: number; name: string } | null } | null;
 };
 
+/** Réponse de GET orders/{id} : tout ce que la liste ne transporte pas. */
+type OrderDetail = {
+  id: number;
+  order_number: string;
+  source: string | null;
+  payment_method: string | null;
+  subtotal: string | null;
+  shipping_fee: string | null;
+  discount: string | null;
+  total: string;
+  shipping_address: string | null;
+  created_at: string;
+  confirmed_at: string | null;
+  delivered_at: string | null;
+  customer?: { full_name: string; phone: string; email?: string | null; city?: string | null; address?: string | null } | null;
+  lines?: { id: number; product_name: string; quantity: number; unit_price: string; product?: { sku?: string | null } | null }[];
+  shipment?: {
+    tracking_number: string | null;
+    external_tracking_id?: string | null;
+    sync_error?: string | null;
+    status: string;
+    recipient_city?: string | null;
+    recipient_address?: string | null;
+    cod_amount?: string | null;
+    delivery_fee?: string | null;
+    delivery_company?: { name: string } | null;
+  } | null;
+  events?: { id: number; event_type: string; from_status: string | null; to_status: string | null; note: string | null; event_at: string; actor?: { name: string } | null }[];
+};
+
+function fmtDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cod: 'COD (contre remboursement)',
+  prepaid: 'Prépayé',
+  transfer: 'Virement bancaire',
+  card: 'Carte bancaire',
+};
+
 function statusFr(s: string): OrderStatus {
   switch (s) {
     case 'draft':
@@ -341,6 +384,26 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     () => filtered.find((o) => o.id === selectedId) ?? rows.find((o) => o.id === selectedId) ?? null,
     [filtered, rows, selectedId],
   );
+
+  // Détail complet (frais, facture, expédition, historique) : la liste ne
+  // transporte qu'un résumé.
+  const [detail, setDetail] = useState<OrderDetail | null>(null);
+
+  useEffect(() => {
+    if (!selected) {
+      setDetail(null);
+      return;
+    }
+    let cancelled = false;
+    setDetail(null);
+    void (async () => {
+      const res = await api.get<OrderDetail>(`orders/${selected.apiId}`);
+      if (!cancelled && res.ok && res.data) setDetail(res.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   async function patchStatus(next: OrderStatus, extraPayload?: Record<string, unknown>) {
     if (!selected) return;
@@ -711,28 +774,135 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                   ) : null}
                 </div>
               )}
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Total</p>
-                <p className="text-lg font-black text-zinc-900">{formatCurrency(selected.total)}</p>
+              <div className="mt-4 border-t border-zinc-100 pt-3 space-y-1">
+                {detail && (
+                  <>
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-600">
+                      <span>Sous-total</span>
+                      <span>{formatCurrency(Number(detail.subtotal ?? 0))}</span>
+                    </div>
+                    {Number(detail.shipping_fee ?? 0) > 0 && (
+                      <div className="flex items-center justify-between text-xs font-semibold text-zinc-600">
+                        <span>Livraison</span>
+                        <span>{formatCurrency(Number(detail.shipping_fee))}</span>
+                      </div>
+                    )}
+                    {Number(detail.discount ?? 0) > 0 && (
+                      <div className="flex items-center justify-between text-xs font-semibold text-emerald-700">
+                        <span>Remise</span>
+                        <span>− {formatCurrency(Number(detail.discount))}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="flex items-center justify-between pt-1">
+                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Total</p>
+                  <p className="text-lg font-black text-zinc-900">{formatCurrency(selected.total)}</p>
+                </div>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Informations</p>
+              <div className="card-muted p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <span className="font-semibold text-zinc-500">Créée le</span>
+                <span className="font-bold text-zinc-900 text-right">{fmtDateTime(detail?.created_at)}</span>
+
+                <span className="font-semibold text-zinc-500">Confirmée le</span>
+                <span className="font-bold text-zinc-900 text-right">{fmtDateTime(detail?.confirmed_at)}</span>
+
+                <span className="font-semibold text-zinc-500">Livrée le</span>
+                <span className="font-bold text-zinc-900 text-right">{fmtDateTime(detail?.delivered_at)}</span>
+
+                <span className="font-semibold text-zinc-500">Origine</span>
+                <span className="font-bold text-zinc-900 text-right">{sourceFr(selected.source)}</span>
+
+                <span className="font-semibold text-zinc-500">Mode de paiement</span>
+                <span className="font-bold text-zinc-900 text-right">
+                  {PAYMENT_METHOD_LABELS[selected.paymentMethod ?? ''] ?? '—'}
+                </span>
+
+                <span className="font-semibold text-zinc-500">Marque</span>
+                <span className="font-bold text-zinc-900 text-right">{selected.brand}</span>
+
+                <span className="font-semibold text-zinc-500">Adresse de livraison</span>
+                <span className="font-bold text-zinc-900 text-right">{detail?.shipping_address || '—'}</span>
+
+                {detail?.customer?.email && (
+                  <>
+                    <span className="font-semibold text-zinc-500">E-mail client</span>
+                    <span className="font-bold text-zinc-900 text-right break-all">{detail.customer.email}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {detail?.shipment && (
+              <div className="space-y-2">
+                <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Expédition</p>
+                <div className="card-muted p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <span className="font-semibold text-zinc-500">Transporteur</span>
+                  <span className="font-bold text-zinc-900 text-right">{detail.shipment.delivery_company?.name ?? '—'}</span>
+
+                  <span className="font-semibold text-zinc-500">N° de suivi</span>
+                  <span className="font-mono text-zinc-900 text-right">{detail.shipment.external_tracking_id || detail.shipment.tracking_number || '—'}</span>
+
+                  <span className="font-semibold text-zinc-500">Ville</span>
+                  <span className="font-bold text-zinc-900 text-right">{detail.shipment.recipient_city || '—'}</span>
+
+                  <span className="font-semibold text-zinc-500">À encaisser</span>
+                  <span className="font-bold text-zinc-900 text-right">{formatCurrency(Number(detail.shipment.cod_amount ?? 0))}</span>
+
+                  {detail.shipment.sync_error && (
+                    <>
+                      <span className="font-semibold text-rose-600">Dernier échec</span>
+                      <span className="font-semibold text-rose-700 text-right">{detail.shipment.sync_error}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Produits</p>
               <div className="card overflow-hidden">
                 <div className="divide-y divide-zinc-100">
                   {selected.items.map((it) => (
-                    <div key={it.id} className="p-4 flex items-center justify-between">
-                      <div>
+                    <div key={it.id} className="p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
                         <p className="text-sm font-bold text-zinc-900">{it.name}</p>
-                        <p className="text-[11px] text-zinc-500 font-medium">Qté {it.qty}</p>
+                        <p className="text-[11px] text-zinc-500 font-medium">
+                          {it.qty} × {formatCurrency(it.price)}
+                        </p>
                       </div>
-                      <p className="text-sm font-black text-zinc-900">{formatCurrency(it.price)}</p>
+                      <p className="text-sm font-black text-zinc-900 shrink-0">{formatCurrency(it.price * it.qty)}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
+
+            {detail?.events && detail.events.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Historique</p>
+                <div className="card overflow-hidden divide-y divide-zinc-100">
+                  {detail.events.map((ev) => (
+                    <div key={ev.id} className="p-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-zinc-900">
+                          {ev.from_status && ev.to_status
+                            ? `${statusFr(ev.from_status)} → ${statusFr(ev.to_status)}`
+                            : ev.event_type.replace(/_/g, ' ')}
+                        </p>
+                        {ev.note && <p className="text-[11px] text-zinc-500">{ev.note}</p>}
+                        {ev.actor?.name && <p className="text-[11px] text-zinc-400">par {ev.actor.name}</p>}
+                      </div>
+                      <p className="text-[11px] font-semibold text-zinc-500 shrink-0">{fmtDateTime(ev.event_at)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {selected.notes && (
               <div className="space-y-2">
