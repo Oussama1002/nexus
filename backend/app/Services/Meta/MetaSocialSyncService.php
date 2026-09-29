@@ -3,6 +3,7 @@
 namespace App\Services\Meta;
 
 use App\Models\SocialAccount;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -64,6 +65,12 @@ class MetaSocialSyncService
             }
 
             foreach ($instagram as $account) {
+                $this->upsertInstagram($brandId, $account, $created, $updated);
+            }
+
+            // Connexion Instagram directe : la seule source qui connaisse le
+            // pseudo et les abonnés, Facebook ne les donne pas.
+            foreach ($this->instagramFromDirectConnection($brandId) as $account) {
                 $this->upsertInstagram($brandId, $account, $created, $updated);
             }
         });
@@ -161,6 +168,41 @@ class MetaSocialSyncService
         }
 
         return [];
+    }
+
+    /**
+     * Compte Instagram issu de sa propre connexion, quand elle existe.
+     *
+     * @return list<array{id: string, username: string, followers_count: int}>
+     */
+    private function instagramFromDirectConnection(int $brandId): array
+    {
+        $service = app(InstagramGraphService::class);
+        if ($service->tokenFor($brandId) === null) {
+            return [];
+        }
+
+        try {
+            $profile = $service->overview($brandId, 1)['profile'];
+        } catch (MetaApiException) {
+            return [];
+        }
+
+        $username = (string) ($profile['handle'] ?? '');
+        if ($username === '') {
+            return [];
+        }
+
+        $id = trim((string) SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'instagram_user_id')
+            ->value('setting_value'));
+
+        return [[
+            'id' => $id !== '' ? $id : $username,
+            'username' => $username,
+            'followers_count' => (int) ($profile['followers'] ?? 0),
+        ]];
     }
 
     /** @param array{id: string, username: string, followers_count: int} $account */
