@@ -188,6 +188,12 @@ class MetaDoctorCommand extends Command
         // Un jeton Instagram commence par « IGAA » ; un jeton Facebook par « EAA ».
         $this->line('Jeton      : prefixe '.mb_substr($token, 0, 4).'… ('.strlen($token).' caracteres)');
         $this->line('user_id    : '.($userId !== '' ? $userId : 'aucun'));
+
+        $permissions = \App\Models\SystemSetting::query()
+            ->where('brand_id', $brandId)
+            ->where('setting_key', 'instagram_permissions')
+            ->value('setting_value');
+        $this->line('Permissions accordees par Instagram : '.(trim((string) $permissions) !== '' ? $permissions : 'inconnues (reconnectez pour les enregistrer)'));
         $this->newLine();
 
         $probes = [

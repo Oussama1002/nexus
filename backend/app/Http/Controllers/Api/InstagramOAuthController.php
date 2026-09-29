@@ -99,6 +99,13 @@ class InstagramOAuthController extends Controller
         $shortToken = (string) $short->json('access_token');
         $userId = (string) ($short->json('user_id') ?? '');
 
+        // Instagram renvoie les permissions réellement accordées : sans elles,
+        // tous les nœuds répondent « Unsupported request ».
+        $permissions = $short->json('permissions');
+        $permissions = is_array($permissions) ? implode(',', $permissions) : (string) $permissions;
+        Log::info('instagram.oauth.granted', ['user_id' => $userId, 'permissions' => $permissions]);
+        $this->storeSetting($brandId, 'instagram_permissions', $permissions, false);
+
         if ($shortToken === '') {
             return redirect($this->frontendUrl('/parametres?section=meta&instagram=exchange_failed'));
         }
