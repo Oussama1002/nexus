@@ -691,7 +691,7 @@ export function PurchaseOrdersScreen() {
       </Modal>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nouvelle commande fournisseur" panelClassName="max-w-4xl">
-        <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-1">
+        <div className="space-y-6">
           <section className="space-y-3">
             <p className="text-xs font-black uppercase text-primary-600">Informations générales</p>
             <div className="grid md:grid-cols-2 gap-3">

@@ -327,7 +327,7 @@ export function DeliveryScreen() {
       )}
 
       <Modal open={dcModal} onClose={() => setDcModal(false)} title="Nouveau transporteur">
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="space-y-3">
           <input
             value={dcName}
             onChange={(e) => setDcName(e.target.value)}

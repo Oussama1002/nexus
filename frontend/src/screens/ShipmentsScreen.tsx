@@ -972,7 +972,7 @@ export function ShipmentsScreen() {
       </Modal>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nouvelle expédition">
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase text-zinc-400">Commande (confirmée ou préparée)</label>
             <select

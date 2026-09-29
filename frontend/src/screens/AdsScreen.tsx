@@ -1031,7 +1031,7 @@ export function AdsScreen() {
       </Drawer>
 
       <Modal open={adModal} onClose={() => setAdModal(false)} title="Nouveau compte publicitaire">
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="space-y-4">
           <p className="text-[10px] font-black uppercase text-zinc-400">Informations générales</p>
           <input
             value={adForm.account_name}
@@ -1151,7 +1151,7 @@ export function AdsScreen() {
       </Modal>
 
       <Modal open={campModal} onClose={() => { setCampErrors([]); setCampModal(false); }} title="Nouvelle campagne">
-        <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
+        <div className="space-y-5">
           {campErrors.length > 0 && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 space-y-1">
               <p className="text-xs font-black uppercase tracking-widest text-rose-700">

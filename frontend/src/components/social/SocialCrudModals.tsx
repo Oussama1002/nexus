@@ -627,7 +627,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
       </Modal>
 
       <Modal open={stOpen} onClose={() => setStOpen(false)} title={stId ? 'Modifier stratégie' : 'Nouvelle stratégie'} panelClassName="max-w-xl">
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="space-y-3">
           <Field label="Titre *">
             <input className={selClass} value={stForm.title} onChange={(e) => setStForm({ ...stForm, title: e.target.value })} />
           </Field>
@@ -690,7 +690,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
       </Modal>
 
       <Modal open={calOpen} onClose={() => setCalOpen(false)} title={calId ? 'Modifier contenu' : 'Nouveau contenu'} panelClassName="max-w-xl">
-        <div className="space-y-3 max-h-[75vh] overflow-y-auto">
+        <div className="space-y-3">
           <Field label="Titre *">
             <input className={selClass} value={calForm.title} onChange={(e) => setCalForm({ ...calForm, title: e.target.value })} />
           </Field>
@@ -898,7 +898,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
       </Modal>
 
       <Modal open={pubOpen} onClose={() => setPubOpen(false)} title={pubId ? 'Modifier publication' : 'Nouvelle publication'} panelClassName="max-w-xl">
-        <div className="space-y-3 max-h-[75vh] overflow-y-auto">
+        <div className="space-y-3">
           <Field label="Contenu calendrier">
             <select className={selClass} value={pubForm.content_calendar_id} onChange={(e) => setPubForm({ ...pubForm, content_calendar_id: e.target.value })}>
               <option value="">—</option>
