@@ -47,8 +47,8 @@ class InstagramAudienceImporter
             'website' => '',
             'avatar' => null,
             'found' => false,
-            'warning' => 'Compte non lisible : Instagram ne renseigne que les comptes Business ou Créateur, '
-                .'et seulement si l’autorisation instagram_basic est accordée. Saisissez le nom, les abonnés et les publications à la main.',
+            'warning' => 'Compte tiers non lisible : Instagram exige l’autorisation instagram_manage_insights, '
+                .'à activer dans App Review de votre app Meta, et ne renseigne de toute façon que les comptes Business ou Créateur. Saisissez le nom, les abonnés et les publications à la main.',
         ];
 
         try {
