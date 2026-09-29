@@ -429,6 +429,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─── Influencers ───
     Route::get('influencers', [InfluencerController::class, 'index'])->middleware('permission:influence.view');
     Route::post('influencers', [InfluencerController::class, 'store'])->middleware('permission:influence.create');
+    Route::post('influencers/import-instagram', [InfluencerController::class, 'importFromInstagram'])->middleware('permission:influence.create');
     Route::get('influencers/{id}', [InfluencerController::class, 'show'])->whereNumber('id')->middleware('permission:influence.view');
     Route::put('influencers/{id}', [InfluencerController::class, 'update'])->whereNumber('id')->middleware('permission:influence.update');
     Route::patch('influencers/{id}', [InfluencerController::class, 'update'])->whereNumber('id')->middleware('permission:influence.update');

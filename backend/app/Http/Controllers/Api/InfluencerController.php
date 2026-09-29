@@ -58,6 +58,36 @@ class InfluencerController extends Controller
         return ApiResponse::success($q->paginate($perPage));
     }
 
+    /**
+     * Importe comme prospects les comptes Instagram qui commentent les
+     * publications de la marque. Meta n'expose pas la liste des abonnes :
+     * les commentateurs sont la seule audience nominative disponible.
+     */
+    public function importFromInstagram(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        try {
+            $result = app(\App\Services\Meta\InstagramAudienceImporter::class)
+                ->importCommenters($brandId, (int) $request->query('posts', 25));
+        } catch (\App\Services\Meta\MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        AuditLogger::log($request, 'influencers.import_instagram', null, null, $result);
+
+        $message = $result['created'] === 0 && $result['updated'] === 0
+            ? 'Aucun nouveau compte trouve sur les '.$result['scanned_posts'].' dernieres publications.'
+            : sprintf(
+                '%d influenceur(s) importe(s), %d mis a jour, sur %d publication(s) analysee(s).',
+                $result['created'],
+                $result['updated'],
+                $result['scanned_posts']
+            );
+
+        return ApiResponse::success($result, $message);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);

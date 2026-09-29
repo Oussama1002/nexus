@@ -17,6 +17,7 @@ import {
   Plus,
   RefreshCw,
   Send,
+  Instagram,
   ShieldCheck,
   Sparkles,
   Star,
@@ -297,6 +298,21 @@ export function InfluenceWorkspaceScreen() {
     contact_phone: '', contact_email: '', notes: '', source: '', status: 'reperee',
   });
   const [infSaving, setInfSaving] = useState(false);
+  const [importingIg, setImportingIg] = useState(false);
+
+  /**
+   * Instagram ne donne la liste des abonnes d'aucun compte : on importe les
+   * comptes qui commentent nos publications, deja engages.
+   */
+  const importFromInstagram = async () => {
+    setImportingIg(true);
+    try {
+      const r = await api.post('influencers/import-instagram', {});
+      if (!r.ok) return errToast(toast, r);
+      toast.success(r.message);
+      void load();
+    } finally { setImportingIg(false); }
+  };
 
   const openInf = (id?: number) => {
     setInfId(id);
@@ -1076,6 +1092,17 @@ export function InfluenceWorkspaceScreen() {
               <option value="">Tous les statuts</option>
               {INF_STATUSES.map(s => <option key={s} value={s}>{INFLUENCER_STATUS_LABELS[s]}</option>)}
             </select>
+            {canCreateInf && (
+              <button
+                type="button"
+                onClick={() => void importFromInstagram()}
+                disabled={importingIg}
+                title="Ajoute comme prospects les comptes Instagram qui commentent vos publications"
+                className="flex items-center gap-1 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                <Instagram size={14} /> {importingIg ? 'Import…' : 'Importer depuis Instagram'}
+              </button>
+            )}
             {canCreateInf && (
               <button type="button" onClick={() => openInf()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
                 <Plus size={14} /> Nouvelle influenceuse
