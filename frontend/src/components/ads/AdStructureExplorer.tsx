@@ -24,6 +24,7 @@ export type StructureRollup = {
 type AdSetRow = {
   id: number;
   name: string;
+  external_ad_set_id: string | null;
   status: string | null;
   effective_status: string | null;
   optimization_goal: string | null;
@@ -163,6 +164,7 @@ export function AdStructureExplorer({
   const [publishing, setPublishing] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState({
+    adSetId: '',
     name: '',
     message: '',
     title: '',
@@ -244,7 +246,11 @@ export function AdStructureExplorer({
   }
 
   async function publishAd() {
-    if (!openAdSet) return;
+    const targetId = openAdSet?.id ?? Number(form.adSetId);
+    if (!targetId) {
+      setCreateError('Choisissez l’ensemble de publicités qui recevra cette publicité.');
+      return;
+    }
     if (!form.name.trim() || !form.message.trim()) {
       setCreateError('Le nom et le texte de la publicité sont obligatoires.');
       return;
@@ -252,7 +258,7 @@ export function AdStructureExplorer({
     setPublishing(true);
     setCreateError(null);
 
-    const res = await api.post(`ad-sets/${openAdSet.id}/ads`, {
+    const res = await api.post(`ad-sets/${targetId}/ads`, {
       name: form.name.trim(),
       message: form.message.trim(),
       title: form.title.trim() || null,
@@ -270,8 +276,12 @@ export function AdStructureExplorer({
 
     toast.success(res.message);
     setCreateOpen(false);
-    setForm({ name: '', message: '', title: '', link: '', cta: '', imageBase64: '', imagePreview: '' });
-    await loadAds(openAdSet.id);
+    setForm({ adSetId: '', name: '', message: '', title: '', link: '', cta: '', imageBase64: '', imagePreview: '' });
+    if (openAdSet) {
+      await loadAds(openAdSet.id);
+    } else {
+      await loadAdSets();
+    }
   }
 
   const adSetColumns: Column<AdSetRow>[] = [
@@ -385,10 +395,14 @@ export function AdStructureExplorer({
         </div>
         {canSync && (
           <div className="flex flex-wrap gap-2">
-            {openAdSet && (
+            {(openAdSet || adSets.length > 0) && (
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={() => {
+                  setCreateError(null);
+                  setForm((f) => ({ ...f, adSetId: String(openAdSet?.id ?? f.adSetId) }));
+                  setCreateOpen(true);
+                }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 text-sm font-black"
               >
                 <Plus className="w-4 h-4" /> Nouvelle publicité
@@ -433,7 +447,7 @@ export function AdStructureExplorer({
         subtitle={
           openAdSet
             ? `Créée EN PAUSE dans « ${openAdSet.name} » — à vérifier dans Ads Manager avant activation.`
-            : undefined
+            : 'Créée EN PAUSE — à vérifier dans Ads Manager avant activation.'
         }
         onClose={() => setCreateOpen(false)}
         footer={
@@ -457,6 +471,27 @@ export function AdStructureExplorer({
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
               {createError}
             </div>
+          )}
+
+          {!openAdSet && (
+            <label className={AD_LABEL}>
+              Ensemble de publicités *
+              <select
+                value={form.adSetId}
+                onChange={(e) => setForm({ ...form, adSetId: e.target.value })}
+                className={AD_INPUT}
+              >
+                <option value="">— Choisir un ensemble</option>
+                {adSets
+                  .filter((a) => a.external_ad_set_id)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+              </select>
+              <span className="mt-1 block text-[11px] font-semibold text-zinc-500">
+                Seuls les ensembles existant chez Meta peuvent recevoir une publicité.
+              </span>
+            </label>
           )}
 
           <label className={AD_LABEL}>
