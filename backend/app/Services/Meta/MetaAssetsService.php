@@ -98,14 +98,11 @@ class MetaAssetsService
                         $id = (string) ($r['id'] ?? '');
                         $username = (string) ($r['username'] ?? '');
 
-                        // Certaines arêtes ne renvoient pas le pseudo : on lit le nœud.
+                        // Certaines arêtes ne renvoient pas le pseudo : on lit le
+                        // nœud, d'abord avec le jeton utilisateur puis avec celui
+                        // des Pages, qui a souvent accès au compte lié.
                         if ($username === '' && $id !== '') {
-                            try {
-                                $node = $this->graph->get($brandId, $id, ['fields' => 'username,name']);
-                                $username = (string) ($node['username'] ?? $node['name'] ?? '');
-                            } catch (MetaApiException) {
-                                // On garde l'ID seul.
-                            }
+                            $username = $this->instagramUsername($brandId, $id);
                         }
 
                         return ['id' => $id, 'username' => $username];
@@ -117,6 +114,56 @@ class MetaAssetsService
         }
 
         return [];
+    }
+
+    /**
+     * Pseudo d'un compte Instagram : jeton utilisateur, puis jetons de Page.
+     * Le champ n'est lisible que par un jeton autorisé sur ce compte.
+     */
+    private function instagramUsername(int $brandId, string $instagramId): string
+    {
+        try {
+            $node = $this->graph->get($brandId, $instagramId, ['fields' => 'username,name']);
+            $username = (string) ($node['username'] ?? $node['name'] ?? '');
+            if ($username !== '') {
+                return $username;
+            }
+        } catch (MetaApiException) {
+            // On tente les jetons de Page ci-dessous.
+        }
+
+        try {
+            $pages = $this->graph->paginate($brandId, 'me/accounts', [
+                'fields' => 'id,access_token,instagram_business_account{id,username}',
+                'limit' => 100,
+            ], 3);
+        } catch (MetaApiException) {
+            return '';
+        }
+
+        foreach ($pages as $page) {
+            $token = (string) ($page['access_token'] ?? '');
+            if ($token === '') {
+                continue;
+            }
+
+            $linked = $page['instagram_business_account'] ?? null;
+            if (is_array($linked) && (string) ($linked['id'] ?? '') === $instagramId && ! empty($linked['username'])) {
+                return (string) $linked['username'];
+            }
+
+            try {
+                $node = $this->graph->get($brandId, $instagramId, ['fields' => 'username,name'], $token);
+                $username = (string) ($node['username'] ?? $node['name'] ?? '');
+                if ($username !== '') {
+                    return $username;
+                }
+            } catch (MetaApiException) {
+                // Page suivante.
+            }
+        }
+
+        return '';
     }
 
     /** @return list<array{id: string, name: string}> */
