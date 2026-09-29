@@ -331,12 +331,11 @@ export function InfluenceWorkspaceScreen() {
     if (!handle) return;
     setInfForm(p => ({
       ...p,
-      full_name: p.full_name || '@' + handle,
       username: handle,
       platform: 'instagram',
       source: p.source || 'Instagram',
     }));
-    setIgLookupNote('Pseudo repris. Saisissez les abonnés et le taux d’engagement à la main.');
+    setIgLookupNote('Pseudo repris. Saisissez le nom, les abonnés et les publications à la main.');
     setIgSuggestions([]);
   };
 
@@ -344,7 +343,6 @@ export function InfluenceWorkspaceScreen() {
   const pickIgSuggestion = (username: string, interactions: number) => {
     setInfForm(p => ({
       ...p,
-      full_name: p.full_name || '@' + username,
       username,
       platform: 'instagram',
       bio: p.bio || 'Repérée sur Instagram : ' + interactions + ' commentaire(s) sur vos publications.',
