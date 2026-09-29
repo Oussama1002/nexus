@@ -75,7 +75,7 @@ function KpiDot({ tone }: { tone?: 'success' | 'info' | 'neutral' }) {
 function Kpi({ label, value, tone }: { label: string; value: string | number; tone?: 'success' | 'info' | 'neutral' }) {
   return (
     <div className="card p-5">
-      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">{label}</p>
       <div className="mt-2 flex items-end justify-between gap-4">
         <p className="text-2xl font-black text-zinc-900">{value}</p>
         <KpiDot tone={tone} />
@@ -382,11 +382,11 @@ export function BrandsScreen() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="card p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Produits</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Produits</p>
                 <p className="mt-2 text-2xl font-black text-zinc-900">{statsByBrand.get(selected.id)?.products ?? 0}</p>
               </div>
               <div className="card p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Commandes</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes</p>
                 <p className="mt-2 text-2xl font-black text-zinc-900">{statsByBrand.get(selected.id)?.orders ?? 0}</p>
               </div>
             </div>
@@ -425,7 +425,7 @@ export function BrandsScreen() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Nom</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Nom</label>
               <input
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
@@ -433,7 +433,7 @@ export function BrandsScreen() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Statut</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Statut</label>
               <select
                 value={draft.status ?? 'Actif'}
                 onChange={(e) => setDraft({ ...draft, status: e.target.value as 'Actif' | 'Inactif' })}
@@ -444,7 +444,7 @@ export function BrandsScreen() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Couleur</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Couleur</label>
               <div className="flex items-center gap-3">
                 <input
                   type="color"
@@ -466,7 +466,7 @@ export function BrandsScreen() {
             </div>
             <div className="space-y-2 md:col-span-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéros WhatsApp</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Numéros WhatsApp</label>
                 <button
                   type="button"
                   onClick={() => setWaNumbers([...waNumbers, '+212 '])}

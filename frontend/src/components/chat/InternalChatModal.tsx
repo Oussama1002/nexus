@@ -181,7 +181,7 @@ export function InternalChatModal({
           <div className="flex-1 overflow-y-auto">
             {availableUsers.length > 0 && threads.length === 0 && (
               <div className="px-5 pt-4 pb-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Démarrer une conversation</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-2">Démarrer une conversation</p>
               </div>
             )}
             {threads.length > 0 && (
@@ -223,7 +223,7 @@ export function InternalChatModal({
             {/* Users without existing thread */}
             {availableUsers.filter((u) => !threads.some((t) => t.user_id === u.id)).length > 0 && (
               <div className="px-5 pt-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-2">
                   {threads.length > 0 ? 'Autres utilisateurs' : 'Utilisateurs'}
                 </p>
                 <div className="space-y-1">

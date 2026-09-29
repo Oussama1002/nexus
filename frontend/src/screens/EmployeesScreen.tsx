@@ -112,10 +112,10 @@ export function EmployeesScreen() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total employés</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.total}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Actifs</p><p className="text-2xl font-black text-emerald-600 mt-1">{stats.actifs}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Inactifs</p><p className="text-2xl font-black text-amber-600 mt-1">{stats.inactifs}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nouveaux ce mois</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.nouveaux}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total employés</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.total}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Actifs</p><p className="text-2xl font-black text-emerald-600 mt-1">{stats.actifs}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Inactifs</p><p className="text-2xl font-black text-amber-600 mt-1">{stats.inactifs}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Nouveaux ce mois</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.nouveaux}</p></div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -155,15 +155,15 @@ export function EmployeesScreen() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Photo</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Code</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Poste</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Département</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Téléphone</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Email</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date embauche</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Photo</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Code</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Nom</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Poste</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Département</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Téléphone</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Email</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date embauche</th>
                 </tr>
               </thead>
               <tbody>

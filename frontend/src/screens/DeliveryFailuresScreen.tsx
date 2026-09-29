@@ -103,19 +103,19 @@ export function DeliveryFailuresScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total échecs</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total échecs</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{totalFailures}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">En attente</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">En attente</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{pendingCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Reprogrammés</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Reprogrammés</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{rescheduledCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux d'échec</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux d'échec</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{failureRate}%</p>
         </div>
       </div>
@@ -153,14 +153,14 @@ export function DeliveryFailuresScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">N° Colis</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Commande</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Client</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Transporteur</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Motif</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Tentatives</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">N° Colis</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Commande</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Client</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Transporteur</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Motif</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Tentatives</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
               </tr>
             </thead>
             <tbody>

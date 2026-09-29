@@ -172,14 +172,14 @@ export function StocksScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/60">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Réservé</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Disponible</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Seuil</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Produit</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Catégorie</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Stock</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Réservé</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Disponible</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Seuil</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -274,7 +274,7 @@ function StatCard({ icon, label, value, tone }: { icon: React.ReactNode; label: 
     <div className="card p-4">
       <div className="flex items-center gap-2">
         <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg ${bg}`}>{icon}</span>
-        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{label}</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">{label}</p>
       </div>
       <p className="text-2xl font-black text-zinc-900 mt-2">{value}</p>
     </div>

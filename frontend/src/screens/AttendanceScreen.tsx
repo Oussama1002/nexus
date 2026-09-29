@@ -172,10 +172,10 @@ export function AttendanceScreen() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Présents</p><p className="text-2xl font-black text-emerald-600 mt-1">{stats.presents}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">En retard</p><p className="text-2xl font-black text-amber-600 mt-1">{stats.retards}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Absents</p><p className="text-2xl font-black text-red-600 mt-1">{stats.absents}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux de présence</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.taux}%</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Présents</p><p className="text-2xl font-black text-emerald-600 mt-1">{stats.presents}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">En retard</p><p className="text-2xl font-black text-amber-600 mt-1">{stats.retards}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Absents</p><p className="text-2xl font-black text-red-600 mt-1">{stats.absents}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux de présence</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.taux}%</p></div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -218,14 +218,14 @@ export function AttendanceScreen() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Employé</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Arrivée</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Départ</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Durée</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Retard</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Justificatif</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Employé</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Arrivée</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Départ</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Durée</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Retard</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Justificatif</th>
                 </tr>
               </thead>
               <tbody>

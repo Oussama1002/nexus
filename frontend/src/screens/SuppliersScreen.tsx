@@ -531,15 +531,15 @@ export function SuppliersScreen() {
             <SectionTitle n={1}>Identification</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Nom fournisseur *</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Nom fournisseur *</label>
                 <input value={draft.name} onChange={(e) => patch({ name: e.target.value })} className={inputCls} placeholder="Raison sociale" />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Code fournisseur</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Code fournisseur</label>
                 <input value={draft.supplier_code} onChange={(e) => patch({ supplier_code: e.target.value })} className={inputCls} placeholder="Code interne" />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Type fournisseur *</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Type fournisseur *</label>
                 <select
                   value={draft.supplier_type}
                   onChange={(e) => patch({ supplier_type: e.target.value as SupplierTypeSlug })}
@@ -553,7 +553,7 @@ export function SuppliersScreen() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Catégorie</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Catégorie</label>
                 {addingCategory ? (
                   <div className="flex gap-2">
                     <input
@@ -589,7 +589,7 @@ export function SuppliersScreen() {
                 )}
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Statut</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Statut</label>
                 <select value={draft.status} onChange={(e) => patch({ status: e.target.value as Draft['status'] })} className={inputCls}>
                   <option value="active">Actif</option>
                   <option value="inactive">Inactif</option>
@@ -603,35 +603,35 @@ export function SuppliersScreen() {
             <SectionTitle n={2}>Contact</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Nom contact principal</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Nom contact principal</label>
                 <input value={draft.contact_name} onChange={(e) => patch({ contact_name: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Téléphone *</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Téléphone *</label>
                 <input value={draft.phone} onChange={(e) => patch({ phone: e.target.value })} className={inputCls} placeholder="+212 …" />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Téléphone secondaire</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Téléphone secondaire</label>
                 <input value={draft.phone_secondary} onChange={(e) => patch({ phone_secondary: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">E-mail</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">E-mail</label>
                 <input type="email" value={draft.email} onChange={(e) => patch({ email: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">WhatsApp</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">WhatsApp</label>
                 <input value={draft.whatsapp} onChange={(e) => patch({ whatsapp: e.target.value })} className={inputCls} />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Adresse</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Adresse</label>
                 <textarea value={draft.address} onChange={(e) => patch({ address: e.target.value })} rows={2} className={`${inputCls} resize-y min-h-[72px]`} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Ville</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Ville</label>
                 <input value={draft.city} onChange={(e) => patch({ city: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Pays</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Pays</label>
                 <input value={draft.country} onChange={(e) => patch({ country: e.target.value })} className={inputCls} />
               </div>
             </div>
@@ -641,7 +641,7 @@ export function SuppliersScreen() {
             <SectionTitle n={3}>Informations commerciales</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Produits fournis</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Produits fournis</label>
                 <textarea
                   value={draft.products_supplied}
                   onChange={(e) => patch({ products_supplied: e.target.value })}
@@ -651,23 +651,23 @@ export function SuppliersScreen() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Délai moyen de livraison (jours)</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Délai moyen de livraison (jours)</label>
                 <input value={draft.avg_lead_days} onChange={(e) => patch({ avg_lead_days: e.target.value })} className={inputCls} inputMode="numeric" />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Montant minimum de commande</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Montant minimum de commande</label>
                 <input value={draft.min_order_amount} onChange={(e) => patch({ min_order_amount: e.target.value })} className={inputCls} inputMode="decimal" />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Devise</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Devise</label>
                 <input value={draft.currency} onChange={(e) => patch({ currency: e.target.value })} className={inputCls} placeholder="MAD" />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Conditions de paiement</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Conditions de paiement</label>
                 <textarea value={draft.payment_terms} onChange={(e) => patch({ payment_terms: e.target.value })} rows={2} className={`${inputCls} resize-y`} />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Mode de paiement préféré</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Mode de paiement préféré</label>
                 <input
                   value={draft.preferred_payment_mode}
                   onChange={(e) => patch({ preferred_payment_mode: e.target.value })}
@@ -682,31 +682,31 @@ export function SuppliersScreen() {
             <SectionTitle n={4}>Documents &amp; références</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">ICE</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">ICE</label>
                 <input value={draft.ice} onChange={(e) => patch({ ice: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">IF</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">IF</label>
                 <input value={draft.if_number} onChange={(e) => patch({ if_number: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">RC</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">RC</label>
                 <input value={draft.rc_number} onChange={(e) => patch({ rc_number: e.target.value })} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Patente</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Patente</label>
                 <input value={draft.patente} onChange={(e) => patch({ patente: e.target.value })} className={inputCls} />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">RIB / IBAN</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">RIB / IBAN</label>
                 <textarea value={draft.rib_iban} onChange={(e) => patch({ rib_iban: e.target.value })} rows={2} className={`${inputCls} resize-y font-mono text-xs`} />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Réf. contrat fournisseur</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Réf. contrat fournisseur</label>
                 <input value={draft.contract_reference} onChange={(e) => patch({ contract_reference: e.target.value })} className={inputCls} placeholder="N° dossier ou lien interne" />
               </div>
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Réf. fiche prix</label>
+                <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Réf. fiche prix</label>
                 <input value={draft.price_list_reference} onChange={(e) => patch({ price_list_reference: e.target.value })} className={inputCls} />
               </div>
             </div>

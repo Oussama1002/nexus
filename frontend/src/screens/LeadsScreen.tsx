@@ -114,7 +114,7 @@ function KpiDot({ tone }: { tone?: 'success' | 'info' | 'danger' | 'warning' | '
 function Kpi({ label, value, tone }: { label: string; value: string | number; tone?: 'success' | 'info' | 'danger' | 'warning' | 'neutral' }) {
   return (
     <div className="card p-5">
-      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">{label}</p>
       <div className="mt-2 flex items-end justify-between gap-4">
         <p className="text-2xl font-black text-zinc-900">{value}</p>
         <KpiDot tone={tone} />
@@ -665,7 +665,7 @@ export function LeadsScreen({
               </button>
               {hasPermission('leads.update') && (
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Assigner à</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Assigner à</label>
                   <select
                     value={assignUserId}
                     onChange={(e) => setAssignUserId(e.target.value)}
@@ -846,7 +846,7 @@ export function LeadsScreen({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">
                 Brand / Marque <span className="text-rose-600">*</span>
               </label>
               <select
@@ -864,7 +864,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">
                 Nom complet <span className="text-rose-600">*</span>
               </label>
               <input
@@ -877,7 +877,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">
                 Téléphone principal <span className="text-rose-600">*</span>
               </label>
               <input
@@ -891,7 +891,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">
                 Ville <span className="text-rose-600">*</span>
               </label>
               <input
@@ -903,7 +903,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Adresse</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Adresse</label>
               <textarea
                 value={newLead.address}
                 onChange={(e) => setNewLead((s) => ({ ...s, address: e.target.value }))}
@@ -914,7 +914,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Sexe</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Sexe</label>
               <select
                 value={newLead.gender}
                 onChange={(e) => setNewLead((s) => ({ ...s, gender: e.target.value }))}
@@ -929,7 +929,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">
                 Source du lead <span className="text-rose-600">*</span>
               </label>
               <select
@@ -959,7 +959,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Produit d’intérêt</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Produit d’intérêt</label>
               <select
                 value={newLead.product_select}
                 onChange={(e) => setNewLead((s) => ({ ...s, product_select: e.target.value }))}
@@ -981,7 +981,7 @@ export function LeadsScreen({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Niveau d’intérêt</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Niveau d’intérêt</label>
               <select
                 value={newLead.interest_level}
                 onChange={(e) => setNewLead((s) => ({ ...s, interest_level: e.target.value }))}

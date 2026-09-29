@@ -209,19 +209,19 @@ export function SocialAccountsScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total comptes</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total comptes</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{stats.total}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Actifs</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Actifs</p>
           <p className="text-2xl font-black text-emerald-600 mt-1">{stats.connected}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">API connectée</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">API connectée</p>
           <p className="text-2xl font-black text-blue-600 mt-1">{stats.apiConnected}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Abonnés (page)</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Abonnés (page)</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{stats.totalFollowers.toLocaleString('fr-FR')}</p>
         </div>
       </div>

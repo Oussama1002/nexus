@@ -140,12 +140,12 @@ export function EvaluationsScreen() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Titre</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Année</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Période</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Évaluations</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                  <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Titre</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Année</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Période</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Évaluations</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                  <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,13 +174,13 @@ export function EvaluationsScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Employé</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Campagne</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Note</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Recommandation</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Signatures</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Employé</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Campagne</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Note</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Recommandation</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Signatures</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
               </tr>
             </thead>
             <tbody>

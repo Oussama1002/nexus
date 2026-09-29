@@ -142,19 +142,19 @@ export function StockMovementsScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Entrées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Entrées</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{inCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sorties</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Sorties</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{outCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Retours</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Retours</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{returnedCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Ajustements</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Ajustements</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{adjustmentCount}</p>
         </div>
       </div>
@@ -185,14 +185,14 @@ export function StockMovementsScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">ID</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Quantité</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock avant → après</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Notes / Référence</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Utilisateur</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">ID</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Produit</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Quantité</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Stock avant → après</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Notes / Référence</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Utilisateur</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
               </tr>
             </thead>
             <tbody>

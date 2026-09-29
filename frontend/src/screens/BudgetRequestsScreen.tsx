@@ -204,19 +204,19 @@ export function BudgetRequestsScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">En attente</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">En attente</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{pendingCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Approuvées ce mois</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Approuvées ce mois</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{approvedCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Refusées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Refusées</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{rejectedCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Montant total demandé</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Montant total demandé</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{fmtMAD(totalRequested)}</p>
         </div>
       </div>
@@ -254,16 +254,16 @@ export function BudgetRequestsScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">N°</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Demandeur</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Budget</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Montant demandé</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Motif</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Priorité</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Validé par</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">N°</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Demandeur</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Budget</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Montant demandé</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Motif</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Priorité</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Validé par</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
               </tr>
             </thead>
             <tbody>

@@ -582,11 +582,11 @@ function TemplatesPanel({ toast, open, onClose, onCreateFromTemplate }: {
       >
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-1">Nom du template *</label>
+            <label className="block text-xs font-semibold text-zinc-900 mb-1">Nom du template *</label>
             <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-1">Description</label>
+            <label className="block text-xs font-semibold text-zinc-900 mb-1">Description</label>
             <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           </div>
           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
@@ -764,21 +764,21 @@ export function SocialPublishingScreen() {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-1">Nom du client *</label>
+              <label className="block text-xs font-semibold text-zinc-900 mb-1">Nom du client *</label>
               <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="Nom complet" value={complaintForm.customer_name} onChange={e => setComplaintForm(f => ({ ...f, customer_name: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-1">Téléphone</label>
+              <label className="block text-xs font-semibold text-zinc-900 mb-1">Téléphone</label>
               <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="+212..." value={complaintForm.customer_phone} onChange={e => setComplaintForm(f => ({ ...f, customer_phone: e.target.value }))} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-1">Identifiant plateforme</label>
+            <label className="block text-xs font-semibold text-zinc-900 mb-1">Identifiant plateforme</label>
             <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="@handle ou lien profil" value={complaintForm.customer_handle} onChange={e => setComplaintForm(f => ({ ...f, customer_handle: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-1">Canal *</label>
+              <label className="block text-xs font-semibold text-zinc-900 mb-1">Canal *</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={complaintForm.channel} onChange={e => setComplaintForm(f => ({ ...f, channel: e.target.value }))}>
                 <option value="">Sélectionner...</option>
                 <option value="facebook">Facebook</option>
@@ -791,7 +791,7 @@ export function SocialPublishingScreen() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-1">Catégorie *</label>
+              <label className="block text-xs font-semibold text-zinc-900 mb-1">Catégorie *</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={complaintForm.category} onChange={e => setComplaintForm(f => ({ ...f, category: e.target.value }))}>
                 <option value="">Sélectionner...</option>
                 <option value="produit">Produit</option>
@@ -803,7 +803,7 @@ export function SocialPublishingScreen() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-1">Priorité *</label>
+            <label className="block text-xs font-semibold text-zinc-900 mb-1">Priorité *</label>
             <div className="flex gap-3">
               {(['P1', 'P2', 'P3'] as const).map(p => (
                 <button
@@ -824,7 +824,7 @@ export function SocialPublishingScreen() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-1">Description *</label>
+            <label className="block text-xs font-semibold text-zinc-900 mb-1">Description *</label>
             <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={complaintForm.description} onChange={e => setComplaintForm(f => ({ ...f, description: e.target.value }))} />
           </div>
         </div>
@@ -1089,13 +1089,13 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-zinc-100">
-                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Tâches</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Complétées</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Ponctualité</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Tâches</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Complétées</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Ponctualité</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1149,19 +1149,19 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Checklist complétée</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Checklist complétée</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.checklist_completion_percent ?? 0}%</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Modérations</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Modérations</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.moderation_actions_today ?? 0}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Signalements en attente</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Signalements en attente</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.pending_signals ?? 0}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Publications aujourd'hui</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Publications aujourd'hui</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{summary?.publications_today ?? 0}</p>
         </div>
       </div>
@@ -1293,7 +1293,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
         }
       >
         <div>
-          <label className="block text-xs font-semibold text-zinc-500 mb-1">Raison du rejet *</label>
+          <label className="block text-xs font-semibold text-zinc-900 mb-1">Raison du rejet *</label>
           <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Expliquez pourquoi la checklist est rejetée..." />
         </div>
       </Modal>
@@ -1408,12 +1408,12 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
               {editItem.item.delay_minutes !== null && editItem.item.delay_minutes > 0 && <p className="text-xs text-red-500">Retard : +{editItem.item.delay_minutes} min</p>}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-1">Justification</label>
+              <label className="block text-xs font-semibold text-zinc-900 mb-1">Justification</label>
               <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={2} value={editItemForm.justification}
                 onChange={e => setEditItemForm(f => ({ ...f, justification: e.target.value }))} placeholder="Justification en cas de retard ou non-complétion..." />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-1">Commentaire</label>
+              <label className="block text-xs font-semibold text-zinc-900 mb-1">Commentaire</label>
               <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={2} value={editItemForm.comment}
                 onChange={e => setEditItemForm(f => ({ ...f, comment: e.target.value }))} placeholder="Note libre..." />
             </div>
@@ -1581,25 +1581,25 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Date planifiée</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Date planifiée</p>
               <p className="text-sm font-medium text-zinc-700 flex items-center gap-1.5">
                 <Clock size={14} className="text-zinc-400" />
                 {detail.planned_at ? new Date(detail.planned_at).toLocaleString('fr-FR') : '—'}
               </p>
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Compte social</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Compte social</p>
               <p className="text-sm font-medium text-zinc-700">{detail.social_account?.account_name ?? '—'}</p>
             </div>
             {detail.published_at && (
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Publié le</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Publié le</p>
                 <p className="text-sm font-medium text-zinc-700">{new Date(detail.published_at).toLocaleString('fr-FR')}</p>
               </div>
             )}
             {detail.published_url && (
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Lien publication</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Lien publication</p>
                 <p className="text-sm font-medium text-primary-600 flex items-center gap-1 break-all">
                   <ExternalLink size={14} /> {detail.published_url}
                 </p>
@@ -1607,7 +1607,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
             )}
             {detail.validated_by_user && (
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Validé par</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Validé par</p>
                 <p className="text-sm font-medium text-zinc-700">{detail.validated_by_user.name}</p>
               </div>
             )}
@@ -1615,14 +1615,14 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
 
           {detail.caption && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Légende</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Légende</p>
               <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-sm text-zinc-700 whitespace-pre-wrap">{detail.caption}</div>
             </div>
           )}
 
           {detail.description && (
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Consignes</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Consignes</p>
               <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-sm text-zinc-700 whitespace-pre-wrap">{detail.description}</div>
             </div>
           )}
@@ -1654,7 +1654,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
               avec sa légende et son visuel. Sinon, publiez à la main et collez le lien ci-dessous.
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-500 mb-1">Lien d’une publication déjà faite</label>
+              <label className="block text-xs font-semibold text-zinc-900 mb-1">Lien d’une publication déjà faite</label>
               <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={publishedUrl} onChange={e => setPublishedUrl(e.target.value)} />
             </div>
           </div>
@@ -1672,7 +1672,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
           }
         >
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 mb-1">Motif de non-publication *</label>
+            <label className="block text-xs font-semibold text-zinc-900 mb-1">Motif de non-publication *</label>
             <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={notPublishedReason} onChange={e => setNotPublishedReason(e.target.value)} placeholder="Expliquez pourquoi le contenu n'a pas été publié..." />
           </div>
         </Modal>
@@ -1708,12 +1708,12 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Titre</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Plateforme</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date planifiée</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Titre</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Plateforme</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date planifiée</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1870,13 +1870,13 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
             <div className="card overflow-hidden">
               <table className="w-full">
                 <thead><tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Influenceur</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Plateforme</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Qté</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Archivé</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Influenceur</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Plateforme</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Qté</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Archivé</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
                 </tr></thead>
                 <tbody>
                   {logs.map(r => (
@@ -1924,12 +1924,12 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
             <div className="card overflow-hidden">
               <table className="w-full">
                 <thead><tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Influenceur</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Sévérité</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Influenceur</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Sévérité</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Description</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
                 </tr></thead>
                 <tbody>
                   {signals.map(s => (
@@ -1961,14 +1961,14 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
       <Modal open={showNewLog} onClose={() => setShowNewLog(false)} title="Nouveau log influenceur"
         footer={<div className="flex justify-end gap-3"><button onClick={() => setShowNewLog(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button><button onClick={submitLog} disabled={saving} className="btn btn-primary flex items-center gap-2 text-sm">{saving && <Loader2 size={14} className="animate-spin" />} Enregistrer</button></div>}>
         <div className="space-y-3">
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Influenceur *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.influencer_id} onChange={e => setLogForm(f => ({ ...f, influencer_id: e.target.value }))}><option value="">Sélectionner...</option>{influencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}</select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Type de contenu *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.content_type} onChange={e => setLogForm(f => ({ ...f, content_type: e.target.value }))}><option value="">Sélectionner...</option><option value="post">Post</option><option value="story">Story</option><option value="reel">Reel</option><option value="video">Vidéo</option><option value="live">Live</option></select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Plateforme *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.platform} onChange={e => setLogForm(f => ({ ...f, platform: e.target.value }))}><option value="">Sélectionner...</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option></select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">URL du contenu</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={logForm.content_url} onChange={e => setLogForm(f => ({ ...f, content_url: e.target.value }))} /></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Date de publication</label><input type="date" className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.published_at} onChange={e => setLogForm(f => ({ ...f, published_at: e.target.value }))} /></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Influenceur *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.influencer_id} onChange={e => setLogForm(f => ({ ...f, influencer_id: e.target.value }))}><option value="">Sélectionner...</option>{influencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}</select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Type de contenu *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.content_type} onChange={e => setLogForm(f => ({ ...f, content_type: e.target.value }))}><option value="">Sélectionner...</option><option value="post">Post</option><option value="story">Story</option><option value="reel">Reel</option><option value="video">Vidéo</option><option value="live">Live</option></select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Plateforme *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.platform} onChange={e => setLogForm(f => ({ ...f, platform: e.target.value }))}><option value="">Sélectionner...</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option></select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">URL du contenu</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={logForm.content_url} onChange={e => setLogForm(f => ({ ...f, content_url: e.target.value }))} /></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Date de publication</label><input type="date" className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.published_at} onChange={e => setLogForm(f => ({ ...f, published_at: e.target.value }))} /></div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Quantité</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="1" value={logForm.quantity} onChange={e => setLogForm(f => ({ ...f, quantity: e.target.value }))} /></div>
-            <div><label className="block text-xs font-semibold text-zinc-500 mb-1">URL d'archive</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={logForm.archive_url} onChange={e => setLogForm(f => ({ ...f, archive_url: e.target.value }))} /></div>
+            <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Quantité</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="1" value={logForm.quantity} onChange={e => setLogForm(f => ({ ...f, quantity: e.target.value }))} /></div>
+            <div><label className="block text-xs font-semibold text-zinc-900 mb-1">URL d'archive</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={logForm.archive_url} onChange={e => setLogForm(f => ({ ...f, archive_url: e.target.value }))} /></div>
           </div>
           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
             <input type="checkbox" checked={logForm.no_publication} onChange={e => setLogForm(f => ({ ...f, no_publication: e.target.checked }))} className="rounded" />
@@ -1980,7 +1980,7 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
               <div><label className="block text-xs font-semibold text-emerald-700 mb-1">Nombre de viewers</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-emerald-200 text-sm font-medium bg-white" value={logForm.live_viewers_count} onChange={e => setLogForm(f => ({ ...f, live_viewers_count: e.target.value }))} /></div>
             </div>
           )}
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Notes</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} /></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Notes</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} /></div>
         </div>
       </Modal>
 
@@ -1988,10 +1988,10 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
       <Modal open={showNewSignal} onClose={() => setShowNewSignal(false)} title="Nouveau signalement"
         footer={<div className="flex justify-end gap-3"><button onClick={() => setShowNewSignal(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button><button onClick={submitSignal} disabled={saving} className="btn btn-primary flex items-center gap-2 text-sm">{saving && <Loader2 size={14} className="animate-spin" />} Enregistrer</button></div>}>
         <div className="space-y-3">
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Influenceur *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.influencer_id} onChange={e => setSigForm(f => ({ ...f, influencer_id: e.target.value }))}><option value="">Sélectionner...</option>{influencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}</select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Type de signal *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.signal_type} onChange={e => setSigForm(f => ({ ...f, signal_type: e.target.value }))}><option value="">Sélectionner...</option><option value="retard">Retard</option><option value="contenu_non_conforme">Contenu non conforme</option><option value="injoignable">Injoignable</option><option value="comportement">Comportement</option><option value="autre">Autre</option></select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Sévérité *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.severity} onChange={e => setSigForm(f => ({ ...f, severity: e.target.value }))}><option value="">Sélectionner...</option><option value="faible">Faible</option><option value="moyen">Moyen</option><option value="élevé">Élevé</option><option value="critique">Critique</option></select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Description *</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={sigForm.description} onChange={e => setSigForm(f => ({ ...f, description: e.target.value }))} /></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Influenceur *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.influencer_id} onChange={e => setSigForm(f => ({ ...f, influencer_id: e.target.value }))}><option value="">Sélectionner...</option>{influencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}</select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Type de signal *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.signal_type} onChange={e => setSigForm(f => ({ ...f, signal_type: e.target.value }))}><option value="">Sélectionner...</option><option value="retard">Retard</option><option value="contenu_non_conforme">Contenu non conforme</option><option value="injoignable">Injoignable</option><option value="comportement">Comportement</option><option value="autre">Autre</option></select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Sévérité *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={sigForm.severity} onChange={e => setSigForm(f => ({ ...f, severity: e.target.value }))}><option value="">Sélectionner...</option><option value="faible">Faible</option><option value="moyen">Moyen</option><option value="élevé">Élevé</option><option value="critique">Critique</option></select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Description *</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={sigForm.description} onChange={e => setSigForm(f => ({ ...f, description: e.target.value }))} /></div>
         </div>
       </Modal>
     </div>
@@ -2097,12 +2097,12 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
         <>
           <div className="card overflow-hidden">
             <table className="w-full"><thead><tr className="border-b border-zinc-100">
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Plateforme</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type d'action</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Handle</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Compte social</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Plateforme</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type d'action</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Description</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Handle</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Compte social</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
             </tr></thead><tbody>
               {rows.map(r => (
                 <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
@@ -2131,12 +2131,12 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
       <Modal open={showNew} onClose={() => setShowNew(false)} title="Nouvelle action de modération"
         footer={<div className="flex justify-end gap-3"><button onClick={() => setShowNew(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button><button onClick={submit} disabled={saving} className="btn btn-primary flex items-center gap-2 text-sm">{saving && <Loader2 size={14} className="animate-spin" />} Enregistrer</button></div>}>
         <div className="space-y-3">
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Plateforme *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}><option value="">Sélectionner...</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option></select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Type d'action *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.action_type} onChange={e => setForm(f => ({ ...f, action_type: e.target.value }))}><option value="">Sélectionner...</option><option value="commentaire_supprimé">Commentaire supprimé</option><option value="commentaire_masqué">Commentaire masqué</option><option value="message_envoyé">Message envoyé</option><option value="avis_signalé">Avis signalé</option><option value="ban_utilisateur">Ban utilisateur</option><option value="autre">Autre</option></select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Handle du compte</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="@utilisateur" value={form.account_handle} onChange={e => setForm(f => ({ ...f, account_handle: e.target.value }))} /></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Compte social</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.social_account_id} onChange={e => setForm(f => ({ ...f, social_account_id: e.target.value }))}><option value="">Sélectionner...</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({a.platform})</option>)}</select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Réclamation liée</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.complaint_id} onChange={e => setForm(f => ({ ...f, complaint_id: e.target.value }))}><option value="">Aucune</option>{complaints.map(c => <option key={c.id} value={c.id}>{c.reference} — {c.customer_name}</option>)}</select></div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">Description *</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Plateforme *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}><option value="">Sélectionner...</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option></select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Type d'action *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.action_type} onChange={e => setForm(f => ({ ...f, action_type: e.target.value }))}><option value="">Sélectionner...</option><option value="commentaire_supprimé">Commentaire supprimé</option><option value="commentaire_masqué">Commentaire masqué</option><option value="message_envoyé">Message envoyé</option><option value="avis_signalé">Avis signalé</option><option value="ban_utilisateur">Ban utilisateur</option><option value="autre">Autre</option></select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Handle du compte</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="@utilisateur" value={form.account_handle} onChange={e => setForm(f => ({ ...f, account_handle: e.target.value }))} /></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Compte social</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.social_account_id} onChange={e => setForm(f => ({ ...f, social_account_id: e.target.value }))}><option value="">Sélectionner...</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.account_name} ({a.platform})</option>)}</select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Réclamation liée</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={form.complaint_id} onChange={e => setForm(f => ({ ...f, complaint_id: e.target.value }))}><option value="">Aucune</option>{complaints.map(c => <option key={c.id} value={c.id}>{c.reference} — {c.customer_name}</option>)}</select></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Description *</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
               <input type="checkbox" checked={form.public_comment_deleted} onChange={e => setForm(f => ({ ...f, public_comment_deleted: e.target.checked }))} className="rounded" />
@@ -2147,7 +2147,7 @@ function TabModeration({ toast, onNewComplaint }: { toast: (m: string, t: string
               Message envoyé
             </label>
           </div>
-          <div><label className="block text-xs font-semibold text-zinc-500 mb-1">URL capture d'écran</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={form.screenshot_url} onChange={e => setForm(f => ({ ...f, screenshot_url: e.target.value }))} /></div>
+          <div><label className="block text-xs font-semibold text-zinc-900 mb-1">URL capture d'écran</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={form.screenshot_url} onChange={e => setForm(f => ({ ...f, screenshot_url: e.target.value }))} /></div>
         </div>
       </Modal>
     </div>
@@ -2258,24 +2258,24 @@ function TabReclamations({ toast, userId, onNewComplaint, refreshToken }: { toas
               </div>
 
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Client</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Client</p>
                 <p className="text-sm font-bold text-zinc-900">{detail.customer_name}</p>
                 {detail.customer_phone && <p className="text-xs text-zinc-500">{detail.customer_phone}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Canal</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Canal</p>
                   <p className="text-sm font-medium text-zinc-700">{detail.channel}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Catégorie</p>
                   <p className="text-sm font-medium text-zinc-700">{detail.category}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Priorité</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Priorité</p>
                 {editPriority ? (
                   <div className="flex items-center gap-2">
                     {(['P1', 'P2', 'P3'] as const).map(p => (
@@ -2293,13 +2293,13 @@ function TabReclamations({ toast, userId, onNewComplaint, refreshToken }: { toas
               </div>
 
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Description</p>
                 <p className="text-sm text-zinc-700 whitespace-pre-wrap">{detail.description}</p>
               </div>
 
               {detail.assigned_user && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Assigné à</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Assigné à</p>
                   <p className="text-sm font-medium text-zinc-700">{detail.assigned_user.name}</p>
                 </div>
               )}
@@ -2392,13 +2392,13 @@ function TabReclamations({ toast, userId, onNewComplaint, refreshToken }: { toas
         <>
           <div className="card overflow-hidden">
             <table className="w-full"><thead><tr className="border-b border-zinc-100">
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Référence</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Client</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Priorité</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
-              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Référence</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Client</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Catégorie</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Priorité</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
+              <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
             </tr></thead><tbody>
               {rows.map(r => (
                 <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">

@@ -176,19 +176,19 @@ export function BudgetsScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Budgets actifs</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Budgets actifs</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{activeCount}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Budget total</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Budget total</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{fmtMAD(totalAllocated)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Consommé</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Consommé</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{fmtMAD(totalSpent)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Restant</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Restant</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{fmtMAD(totalRemaining)}</p>
         </div>
       </div>
@@ -226,14 +226,14 @@ export function BudgetsScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Département</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Montant alloué</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Consommé</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Restant</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Utilisation</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Période</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Nom</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Département</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Montant alloué</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Consommé</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Restant</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Utilisation</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Période</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
               </tr>
             </thead>
             <tbody>

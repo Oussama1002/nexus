@@ -47,7 +47,7 @@ function num(v: number | null | undefined): string {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card-muted px-4 py-3">
-      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">{label}</p>
       <p className="text-xl font-black text-zinc-900">{value}</p>
     </div>
   );
@@ -107,7 +107,7 @@ export function SocialAccountDetail({
             <ArrowLeft className="w-4 h-4" /> Retour
           </button>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Compte social</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Compte social</p>
             <p className="text-lg font-black text-zinc-900">{profile?.name || accountName}</p>
           </div>
         </div>
@@ -178,7 +178,7 @@ export function SocialAccountDetail({
           )}
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Dernières publications</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-2">Dernières publications</p>
             {posts.length === 0 ? (
               <EmptyState title="Aucune publication" description="Meta n’a renvoyé aucune publication pour ce compte." />
             ) : (
@@ -192,7 +192,7 @@ export function SocialAccountDetail({
                     )}
                     <div className="p-4 space-y-2 flex-1 flex flex-col">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
                           {MEDIA_LABELS[post.media_type] ?? post.media_type}
                         </span>
                         {post.published_at && (

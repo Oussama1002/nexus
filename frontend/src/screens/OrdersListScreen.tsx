@@ -732,11 +732,11 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
             <div className="card-muted p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Statut</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Statut</p>
                   <StatusChip tone={toneForStatus(selected.status)}>{selected.status}</StatusChip>
                 </div>
                 <div className="space-y-1 text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Colis</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Colis</p>
                   {!selected.shipment ? (
                     <StatusChip tone="neutral">Non envoyé</StatusChip>
                   ) : !selected.shipment.sentToCarrier ? (
@@ -753,13 +753,13 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                   )}
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Paiement</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Paiement</p>
                   <StatusChip tone={toneForPayment(selected.payment)}>{selected.payment}</StatusChip>
                 </div>
               </div>
               {selected.paymentMethod === 'transfer' && (
                 <div className="mt-4 border-t border-zinc-100 pt-3 space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Virement bancaire</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Virement bancaire</p>
                   <p className="text-xs font-semibold text-zinc-700">
                     Déclaré payé: {selected.bankTransferDeclaredPaid ? 'Oui' : 'Non'}
                   </p>

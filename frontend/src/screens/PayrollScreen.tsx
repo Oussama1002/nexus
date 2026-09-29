@@ -208,15 +208,15 @@ export function PayrollScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Employé</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Base</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Primes</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Retenues</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">CNSS</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">IR</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Net</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Employé</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Base</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Primes</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Retenues</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">CNSS</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">IR</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Net</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
               </tr>
             </thead>
             <tbody>

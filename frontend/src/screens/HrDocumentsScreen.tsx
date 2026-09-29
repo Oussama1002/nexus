@@ -124,12 +124,12 @@ export function HrDocumentsScreen() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Employé</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Titre</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Expiration</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Ajouté</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Fichier</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Employé</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Titre</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Expiration</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Ajouté</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Fichier</th>
                 </tr>
               </thead>
               <tbody>

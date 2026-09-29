@@ -385,27 +385,27 @@ export function AccountingScreen() {
       {summary?.business && (
         <div className="card p-5 flex flex-wrap items-center gap-x-8 gap-y-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">CA</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">CA</p>
             <p className="mt-1 text-base font-black text-emerald-700 whitespace-nowrap">{formatCurrency(summary.business.revenue)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">COD encaissé</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">COD encaissé</p>
             <p className="mt-1 text-base font-black text-emerald-600 whitespace-nowrap">{formatCurrency(summary.business.cod_collected)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">COD en cours</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">COD en cours</p>
             <p className="mt-1 text-base font-black text-amber-600 whitespace-nowrap">{formatCurrency(summary.business.cod_pending)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Frais livraison</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Frais livraison</p>
             <p className="mt-1 text-base font-black text-rose-600 whitespace-nowrap">{formatCurrency(summary.business.delivery_fees)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Colis livrés</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Colis livrés</p>
             <p className="mt-1 text-base font-black text-zinc-900 whitespace-nowrap">{summary.business.delivered_shipments} <span className="text-xs font-medium text-zinc-400">/ {summary.business.total_shipments}</span></p>
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Retours</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Retours</p>
             <p className="mt-1 text-base font-black text-rose-700 whitespace-nowrap">{summary.business.returned_shipments}</p>
           </div>
         </div>
@@ -413,25 +413,25 @@ export function AccountingScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Débit</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total Débit</p>
           <p className="mt-2 text-lg md:text-xl font-black text-rose-700 truncate">{formatCurrency(summary?.total_debit ?? 0)}</p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Crédit</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total Crédit</p>
           <p className="mt-2 text-lg md:text-xl font-black text-emerald-700 truncate">{formatCurrency(summary?.total_credit ?? 0)}</p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Solde</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Solde</p>
           <p className={`mt-2 text-lg md:text-xl font-black truncate ${(summary?.balance ?? 0) >= 0 ? 'text-zinc-900' : 'text-rose-700'}`}>
             {formatCurrency(summary?.balance ?? 0)}
           </p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Écritures</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Écritures</p>
           <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{summary?.entry_count ?? 0}</p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Comptes actifs</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Comptes actifs</p>
           <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{summary?.account_count ?? 0}</p>
         </div>
       </div>
@@ -516,7 +516,7 @@ export function AccountingScreen() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Compte</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Compte</label>
               <select
                 value={entryDraft.account_id}
                 onChange={(e) => setEntryDraft((d) => ({ ...d, account_id: e.target.value }))}
@@ -529,7 +529,7 @@ export function AccountingScreen() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</label>
               <input
                 type="date"
                 value={entryDraft.entry_date}
@@ -538,7 +538,7 @@ export function AccountingScreen() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Journal</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Journal</label>
               <select
                 value={entryDraft.journal}
                 onChange={(e) => setEntryDraft((d) => ({ ...d, journal: e.target.value }))}
@@ -550,7 +550,7 @@ export function AccountingScreen() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Reference</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Reference</label>
               <input
                 value={entryDraft.reference}
                 onChange={(e) => setEntryDraft((d) => ({ ...d, reference: e.target.value }))}
@@ -559,7 +559,7 @@ export function AccountingScreen() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Libelle</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Libelle</label>
               <input
                 value={entryDraft.label}
                 onChange={(e) => setEntryDraft((d) => ({ ...d, label: e.target.value }))}
@@ -567,7 +567,7 @@ export function AccountingScreen() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Debit</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Debit</label>
               <input
                 type="number"
                 min={0}
@@ -578,7 +578,7 @@ export function AccountingScreen() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Credit</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Credit</label>
               <input
                 type="number"
                 min={0}
@@ -607,7 +607,7 @@ export function AccountingScreen() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Code</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Code</label>
               <input
                 value={accountDraft.code}
                 onChange={(e) => setAccountDraft((d) => ({ ...d, code: e.target.value }))}
@@ -616,7 +616,7 @@ export function AccountingScreen() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</label>
               <select
                 value={accountDraft.type}
                 onChange={(e) => setAccountDraft((d) => ({ ...d, type: e.target.value as AccountType }))}
@@ -628,7 +628,7 @@ export function AccountingScreen() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Libelle</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Libelle</label>
               <input
                 value={accountDraft.label}
                 onChange={(e) => setAccountDraft((d) => ({ ...d, label: e.target.value }))}
@@ -636,7 +636,7 @@ export function AccountingScreen() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Compte parent</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Compte parent</label>
               <select
                 value={accountDraft.parent_id}
                 onChange={(e) => setAccountDraft((d) => ({ ...d, parent_id: e.target.value }))}

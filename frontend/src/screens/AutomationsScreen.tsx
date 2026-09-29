@@ -524,10 +524,10 @@ export function AutomationsScreen() {
 
           {/* Name + Description */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label className="text-xs font-black uppercase text-zinc-500">Nom <span className="text-rose-600">*</span>
+            <label className="text-xs font-black uppercase text-zinc-900">Nom <span className="text-rose-600">*</span>
               <input value={draftName} onChange={(e) => setDraftName(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Ex: Alerte retard employé" />
             </label>
-            <label className="text-xs font-black uppercase text-zinc-500">Description
+            <label className="text-xs font-black uppercase text-zinc-900">Description
               <input value={draftDesc} onChange={(e) => setDraftDesc(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Optionnel" />
             </label>
           </div>

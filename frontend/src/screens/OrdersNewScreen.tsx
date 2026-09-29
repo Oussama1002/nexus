@@ -301,7 +301,7 @@ export function OrdersNewScreen({
             <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Client</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 relative" ref={customerBoxRef}>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Nom</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Nom</label>
                 <div className="relative">
                   <input
                     value={customerName}
@@ -349,19 +349,19 @@ export function OrdersNewScreen({
                 )}
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Téléphone</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Téléphone</label>
                 <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ville</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Ville</label>
                 <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Adresse</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Adresse</label>
                 <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Paiement</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Paiement</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as 'prepaid' | 'cod' | 'transfer')}
@@ -385,7 +385,7 @@ export function OrdersNewScreen({
                     </label>
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Référence virement</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Référence virement</label>
                     <input
                       value={bankTransferReference}
                       onChange={(e) => setBankTransferReference(e.target.value)}
@@ -426,7 +426,7 @@ export function OrdersNewScreen({
               {lines.map((l) => (
                 <div key={l.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end card-muted p-4">
                   <div className="md:col-span-12 space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Catalogue (optionnel)</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Catalogue (optionnel)</label>
                     <select
                       value={l.productId ?? ''}
                       onChange={(e) => {
@@ -466,7 +466,7 @@ export function OrdersNewScreen({
                     })()}
                   </div>
                   <div className="md:col-span-6 space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Libellé ligne</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Libellé ligne</label>
                     <input
                       value={l.name}
                       onChange={(e) => setLines((prev) => prev.map((x) => (x.id === l.id ? { ...x, name: e.target.value } : x)))}
@@ -474,7 +474,7 @@ export function OrdersNewScreen({
                     />
                   </div>
                   <div className="md:col-span-2 space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Qté</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Qté</label>
                     <input
                       type="number"
                       value={l.qty}
@@ -483,7 +483,7 @@ export function OrdersNewScreen({
                     />
                   </div>
                   <div className="md:col-span-3 space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Prix</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Prix</label>
                     <input
                       type="number"
                       value={l.price}
@@ -523,12 +523,12 @@ export function OrdersNewScreen({
             <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Contexte</p>
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Marque</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Marque</label>
                 <div className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-black text-zinc-800">{brand}</div>
                 <p className="text-[11px] font-medium text-zinc-500">Marque active (session).</p>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Source</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Source</label>
                 <select value={source} onChange={(e) => setSource(e.target.value as OrderSource)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold text-zinc-700 outline-none">
                   <option>WhatsApp</option>
                   <option>Facebook</option>

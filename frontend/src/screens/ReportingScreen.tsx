@@ -190,7 +190,7 @@ function DistributionPieCard({
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total</p>
               <p className="text-2xl font-black text-zinc-900">{total.toLocaleString('fr-FR')}</p>
             </div>
           </div>
@@ -276,7 +276,7 @@ function Kpi({
 }) {
   return (
     <div className="card p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">{label}</p>
       <p className="mt-1 text-xl font-black text-zinc-900 truncate">{value}</p>
       {sub && <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>}
     </div>

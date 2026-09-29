@@ -149,7 +149,7 @@ export function ConfirmatriceSpaceScreen({
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             {viewerRole === 'admin' && confirmatriceOptions.length > 0 && (
               <div className="flex flex-col gap-1 min-w-[200px]">
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Confirmatrice</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Confirmatrice</label>
                 <select
                   value={workspaceUserId}
                   onChange={(e) => onSelectConfirmatrice(e.target.value)}
@@ -199,27 +199,27 @@ export function ConfirmatriceSpaceScreen({
       {/* KPI cards — données API */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Conversations assignées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Conversations assignées</p>
           <p className="mt-2 text-2xl font-black text-zinc-900">{summary?.conversations_total ?? '—'}</p>
         </div>
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Leads en cours</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Leads en cours</p>
           <p className="mt-2 text-2xl font-black text-zinc-900">{summary?.leads_open ?? '—'}</p>
         </div>
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Commandes confirmées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes confirmées</p>
           <p className="mt-2 text-2xl font-black text-emerald-600">{summary?.orders_confirmed ?? '—'}</p>
         </div>
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Commandes annulées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes annulées</p>
           <p className="mt-2 text-2xl font-black text-rose-600">{summary?.orders_cancelled ?? '—'}</p>
         </div>
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Relances dues</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Relances dues</p>
           <p className="mt-2 text-2xl font-black text-amber-600">{summary?.reminders_due ?? '—'}</p>
         </div>
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Upsells ouverts</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Upsells ouverts</p>
           <p className="mt-2 text-2xl font-black text-indigo-600">{summary?.upsells_open ?? 0}</p>
           <p className="mt-1 text-[10px] text-zinc-400">Non branché en base pour l’instant.</p>
         </div>
@@ -251,7 +251,7 @@ export function ConfirmatriceSpaceScreen({
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="card-muted p-5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Leads nouveaux (statut)</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Leads nouveaux (statut)</p>
                 <p className="mt-2 text-2xl font-black text-zinc-900">{summary?.leads_new ?? '—'}</p>
                 <button
                   type="button"
@@ -262,7 +262,7 @@ export function ConfirmatriceSpaceScreen({
                 </button>
               </div>
               <div className="card-muted p-5">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Commandes en attente</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes en attente</p>
                 <p className="mt-2 text-2xl font-black text-zinc-900">{summary?.orders_pending ?? '—'}</p>
                 <button
                   type="button"
@@ -306,7 +306,7 @@ export function ConfirmatriceSpaceScreen({
           />
 
           <div className="card-muted p-5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Raccourcis</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Raccourcis</p>
             <p className="mt-2 text-sm font-medium text-zinc-700">
               {isSelf ? (
                 <>

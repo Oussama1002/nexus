@@ -148,19 +148,19 @@ export function ProfileScreen() {
         <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Informations personnelles</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Nom complet</label>
+            <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Nom complet</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-black uppercase text-zinc-500 mb-1">E-mail</label>
+            <label className="block text-xs font-black uppercase text-zinc-900 mb-1">E-mail</label>
             <input value={email} disabled className={`${inputCls} bg-zinc-50 text-zinc-400 cursor-not-allowed`} />
           </div>
           <div>
-            <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Téléphone</label>
+            <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Téléphone</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="+212…" />
           </div>
           <div>
-            <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Marque active</label>
+            <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Marque active</label>
             <input value={activeBrand.name} disabled className={`${inputCls} bg-zinc-50 text-zinc-400 cursor-not-allowed`} />
           </div>
         </div>
@@ -181,15 +181,15 @@ export function ProfileScreen() {
         <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500">Changer le mot de passe</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Mot de passe actuel</label>
+            <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Mot de passe actuel</label>
             <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Nouveau mot de passe</label>
+            <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Nouveau mot de passe</label>
             <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputCls} />
           </div>
           <div>
-            <label className="block text-xs font-black uppercase text-zinc-500 mb-1">Confirmer</label>
+            <label className="block text-xs font-black uppercase text-zinc-900 mb-1">Confirmer</label>
             <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls} />
           </div>
         </div>

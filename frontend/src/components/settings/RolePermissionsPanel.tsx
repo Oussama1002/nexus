@@ -205,7 +205,7 @@ export function RolePermissionsPanel({
         </div>
         {roles.length > 0 ? (
           <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 p-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Rôles définis dans l’application</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-2">Rôles définis dans l’application</p>
             <ul className="flex flex-wrap gap-2">
               {roles.map((r) => (
                 <li
@@ -266,7 +266,7 @@ export function RolePermissionsPanel({
       ) : null}
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 shrink-0">Rôle</label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 shrink-0">Rôle</label>
         <select
           value={roleId === '' ? '' : String(roleId)}
           onChange={(e) => {

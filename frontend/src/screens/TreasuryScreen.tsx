@@ -109,19 +109,19 @@ export function TreasuryScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Solde total</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Solde total</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{fmtMAD(summary.total_balance)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Entrées ce mois</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Entrées ce mois</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{fmtMAD(summary.income_this_month)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sorties ce mois</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Sorties ce mois</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{fmtMAD(summary.expense_this_month)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Variation</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Variation</p>
           <p className={`text-2xl font-black mt-1 ${summary.variation >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmtMAD(summary.variation)}</p>
         </div>
       </div>
@@ -164,14 +164,14 @@ export function TreasuryScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Libellé</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Montant</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Solde cumulé</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Référence</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Compte</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Libellé</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Catégorie</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Montant</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Solde cumulé</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Référence</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Compte</th>
               </tr>
             </thead>
             <tbody>

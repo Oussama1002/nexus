@@ -387,7 +387,7 @@ export function AdStructureExplorer({
             <ArrowLeft className="w-4 h-4" /> Retour
           </button>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">
               {openAdSet ? 'Publicités de l’ensemble' : 'Ensembles de publicités'}
             </p>
             <p className="text-lg font-black text-zinc-900">{openAdSet ? openAdSet.name : campaignName}</p>

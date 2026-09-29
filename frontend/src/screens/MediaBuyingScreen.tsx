@@ -379,16 +379,16 @@ export function MediaBuyingScreen() {
       >
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label className="text-xs font-black uppercase text-zinc-500">Titre
+            <label className="text-xs font-black uppercase text-zinc-900">Titre
               <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
             </label>
-            <label className="text-xs font-black uppercase text-zinc-500">Angle
+            <label className="text-xs font-black uppercase text-zinc-900">Angle
               <input value={draft.angle} onChange={(e) => setDraft((d) => ({ ...d, angle: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
             </label>
-            <label className="text-xs font-black uppercase text-zinc-500">Format
+            <label className="text-xs font-black uppercase text-zinc-900">Format
               <input value={draft.format} onChange={(e) => setDraft((d) => ({ ...d, format: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" placeholder="video, image, ugc..." />
             </label>
-            <label className="text-xs font-black uppercase text-zinc-500">Statut
+            <label className="text-xs font-black uppercase text-zinc-900">Statut
               <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as EntryStatus }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold">
                 <option value="testing">testing</option>
                 <option value="winning">winning</option>
@@ -397,27 +397,27 @@ export function MediaBuyingScreen() {
               </select>
             </label>
           </div>
-          <label className="text-xs font-black uppercase text-zinc-500 block">Hook
+          <label className="text-xs font-black uppercase text-zinc-900 block">Hook
             <textarea value={draft.hook} onChange={(e) => setDraft((d) => ({ ...d, hook: e.target.value }))} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
           </label>
-          <label className="text-xs font-black uppercase text-zinc-500 block">Script
+          <label className="text-xs font-black uppercase text-zinc-900 block">Script
             <textarea value={draft.script} onChange={(e) => setDraft((d) => ({ ...d, script: e.target.value }))} rows={4} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
           </label>
-          <label className="text-xs font-black uppercase text-zinc-500">Source de trafic
+          <label className="text-xs font-black uppercase text-zinc-900">Source de trafic
             <select value={draft.traffic_source} onChange={(e) => setDraft((d) => ({ ...d, traffic_source: e.target.value as TrafficSource }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 font-bold">
               <option value="sponsored">Sponsorisé</option>
               <option value="organic">Organique</option>
             </select>
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <label className="text-xs font-black uppercase text-zinc-500">ROAS<input value={draft.roas} onChange={(e) => setDraft((d) => ({ ...d, roas: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
-            <label className="text-xs font-black uppercase text-zinc-500">CPA<input value={draft.cpa} onChange={(e) => setDraft((d) => ({ ...d, cpa: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
-            <label className="text-xs font-black uppercase text-zinc-500">CTR<input value={draft.ctr} onChange={(e) => setDraft((d) => ({ ...d, ctr: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
-            <label className="text-xs font-black uppercase text-zinc-500">Spend<input value={draft.spend} onChange={(e) => setDraft((d) => ({ ...d, spend: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
-            <label className="text-xs font-black uppercase text-zinc-500">Leads<input value={draft.leads} onChange={(e) => setDraft((d) => ({ ...d, leads: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
-            <label className="text-xs font-black uppercase text-zinc-500">Confirmées<input value={draft.confirmed_orders} onChange={(e) => setDraft((d) => ({ ...d, confirmed_orders: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
-            <label className="text-xs font-black uppercase text-zinc-500">Priorité repurpose<input value={draft.repurpose_priority} onChange={(e) => setDraft((d) => ({ ...d, repurpose_priority: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
-            <label className="text-xs font-black uppercase text-zinc-500">Date test<input type="date" value={draft.tested_at} onChange={(e) => setDraft((d) => ({ ...d, tested_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">ROAS<input value={draft.roas} onChange={(e) => setDraft((d) => ({ ...d, roas: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">CPA<input value={draft.cpa} onChange={(e) => setDraft((d) => ({ ...d, cpa: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">CTR<input value={draft.ctr} onChange={(e) => setDraft((d) => ({ ...d, ctr: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">Spend<input value={draft.spend} onChange={(e) => setDraft((d) => ({ ...d, spend: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">Leads<input value={draft.leads} onChange={(e) => setDraft((d) => ({ ...d, leads: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">Confirmées<input value={draft.confirmed_orders} onChange={(e) => setDraft((d) => ({ ...d, confirmed_orders: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">Priorité repurpose<input value={draft.repurpose_priority} onChange={(e) => setDraft((d) => ({ ...d, repurpose_priority: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
+            <label className="text-xs font-black uppercase text-zinc-900">Date test<input type="date" value={draft.tested_at} onChange={(e) => setDraft((d) => ({ ...d, tested_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" /></label>
           </div>
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 space-y-3">
             <p className="text-xs font-black uppercase tracking-widest text-zinc-500">Comparaison organique vs sponsorisé</p>
@@ -438,7 +438,7 @@ export function MediaBuyingScreen() {
               </div>
             </div>
           </div>
-          <label className="text-xs font-black uppercase text-zinc-500 block">Notes repurpose
+          <label className="text-xs font-black uppercase text-zinc-900 block">Notes repurpose
             <textarea value={draft.repurpose_notes} onChange={(e) => setDraft((d) => ({ ...d, repurpose_notes: e.target.value }))} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
           </label>
         </div>

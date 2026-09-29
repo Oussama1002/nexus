@@ -161,10 +161,10 @@ export function LeavesScreen() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">En attente</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.enAttente}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Approuvés</p><p className="text-2xl font-black text-emerald-600 mt-1">{stats.approuves}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Refusés</p><p className="text-2xl font-black text-red-600 mt-1">{stats.refuses}</p></div>
-        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Jours totaux</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.total}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">En attente</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.enAttente}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Approuvés</p><p className="text-2xl font-black text-emerald-600 mt-1">{stats.approuves}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Refusés</p><p className="text-2xl font-black text-red-600 mt-1">{stats.refuses}</p></div>
+        <div className="card p-4"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Jours totaux</p><p className="text-2xl font-black text-zinc-900 mt-1">{stats.total}</p></div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -190,14 +190,14 @@ export function LeavesScreen() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Employé</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Du</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Au</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Jours</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Motif</th>
-                  <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Employé</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Du</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Au</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Jours</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Motif</th>
+                  <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
                 </tr>
               </thead>
               <tbody>

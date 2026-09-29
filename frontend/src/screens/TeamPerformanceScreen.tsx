@@ -94,19 +94,19 @@ export function TeamPerformanceScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Membres actifs</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Membres actifs</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{activeMembers}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Commandes traitées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes traitées</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{totalOrders}</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux confirmation</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux confirmation</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{confirmRate}%</p>
         </div>
         <div className="card p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps moyen traitement</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Temps moyen traitement</p>
           <p className="text-2xl font-black text-zinc-900 mt-1">{avgTime}</p>
         </div>
       </div>
@@ -137,13 +137,13 @@ export function TeamPerformanceScreen() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Membre</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Rôle</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Commandes</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Confirmées</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Temps moyen</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Score</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Membre</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Rôle</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Confirmées</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Temps moyen</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Score</th>
               </tr>
             </thead>
             <tbody>

@@ -596,25 +596,25 @@ export function FinanceScreen() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total charges</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total charges</p>
           <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">
             {formatCurrency(summary?.total_charges ?? 0)}
           </p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Ads</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Ads</p>
           <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{formatCurrency(summary?.ad_spend ?? 0)}</p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Livraison</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Livraison</p>
           <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{formatCurrency(summary?.delivery_spend ?? 0)}</p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Fournisseur</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Fournisseur</p>
           <p className="mt-2 text-lg md:text-xl font-black text-zinc-900 truncate">{formatCurrency(summary?.supplier_spend ?? 0)}</p>
         </div>
         <div className="card p-5 overflow-hidden">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Influence</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Influence</p>
           <p className="mt-2 text-lg md:text-xl font-black text-emerald-700 truncate">{formatCurrency(summary?.influencer_spend ?? 0)}</p>
         </div>
       </div>
@@ -625,7 +625,7 @@ export function FinanceScreen() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                <tr className="text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">
                   <th className="pb-2">Mois</th>
                   <th className="pb-2 text-right">Total</th>
                 </tr>
@@ -730,7 +730,7 @@ export function FinanceScreen() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</label>
               <input
                 type="date"
                 value={draft.charge_date}
@@ -739,7 +739,7 @@ export function FinanceScreen() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Marque</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Marque</label>
               <select
                 value={draft.brand_id === null ? '' : String(draft.brand_id)}
                 onChange={(e) =>
@@ -759,7 +759,7 @@ export function FinanceScreen() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</label>
               <select
                 value={draft.type}
                 onChange={(e) => setDraft((d) => ({ ...d, type: e.target.value as ChargeTypeApi }))}
@@ -773,7 +773,7 @@ export function FinanceScreen() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Montant</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Montant</label>
               <input
                 type="number"
                 min={0.01}
@@ -784,7 +784,7 @@ export function FinanceScreen() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Note</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Note</label>
               <textarea
                 value={draft.note ?? ''}
                 onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))}
@@ -810,37 +810,37 @@ export function FinanceScreen() {
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Client
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Client
               <select value={invoiceDraft.customer_id} onChange={(e) => setInvoiceDraft((d) => ({ ...d, customer_id: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold">
                 <option value="">— Sélectionner —</option>
                 {customers.map((c) => <option key={c.id} value={String(c.id)}>{c.full_name} {c.email ? `(${c.email})` : ''}</option>)}
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Email destinataire
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Email destinataire
               <input value={invoiceDraft.recipient_email} onChange={(e) => setInvoiceDraft((d) => ({ ...d, recipient_email: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Début période
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Début période
               <input type="date" value={invoiceDraft.billing_period_start} onChange={(e) => setInvoiceDraft((d) => ({ ...d, billing_period_start: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Fin période
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Fin période
               <input type="date" value={invoiceDraft.billing_period_end} onChange={(e) => setInvoiceDraft((d) => ({ ...d, billing_period_end: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date émission
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Date émission
               <input type="date" value={invoiceDraft.issue_date} onChange={(e) => setInvoiceDraft((d) => ({ ...d, issue_date: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date échéance
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Date échéance
               <input type="date" value={invoiceDraft.due_date} onChange={(e) => setInvoiceDraft((d) => ({ ...d, due_date: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sous-total
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Sous-total
               <input type="number" min={0} step="0.01" value={invoiceDraft.subtotal || ''} onChange={(e) => setInvoiceDraft((d) => ({ ...d, subtotal: Number(e.target.value) }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Remise
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Remise
               <input type="number" min={0} step="0.01" value={invoiceDraft.discount || ''} onChange={(e) => setInvoiceDraft((d) => ({ ...d, discount: Number(e.target.value) }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taxe
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taxe
               <input type="number" min={0} step="0.01" value={invoiceDraft.tax_amount || ''} onChange={(e) => setInvoiceDraft((d) => ({ ...d, tax_amount: Number(e.target.value) }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 md:col-span-2">Notes
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 md:col-span-2">Notes
               <textarea rows={3} value={invoiceDraft.notes} onChange={(e) => setInvoiceDraft((d) => ({ ...d, notes: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
           </div>
@@ -861,19 +861,19 @@ export function FinanceScreen() {
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Client
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Client
               <select value={contractDraft.customer_id} onChange={(e) => setContractDraft((d) => ({ ...d, customer_id: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold">
                 <option value="">— Sélectionner —</option>
                 {customers.map((c) => <option key={c.id} value={String(c.id)}>{c.full_name}</option>)}
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Titre
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Titre
               <input value={contractDraft.title} onChange={(e) => setContractDraft((d) => ({ ...d, title: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">N° Contrat
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">N° Contrat
               <input value={contractDraft.contract_number} onChange={(e) => setContractDraft((d) => ({ ...d, contract_number: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Stockage
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Stockage
               <select value={contractDraft.storage_provider} onChange={(e) => setContractDraft((d) => ({ ...d, storage_provider: e.target.value as 'google_drive' | 'dropbox' | 'onedrive' | 'other' }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold">
                 <option value="google_drive">Google Drive</option>
                 <option value="dropbox">Dropbox</option>
@@ -881,13 +881,13 @@ export function FinanceScreen() {
                 <option value="other">Autre</option>
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 md:col-span-2">Lien externe (Drive/Cloud)
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 md:col-span-2">Lien externe (Drive/Cloud)
               <input value={contractDraft.external_url} onChange={(e) => setContractDraft((d) => ({ ...d, external_url: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Début
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Début
               <input type="date" value={contractDraft.starts_at} onChange={(e) => setContractDraft((d) => ({ ...d, starts_at: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Fin
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Fin
               <input type="date" value={contractDraft.ends_at} onChange={(e) => setContractDraft((d) => ({ ...d, ends_at: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
             </label>
           </div>

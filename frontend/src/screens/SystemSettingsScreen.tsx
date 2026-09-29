@@ -244,7 +244,7 @@ export function SystemSettingsScreen({
         </div>
 
       <div className="card p-4 flex flex-col sm:flex-row gap-3 sm:items-center">
-        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 shrink-0">Recherche</label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 shrink-0">Recherche</label>
         <input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
@@ -279,7 +279,7 @@ export function SystemSettingsScreen({
 
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">
+          <thead className="bg-zinc-50 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">
             <tr>
               <th className="px-4 py-3">Clé</th>
               <th className="px-4 py-3">Groupe</th>
@@ -375,7 +375,7 @@ export function SystemSettingsScreen({
       >
         <div className="space-y-4">
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Clé</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Clé</label>
             <input
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
@@ -384,7 +384,7 @@ export function SystemSettingsScreen({
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Groupe</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Groupe</label>
             <select
               value={newGroup}
               onChange={(e) => setNewGroup(e.target.value as (typeof GROUPS)[number])}
@@ -398,7 +398,7 @@ export function SystemSettingsScreen({
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Type</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Type</label>
             <select value={newValueType} onChange={(e) => setNewValueType(e.target.value)} className="mt-1 w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-sm">
               <option value="string">string</option>
               <option value="bool">bool</option>
@@ -407,7 +407,7 @@ export function SystemSettingsScreen({
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Valeur</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Valeur</label>
             <textarea
               value={newVal}
               onChange={(e) => setNewVal(e.target.value)}

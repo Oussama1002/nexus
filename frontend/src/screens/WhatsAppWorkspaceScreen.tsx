@@ -1134,7 +1134,7 @@ export function WhatsAppWorkspaceScreen({
 
           {newTab === 'existing' ? (
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Rechercher un client</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Rechercher un client</label>
               <input
                 type="text"
                 value={customerSearch}
@@ -1168,7 +1168,7 @@ export function WhatsAppWorkspaceScreen({
           ) : (
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Nom complet</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Nom complet</label>
                 <input
                   type="text"
                   value={newName}
@@ -1178,7 +1178,7 @@ export function WhatsAppWorkspaceScreen({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro de téléphone</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Numéro de téléphone</label>
                 <input
                   type="tel"
                   value={newPhone}
@@ -1192,7 +1192,7 @@ export function WhatsAppWorkspaceScreen({
 
           {numbers.length > 0 && (
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Numéro WhatsApp expéditeur</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Numéro WhatsApp expéditeur</label>
               <select value={newNumberId} onChange={(e) => setNewNumberId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold text-zinc-800">
                 {numbers.map((n) => (
                   <option key={n.id} value={n.id}>

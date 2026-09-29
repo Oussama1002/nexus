@@ -465,7 +465,7 @@ export function EmployeesManagementScreen() {
                   { label: 'Contrats se terminant (60 j)', value: dash.ending_contracts, cls: dash.ending_contracts > 0 ? 'text-orange-600' : 'text-emerald-600' },
                 ].map((k) => (
                   <div key={k.label} className="card p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{k.label}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">{k.label}</p>
                     <p className={`text-2xl font-black mt-1 ${k.cls}`}>{k.value ?? 0}</p>
                   </div>
                 ))}

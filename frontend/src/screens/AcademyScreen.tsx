@@ -426,40 +426,40 @@ function CoursesTab({
       >
         <div className="space-y-4">
           {formErrors.length > 0 && <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800 space-y-1">{formErrors.map((e) => <p key={e}>{e}</p>)}</div>}
-          <label className="block text-xs font-black uppercase text-zinc-500">Titre
+          <label className="block text-xs font-black uppercase text-zinc-900">Titre
             <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value, slug: slugify(e.target.value) }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Titre de la formation" />
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Description courte
+          <label className="block text-xs font-black uppercase text-zinc-900">Description courte
             <input value={draft.short_description} onChange={(e) => setDraft((d) => ({ ...d, short_description: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Description
+          <label className="block text-xs font-black uppercase text-zinc-900">Description
             <textarea value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">Statut
+            <label className="block text-xs font-black uppercase text-zinc-900">Statut
               <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as CourseStatus }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                 <option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option>
               </select>
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Inscription
+            <label className="block text-xs font-black uppercase text-zinc-900">Inscription
               <select value={draft.enrollment_type} onChange={(e) => setDraft((d) => ({ ...d, enrollment_type: e.target.value as EnrollmentType }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                 <option value="free">Gratuite</option><option value="paid">Payante</option>
               </select>
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Niveau
+            <label className="block text-xs font-black uppercase text-zinc-900">Niveau
               <select value={draft.difficulty_level} onChange={(e) => setDraft((d) => ({ ...d, difficulty_level: e.target.value as DifficultyLevel }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                 <option value="beginner">Débutant</option><option value="intermediate">Intermédiaire</option><option value="advanced">Avancé</option>
               </select>
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Durée (min)
+            <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
               <input type="number" min={0} value={draft.duration_minutes} onChange={(e) => setDraft((d) => ({ ...d, duration_minutes: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">Prix
+            <label className="block text-xs font-black uppercase text-zinc-900">Prix
               <input type="number" min={0} step="0.01" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Devise
+            <label className="block text-xs font-black uppercase text-zinc-900">Devise
               <input value={draft.currency} maxLength={3} onChange={(e) => setDraft((d) => ({ ...d, currency: e.target.value.toUpperCase() }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
           </div>
@@ -664,10 +664,10 @@ function CourseDetailTab({
         </div>
       }>
         <div className="space-y-4">
-          <label className="block text-xs font-black uppercase text-zinc-500">Titre
+          <label className="block text-xs font-black uppercase text-zinc-900">Titre
             <input value={sectionTitle} onChange={(e) => setSectionTitle(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Nom de la section" />
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Description
+          <label className="block text-xs font-black uppercase text-zinc-900">Description
             <textarea value={sectionDesc} onChange={(e) => setSectionDesc(e.target.value)} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
         </div>
@@ -691,43 +691,43 @@ function CourseDetailTab({
         </div>
       }>
         <div className="space-y-4">
-          <label className="block text-xs font-black uppercase text-zinc-500">Titre
+          <label className="block text-xs font-black uppercase text-zinc-900">Titre
             <input value={lessonDraft.title} onChange={(e) => setLessonDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">Section
+            <label className="block text-xs font-black uppercase text-zinc-900">Section
               <select value={lessonDraft.course_section_id} onChange={(e) => setLessonDraft((d) => ({ ...d, course_section_id: Number(e.target.value) }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                 <option value={0}>— Choisir —</option>
                 {sections.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
               </select>
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Type
+            <label className="block text-xs font-black uppercase text-zinc-900">Type
               <select value={lessonDraft.lesson_type} onChange={(e) => setLessonDraft((d) => ({ ...d, lesson_type: e.target.value as LessonType }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                 <option value="text">Texte</option><option value="video">Vidéo</option><option value="pdf">PDF</option><option value="external_link">Lien externe</option>
               </select>
             </label>
           </div>
           {lessonDraft.lesson_type === 'text' && (
-            <label className="block text-xs font-black uppercase text-zinc-500">Contenu
+            <label className="block text-xs font-black uppercase text-zinc-900">Contenu
               <textarea value={lessonDraft.content} onChange={(e) => setLessonDraft((d) => ({ ...d, content: e.target.value }))} rows={4} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
           )}
           {lessonDraft.lesson_type === 'video' && (
-            <label className="block text-xs font-black uppercase text-zinc-500">URL Vidéo
+            <label className="block text-xs font-black uppercase text-zinc-900">URL Vidéo
               <input value={lessonDraft.video_url} onChange={(e) => setLessonDraft((d) => ({ ...d, video_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="https://..." />
             </label>
           )}
           {lessonDraft.lesson_type === 'pdf' && (
-            <label className="block text-xs font-black uppercase text-zinc-500">URL PDF
+            <label className="block text-xs font-black uppercase text-zinc-900">URL PDF
               <input value={lessonDraft.pdf_url} onChange={(e) => setLessonDraft((d) => ({ ...d, pdf_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="https://..." />
             </label>
           )}
           {lessonDraft.lesson_type === 'external_link' && (
-            <label className="block text-xs font-black uppercase text-zinc-500">Lien externe
+            <label className="block text-xs font-black uppercase text-zinc-900">Lien externe
               <input value={lessonDraft.external_url} onChange={(e) => setLessonDraft((d) => ({ ...d, external_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="https://..." />
             </label>
           )}
-          <label className="block text-xs font-black uppercase text-zinc-500">Durée (min)
+          <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
             <input type="number" min={0} value={lessonDraft.duration_minutes} onChange={(e) => setLessonDraft((d) => ({ ...d, duration_minutes: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
         </div>
@@ -823,17 +823,17 @@ function StudentsTab({
         </div>
       }>
         <div className="space-y-4">
-          <label className="block text-xs font-black uppercase text-zinc-500">Nom complet <span className="text-rose-600">*</span>
+          <label className="block text-xs font-black uppercase text-zinc-900">Nom complet <span className="text-rose-600">*</span>
             <input value={draft.full_name} onChange={(e) => setDraft((d) => ({ ...d, full_name: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Email <span className="text-rose-600">*</span>
+          <label className="block text-xs font-black uppercase text-zinc-900">Email <span className="text-rose-600">*</span>
             <input type="email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">Téléphone
+            <label className="block text-xs font-black uppercase text-zinc-900">Téléphone
               <input value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Poste
+            <label className="block text-xs font-black uppercase text-zinc-900">Poste
               <input value={draft.position} onChange={(e) => setDraft((d) => ({ ...d, position: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
           </div>
@@ -965,19 +965,19 @@ function EnrollmentsTab({
         </div>
       }>
         <div className="space-y-4">
-          <label className="block text-xs font-black uppercase text-zinc-500">Formation <span className="text-rose-600">*</span>
+          <label className="block text-xs font-black uppercase text-zinc-900">Formation <span className="text-rose-600">*</span>
             <select value={draft.course_id} onChange={(e) => setDraft((d) => ({ ...d, course_id: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
               <option value="">— Choisir —</option>
               {courseOptions.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Apprenant <span className="text-rose-600">*</span>
+          <label className="block text-xs font-black uppercase text-zinc-900">Apprenant <span className="text-rose-600">*</span>
             <select value={draft.student_id} onChange={(e) => setDraft((d) => ({ ...d, student_id: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
               <option value="">— Choisir —</option>
               {studentOptions.map((s) => <option key={s.id} value={s.id}>{s.full_name} ({s.email})</option>)}
             </select>
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Type
+          <label className="block text-xs font-black uppercase text-zinc-900">Type
             <select value={draft.enrollment_type} onChange={(e) => setDraft((d) => ({ ...d, enrollment_type: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
               <option value="free">Gratuite</option><option value="paid">Payante</option><option value="manual">Manuelle</option>
             </select>
@@ -1104,17 +1104,17 @@ function QuizzesTab({
         </div>
       }>
         <div className="space-y-4 max-h-[min(70vh,560px)] overflow-y-auto pr-1">
-          <label className="block text-xs font-black uppercase text-zinc-500">Titre <span className="text-rose-600">*</span>
+          <label className="block text-xs font-black uppercase text-zinc-900">Titre <span className="text-rose-600">*</span>
             <input value={quizDraft.title} onChange={(e) => setQuizDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
-          <label className="block text-xs font-black uppercase text-zinc-500">Description
+          <label className="block text-xs font-black uppercase text-zinc-900">Description
             <textarea value={quizDraft.description} onChange={(e) => setQuizDraft((d) => ({ ...d, description: e.target.value }))} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">Score minimum (%)
+            <label className="block text-xs font-black uppercase text-zinc-900">Score minimum (%)
               <input type="number" min={0} max={100} value={quizDraft.passing_score} onChange={(e) => setQuizDraft((d) => ({ ...d, passing_score: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">Max tentatives
+            <label className="block text-xs font-black uppercase text-zinc-900">Max tentatives
               <input type="number" min={1} value={quizDraft.max_attempts} onChange={(e) => setQuizDraft((d) => ({ ...d, max_attempts: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
           </div>

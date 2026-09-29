@@ -121,7 +121,7 @@ export function GeneralPanel({
             if (entries.length === 0) return null;
             return (
               <div key={block.id}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-1">{block.label}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-2 px-1">{block.label}</p>
                 <div className="space-y-1">
                   {entries.map((entry) => (
                     <ToggleRow

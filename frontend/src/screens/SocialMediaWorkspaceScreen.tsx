@@ -219,7 +219,7 @@ function DashboardTab({ dash }: { dash: R | null }) {
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {kpis.map((k) => (
           <div key={k.label} className="card p-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{k.label}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">{k.label}</p>
             <p className={`text-2xl font-black mt-1 ${k.cls}`}>{k.value ?? 0}</p>
           </div>
         ))}
@@ -466,12 +466,12 @@ function PlansTab({ plans, strategies, onReload }: { plans: R[]; strategies: R[]
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Mois</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Stratégie</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Contenus</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Capacité</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Mois</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Stratégie</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Contenus</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Capacité</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -660,14 +660,14 @@ function ContentsTab({ contents, plans, events, onReload }: { contents: R[]; pla
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Titre</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Plateforme</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Format</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Pilier</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Assigné</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Planifié</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400"></th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Titre</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Plateforme</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Format</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Pilier</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Assigné</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Planifié</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700"></th>
               </tr>
             </thead>
             <tbody>
@@ -954,9 +954,9 @@ function ValidationTab({ strategies, plans, contents, onReload }: any) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Type</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Objet</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Type</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Objet</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1297,16 +1297,16 @@ function PerformanceTab({ performances, contents, onReload }: { performances: R[
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Contenu</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Plateforme</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Reach</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Vues</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Engagement %</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Commentaires</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Partages</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Clics</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Dernière sync</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400"></th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Contenu</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Plateforme</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Reach</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Vues</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Engagement %</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Commentaires</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Partages</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700">Clics</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Dernière sync</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700"></th>
               </tr>
             </thead>
             <tbody>
@@ -1385,12 +1385,12 @@ function SupervisionTab({ checks, contents, onReload }: { checks: R[]; contents:
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100">
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Date</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Contenu</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Impact public</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400"></th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Date</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Contenu</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Impact public</th>
+                <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-700">Description</th>
+                <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-700"></th>
               </tr>
             </thead>
             <tbody>

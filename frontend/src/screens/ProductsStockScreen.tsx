@@ -521,15 +521,15 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Produits</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Produits</p>
           <p className="mt-2 text-2xl font-black text-zinc-900">{kpis.total}</p>
         </div>
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Alertes stock</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Alertes stock</p>
           <p className="mt-2 text-2xl font-black text-rose-600">{kpis.low}</p>
         </div>
         <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Valeur (coût)</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Valeur (coût)</p>
           <p className="mt-2 text-2xl font-black text-zinc-900">{formatCurrency(kpis.stockValue)}</p>
         </div>
       </div>
@@ -801,11 +801,11 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </div>
           )}
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom *</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Nom *</label>
             <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nom du produit" />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Image du produit</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Image du produit</label>
             <div className="flex items-center gap-4">
               {imagePreview ? (
                 <img src={imagePreview} alt="" className="w-20 h-20 rounded-xl object-cover border border-zinc-200" />
@@ -850,7 +850,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </div>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -860,11 +860,11 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Marque *</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Marque *</label>
             <input value={draft.brand} disabled className="w-full px-4 py-3 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-500 font-bold outline-none cursor-not-allowed" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie *</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Catégorie *</label>
             <input
               list="product-categories-list"
               value={draft.category}
@@ -878,7 +878,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           </div>
           {isPack && (
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Produits du pack</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Produits du pack</label>
               {packItems.map((pi, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                   <select
@@ -918,7 +918,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit *</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Type produit *</label>
             <input
               list="product-types-list"
               value={draft.productType}
@@ -931,19 +931,19 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </datalist>
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock initial</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Stock initial</label>
             <input type="number" value={draft.stock} onChange={(e) => setDraft((d) => ({ ...d, stock: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="0" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût d'achat</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Coût d'achat</label>
             <input type="number" value={draft.cost} onChange={(e) => setDraft((d) => ({ ...d, cost: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="0.00" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix de vente *</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Prix de vente *</label>
             <input type="number" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="0.00" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Seuil d'alerte</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Seuil d'alerte</label>
             <input type="number" value={draft.lowStockThreshold} onChange={(e) => setDraft((d) => ({ ...d, lowStockThreshold: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" placeholder="10" />
           </div>
         </div>
@@ -974,11 +974,11 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </div>
           )}
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Nom</label>
             <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Image du produit</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Image du produit</label>
             <div className="flex items-center gap-4">
               {imagePreview ? (
                 <img src={imagePreview} alt="" className="w-20 h-20 rounded-xl object-cover border border-zinc-200" />
@@ -1023,7 +1023,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </div>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Description</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -1033,7 +1033,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Catégorie</label>
             <input
               list="product-categories-list-edit"
               value={draft.category}
@@ -1047,7 +1047,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           </div>
           {isPack && (
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Produits du pack</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Produits du pack</label>
               {packItems.map((pi, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                   <select
@@ -1087,7 +1087,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Type produit</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Type produit</label>
             <input
               list="product-types-list-edit"
               value={draft.productType}
@@ -1100,19 +1100,19 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
             </datalist>
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Coût d'achat</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Coût d'achat</label>
             <input type="number" value={draft.cost} onChange={(e) => setDraft((d) => ({ ...d, cost: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix de vente</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Prix de vente</label>
             <input type="number" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Seuil d'alerte</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Seuil d'alerte</label>
             <input type="number" value={draft.lowStockThreshold} onChange={(e) => setDraft((d) => ({ ...d, lowStockThreshold: Number(e.target.value) }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Statut</label>
             <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as ProductDraft['status'] }))} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-black text-zinc-700 outline-none">
               <option>Actif</option>
               <option>Inactif</option>

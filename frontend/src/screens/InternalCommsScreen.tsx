@@ -354,7 +354,7 @@ export function InternalCommsScreen() {
               <>
                 {listItems.groups.length > 0 && (
                   <div>
-                    <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-zinc-400">Groupes</p>
+                    <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-zinc-700">Groupes</p>
                     <div className="divide-y divide-zinc-50">
                       {listItems.groups.map((g) => {
                         const active = isActive(activeChat, 'group', g.conversation_id);
@@ -397,7 +397,7 @@ export function InternalCommsScreen() {
 
                 {listItems.threads.length > 0 && (
                   <div>
-                    <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-zinc-400">Conversations directes</p>
+                    <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-zinc-700">Conversations directes</p>
                     <div className="divide-y divide-zinc-50">
                       {listItems.threads.map((t) => {
                         const active = isActive(activeChat, 'dm', t.user_id);

@@ -130,7 +130,7 @@ export function ClientPortalScreen() {
       />
 
       <div className="card p-4">
-        <p className="text-xs font-black uppercase text-zinc-500 mb-2">Widgets activés pour ce client</p>
+        <p className="text-xs font-black uppercase text-zinc-900 mb-2">Widgets activés pour ce client</p>
         <div className="flex flex-wrap gap-2">
           {widgets.map((w) => (
             <StatusChip key={w} tone="info">{WIDGET_LABELS[w] ?? w}</StatusChip>

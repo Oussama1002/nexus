@@ -32,27 +32,27 @@ export function ConfirmatriceStats({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="card-muted p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Volume traité</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Volume traité</p>
           <p className="mt-2 text-2xl font-black text-zinc-900">{volume}</p>
         </div>
         <div className="card-muted p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Délai moyen</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Délai moyen</p>
           <p className="mt-2 text-2xl font-black text-zinc-900">{avgHandleMins != null ? `${avgHandleMins} min` : '—'}</p>
         </div>
         <div className="card-muted p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Confirmées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Confirmées</p>
           <p className="mt-2 text-2xl font-black text-emerald-600">{confirmed}</p>
         </div>
         <div className="card-muted p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Annulées</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Annulées</p>
           <p className="mt-2 text-2xl font-black text-rose-600">{cancelled}</p>
         </div>
         <div className="card-muted p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux satisfaction</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux satisfaction</p>
           <p className="mt-2 text-2xl font-black text-blue-600">{satisfactionRate != null ? `${satisfactionRate}%` : '—'}</p>
         </div>
         <div className="card-muted p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Taux suivi (follow-up)</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux suivi (follow-up)</p>
           <p className="mt-2 text-2xl font-black text-amber-600">{followUpRate != null ? `${followUpRate}%` : '—'}</p>
         </div>
       </div>

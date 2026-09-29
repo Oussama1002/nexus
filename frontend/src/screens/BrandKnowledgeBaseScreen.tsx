@@ -303,7 +303,7 @@ export function BrandKnowledgeBaseScreen() {
         }
       >
         <div className="space-y-4">
-          <label className="block text-xs font-black uppercase text-zinc-500">
+          <label className="block text-xs font-black uppercase text-zinc-900">
             Categorie
             <select
               value={draft.category}
@@ -318,7 +318,7 @@ export function BrandKnowledgeBaseScreen() {
             </select>
           </label>
 
-          <label className="block text-xs font-black uppercase text-zinc-500">
+          <label className="block text-xs font-black uppercase text-zinc-900">
             Titre
             <input
               value={draft.title}
@@ -328,7 +328,7 @@ export function BrandKnowledgeBaseScreen() {
             />
           </label>
 
-          <label className="block text-xs font-black uppercase text-zinc-500">
+          <label className="block text-xs font-black uppercase text-zinc-900">
             Contenu
             <textarea
               value={draft.content}
@@ -340,7 +340,7 @@ export function BrandKnowledgeBaseScreen() {
           </label>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">
+            <label className="block text-xs font-black uppercase text-zinc-900">
               Produit
               <input
                 value={draft.product_name}
@@ -349,7 +349,7 @@ export function BrandKnowledgeBaseScreen() {
                 placeholder="Optionnel"
               />
             </label>
-            <label className="block text-xs font-black uppercase text-zinc-500">
+            <label className="block text-xs font-black uppercase text-zinc-900">
               URL media
               <input
                 value={draft.media_url}
@@ -360,7 +360,7 @@ export function BrandKnowledgeBaseScreen() {
             </label>
           </div>
 
-          <label className="block text-xs font-black uppercase text-zinc-500">
+          <label className="block text-xs font-black uppercase text-zinc-900">
             Tags (separes par virgule)
             <input
               value={draft.tags}
@@ -371,7 +371,7 @@ export function BrandKnowledgeBaseScreen() {
           </label>
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-500">
+            <label className="block text-xs font-black uppercase text-zinc-900">
               Ordre
               <input
                 type="number"
