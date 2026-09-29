@@ -882,13 +882,18 @@ export function AdsScreen() {
                   header: 'Campagne',
                   cell: (c) => (
                     <div className="space-y-0.5">
-                      <button type="button" className="font-black text-primary-600 hover:underline text-left" onClick={() => setOpenCampId(c.id)}>
+                      {/* Le nom mène à la structure de la campagne ; le détail a son propre bouton. */}
+                      <button
+                        type="button"
+                        className="font-black text-primary-600 hover:underline text-left"
+                        onClick={() => setStructureCamp({ id: c.id, name: c.name })}
+                      >
                         {c.name}
                       </button>
                       <button
                         type="button"
                         onClick={() => setStructureCamp({ id: c.id, name: c.name })}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-primary-200 bg-primary-50 text-[11px] font-black text-primary-700 hover:bg-primary-100"
+                        className="flex items-center gap-1 text-[11px] font-bold text-zinc-500 hover:text-primary-600"
                       >
                         Ensembles & publicités <ChevronRight className="w-3 h-3" />
                       </button>
@@ -932,6 +937,20 @@ export function AdsScreen() {
                   key: 'st',
                   header: 'Statut',
                   cell: (c) => <StatusChip tone={c.status === 'active' ? 'success' : 'neutral'}>{campaignStatusFr(c.status)}</StatusChip>,
+                },
+                {
+                  key: 'detail',
+                  header: '',
+                  className: 'text-right',
+                  cell: (c) => (
+                    <button
+                      type="button"
+                      onClick={() => setOpenCampId(c.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-black text-zinc-700 hover:bg-zinc-50"
+                    >
+                      Détail
+                    </button>
+                  ),
                 },
               ]}
             />
