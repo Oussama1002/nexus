@@ -20,9 +20,87 @@ class InstagramAudienceImporter
     public function __construct(private readonly InstagramGraphService $instagram) {}
 
     /**
+     * Comptes candidats, sans rien creer : sert a proposer des pseudos dans le
+     * formulaire « Nouvelle influenceuse ».
+     *
+     * @return array{scanned_posts: int, candidates: list<array{username: string, interactions: int, existing: bool}>}
+     */
+    public function suggestCommenters(int $brandId, int $postLimit = 25): array
+    {
+        [$usernames, $posts] = $this->collectCommenters($brandId, $postLimit);
+
+        $known = Influencer::query()
+            ->where('brand_id', $brandId)
+            ->whereNotNull('username')
+            ->pluck('username')
+            ->map(fn ($u) => mb_strtolower((string) $u))
+            ->all();
+
+        $candidates = [];
+        foreach ($usernames as $username => $interactions) {
+            $candidates[] = [
+                'username' => (string) $username,
+                'interactions' => $interactions,
+                'existing' => in_array(mb_strtolower((string) $username), $known, true),
+            ];
+        }
+
+        return ['scanned_posts' => $posts, 'candidates' => $candidates];
+    }
+
+    /**
      * @return array{created: int, updated: int, scanned_posts: int, accounts: list<string>}
      */
     public function importCommenters(int $brandId, int $postLimit = 25): array
+    {
+        [$usernames, $postCount] = $this->collectCommenters($brandId, $postLimit);
+
+        $created = 0;
+        $updated = 0;
+
+        foreach ($usernames as $username => $interactions) {
+            $existing = Influencer::query()
+                ->where('brand_id', $brandId)
+                ->where('username', $username)
+                ->first();
+
+            if ($existing) {
+                // On n'écrase pas un profil déjà qualifié par l'équipe.
+                if (! $existing->bio) {
+                    $existing->bio = $this->note($interactions);
+                    $existing->save();
+                    $updated++;
+                }
+
+                continue;
+            }
+
+            Influencer::query()->create([
+                'brand_id' => $brandId,
+                'full_name' => '@'.$username,
+                'username' => $username,
+                'platform' => 'instagram',
+                'bio' => $this->note($interactions),
+                'social_links_json' => json_encode(['instagram' => 'https://instagram.com/'.$username]),
+                'status' => 'prospect',
+            ]);
+            $created++;
+        }
+
+        return [
+            'created' => $created,
+            'updated' => $updated,
+            'scanned_posts' => $postCount,
+            'accounts' => array_slice(array_keys($usernames), 0, 20),
+        ];
+    }
+
+    /**
+     * Comptes ayant commente les dernieres publications, par frequence.
+     *
+     * @return array{0: array<string, int>, 1: int}
+     */
+    private function collectCommenters(int $brandId, int $postLimit): array
     {
         $token = $this->instagram->tokenFor($brandId);
         if ($token === null) {
@@ -65,44 +143,7 @@ class InstagramAudienceImporter
 
         arsort($usernames);
 
-        $created = 0;
-        $updated = 0;
-
-        foreach ($usernames as $username => $interactions) {
-            $existing = Influencer::query()
-                ->where('brand_id', $brandId)
-                ->where('username', $username)
-                ->first();
-
-            if ($existing) {
-                // On n'écrase pas un profil déjà qualifié par l'équipe.
-                if (! $existing->bio) {
-                    $existing->bio = $this->note($interactions);
-                    $existing->save();
-                    $updated++;
-                }
-
-                continue;
-            }
-
-            Influencer::query()->create([
-                'brand_id' => $brandId,
-                'full_name' => '@'.$username,
-                'username' => $username,
-                'platform' => 'instagram',
-                'bio' => $this->note($interactions),
-                'social_links_json' => json_encode(['instagram' => 'https://instagram.com/'.$username]),
-                'status' => 'prospect',
-            ]);
-            $created++;
-        }
-
-        return [
-            'created' => $created,
-            'updated' => $updated,
-            'scanned_posts' => count($posts),
-            'accounts' => array_slice(array_keys($usernames), 0, 20),
-        ];
+        return [$usernames, count($posts)];
     }
 
     private function note(int $interactions): string

@@ -63,6 +63,21 @@ class InfluencerController extends Controller
      * publications de la marque. Meta n'expose pas la liste des abonnes :
      * les commentateurs sont la seule audience nominative disponible.
      */
+    /** Pseudos candidats, sans rien creer : alimente le formulaire. */
+    public function instagramSuggestions(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        try {
+            $result = app(\App\Services\Meta\InstagramAudienceImporter::class)
+                ->suggestCommenters($brandId, (int) $request->query('posts', 25));
+        } catch (\App\Services\Meta\MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        return ApiResponse::success($result, 'Comptes Instagram trouves.');
+    }
+
     public function importFromInstagram(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);

@@ -300,18 +300,36 @@ export function InfluenceWorkspaceScreen() {
   const [infSaving, setInfSaving] = useState(false);
   const [importingIg, setImportingIg] = useState(false);
 
+  const [igSuggestions, setIgSuggestions] = useState<{ username: string; interactions: number; existing: boolean }[]>([]);
+
   /**
-   * Instagram ne donne la liste des abonnes d'aucun compte : on importe les
+   * Instagram ne donne la liste des abonnes d'aucun compte : on propose les
    * comptes qui commentent nos publications, deja engages.
    */
-  const importFromInstagram = async () => {
+  const loadIgSuggestions = async () => {
     setImportingIg(true);
     try {
-      const r = await api.post('influencers/import-instagram', {});
+      const r = await api.get<{ candidates: { username: string; interactions: number; existing: boolean }[] }>(
+        'influencers/instagram-suggestions',
+      );
       if (!r.ok) return errToast(toast, r);
-      toast.success(r.message);
-      void load();
+      const found = r.data?.candidates ?? [];
+      setIgSuggestions(found);
+      if (found.length === 0) toast.success('Aucun compte n’a commenté vos dernières publications.');
     } finally { setImportingIg(false); }
+  };
+
+  /** Remplit le formulaire avec le compte choisi. */
+  const pickIgSuggestion = (username: string, interactions: number) => {
+    setInfForm(p => ({
+      ...p,
+      full_name: p.full_name || '@' + username,
+      username,
+      platform: 'instagram',
+      bio: p.bio || 'Repérée sur Instagram : ' + interactions + ' commentaire(s) sur vos publications.',
+      source: p.source || 'Instagram',
+    }));
+    setIgSuggestions([]);
   };
 
   const openInf = (id?: number) => {
@@ -1093,17 +1111,6 @@ export function InfluenceWorkspaceScreen() {
               {INF_STATUSES.map(s => <option key={s} value={s}>{INFLUENCER_STATUS_LABELS[s]}</option>)}
             </select>
             {canCreateInf && (
-              <button
-                type="button"
-                onClick={() => void importFromInstagram()}
-                disabled={importingIg}
-                title="Ajoute comme prospects les comptes Instagram qui commentent vos publications"
-                className="flex items-center gap-1 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
-              >
-                <Instagram size={14} /> {importingIg ? 'Import…' : 'Importer depuis Instagram'}
-              </button>
-            )}
-            {canCreateInf && (
               <button type="button" onClick={() => openInf()} className="flex items-center gap-1 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800">
                 <Plus size={14} /> Nouvelle influenceuse
               </button>
@@ -1452,6 +1459,41 @@ export function InfluenceWorkspaceScreen() {
 
       {/* Influencer modal */}
       <Modal open={infOpen} onClose={() => setInfOpen(false)} title={infId ? 'Modifier influenceuse' : 'Nouvelle influenceuse'}>
+        {!infId && (
+          <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-zinc-600">
+                Reprendre un compte Instagram qui commente vos publications
+              </p>
+              <button
+                type="button"
+                onClick={() => void loadIgSuggestions()}
+                disabled={importingIg}
+                className="flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                <Instagram size={13} /> {importingIg ? 'Recherche…' : 'Chercher sur Instagram'}
+              </button>
+            </div>
+            {igSuggestions.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {igSuggestions.map(c => (
+                  <button
+                    key={c.username}
+                    type="button"
+                    disabled={c.existing}
+                    onClick={() => pickIgSuggestion(c.username, c.interactions)}
+                    title={c.existing ? 'Deja dans votre liste' : 'Remplir le formulaire avec ce compte'}
+                    className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-xs font-bold text-zinc-800 hover:bg-primary-50 hover:border-primary-300 disabled:opacity-40 disabled:hover:bg-white"
+                  >
+                    @{c.username}
+                    <span className="ml-1 text-[10px] font-semibold text-zinc-500">{c.interactions}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nom complet *">
             <input className={inputClass} value={infForm.full_name} onChange={e => setInfForm(p => ({ ...p, full_name: e.target.value }))} />
