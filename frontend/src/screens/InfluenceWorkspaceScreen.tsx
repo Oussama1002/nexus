@@ -293,7 +293,7 @@ export function InfluenceWorkspaceScreen() {
   const [infId, setInfId] = useState<number | undefined>();
   const [infForm, setInfForm] = useState({
     full_name: '', username: '', platform: '', niche: '', bio: '', city: '',
-    audience_size: '', engagement_rate: '',
+    audience_size: '', posts_count: '', engagement_rate: '',
     pricing_story: '', pricing_reel: '', pricing_post: '', pricing_video: '', pricing_live: '',
     contact_phone: '', contact_email: '', notes: '', source: '', status: 'reperee',
   });
@@ -357,7 +357,7 @@ export function InfluenceWorkspaceScreen() {
     setInfId(id);
     setInfForm({
       full_name: '', username: '', platform: '', niche: '', bio: '', city: '',
-      audience_size: '', engagement_rate: '',
+      audience_size: '', posts_count: '', engagement_rate: '',
       pricing_story: '', pricing_reel: '', pricing_post: '', pricing_video: '', pricing_live: '',
       contact_phone: '', contact_email: '', notes: '', source: '', status: 'reperee',
     });
@@ -375,6 +375,7 @@ export function InfluenceWorkspaceScreen() {
       platform: String(d.platform ?? ''), niche: String(d.niche ?? ''),
       bio: String(d.bio ?? ''), city: String(d.city ?? ''),
       audience_size: d.audience_size != null ? String(d.audience_size) : '',
+      posts_count: d.posts_count != null ? String(d.posts_count) : '',
       engagement_rate: d.engagement_rate != null ? String(d.engagement_rate) : '',
       pricing_story: pj.story != null ? String(pj.story) : '',
       pricing_reel: pj.reel != null ? String(pj.reel) : '',
@@ -399,6 +400,7 @@ export function InfluenceWorkspaceScreen() {
       platform: infForm.platform || null, niche: infForm.niche || null,
       bio: infForm.bio || null, city: infForm.city || null,
       audience_size: infForm.audience_size ? Number(infForm.audience_size) : null,
+      posts_count: infForm.posts_count ? Number(infForm.posts_count) : null,
       engagement_rate: infForm.engagement_rate ? Number(infForm.engagement_rate) : null,
       pricing_json: Object.keys(pricing).length > 0 ? pricing : null,
       contact_phone: infForm.contact_phone || null, contact_email: infForm.contact_email || null,
@@ -1151,7 +1153,8 @@ export function InfluenceWorkspaceScreen() {
                 )},
                 { header: 'Plateforme', accessor: (r: R) => String(r.platform ?? '—') },
                 { header: 'Niche', accessor: (r: R) => String(r.niche ?? '—') },
-                { header: 'Audience', accessor: (r: R) => fmtNum(r.audience_size) },
+                { header: 'Abonnés', accessor: (r: R) => fmtNum(r.audience_size) },
+                { header: 'Publications', accessor: (r: R) => r.posts_count != null ? fmtNum(r.posts_count) : '—' },
                 { header: 'Engagement', accessor: (r: R) => r.engagement_rate != null ? fmtPct(r.engagement_rate) : '—' },
                 { header: 'Score Q.', accessor: (r: R) => r.qualification_score != null ? `${Number(r.qualification_score).toFixed(1)}/5` : '—' },
                 { header: 'Statut', accessor: (r: R) => <StatusBadge value={String(r.status ?? '')} labels={INFLUENCER_STATUS_LABELS} /> },
@@ -1559,8 +1562,11 @@ export function InfluenceWorkspaceScreen() {
           <Field label="Source">
             <input className={inputClass} value={infForm.source} onChange={e => setInfForm(p => ({ ...p, source: e.target.value }))} placeholder="Instagram, recommandation…" />
           </Field>
-          <Field label="Taille audience">
-            <input type="number" className={inputClass} value={infForm.audience_size} onChange={e => setInfForm(p => ({ ...p, audience_size: e.target.value }))} />
+          <Field label="Nombre d'abonnés">
+            <input type="number" min={0} className={inputClass} value={infForm.audience_size} onChange={e => setInfForm(p => ({ ...p, audience_size: e.target.value }))} />
+          </Field>
+          <Field label="Nombre de publications">
+            <input type="number" min={0} className={inputClass} value={infForm.posts_count} onChange={e => setInfForm(p => ({ ...p, posts_count: e.target.value }))} />
           </Field>
           <Field label="Taux d'engagement (%)">
             <input type="number" step="0.01" className={inputClass} value={infForm.engagement_rate} onChange={e => setInfForm(p => ({ ...p, engagement_rate: e.target.value }))} />

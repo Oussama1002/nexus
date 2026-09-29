@@ -19,6 +19,7 @@ class Influencer extends Model
         'bio',
         'city',
         'audience_size',
+        'posts_count',
         'engagement_rate',
         'qualification_json',
         'qualification_score',
