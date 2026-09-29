@@ -73,12 +73,27 @@ class MetaDoctorCommand extends Command
 
             foreach ($pages as $page) {
                 $ig = $page['instagram_business_account']['username'] ?? ($page['instagram_business_account']['id'] ?? '—');
+                $pageId = (string) ($page['id'] ?? '?');
+                $token = (string) ($page['access_token'] ?? '');
+
+                // Le vrai test : lire une publication avec le jeton de Page.
+                $posts = 'non testé';
+                if ($token !== '') {
+                    try {
+                        $rows = $graph->paginate($brandId, $pageId.'/posts', ['fields' => 'id', 'limit' => 1], 1, $token);
+                        $posts = count($rows).' publication(s) lisible(s)';
+                    } catch (MetaApiException $e) {
+                        $posts = 'REFUS — '.$e->getMessage();
+                    }
+                }
+
                 $this->line(sprintf(
-                    '  %-28s id=%-18s jeton=%s  instagram=%s',
+                    '  %-28s id=%-18s jeton=%s  instagram=%-14s posts=%s',
                     mb_substr((string) ($page['name'] ?? '?'), 0, 28),
-                    (string) ($page['id'] ?? '?'),
-                    empty($page['access_token']) ? 'ABSENT' : 'OK',
-                    $ig
+                    $pageId,
+                    $token === '' ? 'ABSENT' : 'OK',
+                    $ig,
+                    $posts
                 ));
             }
         } catch (MetaApiException $e) {
