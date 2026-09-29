@@ -319,6 +319,44 @@ export function InfluenceWorkspaceScreen() {
     } finally { setImportingIg(false); }
   };
 
+  const [igQuery, setIgQuery] = useState('');
+  const [igLookupNote, setIgLookupNote] = useState<string | null>(null);
+
+  /** Cherche un compte Instagram par son pseudo et remplit la fiche. */
+  const lookupIgAccount = async () => {
+    const handle = igQuery.trim().replace(/^@/, '');
+    if (!handle) return;
+    setImportingIg(true);
+    setIgLookupNote(null);
+    try {
+      const r = await api.get<{
+        username: string; name: string; followers: number; media_count: number;
+        biography: string; website: string; found: boolean; warning: string | null;
+      }>('influencers/instagram-lookup?username=' + encodeURIComponent(handle));
+      if (!r.ok) return errToast(toast, r);
+
+      const a = r.data;
+      if (!a) return;
+
+      setInfForm(p => ({
+        ...p,
+        full_name: a.name || p.full_name || '@' + a.username,
+        username: a.username,
+        platform: 'instagram',
+        bio: a.biography || p.bio,
+        audience_size: a.followers ? String(a.followers) : p.audience_size,
+        source: p.source || 'Instagram',
+      }));
+
+      setIgLookupNote(
+        a.found
+          ? a.followers.toLocaleString('fr-FR') + ' abonnes · ' + a.media_count + ' publication(s)'
+          : (a.warning || 'Compte non verifiable : la fiche est prete, completez-la a la main.'),
+      );
+      setIgSuggestions([]);
+    } finally { setImportingIg(false); }
+  };
+
   /** Remplit le formulaire avec le compte choisi. */
   const pickIgSuggestion = (username: string, interactions: number) => {
     setInfForm(p => ({
@@ -1461,18 +1499,40 @@ export function InfluenceWorkspaceScreen() {
       <Modal open={infOpen} onClose={() => setInfOpen(false)} title={infId ? 'Modifier influenceuse' : 'Nouvelle influenceuse'}>
         {!infId && (
           <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-zinc-600">
-                Reprendre un compte Instagram qui commente vos publications
-              </p>
-              <button
-                type="button"
-                onClick={() => void loadIgSuggestions()}
-                disabled={importingIg}
-                className="flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
-              >
-                <Instagram size={13} /> {importingIg ? 'Recherche…' : 'Chercher sur Instagram'}
-              </button>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-zinc-700">Chercher un compte Instagram</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-1 items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2">
+                  <span className="text-xs font-bold text-zinc-400">@</span>
+                  <input
+                    value={igQuery}
+                    onChange={e => setIgQuery(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void lookupIgAccount(); } }}
+                    placeholder="pseudo du compte"
+                    className="flex-1 bg-transparent px-1 py-1.5 text-xs font-medium outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void lookupIgAccount()}
+                  disabled={importingIg || !igQuery.trim()}
+                  className="flex items-center gap-1 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-zinc-800 disabled:opacity-50"
+                >
+                  <Instagram size={13} /> {importingIg ? 'Recherche…' : 'Chercher'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loadIgSuggestions()}
+                  disabled={importingIg}
+                  title="Comptes ayant commente vos publications"
+                  className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-bold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  Vos commentateurs
+                </button>
+              </div>
+              {igLookupNote && (
+                <p className="text-[11px] font-semibold text-zinc-600">{igLookupNote}</p>
+              )}
             </div>
             {igSuggestions.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">

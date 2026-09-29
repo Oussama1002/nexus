@@ -20,6 +20,72 @@ class InstagramAudienceImporter
     public function __construct(private readonly InstagramGraphService $instagram) {}
 
     /**
+     * Fiche publique d'un compte Instagram professionnel, par son pseudo.
+     *
+     * Instagram ne permet la recherche que sur les comptes Business ou
+     * Createur : un compte personnel reste invisible, quelle que soit
+     * l'autorisation.
+     *
+     * @return array{username: string, name: string, followers: int, media_count: int, biography: string, website: string, avatar: string|null, found: bool, warning: string|null}
+     */
+    public function lookupAccount(int $brandId, string $username): array
+    {
+        $username = ltrim(trim($username), '@');
+        if ($username === '') {
+            throw new MetaApiException('Indiquez un pseudo Instagram.');
+        }
+
+        $token = $this->instagram->tokenFor($brandId);
+        if ($token === null) {
+            throw new MetaApiException('Instagram non connecté. Allez dans Paramètres → Meta et cliquez « Connecter Instagram ».');
+        }
+
+        $empty = [
+            'username' => $username,
+            'name' => '',
+            'followers' => 0,
+            'media_count' => 0,
+            'biography' => '',
+            'website' => '',
+            'avatar' => null,
+            'found' => false,
+            'warning' => null,
+        ];
+
+        $fields = sprintf(
+            'business_discovery.username(%s){username,name,biography,website,followers_count,media_count,profile_picture_url}',
+            $username
+        );
+
+        try {
+            $data = $this->get('me', ['fields' => $fields], $token);
+        } catch (MetaApiException $e) {
+            // Compte introuvable, personnel, ou permission absente : on rend la
+            // main avec le pseudo pour que la fiche puisse etre creee quand meme.
+            return array_merge($empty, ['warning' => $e->getMessage()]);
+        }
+
+        $found = $data['business_discovery'] ?? null;
+        if (! is_array($found)) {
+            return array_merge($empty, [
+                'warning' => 'Compte introuvable : vérifiez le pseudo, et sachez qu’Instagram ne renvoie que les comptes Business ou Créateur.',
+            ]);
+        }
+
+        return [
+            'username' => (string) ($found['username'] ?? $username),
+            'name' => (string) ($found['name'] ?? ''),
+            'followers' => (int) ($found['followers_count'] ?? 0),
+            'media_count' => (int) ($found['media_count'] ?? 0),
+            'biography' => (string) ($found['biography'] ?? ''),
+            'website' => (string) ($found['website'] ?? ''),
+            'avatar' => $found['profile_picture_url'] ?? null,
+            'found' => true,
+            'warning' => null,
+        ];
+    }
+
+    /**
      * Comptes candidats, sans rien creer : sert a proposer des pseudos dans le
      * formulaire « Nouvelle influenceuse ».
      *
