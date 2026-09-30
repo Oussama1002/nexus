@@ -187,15 +187,6 @@ class CampaignController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $campaign = Campaign::query()->where('brand_id', $brandId)->findOrFail($id);
 
-        $deletable = in_array($campaign->status, ['draft', 'cancelled'], true) || $campaign->archived_at !== null;
-        if (! $deletable) {
-            return ApiResponse::error(
-                'Une campagne en cours ne se supprime pas directement : archivez-la d’abord.',
-                null,
-                422
-            );
-        }
-
         // Supprimer d'abord chez Meta : sinon le CRM oublie une campagne qui
         // continue d'exister — et de depenser — dans Ads Manager.
         $metaNote = null;
