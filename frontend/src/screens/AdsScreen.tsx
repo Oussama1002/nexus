@@ -114,10 +114,10 @@ type AdsReportPayload = {
 const PLATFORMS = ['meta', 'tiktok', 'google', 'snap', 'linkedin', 'other'] as const;
 
 // Un seul style d'input pour toute la modale « Nouvelle campagne ».
-const CAMP_INPUT = 'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500';
-const CAMP_TEXTAREA = 'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white font-medium text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500 min-h-[72px]';
-const CAMP_LABEL = 'block text-[10px] font-black uppercase tracking-widest text-zinc-700';
-const CAMP_SECTION = 'text-[10px] font-black uppercase tracking-widest text-zinc-700 pt-2';
+const CAMP_INPUT = 'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500';
+const CAMP_TEXTAREA = 'mt-1.5 w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-900 outline-none focus:ring-2 focus:ring-primary-500 min-h-[72px]';
+const CAMP_LABEL = 'block text-xs font-black text-zinc-800';
+const CAMP_SECTION = 'text-sm font-black uppercase tracking-wide text-zinc-900 pt-2';
 
 const MARKETING_OBJECTIVES = [
   { value: '', label: '— Objectif marketing' },

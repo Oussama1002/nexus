@@ -206,6 +206,33 @@ function AuditFieldValue({ fieldKey, value, className, lookups = {} }: { fieldKe
   return <span className={className}>{formatAuditFieldValue(fieldKey, value)}</span>;
 }
 
+/**
+ * Resume des champs touches, pour la ligne de la liste : sans lui une
+ * ecriture de parametres n'affiche qu'une date et un nom.
+ */
+function changeSummaryFr(
+  oldValues: Record<string, unknown> | null | undefined,
+  newValues: Record<string, unknown> | null | undefined,
+): string | null {
+  const before = oldValues && typeof oldValues === 'object' ? oldValues : {};
+  const after = newValues && typeof newValues === 'object' ? newValues : {};
+
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).filter((k) => {
+    const a = JSON.stringify((before as Record<string, unknown>)[k] ?? null);
+    const b = JSON.stringify((after as Record<string, unknown>)[k] ?? null);
+    return a !== b;
+  });
+
+  if (keys.length === 0) return null;
+
+  const named = keys.slice(0, 4).map((k) => auditFieldLabelFr(k)).join(', ');
+  const rest = keys.length - 4;
+
+  return keys.length === 1
+    ? named + ' modifié'
+    : named + (rest > 0 ? ' et ' + rest + ' autre' + (rest > 1 ? 's' : '') : '') + ' modifiés';
+}
+
 function AuditDiffSection({
   oldValues,
   newValues,
@@ -494,11 +521,19 @@ export function TrackingScreen() {
               </p>
               <p className="mt-1 text-sm font-black text-zinc-900">{auditActionLabelFr(r.action)}</p>
               <p className="text-xs text-zinc-600 mt-1">
-                {r.user?.name ?? resolveEntityName(r.entity_type, r.entity_id, lookups) ?? '—'} · {resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditEntitySummaryFr(r.entity_type, r.entity_id)}
+                {r.user?.name ?? resolveEntityName(r.entity_type, r.entity_id, lookups) ?? '—'}
+                {(() => {
+                  const cible = resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditEntitySummaryFr(r.entity_type, r.entity_id);
+                  return cible && cible !== '—' ? <> · {cible}</> : null;
+                })()}
                 {r.context?.customer_name ? (
                   <span className="text-zinc-500"> · Client : <span className="font-black text-zinc-900">{r.context.customer_name}</span></span>
                 ) : null}
               </p>
+              {(() => {
+                const resume = changeSummaryFr(r.old_values, r.new_values);
+                return resume ? <p className="text-xs font-semibold text-zinc-500 mt-0.5">{resume}</p> : null;
+              })()}
             </div>
             <span className="text-[10px] font-mono text-zinc-400">{r.ip_address}</span>
           </button>

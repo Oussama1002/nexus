@@ -182,7 +182,7 @@ export function TrainingScreen() {
               <label className="text-sm font-bold text-zinc-900">Date fin
                 <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
               </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-900">Durée (heures)
+              <label className="text-sm font-bold text-zinc-900">Durée (heures)
                 <input type="number" min="1" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_hours} onChange={(e) => setForm({ ...form, duration_hours: e.target.value })} />
               </label>
               <label className="col-span-2 text-sm font-bold text-zinc-900">Description
