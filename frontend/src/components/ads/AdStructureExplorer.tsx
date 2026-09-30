@@ -177,6 +177,9 @@ export function AdStructureExplorer({
   });
   // Devise du compte publicitaire Meta (souvent USD), pas celle des commandes.
   const [currency, setCurrency] = useState('USD');
+  const [adSetOpen, setAdSetOpen] = useState(false);
+  const [adSetError, setAdSetError] = useState<string | null>(null);
+  const [adSetForm, setAdSetForm] = useState({ name: '', daily_budget: '', age_min: '18', age_max: '65', countries: 'MA' });
 
   const qs = useMemo(
     () => new URLSearchParams({ metrics_from: periodFrom, metrics_to: periodTo }).toString(),
@@ -245,6 +248,24 @@ export function AdStructureExplorer({
     });
     setCreateError(null);
     setForm((f) => ({ ...f, imageBase64: dataUrl, imagePreview: dataUrl }));
+  }
+
+  async function publishAdSet() {
+    setAdSetError(null);
+    setPublishing(true);
+    const res = await api.post(`campaigns/${campaignId}/ad-sets`, {
+      name: adSetForm.name,
+      daily_budget: Number(adSetForm.daily_budget),
+      age_min: Number(adSetForm.age_min),
+      age_max: Number(adSetForm.age_max),
+      countries: adSetForm.countries.split(',').map((c) => c.trim().toUpperCase()).filter(Boolean),
+    });
+    setPublishing(false);
+    if (!res.ok) { setAdSetError(res.message); return; }
+    toast.success(res.message);
+    setAdSetOpen(false);
+    setAdSetForm({ name: '', daily_budget: '', age_min: '18', age_max: '65', countries: 'MA' });
+    await loadAdSets();
   }
 
   async function publishAd() {
@@ -431,6 +452,15 @@ export function AdStructureExplorer({
                 <Plus className="w-4 h-4" /> Nouvelle publicité
               </button>
             )}
+            {!openAdSet && (
+              <button
+                type="button"
+                onClick={() => { setAdSetError(null); setAdSetOpen(true); }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 text-sm font-black"
+              >
+                <Plus className="w-4 h-4" /> Nouvel ensemble de publicités
+              </button>
+            )}
             <button
               type="button"
               onClick={() => void sync()}
@@ -463,6 +493,62 @@ export function AdStructureExplorer({
       ) : (
         <DataTable<AdSetRow> rows={adSets} columns={adSetColumns} density="comfortable" emptyTitle="Aucun ensemble" />
       )}
+
+      <Modal
+        open={adSetOpen}
+        title="Nouvel ensemble de publicités"
+        subtitle={`Créé EN PAUSE dans « ${campaignName} » — le ciblage fin se règle ensuite dans Ads Manager.`}
+        onClose={() => setAdSetOpen(false)}
+        footer={
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setAdSetOpen(false)} className="flex-1 py-3 rounded-xl border border-zinc-300 font-black text-sm text-zinc-900">
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={publishing || !adSetForm.name.trim() || !adSetForm.daily_budget}
+              onClick={() => void publishAdSet()}
+              className="flex-1 py-3 rounded-xl bg-primary-600 text-white font-black text-sm disabled:opacity-50"
+            >
+              {publishing ? 'Envoi à Meta…' : 'Créer sur Meta'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {adSetError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+              {adSetError}
+            </div>
+          )}
+
+          <label className={AD_LABEL}>
+            Nom de l’ensemble *
+            <input className={AD_INPUT} value={adSetForm.name} onChange={(e) => setAdSetForm({ ...adSetForm, name: e.target.value })} />
+          </label>
+
+          <label className={AD_LABEL}>
+            Budget quotidien ({currency}) *
+            <input type="number" min="1" step="1" className={AD_INPUT} value={adSetForm.daily_budget} onChange={(e) => setAdSetForm({ ...adSetForm, daily_budget: e.target.value })} />
+          </label>
+
+          <label className={AD_LABEL}>
+            Pays ciblés (codes ISO, séparés par des virgules)
+            <input className={AD_INPUT} value={adSetForm.countries} onChange={(e) => setAdSetForm({ ...adSetForm, countries: e.target.value })} />
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className={AD_LABEL}>
+              Âge minimum
+              <input type="number" min="13" max="65" className={AD_INPUT} value={adSetForm.age_min} onChange={(e) => setAdSetForm({ ...adSetForm, age_min: e.target.value })} />
+            </label>
+            <label className={AD_LABEL}>
+              Âge maximum
+              <input type="number" min="13" max="65" className={AD_INPUT} value={adSetForm.age_max} onChange={(e) => setAdSetForm({ ...adSetForm, age_max: e.target.value })} />
+            </label>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={createOpen}

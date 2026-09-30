@@ -85,6 +85,41 @@ class AdStructureController extends Controller
     }
 
     /** Crée un créatif + une publicité sur Meta, en pause. */
+    /** Cree un ensemble de publicites sur Meta pour cette campagne. */
+    public function publishAdSet(Request $request, string $campaignId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $campaign = Campaign::query()->where('brand_id', $brandId)->findOrFail($campaignId);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'daily_budget' => ['required', 'numeric', 'min:1'],
+            'optimization_goal' => ['nullable', 'string', 'max:40'],
+            'countries' => ['nullable', 'array'],
+            'countries.*' => ['string', 'size:2'],
+            'age_min' => ['nullable', 'integer', 'min:13', 'max:65'],
+            'age_max' => ['nullable', 'integer', 'min:13', 'max:65'],
+        ], [
+            'name.required' => 'Le nom de l’ensemble est obligatoire.',
+            'daily_budget.required' => 'Indiquez un budget quotidien.',
+            'daily_budget.min' => 'Le budget quotidien doit être d’au moins 1.',
+        ]);
+
+        try {
+            $adSet = app(\App\Services\Meta\MetaAdSetPublisher::class)->publish($brandId, $campaign, $data);
+        } catch (MetaApiException $e) {
+            return ApiResponse::error($e->getMessage(), null, 422);
+        }
+
+        AuditLogger::log($request, 'ad_sets.publish', $adSet, null, $adSet->toArray());
+
+        return ApiResponse::success(
+            $adSet,
+            'Ensemble de publicités créé sur Meta, en pause. Affinez le ciblage dans Ads Manager avant activation.',
+            201
+        );
+    }
+
     public function publishAd(Request $request, string $adSetId): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
