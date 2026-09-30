@@ -80,11 +80,19 @@ class MetaGraphClient
             $message = is_array($err) ? (string) ($err['error_user_msg'] ?? $err['message'] ?? $response->body()) : $response->body();
             $code = is_array($err) ? ($err['code'] ?? null) : null;
 
+            // Meta distingue une dizaine de refus derriere le meme message :
+            // seuls le sous-code et le titre utilisateur les separent.
             Log::warning('meta.graph.post_error', [
                 'brand_id' => $brandId,
                 'path' => $path,
                 'status' => $response->status(),
                 'message' => $message,
+                'code' => $code,
+                'error_subcode' => is_array($err) ? ($err['error_subcode'] ?? null) : null,
+                'error_user_title' => is_array($err) ? ($err['error_user_title'] ?? null) : null,
+                'error_user_msg' => is_array($err) ? ($err['error_user_msg'] ?? null) : null,
+                'blame_field_specs' => is_array($err) ? ($err['error_data']['blame_field_specs'] ?? null) : null,
+                'payload_keys' => array_keys($payload),
             ]);
 
             throw new MetaApiException(
