@@ -645,6 +645,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('hr/job-openings/{id}/close', [HrJobOpeningController::class, 'close'])->whereNumber('id')->middleware('permission:hr_recruitment.update');
 
     // Recruitment - Candidates
+    Route::post('hr/candidates/upload-cv', [HrCandidateController::class, 'uploadCv'])->middleware('permission:hr_recruitment.create');
     Route::get('hr/candidates', [HrCandidateController::class, 'index'])->middleware('permission:hr_recruitment.view');
     Route::post('hr/candidates', [HrCandidateController::class, 'store'])->middleware('permission:hr_recruitment.create');
     Route::get('hr/candidates/{id}', [HrCandidateController::class, 'show'])->whereNumber('id')->middleware('permission:hr_recruitment.view');

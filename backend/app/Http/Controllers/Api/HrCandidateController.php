@@ -17,6 +17,27 @@ class HrCandidateController extends Controller
         'entretien', 'accepte', 'refuse', 'vivier', 'archive',
     ];
 
+    /** Depot du CV : le formulaire envoie un fichier, pas une URL a recopier. */
+    public function uploadCv(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $request->validate([
+            'cv' => ['required', 'file', 'max:10240', 'mimes:pdf,doc,docx,odt,jpg,jpeg,png'],
+        ], [
+            'cv.required' => 'Choisissez un fichier.',
+            'cv.max' => 'Fichier trop lourd : 10 Mo maximum.',
+            'cv.mimes' => 'Formats acceptés : PDF, Word, ODT ou image.',
+        ]);
+
+        $path = $request->file('cv')->store('hr/cv/'.$brandId, 'public');
+
+        return ApiResponse::success(
+            ['cv_url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path)],
+            'CV enregistré.'
+        );
+    }
+
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);

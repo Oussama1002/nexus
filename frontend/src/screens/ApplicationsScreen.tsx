@@ -36,6 +36,11 @@ const STATUSES = [
 
 const S = (v: string) => STATUSES.find((s) => s.value === v) ?? { value: v, label: v, cls: 'bg-zinc-100 text-zinc-600' };
 
+const SOURCES = [
+  'LinkedIn', 'Site carrière', 'Recommandation', 'Candidature spontanée',
+  'Réseaux sociaux', 'Cabinet de recrutement', 'Salon / forum emploi', 'Autre',
+];
+
 export function ApplicationsScreen() {
   const toast = useToast();
   const [rows, setRows] = useState<CandidateRow[]>([]);
@@ -51,6 +56,7 @@ export function ApplicationsScreen() {
     full_name: '', email: '', phone: '', city: '', job_opening_id: '', cv_url: '', source: '', notes: '',
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingCv, setUploadingCv] = useState(false);
 
   const [refusing, setRefusing] = useState<{ id: number } | null>(null);
   const [refuseReason, setRefuseReason] = useState('');
@@ -73,6 +79,17 @@ export function ApplicationsScreen() {
       if (res.ok) setJobs(res.data.data.map((j: any) => ({ id: j.id, title: j.title })));
     })();
   }, []);
+
+  const uploadCv = async (file: File) => {
+    setUploadingCv(true);
+    const fd = new FormData();
+    fd.append('cv', file);
+    const res = await api.post<{ cv_url: string }>('hr/candidates/upload-cv', fd);
+    setUploadingCv(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    setForm((f) => ({ ...f, cv_url: res.data.cv_url }));
+    toast.success('CV joint.');
+  };
 
   const save = async () => {
     if (!form.full_name.trim()) { toast.error('Nom requis.'); return; }
@@ -210,7 +227,10 @@ export function ApplicationsScreen() {
                 <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
               </label>
               <label className="text-sm font-bold text-zinc-700">Source
-                <input placeholder="LinkedIn, référence…" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
+                  <option value="">— sélectionner —</option>
+                  {SOURCES.map((x) => <option key={x} value={x}>{x}</option>)}
+                </select>
               </label>
               <label className="col-span-2 text-sm font-bold text-zinc-700">Poste ciblé
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.job_opening_id} onChange={(e) => setForm({ ...form, job_opening_id: e.target.value })}>
@@ -218,8 +238,20 @@ export function ApplicationsScreen() {
                   {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
                 </select>
               </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">CV (URL)
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.cv_url} onChange={(e) => setForm({ ...form, cv_url: e.target.value })} />
+              <label className="col-span-2 text-sm font-bold text-zinc-700">CV
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.odt,image/*"
+                  disabled={uploadingCv}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadCv(f); }}
+                  className="mt-1 w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-bold"
+                />
+                {uploadingCv && <span className="mt-1 block text-[11px] font-semibold text-zinc-500">Envoi du CV…</span>}
+                {!uploadingCv && form.cv_url && (
+                  <a href={form.cv_url} target="_blank" rel="noreferrer" className="mt-1 block text-[11px] font-black text-primary-600">
+                    CV joint — ouvrir
+                  </a>
+                )}
               </label>
               <label className="col-span-2 text-sm font-bold text-zinc-700">Notes
                 <textarea className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
