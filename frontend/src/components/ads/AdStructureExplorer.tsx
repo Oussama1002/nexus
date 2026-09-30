@@ -161,10 +161,12 @@ export function AdStructureExplorer({
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  // L'ensemble qui recevra la publicite : jamais demande, toujours deduit du
+  // contexte (l'ensemble ouvert, ou la ligne sur laquelle on a clique).
+  const [createTarget, setCreateTarget] = useState<{ id: number; name: string } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    adSetId: '',
     name: '',
     message: '',
     title: '',
@@ -246,9 +248,9 @@ export function AdStructureExplorer({
   }
 
   async function publishAd() {
-    const targetId = openAdSet?.id ?? Number(form.adSetId);
+    const targetId = createTarget?.id ?? openAdSet?.id ?? 0;
     if (!targetId) {
-      setCreateError('Choisissez l’ensemble de publicités qui recevra cette publicité.');
+      setCreateError('Ensemble de publicités introuvable : rouvrez-le et réessayez.');
       return;
     }
     if (!form.name.trim() || !form.message.trim()) {
@@ -276,7 +278,8 @@ export function AdStructureExplorer({
 
     toast.success(res.message);
     setCreateOpen(false);
-    setForm({ adSetId: '', name: '', message: '', title: '', link: '', cta: '', imageBase64: '', imagePreview: '' });
+    setForm({ name: '', message: '', title: '', link: '', cta: '', imageBase64: '', imagePreview: '' });
+    setCreateTarget(null);
     if (openAdSet) {
       await loadAds(openAdSet.id);
     } else {
@@ -328,6 +331,26 @@ export function AdStructureExplorer({
       cell: (r) => <span className="text-xs font-semibold text-zinc-600">{GOALS[r.optimization_goal ?? ''] ?? r.optimization_goal ?? '—'}</span>,
     },
     ...metricColumns<AdSetRow>(currency),
+    {
+      key: 'newAd',
+      header: '',
+      className: 'text-right',
+      cell: (r) =>
+        canSync && r.external_ad_set_id ? (
+          <button
+            type="button"
+            title={`Créer une publicité dans « ${r.name} »`}
+            onClick={() => {
+              setCreateError(null);
+              setCreateTarget({ id: r.id, name: r.name });
+              setCreateOpen(true);
+            }}
+            className="inline-flex items-center gap-1 rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-[11px] font-black text-primary-700 hover:bg-primary-100"
+          >
+            <Plus className="w-3 h-3" /> Publicité
+          </button>
+        ) : null,
+    },
   ];
 
   const adColumns: Column<AdRow>[] = [
@@ -395,12 +418,12 @@ export function AdStructureExplorer({
         </div>
         {canSync && (
           <div className="flex flex-wrap gap-2">
-            {(openAdSet || adSets.length > 0) && (
+            {openAdSet && (
               <button
                 type="button"
                 onClick={() => {
                   setCreateError(null);
-                  setForm((f) => ({ ...f, adSetId: String(openAdSet?.id ?? f.adSetId) }));
+                  setCreateTarget(openAdSet);
                   setCreateOpen(true);
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 text-sm font-black"
@@ -445,8 +468,8 @@ export function AdStructureExplorer({
         open={createOpen}
         title="Nouvelle publicité"
         subtitle={
-          openAdSet
-            ? `Créée EN PAUSE dans « ${openAdSet.name} » — à vérifier dans Ads Manager avant activation.`
+          createTarget
+            ? `Créée EN PAUSE dans « ${createTarget.name} » — à vérifier dans Ads Manager avant activation.`
             : 'Créée EN PAUSE — à vérifier dans Ads Manager avant activation.'
         }
         onClose={() => setCreateOpen(false)}
@@ -471,27 +494,6 @@ export function AdStructureExplorer({
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
               {createError}
             </div>
-          )}
-
-          {!openAdSet && (
-            <label className={AD_LABEL}>
-              Ensemble de publicités *
-              <select
-                value={form.adSetId}
-                onChange={(e) => setForm({ ...form, adSetId: e.target.value })}
-                className={AD_INPUT}
-              >
-                <option value="">— Choisir un ensemble</option>
-                {adSets
-                  .filter((a) => a.external_ad_set_id)
-                  .map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-              </select>
-              <span className="mt-1 block text-[11px] font-semibold text-zinc-500">
-                Seuls les ensembles existant chez Meta peuvent recevoir une publicité.
-              </span>
-            </label>
           )}
 
           <label className={AD_LABEL}>
