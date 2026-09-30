@@ -46,7 +46,9 @@ class MetaErrorTranslator
             || str_contains($normalized, 'do not have sufficient')
             || str_contains($normalized, 'not have permission')
         ) {
-            return 'Permissions Meta insuffisantes pour cette action. Vérifiez les autorisations de l’application et l’accès au Business Manager.';
+            // Meta nomme l'autorisation manquante : sans son message, l'erreur
+            // est indiagnosticable.
+            return 'Permissions Meta insuffisantes pour cette action. Vérifiez les autorisations de l’application et l’accès au Business Manager. Meta précise : '.trim($raw);
         }
 
         // Limite de débit atteinte.
