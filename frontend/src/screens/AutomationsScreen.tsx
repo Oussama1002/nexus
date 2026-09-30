@@ -367,7 +367,6 @@ export function AutomationsScreen() {
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [actions, setActions] = useState<ActionStep[]>([]);
   const [customTriggers, setCustomTriggers] = useState<TriggerConfig[]>([]);
-  const [newTriggerLabel, setNewTriggerLabel] = useState('');
   // custom condition fields for custom triggers
   const [customFields, setCustomFields] = useState<TriggerField[]>([]);
   const [formError, setFormError] = useState<{ message: string; fields: Record<string, string[]> } | null>(null);
@@ -445,19 +444,6 @@ export function AutomationsScreen() {
     setConditions(isBuiltin ? defaultConditions(key) : []);
     setActions(isBuiltin ? defaultActions(key) : [{ type: 'send_notification', target: 'admin', message: '', useAB: false, variants: [] }]);
     setCustomFields([]);
-  }
-
-  function addCustomTrigger() {
-    const label = newTriggerLabel.trim();
-    if (!label) { toast.error('Saisissez un nom de déclencheur.'); return; }
-    const key = slugifyTrigger(label);
-    if (!key) { toast.error('Nom invalide.'); return; }
-    if (allTriggers.some((t) => t.value === key)) { toast.error('Ce déclencheur existe déjà.'); return; }
-    const ct = makeCustomTrigger(key, label);
-    setCustomTriggers((prev) => [...prev, ct]);
-    setNewTriggerLabel('');
-    changeTrigger(key);
-    toast.success(`Déclencheur « ${label} » ajouté.`);
   }
 
   function addCustomField() {
@@ -629,15 +615,11 @@ export function AutomationsScreen() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              <input value={newTriggerLabel} onChange={(e) => setNewTriggerLabel(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomTrigger(); } }}
-                className="flex-1 px-3 py-2 rounded-xl border border-indigo-200 bg-white text-sm" placeholder="Nouveau déclencheur (ex: Stock faible, Paiement reçu…)" />
-              <button type="button" onClick={addCustomTrigger}
-                className="px-3 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-black hover:bg-indigo-200 inline-flex items-center gap-1 whitespace-nowrap">
-                <Plus className="w-4 h-4" /> Ajouter
-              </button>
-            </div>
+            <p className="text-xs font-semibold text-zinc-500">
+              Ces événements sont ceux que le CRM émet réellement. Pour en suivre un autre
+              (stock faible, paiement reçu…), demandez son ajout : une règle sur un événement
+              inexistant ne se déclencherait jamais.
+            </p>
           </div>
 
           {/* Active toggle */}

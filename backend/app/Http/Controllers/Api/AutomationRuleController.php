@@ -16,6 +16,14 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class AutomationRuleController extends Controller
 {
+    /** Evenements que le CRM emet reellement : une autre cle ne se declencherait jamais. */
+    private const TRIGGER_KEYS = [
+        'attendance.marked',
+        'order.status_changed',
+        'order.created',
+        'shipment.status_changed',
+    ];
+
     public function __construct(
         private readonly AutomationEngineService $engine
     ) {}
@@ -57,7 +65,7 @@ class AutomationRuleController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'trigger_key' => ['required', Rule::in(['attendance.marked', 'order.status_changed'])],
+            'trigger_key' => ['required', Rule::in(self::TRIGGER_KEYS)],
             'condition_json' => ['nullable', 'array'],
             'action_json' => ['required', 'array'],
             'is_active' => ['nullable', 'boolean'],
@@ -89,7 +97,7 @@ class AutomationRuleController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'trigger_key' => ['sometimes', Rule::in(['attendance.marked', 'order.status_changed'])],
+            'trigger_key' => ['sometimes', Rule::in(self::TRIGGER_KEYS)],
             'condition_json' => ['nullable', 'array'],
             'action_json' => ['sometimes', 'array'],
             'is_active' => ['nullable', 'boolean'],
