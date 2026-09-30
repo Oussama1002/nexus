@@ -227,18 +227,41 @@ function defaultConditions(trigger: TriggerKey): ConditionRow[] {
   return [{ field: 'event.to_status', op: 'eq', value: 'cancelled' }];
 }
 
+/**
+ * Modeles de depart : ecrits avec les libelles visibles ([N° commande]), jamais
+ * avec la syntaxe interne, et avec des types d'action qui existent vraiment.
+ */
 function defaultActions(trigger: TriggerKey): ActionStep[] {
   if (trigger === 'attendance.marked') {
     return [{
-      type: 'send_warning_message', target: 'employee_manager', message: '', useAB: true,
+      type: 'send_whatsapp', target: 'employee', message: '', useAB: true,
       variants: [
         { label: 'A', message: 'Avertissement : retard répété cette semaine.', weight: 1 },
         { label: 'B', message: 'Veuillez corriger vos horaires : retard de plus de 5 min détecté à nouveau.', weight: 1 },
       ],
     }];
   }
+
+  if (trigger === 'order.created') {
+    return [{
+      type: 'send_whatsapp', target: 'customer',
+      message: 'Bonjour, nous avons bien reçu votre commande [N° commande] d’un montant de [Total commande] MAD. Merci !',
+      useAB: false, variants: [],
+    }];
+  }
+
+  if (trigger === 'shipment.status_changed') {
+    return [{
+      type: 'send_whatsapp', target: 'customer',
+      message: 'Votre colis [N° commande] est maintenant : [Nouveau statut].',
+      useAB: false, variants: [],
+    }];
+  }
+
   return [{
-    type: 'send_customer_message', target: 'customer', message: 'Votre commande {{event.order_number}} a été annulée.', useAB: false, variants: [],
+    type: 'send_whatsapp', target: 'customer',
+    message: 'Votre commande [N° commande] a été annulée.',
+    useAB: false, variants: [],
   }];
 }
 
