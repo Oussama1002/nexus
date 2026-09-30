@@ -412,6 +412,23 @@ export function AdsScreen() {
     void fetchMetrics(openCampId);
   }, [openCampId, fetchMetrics]);
 
+  const [importingAccounts, setImportingAccounts] = useState(false);
+
+  /** Recupere les comptes publicitaires du Business Manager connecte. */
+  async function importMetaAccounts() {
+    setImportingAccounts(true);
+    const res = await api.post<{ created: number; updated: number; total: number }>('meta/sync/ad-accounts', {});
+    setImportingAccounts(false);
+
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+
+    toast.success(res.message);
+    await loadAd();
+  }
+
   /** Un seul bouton : comptes publicitaires → campagnes → métriques. */
   async function syncMeta() {
     setMetaSyncing(true);
@@ -780,18 +797,33 @@ export function AdsScreen() {
       {tab === 'Comptes' && (
         <div className="space-y-3">
           {canManage && (
-            <div className="flex justify-end">
+            <div className="flex flex-wrap justify-end gap-2">
+              {canMetaSync && (
+                <button
+                  type="button"
+                  onClick={() => void importMetaAccounts()}
+                  disabled={importingAccounts}
+                  title="Récupère les comptes publicitaires de votre Business Manager Meta"
+                  className="px-4 py-2 rounded-2xl bg-[#1877F2] text-white text-sm font-black inline-flex gap-2 items-center disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${importingAccounts ? 'animate-spin' : ''}`} />
+                  {importingAccounts ? 'Import…' : 'Importer depuis Meta'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setAdModal(true)}
-                className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex gap-2 items-center"
+                className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black text-zinc-800 inline-flex gap-2 items-center"
               >
-                <Plus className="w-4 h-4" /> Nouveau compte publicitaire
+                <Plus className="w-4 h-4" /> Saisir un compte à la main
               </button>
             </div>
           )}
           {filteredAd.length === 0 ? (
-            <EmptyState title="Aucun compte" description="Créez un compte Meta/TikTok/Google/LinkedIn pour cette marque." />
+            <EmptyState
+              title="Aucun compte publicitaire"
+              description="Cliquez sur « Importer depuis Meta » pour récupérer ceux de votre Business Manager. Pour TikTok, Google ou LinkedIn, saisissez-les à la main."
+            />
           ) : (
             <DataTable<AdAccountRow>
               rows={filteredAd}
