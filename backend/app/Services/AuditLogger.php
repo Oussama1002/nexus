@@ -30,7 +30,7 @@ class AuditLogger
             'user_agent' => substr((string) $request->userAgent(), 0, 2000),
         ]);
 
-        self::fireAutomations($action, $entity, $old, $new, ApiBrandContext::resolveBrandId($request, required: false));
+        self::fireAutomations($action, $entity, $old, $new, self::brandFromRequest($request));
     }
 
     /**
@@ -95,6 +95,24 @@ class AuditLogger
             ]);
         } finally {
             $firing = false;
+        }
+    }
+
+    /**
+     * La marque portee par la requete, ou null. resolveBrandId() refuse une
+     * requete sans utilisateur (403) : sur « auth.login », l'audit tourne
+     * avant l'authentification, et ce refus faisait echouer la connexion.
+     */
+    private static function brandFromRequest(Request $request): ?int
+    {
+        if (! $request->user()) {
+            return null;
+        }
+
+        try {
+            return ApiBrandContext::resolveBrandId($request, required: false);
+        } catch (\Throwable) {
+            return null;
         }
     }
 
