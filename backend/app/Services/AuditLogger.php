@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\ApiBrandContext;
 use Illuminate\Http\Request;
 
 class AuditLogger
@@ -28,6 +29,8 @@ class AuditLogger
             'ip_address' => $request->ip(),
             'user_agent' => substr((string) $request->userAgent(), 0, 2000),
         ]);
+
+        self::fireAutomations($action, $entity, $old, $new, ApiBrandContext::resolveBrandId($request, required: false));
     }
 
     /**
@@ -51,6 +54,61 @@ class AuditLogger
             'ip_address' => 'system',
             'user_agent' => 'system',
         ]);
+
+        self::fireAutomations($action, $entity, null, $data, null);
+    }
+
+    /**
+     * Toute action journalisee devient un declencheur d'automatisation
+     * utilisable : « orders.create », « complaints.create »… Sans ca, chaque
+     * nouvel evenement demanderait une modification du code.
+     *
+     * @param  array<string, mixed>|null  $old
+     * @param  array<string, mixed>|null  $new
+     */
+    private static function fireAutomations(string $action, ?Model $entity, ?array $old, ?array $new, ?int $brandId): void
+    {
+        // Une action d'automatisation ecrit elle-meme dans le journal : sans ce
+        // garde-fou, une regle pourrait se rappeler indefiniment.
+        static $firing = false;
+        if ($firing || str_starts_with($action, 'automation')) {
+            return;
+        }
+
+        $brandId ??= self::brandOf($entity, $new ?? $old);
+        if (! $brandId) {
+            return;
+        }
+
+        $firing = true;
+        try {
+            app(\App\Services\AutomationEngineService::class)->runForEvent($brandId, $action, [
+                'entity_id' => $entity?->getKey(),
+                'old' => $old,
+                'new' => $new,
+            ] + (is_array($new) ? $new : []));
+        } catch (\Throwable $e) {
+            // Une automatisation cassee ne doit jamais faire echouer l'action.
+            \Illuminate\Support\Facades\Log::warning('automation.from_audit_failed', [
+                'action' => $action,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $firing = false;
+        }
+    }
+
+    /** @param  array<string, mixed>|null  $payload */
+    private static function brandOf(?Model $entity, ?array $payload): ?int
+    {
+        $fromEntity = $entity?->getAttribute('brand_id');
+        if ($fromEntity) {
+            return (int) $fromEntity;
+        }
+
+        $fromPayload = is_array($payload) ? ($payload['brand_id'] ?? null) : null;
+
+        return $fromPayload ? (int) $fromPayload : null;
     }
 
     /**

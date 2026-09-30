@@ -16,8 +16,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class AutomationRuleController extends Controller
 {
-    /** Evenements que le CRM emet reellement : une autre cle ne se declencherait jamais. */
-    private const TRIGGER_KEYS = [
+    /** Evenements decrits dans l'interface, avec leurs champs et conditions. */
+    private const BUILTIN_TRIGGERS = [
         'attendance.marked',
         'order.status_changed',
         'order.created',
@@ -25,6 +25,46 @@ class AutomationRuleController extends Controller
         'lead.created',
         'stock.shortage',
     ];
+
+    /**
+     * Forme d'une cle d'evenement : « module.action ». Toute action journalisee
+     * par le CRM en est une, d'ou une validation de forme plutot qu'une liste.
+     */
+    private const TRIGGER_PATTERN = 'regex:/^[a-z0-9_]+(\\.[a-z0-9_]+)+$/';
+
+    /**
+     * Evenements disponibles : ceux decrits dans l'interface, plus toutes les
+     * actions que le CRM a deja journalisees pour cette marque.
+     */
+    public function availableTriggers(Request $request): JsonResponse
+    {
+        $seen = \App\Models\AuditLog::query()
+            ->selectRaw('action, COUNT(*) as total')
+            ->whereNotNull('action')
+            ->groupBy('action')
+            ->orderByDesc('total')
+            ->limit(200)
+            ->get();
+
+        $rows = [];
+        foreach (self::BUILTIN_TRIGGERS as $key) {
+            $rows[$key] = ['key' => $key, 'builtin' => true, 'occurrences' => 0];
+        }
+
+        foreach ($seen as $row) {
+            $key = (string) $row->action;
+            if (! preg_match('/^[a-z0-9_]+(\.[a-z0-9_]+)+$/', $key)) {
+                continue;
+            }
+            $rows[$key] = [
+                'key' => $key,
+                'builtin' => $rows[$key]['builtin'] ?? false,
+                'occurrences' => (int) $row->total,
+            ];
+        }
+
+        return ApiResponse::success(array_values($rows), 'Evenements disponibles.');
+    }
 
     public function __construct(
         private readonly AutomationEngineService $engine
@@ -67,7 +107,7 @@ class AutomationRuleController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'trigger_key' => ['required', Rule::in(self::TRIGGER_KEYS)],
+            'trigger_key' => ['required', 'string', 'max:100', self::TRIGGER_PATTERN],
             'condition_json' => ['nullable', 'array'],
             'action_json' => ['required', 'array'],
             'is_active' => ['nullable', 'boolean'],
@@ -99,7 +139,7 @@ class AutomationRuleController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'trigger_key' => ['sometimes', Rule::in(self::TRIGGER_KEYS)],
+            'trigger_key' => ['sometimes', 'string', 'max:100', self::TRIGGER_PATTERN],
             'condition_json' => ['nullable', 'array'],
             'action_json' => ['sometimes', 'array'],
             'is_active' => ['nullable', 'boolean'],

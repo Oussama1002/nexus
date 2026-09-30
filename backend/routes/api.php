@@ -926,6 +926,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('academy-contents/{id}/view', [AcademyContentController::class, 'incrementView'])->whereNumber('id');
     Route::get('automations/runs', [AutomationRuleController::class, 'runs'])->middleware('permission:automations.view');
     Route::post('automations/rules/{id}/test', [AutomationRuleController::class, 'test'])->whereNumber('id')->middleware('permission:automations.run');
+    Route::get('automations/available-triggers', [AutomationRuleController::class, 'availableTriggers'])->middleware('permission:automations.view');
     Route::get('automations/rules', [AutomationRuleController::class, 'index'])->middleware('permission:automations.view');
     Route::post('automations/rules', [AutomationRuleController::class, 'store'])->middleware('permission:automations.create');
     Route::get('automations/rules/{id}', [AutomationRuleController::class, 'show'])->whereNumber('id')->middleware('permission:automations.view');

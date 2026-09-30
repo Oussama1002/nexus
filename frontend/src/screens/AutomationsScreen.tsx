@@ -19,6 +19,7 @@ import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StatusChip } from '../components/ui/StatusChip';
 import * as api from '../lib/api';
+import { auditActionLabelFr } from '../lib/auditDisplayFr';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -432,11 +433,32 @@ export function AutomationsScreen() {
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [actions, setActions] = useState<ActionStep[]>([]);
   const [customTriggers, setCustomTriggers] = useState<TriggerConfig[]>([]);
+  // Evenements reellement emis par le CRM, tires de son journal d'activite.
+  const [catalog, setCatalog] = useState<{ key: string; builtin: boolean; occurrences: number }[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
   // custom condition fields for custom triggers
   const [customFields, setCustomFields] = useState<TriggerField[]>([]);
   const [formError, setFormError] = useState<{ message: string; fields: Record<string, string[]> } | null>(null);
 
   const allTriggers = useMemo(() => [...TRIGGERS, ...customTriggers], [customTriggers]);
+
+  async function openTriggerPicker() {
+    setPickerOpen(true);
+    if (catalog.length > 0) return;
+    const res = await api.get<{ key: string; builtin: boolean; occurrences: number }[]>('automations/available-triggers');
+    if (res.ok && Array.isArray(res.data)) setCatalog(res.data);
+  }
+
+  /** Ajoute un evenement du CRM a la liste des declencheurs proposes. */
+  function useEventAsTrigger(key: string) {
+    if (!allTriggers.some((t) => t.value === key)) {
+      setCustomTriggers((prev) => [...prev, makeCustomTrigger(key, key)]);
+    }
+    changeTrigger(key);
+    setPickerOpen(false);
+    setCatalogSearch('');
+  }
   const triggerConfig = useMemo(() => {
     const found = allTriggers.find((t) => t.value === draftTrigger);
     if (found && !found.builtin) return { ...found, fields: [...found.fields, ...customFields] };
@@ -680,11 +702,60 @@ export function AutomationsScreen() {
                 </button>
               ))}
             </div>
-            <p className="text-xs font-semibold text-zinc-500">
-              Ces événements sont ceux que le CRM émet réellement. Pour en suivre un autre
-              (stock faible, paiement reçu…), demandez son ajout : une règle sur un événement
-              inexistant ne se déclencherait jamais.
-            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => void openTriggerPicker()}
+                className="inline-flex items-center gap-1 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm font-black text-indigo-700 hover:bg-indigo-50"
+              >
+                <Plus className="w-4 h-4" /> Ajouter un déclencheur
+              </button>
+
+              {pickerOpen && (
+                <div className="rounded-xl border border-zinc-200 bg-white p-3 space-y-2">
+                  <p className="text-xs font-semibold text-zinc-600">
+                    Tout ce que le CRM enregistre peut déclencher une règle. Choisissez l’événement
+                    — le nombre indique combien de fois il s’est produit.
+                  </p>
+                  <input
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    placeholder="Filtrer : commande, colis, réclamation…"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm"
+                  />
+                  <div className="max-h-56 overflow-y-auto space-y-1">
+                    {catalog
+                      .filter((c) => c.key.includes(catalogSearch.trim().toLowerCase()))
+                      .map((c) => (
+                        <button
+                          key={c.key}
+                          type="button"
+                          onClick={() => useEventAsTrigger(c.key)}
+                          className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50"
+                        >
+                          <span className="text-sm font-bold text-zinc-800">
+                            {auditActionLabelFr(c.key)}
+                            <span className="ml-2 font-mono text-[11px] font-medium text-zinc-400">{c.key}</span>
+                          </span>
+                          <span className="text-[11px] font-black text-zinc-500">
+                            {c.builtin ? 'détaillé' : c.occurrences + '×'}
+                          </span>
+                        </button>
+                      ))}
+                    {catalog.length === 0 && (
+                      <p className="text-xs font-semibold text-zinc-400 px-1 py-2">Chargement…</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen(false)}
+                    className="text-xs font-black text-zinc-500 hover:text-zinc-700"
+                  >
+                    Fermer
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Active toggle */}
