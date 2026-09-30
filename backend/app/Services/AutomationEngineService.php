@@ -210,7 +210,7 @@ class AutomationEngineService
         }
 
         if (! $phone || trim($phone) === '') {
-            return ['status' => 'skipped', 'reason' => 'Numéro de téléphone non disponible.'];
+            return ['status' => 'skipped', 'reason' => "Aucun numéro pour le destinataire « {$target} » : l'événement ne portait pas de client joignable."];
         }
 
         try {
@@ -306,6 +306,12 @@ class AutomationEngineService
     {
         $context = ['event' => $eventPayload, 'metrics' => []];
 
+        // Sans ca, « Destinataire : Client » n'a aucun numero ou envoyer.
+        $customer = $this->resolveCustomer($eventPayload);
+        if ($customer) {
+            $context['customer'] = $customer;
+        }
+
         if ($rule->trigger_key === 'attendance.marked') {
             $employeeId = (int) data_get($eventPayload, 'employee_id', 0);
             $attendanceDate = data_get($eventPayload, 'attendance_date');
@@ -335,6 +341,54 @@ class AutomationEngineService
         }
 
         return $context;
+    }
+
+    /**
+     * Retrouve le client concerne par l'evenement : depuis la charge utile
+     * quand elle le porte, sinon par son identifiant, sinon via la commande.
+     *
+     * @param  array<string, mixed>  $eventPayload
+     * @return array<string, mixed>|null
+     */
+    private function resolveCustomer(array $eventPayload): ?array
+    {
+        $inline = data_get($eventPayload, 'customer');
+        if (is_array($inline) && ($inline['phone'] ?? null)) {
+            return [
+                'id' => $inline['id'] ?? null,
+                'name' => $inline['name'] ?? ($inline['full_name'] ?? ''),
+                'phone' => (string) $inline['phone'],
+                'city' => $inline['city'] ?? null,
+            ];
+        }
+
+        $customerId = (int) (data_get($eventPayload, 'customer_id')
+            ?? data_get($eventPayload, 'new.customer_id')
+            ?? data_get($eventPayload, 'old.customer_id')
+            ?? 0);
+
+        if ($customerId <= 0) {
+            $orderId = (int) (data_get($eventPayload, 'order_id') ?? data_get($eventPayload, 'entity_id') ?? 0);
+            if ($orderId > 0) {
+                $customerId = (int) (\App\Models\Order::query()->whereKey($orderId)->value('customer_id') ?? 0);
+            }
+        }
+
+        if ($customerId <= 0) {
+            return null;
+        }
+
+        $customer = \App\Models\Customer::query()->find($customerId);
+        if (! $customer) {
+            return null;
+        }
+
+        return [
+            'id' => $customer->id,
+            'name' => $customer->full_name ?? '',
+            'phone' => (string) ($customer->phone ?? ''),
+            'city' => $customer->city ?? null,
+        ];
     }
 
     /**
