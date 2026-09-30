@@ -14,6 +14,9 @@ class MetaSocialInsightsService
 
     private const PAGE_POST_FIELDS = 'id,message,created_time,full_picture,permalink_url,shares,likes.summary(true).limit(0),comments.summary(true).limit(0)';
 
+    /** Sans les compteurs : ceux-ci exigent pages_read_user_content. */
+    private const PAGE_POST_FIELDS_MINIMAL = 'id,message,created_time,full_picture,permalink_url';
+
     private const IG_FIELDS = 'id,username,name,biography,profile_picture_url,followers_count,follows_count,media_count,website';
 
     private const IG_MEDIA_FIELDS = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count';
@@ -127,10 +130,21 @@ class MetaSocialInsightsService
         $pageToken = $this->pageToken($brandId, $pageId);
 
         try {
-            $rows = $this->graph->paginate($brandId, $pageId.'/posts', [
-                'fields' => self::PAGE_POST_FIELDS,
-                'limit' => min($limit, 50),
-            ], 2, $pageToken);
+            try {
+                $rows = $this->graph->paginate($brandId, $pageId.'/posts', [
+                    'fields' => self::PAGE_POST_FIELDS,
+                    'limit' => min($limit, 50),
+                ], 2, $pageToken);
+            } catch (MetaApiException) {
+                // Les compteurs de J'aime et de commentaires demandent
+                // pages_read_user_content : sans elle, on affiche au moins
+                // les publications.
+                $rows = $this->graph->paginate($brandId, $pageId.'/posts', [
+                    'fields' => self::PAGE_POST_FIELDS_MINIMAL,
+                    'limit' => min($limit, 50),
+                ], 2, $pageToken);
+                $warning = 'Compteurs de J’aime et de commentaires indisponibles : ajoutez l’autorisation pages_read_user_content puis reconnectez Meta.';
+            }
 
             foreach (array_slice($rows, 0, $limit) as $row) {
                 $posts[] = [
