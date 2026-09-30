@@ -1441,6 +1441,9 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
   const [search, setSearch] = useState('');
   const [platform, setPlatform] = useState('');
   const [status, setStatus] = useState('');
+  // Par defaut le CM voit tout le calendrier, pas seulement ce qui lui est
+  // assigne : sinon l'onglet parait vide alors que des publications existent.
+  const [onlyMine, setOnlyMine] = useState(false);
 
   // Detail panel
   const [detail, setDetail] = useState<ContentCalendarEntry | null>(null);
@@ -1454,7 +1457,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
     setLoading(true);
     try {
       const res = await api.get<Paginated<ContentCalendarEntry>>(
-        'content-calendar' + buildQuery({ assigned_user_id: userId, per_page: 25, page, platform: platform || undefined, status: status || undefined, search: search || undefined }),
+        'content-calendar' + buildQuery({ assigned_user_id: onlyMine ? userId : undefined, per_page: 25, page, platform: platform || undefined, status: status || undefined, search: search || undefined }),
       );
       if (res.ok) {
         setRows(res.data.data);
@@ -1469,7 +1472,7 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
     } finally {
       setLoading(false);
     }
-  }, [page, platform, status, search, userId, toast]);
+  }, [page, platform, status, search, userId, onlyMine, toast]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -1699,6 +1702,15 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
           <option value="">Tous les statuts</option>
           <option value="draft">Brouillon</option><option value="approved">Approuvé</option><option value="published">Publié</option><option value="cancelled">Annulé</option>
         </select>
+        <label className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-700">
+          <input
+            type="checkbox"
+            checked={onlyMine}
+            onChange={e => { setOnlyMine(e.target.checked); setPage(1); }}
+            className="w-4 h-4 rounded accent-primary-600"
+          />
+          Seulement les miennes
+        </label>
       </div>
 
       {loading ? <Spinner /> : rows.length === 0 ? (
