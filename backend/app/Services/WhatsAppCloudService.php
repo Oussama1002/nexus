@@ -683,6 +683,46 @@ class WhatsAppCloudService
      *
      * @throws \RuntimeException
      */
+    /**
+     * Envoi automatise : expedie le message ET le consigne dans la
+     * conversation. Sans ca, le client recoit un message dont l'agent ne voit
+     * aucune trace dans le CRM.
+     *
+     * @return array{external_id: string, conversation_id: int|null, message_id: int|null}
+     */
+    public function sendTextAndRecord(int $brandId, string $toWaId, string $body, ?WhatsAppNumber $number = null): array
+    {
+        $waId = \App\Services\PhoneNormalizer::toWhatsAppId($toWaId) ?: ltrim($toWaId, '+');
+        $externalId = $this->sendText($brandId, $waId, $body, $number);
+
+        try {
+            $customer = $this->findOrCreateCustomer($brandId, $waId, null);
+            $conversation = $this->findOrCreateConversation($brandId, $number, $customer, $waId);
+
+            $message = \App\Models\Message::query()->create([
+                'conversation_id' => $conversation->id,
+                'sender_user_id' => null,
+                'direction' => 'outbound',
+                'content' => $body,
+                'message_type' => 'text',
+                'external_message_id' => $externalId,
+                'sent_at' => now(),
+                'delivery_status' => 'sent',
+            ]);
+
+            $conversation->last_message_at = now();
+            $conversation->save();
+
+            return ['external_id' => $externalId, 'conversation_id' => $conversation->id, 'message_id' => $message->id];
+        } catch (\Throwable $e) {
+            // Le message est parti : un echec d'enregistrement ne doit pas
+            // faire croire a une non-livraison.
+            Log::warning('whatsapp.record_outbound_failed', ['error' => $e->getMessage()]);
+
+            return ['external_id' => $externalId, 'conversation_id' => null, 'message_id' => null];
+        }
+    }
+
     public function sendText(int $brandId, string $toWaId, string $body, ?WhatsAppNumber $number = null): string
     {
         $cfg = $this->resolveSendConfig($brandId, $number);

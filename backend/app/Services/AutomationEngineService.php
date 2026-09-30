@@ -220,9 +220,9 @@ class AutomationEngineService
         }
 
         try {
-            $this->whatsApp->sendText($brandId, $phone, $message);
+            $recorded = $this->whatsApp->sendTextAndRecord($brandId, $phone, $message);
 
-            return ['status' => 'sent', 'to' => $phone];
+            return ['status' => 'sent', 'to' => $phone] + $recorded;
         } catch (Throwable $e) {
             Log::warning('automation.whatsapp_failed', [
                 'phone' => $phone,
@@ -253,7 +253,7 @@ class AutomationEngineService
             try {
                 $employeeName = data_get($context, 'employee.full_name', 'Employé');
                 $adminMessage = "🔔 Alerte automatisation\n\n{$message}\n\nEmployé: {$employeeName}";
-                $this->whatsApp->sendText($brandId, $phone, $adminMessage);
+                $this->whatsApp->sendTextAndRecord($brandId, $phone, $adminMessage);
                 $results[] = ['user' => $admin->name, 'status' => 'sent', 'to' => $phone];
             } catch (Throwable $e) {
                 $results[] = ['user' => $admin->name, 'status' => 'failed', 'error' => $e->getMessage()];
