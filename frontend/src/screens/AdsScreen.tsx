@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Plus, RefreshCw } from 'lucide-react';
-import { AdStructureExplorer } from '../components/ads/AdStructureExplorer';
+import { AdStructureExplorer, deliveryChip } from '../components/ads/AdStructureExplorer';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable } from '../components/ui/DataTable';
@@ -62,6 +62,7 @@ type CampaignRow = {
   external_campaign_id?: string | null;
   brand?: { id: number; name: string } | null;
   ad_account?: { id: number; account_name: string; currency?: string | null } | null;
+  effective_status?: string | null;
   product?: { id: number; name: string } | null;
   confirmatrice?: { id: number; name: string } | null;
   influencer?: { id: number; full_name?: string; username?: string } | null;
@@ -963,6 +964,15 @@ export function AdsScreen() {
                   key: 'brand',
                   header: 'Brand',
                   cell: (c) => <span className="text-sm">{c.brand?.name ?? '—'}</span>,
+                },
+                {
+                  key: 'delivery',
+                  header: 'Diffusion (Meta)',
+                  cell: (c) => {
+                    if (c.source !== 'meta' || !c.external_campaign_id) return <span className="text-sm text-zinc-400">—</span>;
+                    const chip = deliveryChip(c.effective_status ?? null);
+                    return <StatusChip tone={chip.tone}>{chip.label}</StatusChip>;
+                  },
                 },
                 {
                   key: 'account',

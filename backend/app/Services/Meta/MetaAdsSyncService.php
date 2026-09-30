@@ -12,7 +12,7 @@ class MetaAdsSyncService
 {
     private const AD_ACCOUNT_FIELDS = 'id,account_id,name,currency,timezone_name,account_status,business{id,name}';
 
-    private const CAMPAIGN_FIELDS = 'id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time';
+    private const CAMPAIGN_FIELDS = 'id,name,status,effective_status,objective,daily_budget,lifetime_budget,start_time,stop_time';
 
     private const INSIGHT_FIELDS = 'campaign_id,spend,impressions,clicks,reach,actions,cpc,cpm,date_start,date_stop';
 
@@ -187,6 +187,8 @@ class MetaAdsSyncService
                 'daily_budget' => $daily,
                 'campaign_currency' => $adAccount->currency,
                 'status' => $this->mapCampaignStatus($row['status'] ?? null),
+                // Diffusion reelle cote Meta : une campagne ACTIVE peut ne rien diffuser.
+                'effective_status' => $row['effective_status'] ?? null,
                 'start_date' => $start,
                 'end_date' => $this->parseMetaDate($row['stop_time'] ?? null),
                 'last_synced_at' => now(),

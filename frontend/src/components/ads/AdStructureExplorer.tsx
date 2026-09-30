@@ -52,7 +52,8 @@ type AdRow = {
 };
 
 /** ACTIVE / PAUSED / … → libellé + couleur façon Ads Manager. */
-function deliveryChip(status: string | null): { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' } {
+/** Statut de diffusion Meta → libellé français, partagé avec la liste des campagnes. */
+export function deliveryChip(status: string | null): { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' } {
   const s = (status ?? '').toUpperCase();
   if (s === 'ACTIVE') return { label: 'Diffusion active', tone: 'success' };
   if (s === 'PAUSED' || s === 'ADSET_PAUSED' || s === 'CAMPAIGN_PAUSED') return { label: 'En pause', tone: 'warning' };

@@ -24,6 +24,7 @@ class Campaign extends Model
         'attribution_model',
         'spend',
         'status',
+        'effective_status',
         'archived_at',
         'start_date',
         'end_date',
