@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -46,9 +46,18 @@ export function TrainingScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     employee_id: '', title: '', training_type: 'interne', provider: '',
-    start_date: '', end_date: '', duration_hours: '', description: '',
+    start_date: '', end_date: '', description: '',
   });
   const [saving, setSaving] = useState(false);
+
+  /** Durée déduite des deux horodatages, arrondie à l'heure la plus proche. */
+  const computedHours = useMemo(() => {
+    if (!form.start_date || !form.end_date) return null;
+    const start = new Date(form.start_date).getTime();
+    const end = new Date(form.end_date).getTime();
+    if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+    return Math.max(1, Math.round((end - start) / 3_600_000));
+  }, [form.start_date, form.end_date]);
 
   const load = async () => {
     setLoading(true);
@@ -76,14 +85,14 @@ export function TrainingScreen() {
       provider: form.provider || undefined,
       start_date: form.start_date || undefined,
       end_date: form.end_date || undefined,
-      duration_hours: form.duration_hours ? Number(form.duration_hours) : undefined,
+      duration_hours: computedHours ?? undefined,
       description: form.description || undefined,
     });
     setSaving(false);
     if (!res.ok) { toast.error(res.message); return; }
     toast.success('Formation ajoutée.');
     setShowCreate(false);
-    setForm({ employee_id: '', title: '', training_type: 'interne', provider: '', start_date: '', end_date: '', duration_hours: '', description: '' });
+    setForm({ employee_id: '', title: '', training_type: 'interne', provider: '', start_date: '', end_date: '', description: '' });
     load();
   };
 
@@ -129,8 +138,8 @@ export function TrainingScreen() {
                       <td className="px-4 py-3 text-xs uppercase text-zinc-600">{r.training_type}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600">{r.provider ?? '—'}</td>
                       <td className="px-4 py-3 text-xs text-zinc-500">
-                        {r.start_date ? new Date(r.start_date).toLocaleDateString('fr-FR') : '—'}
-                        {r.end_date ? ` → ${new Date(r.end_date).toLocaleDateString('fr-FR')}` : ''}
+                        {r.start_date ? new Date(r.start_date).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                        {r.end_date ? ` → ${new Date(r.end_date).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}` : ''}
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-600">{r.duration_hours ? `${r.duration_hours}h` : '—'}</td>
                       <td className="px-4 py-3">
@@ -176,15 +185,18 @@ export function TrainingScreen() {
               <label className="text-sm font-bold text-zinc-900">Prestataire
                 <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} />
               </label>
-              <label className="text-sm font-bold text-zinc-900">Date début
-                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+              <label className="text-sm font-bold text-zinc-900">Début (date et heure)
+                <input type="datetime-local" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
               </label>
-              <label className="text-sm font-bold text-zinc-900">Date fin
-                <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              <label className="text-sm font-bold text-zinc-900">Fin (date et heure)
+                <input type="datetime-local" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
               </label>
-              <label className="text-sm font-bold text-zinc-900">Durée (heures)
-                <input type="number" min="1" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_hours} onChange={(e) => setForm({ ...form, duration_hours: e.target.value })} />
-              </label>
+              <div className="text-sm font-bold text-zinc-900">
+                Durée
+                <p className="mt-1 px-3 py-2 rounded-xl border border-zinc-200 bg-zinc-50 font-semibold text-zinc-700">
+                  {computedHours !== null ? computedHours + ' h' : 'Renseignez le début et la fin'}
+                </p>
+              </div>
               <label className="col-span-2 text-sm font-bold text-zinc-900">Description
                 <textarea className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </label>
