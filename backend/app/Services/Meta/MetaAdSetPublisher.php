@@ -44,14 +44,14 @@ class MetaAdSetPublisher
 
         $remote = $this->graph->get($brandId, $externalCampaignId, ['fields' => 'objective']);
         $objective = (string) ($remote['objective'] ?? '');
-        $goal = $data['optimization_goal'] ?: (self::OPTIMIZATION[$objective] ?? 'LINK_CLICKS');
+        $goal = ($data['optimization_goal'] ?? null) ?: (self::OPTIMIZATION[$objective] ?? 'LINK_CLICKS');
 
         $dailyBudget = (float) ($data['daily_budget'] ?? 0);
         if ($dailyBudget <= 0) {
             throw new MetaApiException('Indiquez un budget quotidien supérieur à 0 pour cet ensemble.');
         }
 
-        $countries = $data['countries'] ?: ['MA'];
+        $countries = ($data['countries'] ?? null) ?: ['MA'];
         $targeting = [
             'geo_locations' => ['countries' => array_values($countries)],
             'age_min' => (int) ($data['age_min'] ?? 18),
