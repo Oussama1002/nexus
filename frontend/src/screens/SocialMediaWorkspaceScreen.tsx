@@ -96,6 +96,13 @@ function Field({ label, children }: any) {
 
 const inputCls = 'w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm';
 
+/** Date seule, lisible : « 01/10/2026 » au lieu de l'horodatage ISO complet. */
+function shortDate(value: unknown): string {
+  if (typeof value !== 'string' || value === '') return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('fr-FR');
+}
+
 /** Bornes d'un trimestre : T1 = 01/01 au 31/03, T2 = 01/04 au 30/06, etc. */
 function quarterRange(year: string, quarter: string): { start: string; end: string } {
   const y = Number(year);
@@ -356,7 +363,7 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
                       <h3 className="text-lg font-black text-zinc-900">T{s.quarter} {s.year}</h3>
                       <Badge label={st.label} cls={st.cls} />
                     </div>
-                    <p className="text-xs text-zinc-500 mt-1">{s.start_date} → {s.end_date} · {s.pillars_count ?? 0} piliers · {s.contributions_count ?? 0} contributions</p>
+                    <p className="text-xs text-zinc-500 mt-1">{shortDate(s.start_date)} → {shortDate(s.end_date)} · {s.pillars_count ?? 0} piliers · {s.contributions_count ?? 0} contributions</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {s.status === 'brouillon' && (
@@ -1059,7 +1066,7 @@ function EventsTab({ events, onReload }: { events: R[]; onReload: () => void }) 
                     <Badge label={e.status} cls="bg-zinc-100 text-zinc-600" />
                     {e.has_commercial_offer && <Badge label="Offre commerciale" cls="bg-orange-50 text-orange-700" />}
                   </div>
-                  <p className="text-xs text-zinc-500 mt-1">{e.start_date} → {e.end_date} · {e.contents_count ?? 0} contenus</p>
+                  <p className="text-xs text-zinc-500 mt-1">{shortDate(e.start_date)} → {shortDate(e.end_date)} · {e.contents_count ?? 0} contenus</p>
                 </div>
                 <div className="flex gap-2">
                   {e.status === 'planifie' && <button onClick={() => submitRetro(e.id)} className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-black">Soumettre rétroplanning</button>}
