@@ -223,6 +223,53 @@ export function auditEntitySummaryFr(
   return label;
 }
 
+/** Domaine d'une action, pour les journaux sans entite liee. */
+const AUDIT_DOMAIN_LABELS_FR: Record<string, string> = {
+  settings: 'Paramètres',
+  auth: 'Authentification',
+  meta: 'Intégration Meta',
+  whatsapp: 'WhatsApp',
+  shipments: 'Expéditions',
+  orders: 'Commandes',
+  leads: 'Leads',
+  customers: 'Clients',
+  products: 'Produits',
+  stock: 'Stock',
+  influencers: 'Influenceurs',
+  social_accounts: 'Comptes sociaux',
+  content_calendar: 'Calendrier de contenu',
+  campaigns: 'Campagnes',
+  ads: 'Publicités',
+  users: 'Utilisateurs',
+  roles: 'Rôles',
+  hr: 'RH',
+  cm: 'Community Manager',
+};
+
+/**
+ * Objet concerne par une entree de journal. Beaucoup d'actions (enregistrement
+ * de parametres, connexion) ne referencent aucune ligne : on nomme alors le
+ * domaine plutot que d'afficher un tiret.
+ */
+export function auditObjectFr(
+  entityType: string | null | undefined,
+  entityId: string | number | null | undefined,
+  action: string,
+  payload?: Record<string, unknown> | null,
+): string {
+  const summary = auditEntitySummaryFr(entityType, entityId);
+  if (summary !== '—') return summary;
+
+  const domain = AUDIT_DOMAIN_LABELS_FR[(action ?? '').split('.')[0]] ?? null;
+  const section = payload && typeof payload === 'object' ? payload['section'] : null;
+
+  if (domain && typeof section === 'string' && section !== '') {
+    return domain + ' · ' + section;
+  }
+
+  return domain ?? '—';
+}
+
 export function auditActionLabelFr(action: string): string {
   const a = (action ?? '').trim();
   if (!a) return '—';

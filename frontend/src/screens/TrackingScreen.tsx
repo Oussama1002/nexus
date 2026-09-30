@@ -12,6 +12,7 @@ import {
   auditActionLabelFr,
   auditEntityFilterOptions,
   auditEntitySummaryFr,
+  auditObjectFr,
   auditFieldLabelFr,
   formatAuditFieldValue,
   isAuditImageField,
@@ -523,7 +524,7 @@ export function TrackingScreen() {
               <p className="text-xs text-zinc-600 mt-1">
                 {r.user?.name ?? resolveEntityName(r.entity_type, r.entity_id, lookups) ?? '—'}
                 {(() => {
-                  const cible = resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditEntitySummaryFr(r.entity_type, r.entity_id);
+                  const cible = resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditObjectFr(r.entity_type, r.entity_id, r.action, r.new_values ?? r.old_values);
                   return cible && cible !== '—' ? <> · {cible}</> : null;
                 })()}
                 {r.context?.customer_name ? (
@@ -571,7 +572,7 @@ export function TrackingScreen() {
               </p>
               <p>
                 <span className="text-zinc-500">Objet concerné : </span>
-                <span className="font-bold text-zinc-900">{resolveEntityName(detail.entity_type, detail.entity_id, lookups) ?? auditEntitySummaryFr(detail.entity_type, detail.entity_id)}</span>
+                <span className="font-bold text-zinc-900">{resolveEntityName(detail.entity_type, detail.entity_id, lookups) ?? auditObjectFr(detail.entity_type, detail.entity_id, detail.action, detail.new_values ?? detail.old_values)}</span>
               </p>
               {detail.context?.customer_name ? (
                 <p>
