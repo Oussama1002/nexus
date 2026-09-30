@@ -74,13 +74,26 @@ class MetaAdPublisher
             $linkData['picture'] = (string) $data['image_url'];
         }
 
-        $creative = $this->graph->post($brandId, $actId.'/adcreatives', [
-            'name' => (string) $data['name'].' — créatif',
-            'object_story_spec' => json_encode([
-                'page_id' => $pageId,
-                'link_data' => $linkData,
-            ]),
-        ]);
+        try {
+            $creative = $this->graph->post($brandId, $actId.'/adcreatives', [
+                'name' => (string) $data['name'].' — créatif',
+                'object_story_spec' => json_encode([
+                    'page_id' => $pageId,
+                    'link_data' => $linkData,
+                ]),
+            ]);
+        } catch (MetaApiException $e) {
+            // Le refus porte presque toujours sur la Page du creatif : Meta
+            // exige qu'elle appartienne au meme Business Manager que le compte
+            // publicitaire, et que l'utilisateur y ait un role.
+            throw new MetaApiException(
+                $e->getMessage()
+                ." (Créatif refusé pour la Page {$pageId} sur le compte {$actId}.)"
+                .' Vérifiez dans business.facebook.com que cette Page et ce compte publicitaire'
+                .' appartiennent au même Business Manager, et que votre compte a un rôle sur la Page.'
+                .' La Page utilisée se règle dans Paramètres → Meta.'
+            );
+        }
 
         $creativeId = (string) ($creative['id'] ?? '');
         if ($creativeId === '') {
