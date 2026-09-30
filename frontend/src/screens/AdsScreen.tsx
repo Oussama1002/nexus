@@ -964,6 +964,11 @@ export function AdsScreen() {
                   header: 'Brand',
                   cell: (c) => <span className="text-sm">{c.brand?.name ?? '—'}</span>,
                 },
+                {
+                  key: 'account',
+                  header: 'Nom compte',
+                  cell: (c) => <span className="text-sm text-zinc-700">{c.ad_account?.account_name ?? '—'}</span>,
+                },
                 { key: 'src', header: 'Plateforme', cell: (c) => <span>{sourceFr(c.source)}</span> },
                 {
                   key: 'obj',
