@@ -21,6 +21,7 @@ type BrandExt = Brand & {
   code?: string;
   contact?: string;
   note?: string;
+  campaignsCount?: number;
 };
 
 type ApiBrandRow = {
@@ -29,6 +30,9 @@ type ApiBrandRow = {
   code: string;
   status: string;
   whatsapp_number?: string[] | null;
+  /** Numero configure dans Parametres -> WhatsApp, prioritaire sur la fiche. */
+  whatsapp_configured_number?: string | null;
+  campaigns_count?: number;
   color?: string | null;
 };
 
@@ -47,7 +51,10 @@ function toUiBrand(b: ApiBrandRow): BrandExt {
     name: b.name,
     logo: initials,
     color,
-    whatsappNumber: Array.isArray(b.whatsapp_number) ? b.whatsapp_number.join(', ') : (b.whatsapp_number ?? ''),
+    whatsappNumber:
+      b.whatsapp_configured_number
+      ?? (Array.isArray(b.whatsapp_number) ? b.whatsapp_number.join(', ') : (b.whatsapp_number ?? '')),
+    campaignsCount: b.campaigns_count ?? 0,
     status: statusFr,
     code: b.code,
     contact: '',
@@ -175,7 +182,7 @@ export function BrandsScreen() {
   const kpis = useMemo(() => {
     const active = brands.filter((b) => (b.status ?? 'Actif') === 'Actif').length;
     const wa = brands.filter((b) => Boolean(b.whatsappNumber?.trim())).length;
-    const campaigns = brands.length * 2;
+    const campaigns = brands.reduce((total, b) => total + (b.campaignsCount ?? 0), 0);
     const ca = brands.reduce((s, b) => s + (statsByBrand.get(b.id)?.ca ?? 0), 0);
     return { active, wa, campaigns, ca };
   }, [brands, statsByBrand]);
@@ -313,7 +320,7 @@ export function BrandsScreen() {
               cell: (b) => <StatusChip tone={(b.status ?? 'Actif') === 'Actif' ? 'success' : 'warning'}>{b.status ?? 'Actif'}</StatusChip>,
             },
             { key: 'wa', header: 'WhatsApp', cell: (b) => <span className="font-bold text-zinc-700">{b.whatsappNumber || '—'}</span> },
-            { key: 'campaigns', header: 'Campagnes', cell: () => <span className="font-bold text-zinc-700">2</span> },
+            { key: 'campaigns', header: 'Campagnes', cell: (b) => <span className="font-bold text-zinc-700">{b.campaignsCount ?? 0}</span> },
             { key: 'products', header: 'Produits', cell: (b) => <span className="font-bold text-zinc-700">{statsByBrand.get(b.id)?.products ?? 0}</span> },
             { key: 'orders', header: 'Commandes', cell: (b) => <span className="font-bold text-zinc-700">{statsByBrand.get(b.id)?.orders ?? 0}</span> },
             { key: 'ca', header: 'CA (échantillon)', cell: (b) => <span className="font-black text-zinc-900">{formatCurrency(statsByBrand.get(b.id)?.ca ?? 0)}</span> },

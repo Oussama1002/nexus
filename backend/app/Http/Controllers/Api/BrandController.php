@@ -21,7 +21,9 @@ class BrandController extends Controller
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
         $search = $request->query('search');
 
-        $q = Brand::query()->orderBy('name');
+        // Le nombre de campagnes et le numero WhatsApp configure viennent de
+        // la base, pas d'une valeur saisie sur la fiche marque.
+        $q = Brand::query()->withCount('campaigns')->orderBy('name');
         if (! $user->isAdmin()) {
             $q->whereIn('id', $user->brands->pluck('id'));
         }
@@ -32,7 +34,21 @@ class BrandController extends Controller
             });
         }
 
-        return ApiResponse::success($q->paginate($perPage), 'Brands retrieved successfully.');
+        $paginator = $q->paginate($perPage);
+
+        $numbers = \App\Models\SystemSetting::query()
+            ->whereIn('brand_id', $paginator->getCollection()->pluck('id'))
+            ->where('setting_key', 'wa_business_number')
+            ->pluck('setting_value', 'brand_id');
+
+        $paginator->getCollection()->transform(function (Brand $brand) use ($numbers) {
+            $configured = trim((string) ($numbers[$brand->id] ?? ''));
+            $brand->setAttribute('whatsapp_configured_number', $configured !== '' ? $configured : null);
+
+            return $brand;
+        });
+
+        return ApiResponse::success($paginator, 'Brands retrieved successfully.');
     }
 
     public function store(StoreBrandRequest $request): JsonResponse
