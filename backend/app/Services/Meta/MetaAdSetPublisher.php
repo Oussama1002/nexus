@@ -42,12 +42,19 @@ class MetaAdSetPublisher
             throw new MetaApiException('Aucun compte publicitaire Meta rattaché à cette campagne.');
         }
 
-        $remote = $this->graph->get($brandId, $externalCampaignId, ['fields' => 'objective']);
+        $remote = $this->graph->get($brandId, $externalCampaignId, [
+            'fields' => 'objective,daily_budget,lifetime_budget',
+        ]);
         $objective = (string) ($remote['objective'] ?? '');
         $goal = ($data['optimization_goal'] ?? null) ?: (self::OPTIMIZATION[$objective] ?? 'LINK_CLICKS');
 
+        // Budget porte par la campagne (CBO) : l'ensemble n'a alors ni budget
+        // ni strategie d'enchere propres, il herite de la campagne.
+        $campaignBudget = (int) ($remote['daily_budget'] ?? 0) + (int) ($remote['lifetime_budget'] ?? 0);
+        $campaignHoldsBudget = $campaignBudget > 0;
+
         $dailyBudget = (float) ($data['daily_budget'] ?? 0);
-        if ($dailyBudget <= 0) {
+        if (! $campaignHoldsBudget && $dailyBudget <= 0) {
             throw new MetaApiException('Indiquez un budget quotidien supérieur à 0 pour cet ensemble.');
         }
 
@@ -60,15 +67,23 @@ class MetaAdSetPublisher
 
         $actId = 'act_'.str_replace('act_', '', (string) $account->external_account_id);
 
-        $created = $this->graph->post($brandId, $actId.'/adsets', [
+        $payload = [
             'name' => (string) $data['name'],
             'campaign_id' => $externalCampaignId,
             'status' => 'PAUSED',
             'billing_event' => 'IMPRESSIONS',
             'optimization_goal' => $goal,
-            'daily_budget' => (int) round($dailyBudget * 100),
             'targeting' => json_encode($targeting),
-        ]);
+        ];
+
+        if (! $campaignHoldsBudget) {
+            $payload['daily_budget'] = (int) round($dailyBudget * 100);
+            // Sans strategie explicite, Meta reclame un bid_amount que le CRM
+            // ne demande pas : le cout le plus bas n'en exige aucun.
+            $payload['bid_strategy'] = 'LOWEST_COST_WITHOUT_CAP';
+        }
+
+        $created = $this->graph->post($brandId, $actId.'/adsets', $payload);
 
         $externalId = (string) ($created['id'] ?? '');
         if ($externalId === '') {
@@ -84,7 +99,8 @@ class MetaAdSetPublisher
             'effective_status' => 'PAUSED',
             'optimization_goal' => $goal,
             'billing_event' => 'IMPRESSIONS',
-            'daily_budget' => $dailyBudget,
+            'bid_strategy' => $campaignHoldsBudget ? null : 'LOWEST_COST_WITHOUT_CAP',
+            'daily_budget' => $campaignHoldsBudget ? null : $dailyBudget,
             'targeting_summary' => implode(', ', $countries).' · '.$targeting['age_min'].'-'.$targeting['age_max'].' ans',
             'last_synced_at' => now(),
         ]);
