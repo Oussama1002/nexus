@@ -76,8 +76,6 @@ class EnrollmentController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
-
         $validated = $request->validate([
             'course_id' => 'required|integer|exists:courses,id',
             'student_id' => 'required|integer|exists:students,id',
@@ -89,9 +87,20 @@ class EnrollmentController extends Controller
             'expires_at' => 'nullable|date',
         ]);
 
-        // Verify course and student belong to the brand
-        Course::query()->where('brand_id', $brandId)->findOrFail($validated['course_id']);
-        Student::query()->where('brand_id', $brandId)->findOrFail($validated['student_id']);
+
+        // La marque vient de la formation : le catalogue est consultable toutes
+        // marques confondues, un en-tête différent ferait échouer l'inscription.
+        $course = Course::query()->findOrFail($validated['course_id']);
+        $brandId = (int) $course->brand_id;
+
+        $student = Student::query()->findOrFail($validated['student_id']);
+        if ((int) $student->brand_id !== $brandId) {
+            return ApiResponse::error(
+                'Cet apprenant appartient à une autre marque que la formation choisie.',
+                null,
+                422
+            );
+        }
 
         $enrollment = Enrollment::query()->create([
             'brand_id' => $brandId,
