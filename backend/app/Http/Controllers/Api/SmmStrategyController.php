@@ -108,7 +108,12 @@ class SmmStrategyController extends Controller
         }
         // Validate: at least one contribution recorded
         if ($row->contributions->where('received_at', '!=', null)->count() === 0) {
-            return ApiResponse::error('Aucune contribution enregistrée. Sollicitez au moins un contributeur.', null, 422);
+            return ApiResponse::error(
+                'Aucune contribution reçue. Solliciter un contributeur ne suffit pas : '
+                .'saisissez sa réponse depuis la stratégie, ou demandez-lui de la renseigner.',
+                null,
+                422
+            );
         }
         // Validate: every pillar has business_objective
         foreach ($row->pillars as $p) {
@@ -220,10 +225,22 @@ class SmmStrategyController extends Controller
     {
         $data = $request->validate([
             'contribution' => ['required', 'string'],
+            'contributor_user_id' => ['nullable', 'integer'],
         ]);
+
+        $user = $request->user();
+
+        // Chacun saisit la sienne ; celui qui pilote la strategie peut saisir
+        // celle d'un autre, sinon la soumission reste bloquee tant que la
+        // personne sollicitee ne s'est pas connectee.
+        $forUserId = (int) ($data['contributor_user_id'] ?? $user->id);
+        if ($forUserId !== (int) $user->id && ! $user->hasPermissionSlug('smm_strategy.submit')) {
+            return ApiResponse::error('Vous ne pouvez saisir que votre propre contribution.', null, 403);
+        }
+
         $c = SmmStrategyContribution::query()
             ->where('strategy_id', $id)
-            ->where('contributor_user_id', $request->user()->id)
+            ->where('contributor_user_id', $forUserId)
             ->firstOrFail();
         $c->contribution = $data['contribution'];
         $c->received_at = now();

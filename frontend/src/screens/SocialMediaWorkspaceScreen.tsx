@@ -278,6 +278,7 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
   const [pillarForm, setPillarForm] = useState({ label: '', business_objective: '', target_share_percent: '', description: '' });
 
   const [contribOpen, setContribOpen] = useState<{ strategyId: number } | null>(null);
+  const [contribText, setContribText] = useState('');
   const [contribUserId, setContribUserId] = useState('');
   const [users, setUsers] = useState<R[]>([]);
 
@@ -336,9 +337,24 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
 
   const solicit = async () => {
     if (!contribOpen || !contribUserId) return;
+
     const r = await api.post(`smm/strategies/${contribOpen.strategyId}/solicit-contribution`, { contributor_user_id: Number(contribUserId) });
     if (!r.ok) { toast.error(r.message); return; }
-    toast.success('Contribution sollicitée.'); setContribOpen(null); setContribUserId(''); onReload();
+
+    // Une stratégie ne se soumet qu'avec une contribution REÇUE : si la réponse
+    // est déjà connue, on l'enregistre dans la foulée.
+    if (contribText.trim()) {
+      const rec = await api.post(`smm/strategies/${contribOpen.strategyId}/contribute`, {
+        contributor_user_id: Number(contribUserId),
+        contribution: contribText.trim(),
+      });
+      if (!rec.ok) { toast.error(rec.message); return; }
+      toast.success('Contribution enregistrée.');
+    } else {
+      toast.success('Contributeur sollicité. Saisissez sa réponse ici quand vous l’aurez.');
+    }
+
+    setContribOpen(null); setContribUserId(''); setContribText(''); onReload();
   };
 
   return (
@@ -432,16 +448,33 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
         </div>
       </Modal>
 
-      <Modal open={!!contribOpen} onClose={() => setContribOpen(null)} title="Solliciter un contributeur">
-        <Field label="Contributeur">
-          <select className={inputCls} value={contribUserId} onChange={(e) => setContribUserId(e.target.value)}>
-            <option value="">— sélectionner —</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </Field>
+      <Modal open={!!contribOpen} onClose={() => setContribOpen(null)} title="Contribution à la stratégie">
+        <div className="space-y-3">
+          <Field label="Contributeur">
+            <select className={inputCls} value={contribUserId} onChange={(e) => setContribUserId(e.target.value)}>
+              <option value="">— sélectionner —</option>
+              {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Sa contribution (facultatif)">
+            <textarea
+              rows={3}
+              className={inputCls}
+              value={contribText}
+              onChange={(e) => setContribText(e.target.value)}
+              placeholder="Saisissez sa réponse si vous l’avez déjà — sinon laissez vide, il la renseignera lui-même."
+            />
+          </Field>
+          <p className="text-xs font-semibold text-zinc-500">
+            La stratégie ne peut être soumise qu’avec au moins une contribution reçue.
+            Solliciter quelqu’un ne suffit pas.
+          </p>
+        </div>
         <div className="flex justify-end gap-2 pt-4">
           <button onClick={() => setContribOpen(null)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
-          <button onClick={solicit} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black">Solliciter</button>
+          <button onClick={solicit} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black">
+            {contribText.trim() ? 'Enregistrer la contribution' : 'Solliciter'}
+          </button>
         </div>
       </Modal>
     </div>
