@@ -152,7 +152,9 @@ class SmmStrategyController extends Controller
     {
         $row = SmmStrategy::query()->findOrFail($id);
         if ($row->status !== 'soumise') return ApiResponse::error('Stratégie non validable dans son état actuel.', null, 422);
-        if ($row->author_user_id === $request->user()->id) return ApiResponse::error('Un même utilisateur ne peut pas être auteur et validateur.', null, 422);
+        if ($row->author_user_id === $request->user()->id && $this->hasAnotherValidator($request->user()->id)) {
+            return ApiResponse::error('Un même utilisateur ne peut pas être auteur et validateur.', null, 422);
+        }
         $data = $request->validate(['validation_comment' => ['nullable', 'string']]);
         $row->status = 'validee';
         $row->validated_by_user_id = $request->user()->id;
@@ -167,6 +169,20 @@ class SmmStrategyController extends Controller
             ['strategy_id' => $row->id], 'smm_strategy', $row->id,
         );
         return ApiResponse::success($row->fresh(), 'Stratégie validée.');
+    }
+
+    /**
+     * Existe-t-il un autre utilisateur capable de valider ? La separation
+     * auteur/validateur n'a de sens qu'a plusieurs : sur une equipe d'une
+     * seule personne, elle bloquait toute strategie definitivement.
+     */
+    private function hasAnotherValidator(int $authorId): bool
+    {
+        return \App\Models\User::query()
+            ->whereKeyNot($authorId)
+            ->where('status', 'active')
+            ->get()
+            ->contains(fn ($u) => $u->hasPermissionSlug('smm_strategy.validate'));
     }
 
     public function reject(Request $request, string $id): JsonResponse

@@ -18,6 +18,19 @@ use Illuminate\Http\Request;
 
 class SmmContentController extends Controller
 {
+    /**
+     * Existe-t-il un autre validateur ? Sur une equipe d'une seule personne,
+     * la separation auteur/validateur bloquait tout contenu definitivement.
+     */
+    private function hasAnotherValidator(int $authorId): bool
+    {
+        return \App\Models\User::query()
+            ->whereKeyNot($authorId)
+            ->where('status', 'active')
+            ->get()
+            ->contains(fn ($u) => $u->hasPermissionSlug('smm_content.validate'));
+    }
+
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);
@@ -305,7 +318,7 @@ class SmmContentController extends Controller
             );
             return ApiResponse::success($row->fresh(), 'Contenu sensible envoyé en validation Direction.');
         }
-        if ($row->author_user_id === $request->user()->id && !$row->is_sensitive) {
+        if ($row->author_user_id === $request->user()->id && !$row->is_sensitive && $this->hasAnotherValidator($request->user()->id)) {
             return ApiResponse::error('Un même utilisateur ne peut pas être auteur et validateur.', null, 422);
         }
         $row->status = 'valide';
