@@ -66,7 +66,9 @@ class AutomationEngineService
             $effectiveBrandId = $brandId ?? $rule->brand_id;
             $result = $this->executeActions((array) ($rule->action_json ?? []), $context, $effectiveBrandId, $isTest);
 
-            return $this->storeRun($rule, $eventPayload, $context, 'executed', 'Automatisation exécutée.', $result, $isTest, $brandId);
+            $label = $isTest ? 'Test concluant : les conditions correspondent, aucun message envoyé.' : 'Automatisation exécutée.';
+
+            return $this->storeRun($rule, $eventPayload, $context, 'executed', $label, $result, $isTest, $brandId);
         } catch (Throwable $e) {
             Log::error('automation.execution_failed', [
                 'rule_id' => $rule->id,
@@ -172,7 +174,11 @@ class AutomationEngineService
 
         $sendResult = null;
 
-        if (! $isTest && $brandId) {
+        if ($isTest) {
+            // Un test ne doit jamais ecrire a un vrai client : on dit ce qui
+            // serait parti, sinon « executed » laisse croire a un envoi.
+            $sendResult = ['status' => 'simulated', 'reason' => 'Test : aucun message n’a été envoyé.'];
+        } elseif ($brandId) {
             switch ($type) {
                 case 'send_whatsapp':
                     $sendResult = $this->actionSendWhatsApp($target, $rendered, $context, $brandId);
