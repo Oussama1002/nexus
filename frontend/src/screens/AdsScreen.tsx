@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Plus, RefreshCw } from 'lucide-react';
-import { AdStructureExplorer, deliveryChip } from '../components/ads/AdStructureExplorer';
+import { AdStructureExplorer } from '../components/ads/AdStructureExplorer';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable } from '../components/ui/DataTable';
@@ -964,15 +964,6 @@ export function AdsScreen() {
                   key: 'brand',
                   header: 'Brand',
                   cell: (c) => <span className="text-sm">{c.brand?.name ?? '—'}</span>,
-                },
-                {
-                  key: 'delivery',
-                  header: 'Diffusion (Meta)',
-                  cell: (c) => {
-                    if (c.source !== 'meta' || !c.external_campaign_id) return <span className="text-sm text-zinc-400">—</span>;
-                    const chip = deliveryChip(c.effective_status ?? null);
-                    return <StatusChip tone={chip.tone}>{chip.label}</StatusChip>;
-                  },
                 },
                 {
                   key: 'account',
