@@ -1444,6 +1444,9 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
   // Par defaut le CM voit tout le calendrier, pas seulement ce qui lui est
   // assigne : sinon l'onglet parait vide alors que des publications existent.
   const [onlyMine, setOnlyMine] = useState(false);
+  // Une erreur d'API devenait « Aucune publication » : on ne savait plus si le
+  // calendrier etait vide ou si la requete avait echoue.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Detail panel
   const [detail, setDetail] = useState<ContentCalendarEntry | null>(null);
@@ -1460,13 +1463,16 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
         'content-calendar' + buildQuery({ assigned_user_id: onlyMine ? userId : undefined, per_page: 25, page, platform: platform || undefined, status: status || undefined, search: search || undefined }),
       );
       if (res.ok) {
+        setLoadError(null);
         setRows(res.data.data);
         setTotal(res.data.total);
         setLastPage(res.data.last_page);
       } else {
+        setLoadError(res.message);
         setRows([]);
       }
     } catch {
+      setLoadError('Le calendrier de contenu n’a pas pu être chargé.');
       toast('Erreur lors du chargement des publications', 'error');
       setRows([]);
     } finally {
@@ -1713,8 +1719,21 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
         </label>
       </div>
 
+      {loadError && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+          {loadError}
+        </div>
+      )}
+
       {loading ? <Spinner /> : rows.length === 0 ? (
-        <EmptyState title="Aucune publication" description="Aucune publication ne correspond à vos critères." />
+        <EmptyState
+          title="Aucune publication"
+          description={
+            loadError
+              ? 'Le calendrier n’a pas pu être chargé — voir le message ci-dessus.'
+              : 'Cet onglet liste le calendrier de contenu du CRM, pas les publications déjà en ligne sur Facebook ou Instagram. Créez une fiche depuis Réseaux sociaux · Stratégie & contenu, ou consultez l’onglet Modération pour les publications réelles.'
+          }
+        />
       ) : (
         <>
           <div className="card overflow-hidden">
