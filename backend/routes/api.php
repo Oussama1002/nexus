@@ -318,6 +318,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('campaigns/{id}', [CampaignController::class, 'show'])->whereNumber('id')->middleware('permission:campaigns.view');
     Route::put('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
     Route::patch('campaigns/{id}', [CampaignController::class, 'update'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::post('campaigns/{id}/archive', [CampaignController::class, 'archive'])->whereNumber('id')->middleware('permission:campaigns.delete');
+    Route::post('campaigns/{id}/restore', [CampaignController::class, 'restore'])->whereNumber('id')->middleware('permission:campaigns.update');
     Route::delete('campaigns/{id}', [CampaignController::class, 'destroy'])->whereNumber('id')->middleware('permission:campaigns.delete');
 
     // Vue Ads Manager : campagne → ensembles de publicités → publicités.

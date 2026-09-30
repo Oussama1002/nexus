@@ -24,6 +24,7 @@ class Campaign extends Model
         'attribution_model',
         'spend',
         'status',
+        'archived_at',
         'start_date',
         'end_date',
         'notes',
@@ -45,6 +46,7 @@ class Campaign extends Model
 
     protected $casts = [
         'last_synced_at' => 'datetime',
+        'archived_at' => 'datetime',
         'start_date' => 'date',
         'end_date' => 'date',
         'budget' => 'decimal:2',

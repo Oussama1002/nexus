@@ -233,6 +233,7 @@ export function AdsScreen() {
   const [loading, setLoading] = useState(false);
   const [metaSyncing, setMetaSyncing] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [rowBusy, setRowBusy] = useState<number | null>(null);
 
   // 12 mois par défaut : une campagne arrêtée il y a quelques mois affichait
   // « — » partout avec une fenêtre de 30 jours.
@@ -523,6 +524,30 @@ export function AdsScreen() {
       notes: '',
     });
     void loadAd();
+  }
+
+  async function archiveCampaign(c: { id: number; name: string }) {
+    if (!window.confirm(`Archiver « ${c.name} » ? Elle sort des listes sans être supprimée, ni dans le CRM ni sur Meta.`)) return;
+    setRowBusy(c.id);
+    const res = await api.post(`campaigns/${c.id}/archive`, {});
+    setRowBusy(null);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success(res.message);
+    await refresh();
+  }
+
+  /** Supprime la campagne, et d'abord sur Meta quand elle y existe. */
+  async function deleteCampaign(c: { id: number; name: string; external_campaign_id?: string | null }) {
+    const onMeta = c.external_campaign_id
+      ? ' Elle sera AUSSI supprimée sur Meta (Ads Manager).'
+      : '';
+    if (!window.confirm(`Supprimer définitivement « ${c.name} » ? Ses métriques seront perdues.${onMeta}`)) return;
+    setRowBusy(c.id);
+    const res = await api.del(`campaigns/${c.id}`);
+    setRowBusy(null);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success(res.message);
+    await refresh();
   }
 
   /** Crée la campagne sur Meta (Ads Manager) — toujours en pause. */
@@ -995,6 +1020,26 @@ export function AdsScreen() {
                       >
                         Détail
                       </button>
+                      {canManage && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={rowBusy === c.id}
+                            onClick={() => void archiveCampaign(c)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-black text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                          >
+                            Archiver
+                          </button>
+                          <button
+                            type="button"
+                            disabled={rowBusy === c.id}
+                            onClick={() => void deleteCampaign(c)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 text-xs font-black text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            Supprimer
+                          </button>
+                        </>
+                      )}
                     </div>
                   ),
                 },

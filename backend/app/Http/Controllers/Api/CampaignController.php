@@ -39,6 +39,10 @@ class CampaignController extends Controller
         ApiBrandContext::scopeBrand($q, $brandId);
         $q
             ->orderByDesc('id');
+        // Les campagnes archivees sortent des listes sans etre supprimees.
+        $request->boolean('archived')
+            ? $q->whereNotNull('archived_at')
+            : $q->whereNull('archived_at');
         if ($status) {
             $q->where('status', $status);
         }
@@ -183,8 +187,34 @@ class CampaignController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $campaign = Campaign::query()->where('brand_id', $brandId)->findOrFail($id);
 
-        if (! in_array($campaign->status, ['draft', 'cancelled'], true)) {
-            return ApiResponse::error('Only draft or cancelled campaigns can be deleted.', null, 422);
+        $deletable = in_array($campaign->status, ['draft', 'cancelled'], true) || $campaign->archived_at !== null;
+        if (! $deletable) {
+            return ApiResponse::error(
+                'Une campagne en cours ne se supprime pas directement : archivez-la d’abord.',
+                null,
+                422
+            );
+        }
+
+        // Supprimer d'abord chez Meta : sinon le CRM oublie une campagne qui
+        // continue d'exister — et de depenser — dans Ads Manager.
+        $metaNote = null;
+        if ($campaign->external_campaign_id) {
+            try {
+                app(\App\Services\Meta\MetaGraphClient::class)->post(
+                    $brandId,
+                    (string) $campaign->external_campaign_id,
+                    ['status' => 'DELETED']
+                );
+                $metaNote = ' Campagne également supprimée sur Meta.';
+            } catch (\App\Services\Meta\MetaApiException $e) {
+                return ApiResponse::error(
+                    'Campagne non supprimée sur Meta : '.$e->getMessage()
+                    .' Rien n’a été supprimé dans le CRM pour éviter une campagne orpheline qui continue de dépenser.',
+                    null,
+                    422
+                );
+            }
         }
 
         $before = $campaign->toArray();
@@ -193,7 +223,39 @@ class CampaignController extends Controller
 
         AuditLogger::log($request, 'campaigns.delete', null, $before, null);
 
-        return ApiResponse::success(null, 'Campaign deleted successfully.');
+        return ApiResponse::success(null, 'Campagne supprimée.'.$metaNote);
+    }
+
+    public function archive(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $campaign = Campaign::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        if ($campaign->archived_at) {
+            return ApiResponse::error('Cette campagne est déjà archivée.', null, 422);
+        }
+
+        $before = $campaign->toArray();
+        $campaign->archived_at = now();
+        $campaign->save();
+
+        AuditLogger::log($request, 'campaigns.archive', $campaign, $before, $campaign->fresh()->toArray());
+
+        return ApiResponse::success($campaign->fresh(), 'Campagne archivée.');
+    }
+
+    public function restore(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $campaign = Campaign::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        $before = $campaign->toArray();
+        $campaign->archived_at = null;
+        $campaign->save();
+
+        AuditLogger::log($request, 'campaigns.restore', $campaign, $before, $campaign->fresh()->toArray());
+
+        return ApiResponse::success($campaign->fresh(), 'Campagne restaurée.');
     }
 
     protected function assertAdAccountBrand(?int $adAccountId, int $brandId): void
