@@ -205,6 +205,9 @@ export function InfluenceWorkspaceScreen() {
   const [dash, setDash] = useState<R | null>(null);
   const [influencers, setInfluencers] = useState<R[]>([]);
   const [collabs, setCollabs] = useState<R[]>([]);
+  // Catalogue produits, pour composer la liste d'un envoi.
+  const [productList, setProductList] = useState<{ id: number; name: string; sku?: string | null }[]>([]);
+  const [shipPick, setShipPick] = useState({ name: '', qty: '1' });
   const [deliverables, setDeliverables] = useState<R[]>([]);
   const [shipments, setShipments] = useState<R[]>([]);
   const [payments, setPayments] = useState<R[]>([]);
@@ -254,14 +257,16 @@ export function InfluenceWorkspaceScreen() {
         if (pcR.ok && isPaginator(pcR.data)) setPublishedContents(pcR.data.data);
         if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
       } else if (space === 'envois') {
-        const [shipR, infR, colR] = await Promise.all([
+        const [shipR, infR, colR, prodR] = await Promise.all([
           api.get<LaravelPaginator<R>>('influencer-shipments?per_page=200'),
           api.get<LaravelPaginator<R>>('influencers?per_page=200'),
           api.get<LaravelPaginator<R>>('influencer-collaborations?per_page=200'),
+          api.get<LaravelPaginator<{ id: number; name: string; sku?: string | null }>>('products?per_page=200'),
         ]);
         if (shipR.ok && isPaginator(shipR.data)) setShipments(shipR.data.data);
         if (infR.ok && isPaginator(infR.data)) setInfluencers(infR.data.data);
         if (colR.ok && isPaginator(colR.data)) setCollabs(colR.data.data);
+        if (prodR.ok && isPaginator(prodR.data)) setProductList(prodR.data.data);
       } else if (space === 'paiements') {
         const [payR, infR, colR] = await Promise.all([
           api.get<LaravelPaginator<R>>('influencer-payments?per_page=200'),
@@ -1824,8 +1829,49 @@ export function InfluenceWorkspaceScreen() {
             </select>
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Produits (format : Nom x2, Nom2 x1)">
-              <input className={inputClass} value={shipForm.products} onChange={e => setShipForm(p => ({ ...p, products: e.target.value }))} placeholder="Rouge à lèvres x2, Fond de teint x1" />
+            <Field label="Produits">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  className={selClass}
+                  style={{ flex: '1 1 220px' }}
+                  value={shipPick.name}
+                  onChange={e => setShipPick(v => ({ ...v, name: e.target.value }))}
+                >
+                  <option value="">— Choisir un produit —</option>
+                  {productList.map(pr => (
+                    <option key={pr.id} value={pr.name}>{pr.name}{pr.sku ? ' · ' + pr.sku : ''}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  className={inputClass}
+                  style={{ width: 90 }}
+                  value={shipPick.qty}
+                  onChange={e => setShipPick(v => ({ ...v, qty: e.target.value }))}
+                  title="Quantité"
+                />
+                <button
+                  type="button"
+                  disabled={!shipPick.name}
+                  onClick={() => {
+                    const qty = Math.max(1, Number(shipPick.qty) || 1);
+                    const line = shipPick.name + ' x' + qty;
+                    setShipForm(p => ({ ...p, products: p.products ? p.products + ', ' + line : line }));
+                    setShipPick({ name: '', qty: '1' });
+                  }}
+                  className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-40"
+                >
+                  Ajouter
+                </button>
+              </div>
+              <input
+                className={inputClass}
+                style={{ marginTop: 8 }}
+                value={shipForm.products}
+                onChange={e => setShipForm(p => ({ ...p, products: e.target.value }))}
+                placeholder="Aucun produit — choisissez ci-dessus ou saisissez librement"
+              />
             </Field>
           </div>
           <Field label="Transporteur">
