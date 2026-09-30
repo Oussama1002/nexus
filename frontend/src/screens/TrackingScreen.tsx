@@ -566,7 +566,10 @@ export function TrackingScreen() {
               <p className="text-xs text-zinc-600 mt-1">
                 {r.user?.name ?? resolveEntityName(r.entity_type, r.entity_id, lookups) ?? '—'}
                 {(() => {
-                  const cible = resolveEntityName(r.entity_type, r.entity_id, lookups) ?? auditObjectFr(r.entity_type, r.entity_id, r.action, r.new_values ?? r.old_values);
+                  const nomme = resolveEntityName(r.entity_type, r.entity_id, lookups);
+                  const cible = nomme && nomme !== r.user?.name
+                    ? nomme
+                    : auditObjectFr(r.entity_type, r.entity_id, r.action, r.new_values ?? r.old_values);
                   return cible && cible !== '—' ? <> · {cible}</> : null;
                 })()}
                 {r.context?.customer_name ? (
@@ -612,10 +615,22 @@ export function TrackingScreen() {
                   <span className="text-zinc-600 font-medium"> ({detail.user.email})</span>
                 ) : null}
               </p>
-              <p>
-                <span className="text-zinc-500">Objet concerné : </span>
-                <span className="font-bold text-zinc-900">{resolveEntityName(detail.entity_type, detail.entity_id, lookups) ?? auditObjectFr(detail.entity_type, detail.entity_id, detail.action, detail.new_values ?? detail.old_values)}</span>
-              </p>
+              {(() => {
+                const acteur = detail.user?.name ?? null;
+                const nomme = resolveEntityName(detail.entity_type, detail.entity_id, lookups);
+                // Une action sur son propre compte (connexion) repeterait le
+                // nom deja affiche juste au-dessus : on nomme le domaine.
+                const objet = nomme && nomme !== acteur
+                  ? nomme
+                  : auditObjectFr(detail.entity_type, detail.entity_id, detail.action, detail.new_values ?? detail.old_values);
+
+                return objet && objet !== '—' ? (
+                  <p>
+                    <span className="text-zinc-500">Objet concerné : </span>
+                    <span className="font-bold text-zinc-900">{objet}</span>
+                  </p>
+                ) : null;
+              })()}
               {detail.context?.customer_name ? (
                 <p>
                   <span className="text-zinc-500">Client : </span>
