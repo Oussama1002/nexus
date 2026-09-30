@@ -88,6 +88,7 @@ type Lesson = {
 
 type StudentRow = {
   id: number;
+  brand_id: number;
   full_name: string;
   email: string;
   phone: string | null;
@@ -917,7 +918,19 @@ function EnrollmentsTab({
 
   const rows = useMemo(() => parseRows<EnrollmentRow>(enrollQuery.data), [enrollQuery.data]);
   const courseOptions = useMemo(() => parseRows<AcademyCourse>(coursesQuery.data), [coursesQuery.data]);
-  const studentOptions = useMemo(() => parseRows<StudentRow>(studentsQuery.data), [studentsQuery.data]);
+  const allStudents = useMemo(() => parseRows<StudentRow>(studentsQuery.data), [studentsQuery.data]);
+
+  // Une inscription appartient a la marque de sa formation : proposer un
+  // apprenant d'une autre marque ne menerait qu'a un refus.
+  const selectedCourseBrand = useMemo(() => {
+    const id = Number(draft.course_id);
+    return courseOptions.find((c) => c.id === id)?.brand_id ?? null;
+  }, [draft.course_id, courseOptions]);
+
+  const studentOptions = useMemo(
+    () => (selectedCourseBrand === null ? allStudents : allStudents.filter((st) => st.brand_id === selectedCourseBrand)),
+    [allStudents, selectedCourseBrand],
+  );
 
   const createMut = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
@@ -998,7 +1011,7 @@ function EnrollmentsTab({
       }>
         <div className="space-y-4">
           <label className="block text-xs font-black uppercase text-zinc-900">Formation <span className="text-rose-600">*</span>
-            <select value={draft.course_id} onChange={(e) => setDraft((d) => ({ ...d, course_id: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+            <select value={draft.course_id} onChange={(e) => setDraft((d) => ({ ...d, course_id: e.target.value, student_id: '' }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
               <option value="">— Choisir —</option>
               {courseOptions.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
@@ -1008,6 +1021,11 @@ function EnrollmentsTab({
               <option value="">— Choisir —</option>
               {studentOptions.map((s) => <option key={s.id} value={s.id}>{s.full_name} ({s.email})</option>)}
             </select>
+            {draft.course_id && studentOptions.length === 0 && (
+              <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+                Aucun apprenant rattaché à la marque de cette formation. Créez-le dans Apprenants.
+              </span>
+            )}
           </label>
           <label className="block text-xs font-black uppercase text-zinc-900">Type
             <select value={draft.enrollment_type} onChange={(e) => setDraft((d) => ({ ...d, enrollment_type: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
