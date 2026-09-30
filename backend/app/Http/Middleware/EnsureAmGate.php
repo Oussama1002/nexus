@@ -30,6 +30,13 @@ class EnsureAmGate
             return $next($request);
         }
 
+        // Aucune feuille de route ouverte pour cette marque : la methodologie AM
+        // n'est pas en usage, rien a faire respecter. Sans ce garde-fou l'action
+        // serait bloquee pour toujours, sans porte a franchir nulle part.
+        if (! $this->hasRoadmap($brandId)) {
+            return $next($request);
+        }
+
         if (! $this->gatePassed($brandId, $requiredGate)) {
             return ApiResponse::error(
                 "Action bloquée : la porte {$requiredGate} de la feuille de route de la marque n'est pas franchie. "
@@ -57,6 +64,12 @@ class EnsureAmGate
         }
 
         return $next($request);
+    }
+
+    /** La marque suit-elle une feuille de route AM ? */
+    private function hasRoadmap(int $brandId): bool
+    {
+        return AmGate::query()->where('brand_id', $brandId)->exists();
     }
 
     private function gatePassed(int $brandId, string $code): bool
