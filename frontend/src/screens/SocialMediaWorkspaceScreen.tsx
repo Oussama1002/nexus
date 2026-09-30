@@ -379,7 +379,13 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
                       <h3 className="text-lg font-black text-zinc-900">T{s.quarter} {s.year}</h3>
                       <Badge label={st.label} cls={st.cls} />
                     </div>
-                    <p className="text-xs text-zinc-500 mt-1">{shortDate(s.start_date)} → {shortDate(s.end_date)} · {s.pillars_count ?? 0} piliers · {s.contributions_count ?? 0} contributions</p>
+                    <p className="text-xs text-zinc-500 mt-1">{shortDate(s.start_date)} → {shortDate(s.end_date)} · {s.pillars_count ?? 0} piliers · {s.contributions_received_count ?? 0}/{s.contributions_count ?? 0} contributions reçues</p>
+                    {s.status === 'brouillon' && (s.contributions_count ?? 0) > 0 && (s.contributions_received_count ?? 0) === 0 && (
+                      <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                        Contributeur sollicité, mais aucune réponse enregistrée : la soumission restera bloquée.
+                        Rouvrez « + Contributeur », choisissez la même personne et saisissez sa réponse.
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {s.status === 'brouillon' && (

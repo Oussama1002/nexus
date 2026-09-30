@@ -22,7 +22,11 @@ class SmmStrategyController extends Controller
 
         $q = SmmStrategy::query()
             ->with(['author:id,name', 'validatedBy:id,name'])
-            ->withCount(['pillars', 'contributions', 'monthlyPlans'])
+            ->withCount([
+                'pillars', 'contributions', 'monthlyPlans',
+                // Seules les contributions RECUES debloquent la soumission.
+                'contributions as contributions_received_count' => fn ($q) => $q->whereNotNull('received_at'),
+            ])
             ->orderByDesc('year')->orderByDesc('quarter');
 
         if ($brandId !== null) $q->where('brand_id', $brandId);
