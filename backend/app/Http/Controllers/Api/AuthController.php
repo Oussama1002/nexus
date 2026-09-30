@@ -107,7 +107,11 @@ class AuthController extends Controller
         }
 
         if ($user->status !== 'active') {
-            return ApiResponse::error('Your account is not active.', null, 403);
+            return ApiResponse::error(
+                "Ce compte est désactivé (statut « {$user->status} »). Demandez à un administrateur de le réactiver.",
+                null,
+                403,
+            );
         }
 
         $user->tokens()->delete();
