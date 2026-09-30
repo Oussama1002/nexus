@@ -22,6 +22,8 @@ class AutomationRuleController extends Controller
         'order.status_changed',
         'order.created',
         'shipment.status_changed',
+        'lead.created',
+        'stock.shortage',
     ];
 
     public function __construct(

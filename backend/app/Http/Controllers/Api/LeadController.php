@@ -119,6 +119,25 @@ class LeadController extends Controller
 
         AuditLogger::log($request, 'leads.create', $lead, null, $lead->toArray());
 
+        $lead->loadMissing('customer');
+        app(\App\Services\AutomationEngineService::class)->runForEvent(
+            (int) $lead->brand_id,
+            'lead.created',
+            [
+                'lead_id' => $lead->id,
+                'source' => $lead->source,
+                'status' => $lead->status,
+                'interest_level' => $lead->interest_level,
+                'estimated_value' => (float) $lead->estimated_value,
+                'product_interest' => $lead->product_interest,
+                'customer' => [
+                    'name' => $lead->customer?->full_name,
+                    'phone' => $lead->customer?->phone,
+                    'city' => $lead->customer?->city,
+                ],
+            ]
+        );
+
         return ApiResponse::success($lead->fresh(['customer', 'assignedUser']), 'Lead created successfully.', 201);
     }
 

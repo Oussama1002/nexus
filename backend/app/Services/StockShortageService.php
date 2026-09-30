@@ -46,6 +46,20 @@ class StockShortageService
             $created = $this->createPurchaseOrders($order, $shortages, $actor);
             $this->notify($order, $shortages, $created, $actor);
 
+            app(\App\Services\AutomationEngineService::class)->runForEvent(
+                (int) $order->brand_id,
+                'stock.shortage',
+                [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'products_missing' => count($shortages),
+                    'purchase_orders' => implode(', ', $created),
+                    'products' => collect($shortages)
+                        ->map(fn ($s) => $s['product']->name.' ('.$s['missing'].')')
+                        ->join(', '),
+                ]
+            );
+
             Log::info('stock.shortage_handled', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,

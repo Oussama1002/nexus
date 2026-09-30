@@ -183,6 +183,55 @@ const TRIGGERS: TriggerConfig[] = [
     ],
     sampleEvent: { shipment_id: 1, from_status: 'in_transit', to_status: 'delivered', carrier: 'Ameex', cod_amount: 350, order_number: 'MED01-SAMPLE', tracking_number: 'CSA000', customer: { name: 'Client test', phone: '0600000000', city: 'Casablanca' } },
   },
+  {
+    value: 'lead.created',
+    label: 'Nouveau lead',
+    icon: <Zap className="w-4 h-4" />,
+    builtin: true,
+    fields: [
+      { value: 'event.source', label: 'Source du lead', type: 'string' },
+      { value: 'event.status', label: 'Statut', type: 'string', options: [
+        { value: 'new', label: 'Nouveau' }, { value: 'contacted', label: 'Contacté' },
+        { value: 'qualified', label: 'Qualifié' }, { value: 'confirmed', label: 'Confirmé' },
+      ]},
+      { value: 'event.interest_level', label: 'Niveau d’intérêt', type: 'string' },
+      { value: 'event.estimated_value', label: 'Valeur estimée', type: 'number' },
+      { value: 'event.product_interest', label: 'Produit d’intérêt', type: 'string' },
+      { value: 'event.customer.name', label: 'Nom du contact', type: 'string' },
+      { value: 'event.customer.city', label: 'Ville', type: 'string' },
+    ],
+    actionTypes: [
+      { value: 'send_whatsapp', label: 'Envoyer un message WhatsApp' },
+      { value: 'notify_admin', label: 'Notifier les administrateurs (WhatsApp)' },
+      { value: 'log', label: 'Enregistrer un log' },
+    ],
+    actionTargets: [
+      { value: 'customer', label: 'Contact' },
+      { value: 'admin', label: 'Administrateurs' },
+    ],
+    sampleEvent: { lead_id: 1, source: 'WhatsApp', status: 'new', interest_level: 'chaud', estimated_value: 0, product_interest: 'Sérum', customer: { name: 'Contact test', phone: '0600000000', city: 'Casablanca' } },
+  },
+  {
+    value: 'stock.shortage',
+    label: 'Rupture de stock sur une commande',
+    icon: <AlertTriangle className="w-4 h-4" />,
+    builtin: true,
+    fields: [
+      { value: 'event.order_number', label: 'N° commande', type: 'string' },
+      { value: 'event.products_missing', label: 'Nombre de produits manquants', type: 'number' },
+      { value: 'event.products', label: 'Produits manquants', type: 'string' },
+      { value: 'event.purchase_orders', label: 'Commandes fournisseur créées', type: 'string' },
+    ],
+    actionTypes: [
+      { value: 'notify_admin', label: 'Notifier les administrateurs (WhatsApp)' },
+      { value: 'send_whatsapp', label: 'Envoyer un message WhatsApp' },
+      { value: 'log', label: 'Enregistrer un log' },
+    ],
+    actionTargets: [
+      { value: 'admin', label: 'Administrateurs' },
+    ],
+    sampleEvent: { order_id: 1, order_number: 'MED01-SAMPLE', products_missing: 2, products: 'Sérum éclat (3), Crème de nuit (1)', purchase_orders: 'PO-20260930-AB12' },
+  },
 ];
 
 const GENERIC_ACTION_TYPES = [
@@ -246,6 +295,22 @@ function defaultActions(trigger: TriggerKey): ActionStep[] {
     return [{
       type: 'send_whatsapp', target: 'customer',
       message: 'Bonjour, nous avons bien reçu votre commande [N° commande] d’un montant de [Total commande] MAD. Merci !',
+      useAB: false, variants: [],
+    }];
+  }
+
+  if (trigger === 'lead.created') {
+    return [{
+      type: 'notify_admin', target: 'admin',
+      message: 'Nouveau lead [Nom du contact] — [Ville] — source [Source du lead].',
+      useAB: false, variants: [],
+    }];
+  }
+
+  if (trigger === 'stock.shortage') {
+    return [{
+      type: 'notify_admin', target: 'admin',
+      message: 'Rupture sur la commande [N° commande] : [Produits manquants].',
       useAB: false, variants: [],
     }];
   }
