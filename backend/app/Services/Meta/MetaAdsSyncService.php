@@ -315,17 +315,23 @@ class MetaAdsSyncService
         return 'act_'.$id;
     }
 
+    /**
+     * Statut Meta d'un compte publicitaire. Tout ce qui n'etait pas 1 ou 2
+     * repassait « actif » : un compte impaye (3 = UNSETTLED) paraissait sain
+     * alors que Meta y refuse toute creation.
+     */
     private function mapAdAccountStatus(mixed $status): string
     {
-        $code = is_numeric($status) ? (int) $status : null;
-        if ($code === 1) {
-            return 'active';
-        }
-        if ($code === 2) {
-            return 'inactive';
-        }
-
-        return 'active';
+        return match (is_numeric($status) ? (int) $status : null) {
+            1 => 'active',
+            2 => 'inactive',
+            3 => 'unsettled',
+            7 => 'pending_risk_review',
+            8 => 'pending_settlement',
+            9 => 'grace_period',
+            100, 101 => 'closed',
+            default => 'inactive',
+        };
     }
 
     private function mapCampaignStatus(?string $status): string

@@ -181,6 +181,11 @@ function statusFr(s: string) {
     inactive: 'Inactif',
     suspended: 'Suspendu',
     expired: 'Expiré',
+    unsettled: 'Impayé — création bloquée',
+    pending_risk_review: 'En revue Meta',
+    pending_settlement: 'Paiement en attente',
+    grace_period: 'Période de grâce',
+    closed: 'Fermé',
   };
   return m[s] ?? s;
 }
@@ -895,7 +900,11 @@ export function AdsScreen() {
                 {
                   key: 's',
                   header: 'Statut',
-                  cell: (a) => <StatusChip tone="success">{statusFr(a.status)}</StatusChip>,
+                  cell: (a) => (
+                    <StatusChip tone={a.status === 'active' ? 'success' : a.status === 'unsettled' || a.status === 'closed' ? 'danger' : 'warning'}>
+                      {statusFr(a.status)}
+                    </StatusChip>
+                  ),
                 },
                 {
                   key: 'api',
