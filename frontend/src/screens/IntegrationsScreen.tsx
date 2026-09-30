@@ -156,7 +156,7 @@ export function IntegrationsScreen() {
 
   async function connectFacebook() {
     setConnectingFb(true);
-    const res = await api.get<{ url: string }>('meta/oauth/url');
+    const res = await api.get<{ url: string }>('meta/oauth/url?return=' + encodeURIComponent(window.location.pathname));
     setConnectingFb(false);
     if (!res.ok || !res.data?.url) {
       toast.error(res.message || 'Impossible de générer le lien de connexion Meta.');
@@ -167,7 +167,7 @@ export function IntegrationsScreen() {
 
   async function connectInstagram() {
     setConnectingIg(true);
-    const res = await api.get<{ url: string }>('meta/instagram/oauth/url');
+    const res = await api.get<{ url: string }>('meta/instagram/oauth/url?return=' + encodeURIComponent(window.location.pathname));
     setConnectingIg(false);
     if (!res.ok || !res.data?.url) {
       toast.error(res.message || 'Impossible de générer le lien de connexion Instagram.');
@@ -192,6 +192,23 @@ export function IntegrationsScreen() {
         toast.error('Configuration Meta incomplète (App ID / App Secret manquant).');
       } else {
         toast.error('Erreur de connexion Facebook.');
+      }
+      setSection('meta');
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    const instagram = params.get('instagram');
+    if (instagram && sec === 'meta') {
+      if (instagram === 'success') {
+        toast.success('Compte Instagram connecté avec succès !');
+        setReloadToken((t) => t + 1);
+      } else if (instagram === 'denied') {
+        toast.error('Connexion Instagram refusée.');
+      } else if (instagram === 'missing_config') {
+        toast.error('Instagram App ID ou App Secret manquant.');
+      } else {
+        toast.error('Erreur de connexion Instagram.');
       }
       setSection('meta');
       window.history.replaceState({}, '', window.location.pathname);

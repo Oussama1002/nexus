@@ -46,7 +46,7 @@ class InstagramOAuthController extends Controller
             'redirect_uri' => $this->callbackUrl(),
             'scope' => implode(',', self::SCOPES),
             'response_type' => 'code',
-            'state' => $this->buildState($brandId),
+            'state' => $this->buildState($brandId, $this->sanitizeReturnPath($request->query('return'))),
         ]);
 
         return ApiResponse::success(
@@ -57,26 +57,27 @@ class InstagramOAuthController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
+        [$brandId, $returnPath] = $this->parseState($request->query('state'));
+
         if ($request->query('error')) {
             Log::warning('instagram.oauth.denied', [
                 'error' => $request->query('error'),
                 'reason' => $request->query('error_reason'),
             ]);
 
-            return redirect($this->frontendUrl('/parametres?section=meta&instagram=denied'));
+            return redirect($this->frontendUrl($this->returnUrl($returnPath, 'denied')));
         }
 
         $code = (string) $request->query('code');
-        $brandId = $this->parseState($request->query('state'));
 
         if ($code === '' || ! $brandId) {
-            return redirect($this->frontendUrl('/parametres?section=meta&instagram=invalid'));
+            return redirect($this->frontendUrl($this->returnUrl($returnPath, 'invalid')));
         }
 
         $appId = $this->getSetting($brandId, 'instagram_app_id');
         $appSecret = $this->getSetting($brandId, 'instagram_app_secret');
         if (! $appId || ! $appSecret) {
-            return redirect($this->frontendUrl('/parametres?section=meta&instagram=missing_config'));
+            return redirect($this->frontendUrl($this->returnUrl($returnPath, 'missing_config')));
         }
 
         // Instagram renvoie le code suffixé de « #_ » dans certains navigateurs.
@@ -93,7 +94,7 @@ class InstagramOAuthController extends Controller
         if (! $short->successful()) {
             Log::warning('instagram.oauth.token_exchange_failed', ['body' => $short->body()]);
 
-            return redirect($this->frontendUrl('/parametres?section=meta&instagram=exchange_failed'));
+            return redirect($this->frontendUrl($this->returnUrl($returnPath, 'exchange_failed')));
         }
 
         $shortToken = (string) $short->json('access_token');
@@ -107,7 +108,7 @@ class InstagramOAuthController extends Controller
         $this->storeSetting($brandId, 'instagram_permissions', $permissions, false);
 
         if ($shortToken === '') {
-            return redirect($this->frontendUrl('/parametres?section=meta&instagram=exchange_failed'));
+            return redirect($this->frontendUrl($this->returnUrl($returnPath, 'exchange_failed')));
         }
 
         // Jeton longue durée (60 jours) : sans ça la connexion expire en 1 h.
@@ -133,37 +134,60 @@ class InstagramOAuthController extends Controller
             $this->storeSetting($brandId, 'instagram_username', (string) $me->json('username'), false);
         }
 
-        return redirect($this->frontendUrl('/parametres?section=meta&instagram=success'));
+        return redirect($this->frontendUrl($this->returnUrl($returnPath, 'success')));
     }
 
-    private function buildState(int $brandId): string
+    private function buildState(int $brandId, string $returnPath = ''): string
     {
-        $payload = $brandId.'.'.time();
+        $payload = $brandId.'.'.time().'.'.rawurlencode($returnPath);
 
         return base64_encode($payload.'|'.hash_hmac('sha256', $payload, config('app.key')));
     }
 
-    private function parseState(?string $state): ?int
+    /** Chemin interne uniquement, jamais une URL absolue. */
+    private function sanitizeReturnPath(?string $path): string
+    {
+        $path = trim((string) $path);
+
+        if ($path === '' || ! str_starts_with($path, '/') || str_starts_with($path, '//')) {
+            return '';
+        }
+
+        return mb_substr($path, 0, 200);
+    }
+
+    /** Page d'origine si elle est connue, centre de parametres sinon. */
+    private function returnUrl(string $returnPath, string $outcome): string
+    {
+        $base = $returnPath !== '' ? $returnPath : '/parametres';
+        $separator = str_contains($base, '?') ? '&' : '?';
+
+        return $base.$separator.'section=meta&instagram='.$outcome;
+    }
+
+    /** @return array{0: int|null, 1: string} */
+    private function parseState(?string $state): array
     {
         if (! $state) {
-            return null;
+            return [null, ''];
         }
 
         $decoded = base64_decode($state, true);
         if (! $decoded || ! str_contains($decoded, '|')) {
-            return null;
+            return [null, ''];
         }
 
         [$payload, $sig] = explode('|', $decoded, 2);
         if (! hash_equals(hash_hmac('sha256', $payload, config('app.key')), $sig)) {
-            return null;
+            return [null, ''];
         }
 
         $parts = explode('.', $payload);
         $brandId = (int) ($parts[0] ?? 0);
         $timestamp = (int) ($parts[1] ?? 0);
+        $return = $this->sanitizeReturnPath(rawurldecode((string) ($parts[2] ?? '')));
 
-        return ($brandId > 0 && abs(time() - $timestamp) <= 600) ? $brandId : null;
+        return [($brandId > 0 && abs(time() - $timestamp) <= 600) ? $brandId : null, $return];
     }
 
     private function getSetting(int $brandId, string $key): ?string

@@ -49,7 +49,7 @@ class MetaOAuthController extends Controller
             return ApiResponse::error('Meta App ID non configuré. Renseignez-le dans Paramètres → Meta.', null, 422);
         }
 
-        $state = $this->buildState($brandId);
+        $state = $this->buildState($brandId, $this->sanitizeReturnPath($request->query('return')));
 
         $scopes = array_merge(self::SCOPES, $this->instagramScopes($brandId));
 
@@ -68,31 +68,31 @@ class MetaOAuthController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
+        // Lu en premier : meme un refus doit ramener sur la page d'origine.
+        [$brandId, $returnPath] = $this->parseState($request->query('state'));
+
         $error = $request->query('error');
         if ($error) {
             Log::warning('meta.oauth.denied', ['error' => $error, 'reason' => $request->query('error_reason')]);
 
-            return redirect($this->frontendUrl('/parametres?section=meta&oauth=denied'));
+            return redirect($this->frontendUrl($this->oauthReturnUrl($returnPath, 'denied')));
         }
 
         $code = $request->query('code');
-        $state = $request->query('state');
-
-        $brandId = $this->parseState($state);
         if (! $code || ! $brandId) {
-            return redirect($this->frontendUrl('/parametres?section=meta&oauth=invalid'));
+            return redirect($this->frontendUrl($this->oauthReturnUrl($returnPath, 'invalid')));
         }
 
         $appId = $this->getSetting($brandId, 'meta_app_id');
         $appSecret = $this->getSetting($brandId, 'meta_app_secret');
 
         if (! $appId || ! $appSecret) {
-            return redirect($this->frontendUrl('/parametres?section=meta&oauth=missing_config'));
+            return redirect($this->frontendUrl($this->oauthReturnUrl($returnPath, 'missing_config')));
         }
 
         $shortLived = $this->exchangeCodeForToken($code, $appId, $appSecret);
         if (! $shortLived) {
-            return redirect($this->frontendUrl('/parametres?section=meta&oauth=exchange_failed'));
+            return redirect($this->frontendUrl($this->oauthReturnUrl($returnPath, 'exchange_failed')));
         }
 
         $longLived = $this->exchangeForLongLivedToken($shortLived, $appId, $appSecret);
@@ -105,26 +105,44 @@ class MetaOAuthController extends Controller
             $this->storeSetting($brandId, 'meta_business_id', $businessId);
         }
 
-        return redirect($this->frontendUrl('/parametres?section=meta&oauth=success'));
+        return redirect($this->frontendUrl($this->oauthReturnUrl($returnPath, 'success')));
     }
 
-    private function buildState(int $brandId): string
+    private function buildState(int $brandId, string $returnPath = ''): string
     {
-        $payload = $brandId . '.' . time();
+        // La page d'origine voyage avec l'etat : sans elle le retour tombe
+        // toujours sur le centre de parametres.
+        $payload = $brandId . '.' . time() . '.' . rawurlencode($returnPath);
         $sig = hash_hmac('sha256', $payload, config('app.key'));
 
         return base64_encode($payload . '|' . $sig);
     }
 
-    private function parseState(?string $state): ?int
+    /**
+     * Chemin interne uniquement : jamais une URL absolue, qui permettrait de
+     * renvoyer l'utilisateur ailleurs apres la connexion.
+     */
+    private function sanitizeReturnPath(?string $path): string
+    {
+        $path = trim((string) $path);
+
+        if ($path === '' || ! str_starts_with($path, '/') || str_starts_with($path, '//')) {
+            return '';
+        }
+
+        return mb_substr($path, 0, 200);
+    }
+
+    /** @return array{0: int|null, 1: string} */
+    private function parseState(?string $state): array
     {
         if (! $state) {
-            return null;
+            return [null, ''];
         }
 
         $decoded = base64_decode($state, true);
         if (! $decoded || ! str_contains($decoded, '|')) {
-            return null;
+            return [null, ''];
         }
 
         [$payload, $sig] = explode('|', $decoded, 2);
@@ -133,18 +151,19 @@ class MetaOAuthController extends Controller
         if (! hash_equals($expected, $sig)) {
             Log::warning('meta.oauth.invalid_state_signature');
 
-            return null;
+            return [null, ''];
         }
 
         $parts = explode('.', $payload);
         $brandId = (int) ($parts[0] ?? 0);
         $timestamp = (int) ($parts[1] ?? 0);
+        $return = $this->sanitizeReturnPath(rawurldecode((string) ($parts[2] ?? '')));
 
         if ($brandId <= 0 || abs(time() - $timestamp) > 600) {
-            return null;
+            return [null, $return];
         }
 
-        return $brandId;
+        return [$brandId, $return];
     }
 
     private function exchangeCodeForToken(string $code, string $appId, string $appSecret): ?string
@@ -260,6 +279,15 @@ class MetaOAuthController extends Controller
         }
 
         return rtrim(config('app.url'), '/') . '/api/meta/oauth/callback';
+    }
+
+    /** Page d'origine si elle est connue, centre de parametres sinon. */
+    private function oauthReturnUrl(string $returnPath, string $outcome): string
+    {
+        $base = $returnPath !== '' ? $returnPath : '/parametres';
+        $separator = str_contains($base, '?') ? '&' : '?';
+
+        return $base . $separator . 'section=meta&oauth=' . $outcome;
     }
 
     private function frontendUrl(string $path): string

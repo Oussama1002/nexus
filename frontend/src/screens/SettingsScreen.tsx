@@ -238,7 +238,7 @@ export function SettingsScreen() {
 
   async function connectFacebook() {
     setConnectingFb(true);
-    const res = await api.get<{ url: string }>('meta/oauth/url');
+    const res = await api.get<{ url: string }>('meta/oauth/url?return=' + encodeURIComponent(window.location.pathname));
     setConnectingFb(false);
     if (!res.ok || !res.data?.url) {
       toast.error(res.message || 'Impossible de générer le lien de connexion Meta.');
