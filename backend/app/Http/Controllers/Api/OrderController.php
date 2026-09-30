@@ -157,6 +157,21 @@ class OrderController extends Controller
 
         $invoice = $this->clientInvoices->createFromOrder($order, $request->user()?->id);
 
+        $order->loadMissing('customer');
+        $this->automationEngine->runForEvent($brandId, 'order.created', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'total' => (float) $order->total,
+            'source' => $order->source,
+            'payment_method' => $order->payment_method,
+            'customer_id' => $order->customer_id,
+            'customer' => [
+                'name' => $order->customer?->full_name,
+                'phone' => $order->customer?->phone,
+                'city' => $order->customer?->city,
+            ],
+        ]);
+
         // Pas d'envoi automatique : le transporteur est choisi dans la popup
         // qui suit la création, sinon le premier transporteur configuré
         // récupérait toutes les commandes.

@@ -128,6 +128,61 @@ const TRIGGERS: TriggerConfig[] = [
     ],
     sampleEvent: { order_id: 1, from_status: 'confirmed', to_status: 'cancelled', order_number: 'NX-SAMPLE', total: 0 },
   },
+  {
+    value: 'order.created',
+    label: 'Nouvelle commande créée',
+    icon: <Zap className="w-4 h-4" />,
+    builtin: true,
+    fields: [
+      { value: 'event.total', label: 'Total commande', type: 'number' },
+      { value: 'event.order_number', label: 'N° commande', type: 'string' },
+      { value: 'event.source', label: 'Origine', type: 'string' },
+      { value: 'event.payment_method', label: 'Mode de paiement', type: 'string', options: [
+        { value: 'cod', label: 'COD' }, { value: 'prepaid', label: 'Prépayé' }, { value: 'transfer', label: 'Virement' },
+      ]},
+      { value: 'event.customer.name', label: 'Nom du client', type: 'string' },
+      { value: 'event.customer.city', label: 'Ville du client', type: 'string' },
+    ],
+    actionTypes: [
+      { value: 'send_whatsapp', label: 'Envoyer un message WhatsApp' },
+      { value: 'notify_admin', label: 'Notifier les administrateurs (WhatsApp)' },
+      { value: 'log', label: 'Enregistrer un log' },
+    ],
+    actionTargets: [
+      { value: 'customer', label: 'Client' },
+      { value: 'admin', label: 'Administrateurs' },
+    ],
+    sampleEvent: { order_id: 1, order_number: 'MED01-SAMPLE', total: 350, source: 'whatsapp', payment_method: 'cod', customer: { name: 'Client test', phone: '0600000000', city: 'Casablanca' } },
+  },
+  {
+    value: 'shipment.status_changed',
+    label: 'Statut colis changé',
+    icon: <Zap className="w-4 h-4" />,
+    builtin: true,
+    fields: [
+      { value: 'event.to_status', label: 'Nouveau statut', type: 'string', options: [
+        { value: 'created', label: 'Chez le transporteur' }, { value: 'picked_up', label: 'Ramassé' },
+        { value: 'in_transit', label: 'En transit' }, { value: 'out_for_delivery', label: 'En cours de livraison' },
+        { value: 'delivered', label: 'Livré' }, { value: 'failed', label: 'Échec livraison' },
+        { value: 'returned', label: 'Retourné' }, { value: 'cancelled', label: 'Annulé' },
+      ]},
+      { value: 'event.from_status', label: 'Ancien statut', type: 'string' },
+      { value: 'event.carrier', label: 'Transporteur', type: 'string' },
+      { value: 'event.cod_amount', label: 'À encaisser', type: 'number' },
+      { value: 'event.order_number', label: 'N° commande', type: 'string' },
+      { value: 'event.customer.city', label: 'Ville', type: 'string' },
+    ],
+    actionTypes: [
+      { value: 'send_whatsapp', label: 'Envoyer un message WhatsApp' },
+      { value: 'notify_admin', label: 'Notifier les administrateurs (WhatsApp)' },
+      { value: 'log', label: 'Enregistrer un log' },
+    ],
+    actionTargets: [
+      { value: 'customer', label: 'Client' },
+      { value: 'admin', label: 'Administrateurs' },
+    ],
+    sampleEvent: { shipment_id: 1, from_status: 'in_transit', to_status: 'delivered', carrier: 'Ameex', cod_amount: 350, order_number: 'MED01-SAMPLE', tracking_number: 'CSA000', customer: { name: 'Client test', phone: '0600000000', city: 'Casablanca' } },
+  },
 ];
 
 const GENERIC_ACTION_TYPES = [

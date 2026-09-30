@@ -170,7 +170,30 @@ class ShipmentOperationsService
                 }
             }
 
-            return $locked->fresh(['order', 'events.actor', 'deliveryCompany']);
+            $fresh = $locked->fresh(['order.customer', 'events.actor', 'deliveryCompany']);
+
+            // Les automatisations peuvent reagir a une livraison, un echec ou
+            // un retour sans qu'on ait a les coder une par une.
+            app(\App\Services\AutomationEngineService::class)->runForEvent(
+                (int) $fresh->brand_id,
+                'shipment.status_changed',
+                [
+                    'shipment_id' => $fresh->id,
+                    'from_status' => $from,
+                    'to_status' => $toStatus,
+                    'carrier' => $fresh->deliveryCompany?->name,
+                    'tracking_number' => $fresh->external_tracking_id ?? $fresh->tracking_number,
+                    'cod_amount' => (float) $fresh->cod_amount,
+                    'order_number' => $fresh->order?->order_number,
+                    'customer' => [
+                        'name' => $fresh->recipient_name ?? $fresh->order?->customer?->full_name,
+                        'phone' => $fresh->recipient_phone ?? $fresh->order?->customer?->phone,
+                        'city' => $fresh->recipient_city ?? $fresh->city,
+                    ],
+                ]
+            );
+
+            return $fresh;
         });
     }
 

@@ -201,7 +201,10 @@ class AutomationEngineService
         $phone = null;
 
         if ($target === 'employee' || $target === '') {
-            $phone = data_get($context, 'employee.phone');
+            $phone = data_get($context, 'employee.phone') ?? data_get($context, 'customer.phone');
+        } elseif ($target === 'customer') {
+            // Declencheurs orientes client : commande, lead, expedition.
+            $phone = data_get($context, 'customer.phone');
         } elseif (preg_match('/^\+?\d{8,15}$/', $target)) {
             $phone = $target;
         }
