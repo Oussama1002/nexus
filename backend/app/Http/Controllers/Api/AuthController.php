@@ -106,7 +106,8 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->status !== 'active') {
+        // Casse et espaces parasites ne doivent pas bloquer une connexion.
+        if (strtolower(trim((string) $user->status)) !== 'active') {
             return ApiResponse::error(
                 "Ce compte est désactivé (statut « {$user->status} »). Demandez à un administrateur de le réactiver.",
                 null,
