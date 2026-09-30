@@ -20,7 +20,7 @@ class HrCandidateController extends Controller
     /** Depot du CV : le formulaire envoie un fichier, pas une URL a recopier. */
     public function uploadCv(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $folder = ApiBrandContext::resolveBrandId($request, required: false) ?? 'commun';
 
         $request->validate([
             'cv' => ['required', 'file', 'max:10240', 'mimes:pdf,doc,docx,odt,jpg,jpeg,png'],
@@ -30,7 +30,7 @@ class HrCandidateController extends Controller
             'cv.mimes' => 'Formats acceptés : PDF, Word, ODT ou image.',
         ]);
 
-        $path = $request->file('cv')->store('hr/cv/'.$brandId, 'public');
+        $path = $request->file('cv')->store('hr/cv/'.$folder, 'public');
 
         return ApiResponse::success(
             ['cv_url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path)],
@@ -70,7 +70,8 @@ class HrCandidateController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        // Le recrutement est transverse : on n'impose pas de marque active.
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $data = $request->validate([
             'job_opening_id' => ['nullable', 'integer', 'exists:hr_job_openings,id'],
@@ -84,7 +85,11 @@ class HrCandidateController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $data['brand_id'] = $brandId;
+        $data['brand_id'] = $brandId ?? (
+            $data['job_opening_id'] ?? null
+                ? \App\Models\HrJobOpening::query()->whereKey($data['job_opening_id'])->value('brand_id')
+                : null
+        );
         $data['status'] = 'recue';
 
         $row = HrCandidate::query()->create($data);

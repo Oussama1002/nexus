@@ -37,7 +37,8 @@ class HrJobOpeningController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        // Un poste se publie pour l'entreprise, pas pour une marque donnee.
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],

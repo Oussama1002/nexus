@@ -45,11 +45,14 @@ class HrOnboardingController extends Controller
 
     public function initChecklist(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $data = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
         ]);
+
+        // L'integration suit l'employe : sa marque prime sur la marque active.
+        $brandId ??= \App\Models\Employee::query()->whereKey($data['employee_id'])->value('brand_id');
 
         $existing = HrOnboardingItem::query()
             ->where('employee_id', $data['employee_id'])
