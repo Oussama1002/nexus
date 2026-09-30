@@ -486,6 +486,8 @@ function CourseDetailTab({
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
   const [sectionTitle, setSectionTitle] = useState('');
   const [sectionDesc, setSectionDesc] = useState('');
+  const [sectionOrder, setSectionOrder] = useState('');
+  const [sectionPublished, setSectionPublished] = useState(true);
   const [lessonDraft, setLessonDraft] = useState({ title: '', course_section_id: 0, lesson_type: 'text' as LessonType, content: '', video_url: '', pdf_url: '', external_url: '', duration_minutes: '0' });
 
   const sectionsQuery = useQuery({
@@ -516,10 +518,16 @@ function CourseDetailTab({
   });
 
   const saveSectionMut = useMutation({
-    mutationFn: async (p: { id?: number; title: string; description: string }) => {
+    mutationFn: async (p: { id?: number; title: string; description: string; sort_order?: number; is_published?: boolean }) => {
+      const body = {
+        title: p.title,
+        description: p.description || null,
+        sort_order: p.sort_order,
+        is_published: p.is_published,
+      };
       const res = p.id
-        ? await api.put(`academy/courses/${course.id}/sections/${p.id}`, { title: p.title, description: p.description || null })
-        : await api.post(`academy/courses/${course.id}/sections`, { title: p.title, description: p.description || null });
+        ? await api.put(`academy/courses/${course.id}/sections/${p.id}`, body)
+        : await api.post(`academy/courses/${course.id}/sections`, body);
       if (!res.ok) throw new Error(res.message);
     },
     onSuccess: () => {
@@ -594,7 +602,7 @@ function CourseDetailTab({
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-black text-zinc-800">Sections & Leçons</h3>
         {canUpdate && (
-          <button type="button" onClick={() => { setEditSection(null); setSectionTitle(''); setSectionDesc(''); setSectionModal(true); }}
+          <button type="button" onClick={() => { setEditSection(null); setSectionTitle(''); setSectionDesc(''); setSectionOrder(''); setSectionPublished(true); setSectionModal(true); }}
             className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2">
             <Plus className="w-4 h-4" /> Nouvelle section
           </button>
@@ -620,7 +628,7 @@ function CourseDetailTab({
                   </div>
                   {canUpdate && (
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => { setEditSection(sec); setSectionTitle(sec.title); setSectionDesc(sec.description ?? ''); setSectionModal(true); }} className="text-xs font-black text-primary-600 hover:underline">Modifier</button>
+                      <button type="button" onClick={() => { setEditSection(sec); setSectionTitle(sec.title); setSectionDesc(sec.description ?? ''); setSectionOrder(sec.sort_order != null ? String(sec.sort_order) : ''); setSectionPublished(sec.is_published ?? true); setSectionModal(true); }} className="text-xs font-black text-primary-600 hover:underline">Modifier</button>
                       <button type="button" onClick={() => { if (window.confirm('Supprimer cette section ?')) deleteSectionMut.mutate(sec.id); }} className="text-xs font-black text-rose-600 hover:underline">Suppr.</button>
                       <button type="button" onClick={() => openLessonCreate(sec.id)} className="text-xs font-black text-emerald-700 hover:underline inline-flex items-center gap-1"><Plus className="w-3 h-3" />Leçon</button>
                     </div>
@@ -648,7 +656,18 @@ function CourseDetailTab({
                   </div>
                 )}
                 {expanded && sectionLessons.length === 0 && (
-                  <div className="border-t border-zinc-100 px-8 py-4 text-sm text-zinc-400">Aucune leçon dans cette section.</div>
+                  <div className="border-t border-zinc-100 px-8 py-4 flex items-center justify-between gap-3">
+                    <span className="text-sm text-zinc-400">Aucune leçon dans cette section.</span>
+                    {canUpdate && (
+                      <button
+                        type="button"
+                        onClick={() => openLessonCreate(sec.id)}
+                        className="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-black text-white"
+                      >
+                        <Plus className="w-3 h-3" /> Ajouter une leçon
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -660,7 +679,7 @@ function CourseDetailTab({
       <Modal open={sectionModal} onClose={() => setSectionModal(false)} title={editSection ? 'Modifier la section' : 'Nouvelle section'} footer={
         <div className="flex justify-end gap-2">
           <button type="button" onClick={() => setSectionModal(false)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black">Annuler</button>
-          <button type="button" onClick={() => { if (!sectionTitle.trim()) { toast.error('Titre requis.'); return; } saveSectionMut.mutate({ id: editSection?.id, title: sectionTitle.trim(), description: sectionDesc.trim() }); }} disabled={saveSectionMut.isPending} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">Enregistrer</button>
+          <button type="button" onClick={() => { if (!sectionTitle.trim()) { toast.error('Titre requis.'); return; } saveSectionMut.mutate({ id: editSection?.id, title: sectionTitle.trim(), description: sectionDesc.trim(), sort_order: sectionOrder ? Number(sectionOrder) : undefined, is_published: sectionPublished }); }} disabled={saveSectionMut.isPending} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">Enregistrer</button>
         </div>
       }>
         <div className="space-y-4">
@@ -670,6 +689,19 @@ function CourseDetailTab({
           <label className="block text-xs font-black uppercase text-zinc-900">Description
             <textarea value={sectionDesc} onChange={(e) => setSectionDesc(e.target.value)} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs font-black uppercase text-zinc-900">Ordre d’affichage
+              <input type="number" min={0} value={sectionOrder} onChange={(e) => setSectionOrder(e.target.value)} placeholder="Automatique" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+            <label className="flex items-center gap-2 self-end pb-2 text-xs font-black uppercase text-zinc-900">
+              <input type="checkbox" checked={sectionPublished} onChange={(e) => setSectionPublished(e.target.checked)} className="w-5 h-5 rounded accent-primary-600" />
+              Publiée
+            </label>
+          </div>
+          <p className="text-xs font-semibold text-zinc-500">
+            Une section n’est qu’un regroupement : son contenu se crée ensuite leçon par leçon,
+            avec le bouton « Leçon » sur la ligne de la section.
+          </p>
         </div>
       </Modal>
 
