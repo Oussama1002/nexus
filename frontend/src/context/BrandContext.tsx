@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Brand } from '../types';
 import { useAuth } from './AuthContext';
+import { setBrandPrompt } from '../lib/api';
 
 const ACTIVE_BRAND_KEY = 'nexus_active_brand_id';
 
@@ -114,6 +115,29 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
     note: '',
   }), []);
 
+  // Une action a besoin d'une marque : on la demande sans quitter la page,
+  // et la requete est rejouee avec le choix.
+  const [pendingPick, setPendingPick] = useState<((id: string | null) => void) | null>(null);
+
+  useEffect(() => {
+    setBrandPrompt(() => new Promise<string | null>((resolve) => setPendingPick(() => resolve)));
+    return () => setBrandPrompt(null);
+  }, []);
+
+  const answerPick = useCallback(
+    (id: string | null) => {
+      if (id) {
+        setActiveBrandIdState(id);
+        writeStoredBrandId(id);
+      }
+      setPendingPick((resolve) => {
+        resolve?.(id);
+        return null;
+      });
+    },
+    [],
+  );
+
   const value = useMemo<BrandContextValue>(() => {
     const list = brands.length ? brands : [];
     const isAll = activeBrandId === 'all';
@@ -127,7 +151,60 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
     };
   }, [brands, activeBrandId, setActiveBrandId, ALL_BRAND]);
 
-  return <BrandContext.Provider value={value}>{children}</BrandContext.Provider>;
+  return (
+    <BrandContext.Provider value={value}>
+      {children}
+
+      {pendingPick && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+            <div>
+              <h2 className="text-lg font-black text-zinc-900">Choisissez une marque</h2>
+              <p className="mt-1 text-sm text-zinc-600">
+                Cette action doit être rattachée à une marque. Sélectionnez-la et elle se poursuit
+                automatiquement.
+              </p>
+            </div>
+
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {brands.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => answerPick(b.id)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 px-4 py-3 text-left hover:border-primary-300 hover:bg-primary-50"
+                >
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-black text-white"
+                    style={{ background: b.color }}
+                  >
+                    {b.logo}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-black text-zinc-900">{b.name}</span>
+                    {b.code && <span className="block text-xs font-semibold text-zinc-500">{b.code}</span>}
+                  </span>
+                </button>
+              ))}
+              {brands.length === 0 && (
+                <p className="text-sm font-semibold text-zinc-500">
+                  Aucune marque ne vous est assignée. Contactez un administrateur.
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => answerPick(null)}
+              className="w-full rounded-xl border border-zinc-300 py-2.5 text-sm font-black text-zinc-700 hover:bg-zinc-50"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+    </BrandContext.Provider>
+  );
 }
 
 export function useBrand(): BrandContextValue {

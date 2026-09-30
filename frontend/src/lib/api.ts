@@ -160,7 +160,23 @@ export function setCurrentViewBrandScoped(scoped: boolean): void {
   currentViewBrandScoped = scoped;
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<NormalizedResponse<T>> {
+/**
+ * Demande une marque a l'utilisateur quand le serveur en exige une.
+ * Branche par BrandProvider : sans lui, l'erreur brute remonte comme avant.
+ */
+type BrandPrompt = () => Promise<string | null>;
+let brandPrompt: BrandPrompt | null = null;
+
+export function setBrandPrompt(handler: BrandPrompt | null): void {
+  brandPrompt = handler;
+}
+
+/** Message du serveur quand aucune marque active n'est transmise. */
+function isBrandRequired(status: number, message: string): boolean {
+  return status === 422 && /active brand is required/i.test(message);
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}, retried = false): Promise<NormalizedResponse<T>> {
   const url = `${baseUrl()}/${path.replace(/^\//, '')}`;
   const token = getStoredToken();
   const { brandId: optBrand, ...fetchOpts } = options;
@@ -209,9 +225,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const result = normalize<T>(res.status, body);
-  if (!result.ok && brandHeader === 'all' && result.message?.includes('brand')) {
-    window.dispatchEvent(new CustomEvent('nexus:brand-required'));
+
+  // Le serveur exige une marque : on la demande et on rejoue, plutot que de
+  // renvoyer un message technique a l'utilisateur.
+  if (!result.ok && !retried && brandPrompt && isBrandRequired(res.status, result.message ?? '')) {
+    const picked = await brandPrompt();
+    if (picked) {
+      return apiRequest<T>(path, { ...options, brandId: picked }, true);
+    }
   }
+
   return result;
 }
 
