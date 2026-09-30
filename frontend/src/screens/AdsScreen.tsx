@@ -230,6 +230,8 @@ export function AdsScreen() {
   const canListInfluencers = hasPermission('influence.view');
 
   const [tab, setTab] = useState<'Dashboard' | 'Comptes' | 'Campagnes'>('Dashboard');
+  // Compte choisi depuis l'onglet Comptes : restreint la liste des campagnes.
+  const [campAccount, setCampAccount] = useState<{ id: number; name: string } | null>(null);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
   const [metaSyncing, setMetaSyncing] = useState(false);
@@ -671,9 +673,10 @@ export function AdsScreen() {
 
   const filteredCamp = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return campaigns;
-    return campaigns.filter((c) => c.name.toLowerCase().includes(s));
-  }, [campaigns, q]);
+    const base = campAccount ? campaigns.filter((c) => c.ad_account?.id === campAccount.id) : campaigns;
+    if (!s) return base;
+    return base.filter((c) => c.name.toLowerCase().includes(s));
+  }, [campaigns, q, campAccount]);
 
   const rpt = adsReport?.metrics_rollups;
 
@@ -855,7 +858,19 @@ export function AdsScreen() {
               rows={filteredAd}
               columns={[
                 { key: 'p', header: 'Plateforme', cell: (a) => <span className="font-bold">{sourceFr(a.platform)}</span> },
-                { key: 'n', header: 'Nom compte', cell: (a) => <span className="font-black">{a.account_name}</span> },
+                {
+                  key: 'n',
+                  header: 'Nom compte',
+                  cell: (a) => (
+                    <button
+                      type="button"
+                      onClick={() => { setCampAccount({ id: a.id, name: a.account_name }); setTab('Campagnes'); }}
+                      className="font-black text-primary-600 hover:underline text-left"
+                    >
+                      {a.account_name}
+                    </button>
+                  ),
+                },
                 {
                   key: 'b',
                   header: 'Business',
@@ -906,6 +921,20 @@ export function AdsScreen() {
 
       {tab === 'Campagnes' && !structureCamp && (
         <div className="space-y-3">
+          {campAccount && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-2.5">
+              <p className="text-sm font-bold text-primary-800">
+                Campagnes du compte « {campAccount.name} »
+              </p>
+              <button
+                type="button"
+                onClick={() => setCampAccount(null)}
+                className="text-xs font-black text-primary-700 hover:underline"
+              >
+                Voir tous les comptes
+              </button>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2 items-end justify-between">
             <div className="flex flex-wrap gap-2 text-xs font-bold text-zinc-500">
               <span>Métriques tableau:</span>
