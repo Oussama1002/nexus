@@ -577,6 +577,12 @@ function PlansTab({ plans, strategies, onReload }: { plans: R[]; strategies: R[]
                 <option value="">— sélectionner —</option>
                 {strategies.filter((s) => s.status === 'validee').map((s) => <option key={s.id} value={s.id}>T{s.quarter} {s.year}</option>)}
               </select>
+              {strategies.filter((s) => s.status === 'validee').length === 0 && (
+                <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+                  Aucune stratégie validée. Un plan mensuel découle d’une stratégie : ouvrez l’onglet
+                  Stratégie, soumettez-la, puis faites-la valider.
+                </span>
+              )}
             </Field>
           </div>
           <div className="col-span-2"><Field label="Capacité déclarée"><input type="number" className={inputCls} value={form.declared_capacity} onChange={(e) => setForm({ ...form, declared_capacity: e.target.value })} /></Field></div>

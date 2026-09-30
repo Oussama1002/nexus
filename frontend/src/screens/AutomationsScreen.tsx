@@ -19,7 +19,6 @@ import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StatusChip } from '../components/ui/StatusChip';
 import * as api from '../lib/api';
-import { auditActionLabelFr } from '../lib/auditDisplayFr';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -70,6 +69,37 @@ const OP_LABELS: Record<Op, string> = {
   eq: 'est égal à', neq: 'est différent de', gt: 'supérieur à', gte: 'supérieur ou égal à',
   lt: 'inférieur à', lte: 'inférieur ou égal à', in: 'est dans', contains: 'contient',
 };
+
+const EVENT_MODULES_FR: Record<string, string> = {
+  orders: 'Commandes', order: 'Commandes', leads: 'Leads', lead: 'Leads',
+  customers: 'Clients', products: 'Produits', stock: 'Stock',
+  shipments: 'Expéditions', shipment: 'Expéditions', purchase_orders: 'Commandes fournisseur',
+  conversations: 'Conversations', messages: 'Messages', complaints: 'Réclamations',
+  users: 'Utilisateurs', employees: 'Employés', brands: 'Marques',
+  campaigns: 'Campagnes', ads: 'Publicités', social_accounts: 'Comptes sociaux',
+  content_calendar: 'Calendrier de contenu', influencers: 'Influenceurs',
+  settings: 'Paramètres', auth: 'Connexion', attendance: 'Présence',
+  suppliers: 'Fournisseurs', knowledge_base: 'Base marque', academy_content: 'Académie',
+  client_invoices: 'Factures', delivery_payments: 'Paiements livreur',
+};
+
+const EVENT_VERBS_FR: Record<string, string> = {
+  create: 'création', created: 'création', update: 'modification', updated: 'modification',
+  delete: 'suppression', deleted: 'suppression', status: 'changement de statut',
+  status_changed: 'changement de statut', archive: 'archivage', restore: 'restauration',
+  marked: 'pointage', sync: 'synchronisation', publish: 'publication',
+  login: 'connexion', logout: 'déconnexion', shortage: 'rupture',
+};
+
+/** « orders.create » → « Commandes · création ». */
+function eventLabelFr(key: string): string {
+  const [module, ...rest] = key.split('.');
+  const verb = rest.join('.');
+  const moduleFr = EVENT_MODULES_FR[module] ?? module.replace(/_/g, ' ');
+  const verbFr = EVENT_VERBS_FR[verb] ?? verb.replace(/_/g, ' ');
+
+  return `${moduleFr} · ${verbFr}`;
+}
 
 const TRIGGERS: TriggerConfig[] = [
   {
@@ -734,7 +764,7 @@ export function AutomationsScreen() {
                           className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50"
                         >
                           <span className="text-sm font-bold text-zinc-800">
-                            {auditActionLabelFr(c.key)}
+                            {eventLabelFr(c.key)}
                             <span className="ml-2 font-mono text-[11px] font-medium text-zinc-400">{c.key}</span>
                           </span>
                           <span className="text-[11px] font-black text-zinc-500">
