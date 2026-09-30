@@ -96,6 +96,20 @@ function Field({ label, children }: any) {
 
 const inputCls = 'w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm';
 
+/** Bornes d'un trimestre : T1 = 01/01 au 31/03, T2 = 01/04 au 30/06, etc. */
+function quarterRange(year: string, quarter: string): { start: string; end: string } {
+  const y = Number(year);
+  const q = Number(quarter);
+  if (!y || q < 1 || q > 4) return { start: '', end: '' };
+
+  const firstMonth = (q - 1) * 3;
+  const start = new Date(Date.UTC(y, firstMonth, 1));
+  const end = new Date(Date.UTC(y, firstMonth + 3, 0));
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  return { start: iso(start), end: iso(end) };
+}
+
 export function SocialMediaWorkspaceScreen() {
   const toast = useToast();
   const [space, setSpace] = useState<Space>('dashboard');
@@ -251,7 +265,7 @@ function DashboardTab({ dash }: { dash: R | null }) {
 function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () => void }) {
   const toast = useToast();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ year: String(new Date().getFullYear()), quarter: '1', start_date: '', end_date: '', social_objectives: '', business_objectives: '', tone_of_voice: '', quarter_priorities: '' });
+  const [form, setForm] = useState({ year: String(new Date().getFullYear()), quarter: '1', social_objectives: '', business_objectives: '', tone_of_voice: '', quarter_priorities: '' });
 
   const [pillarOpen, setPillarOpen] = useState<{ strategyId: number } | null>(null);
   const [pillarForm, setPillarForm] = useState({ label: '', business_objective: '', target_share_percent: '', description: '' });
@@ -268,10 +282,12 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
   }, []);
 
   const create = async () => {
-    if (!form.start_date || !form.end_date) { toast.error('Dates requises.'); return; }
+    // Les bornes decoulent de l'annee et du trimestre : rien a saisir.
+    const range = quarterRange(form.year, form.quarter);
+    if (!range.start) { toast.error('Renseignez l’année et le trimestre.'); return; }
     const res = await api.post('smm/strategies', {
       year: Number(form.year), quarter: Number(form.quarter),
-      start_date: form.start_date, end_date: form.end_date,
+      start_date: range.start, end_date: range.end,
       social_objectives: form.social_objectives, business_objectives: form.business_objectives,
       tone_of_voice: form.tone_of_voice || undefined,
       quarter_priorities: form.quarter_priorities || undefined,
@@ -373,8 +389,18 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
         <div className="grid grid-cols-2 gap-3">
           <Field label="Année"><input type="number" className={inputCls} value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} /></Field>
           <Field label="Trimestre"><select className={inputCls} value={form.quarter} onChange={(e) => setForm({ ...form, quarter: e.target.value })}><option value="1">T1</option><option value="2">T2</option><option value="3">T3</option><option value="4">T4</option></select></Field>
-          <Field label="Début"><input type="date" className={inputCls} value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></Field>
-          <Field label="Fin"><input type="date" className={inputCls} value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} /></Field>
+          <div className="col-span-2">
+            <Field label="Période couverte">
+              <p className="px-3 py-2 rounded-xl border border-zinc-200 bg-zinc-50 text-sm font-semibold text-zinc-700">
+                {(() => {
+                  const r = quarterRange(form.year, form.quarter);
+                  if (!r.start) return 'Renseignez l’année et le trimestre';
+                  const fr = (d: string) => new Date(d).toLocaleDateString('fr-FR');
+                  return `Du ${fr(r.start)} au ${fr(r.end)}`;
+                })()}
+              </p>
+            </Field>
+          </div>
           <div className="col-span-2"><Field label="Objectifs Social Media *"><textarea rows={2} className={inputCls} value={form.social_objectives} onChange={(e) => setForm({ ...form, social_objectives: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Objectifs business *"><textarea rows={2} className={inputCls} value={form.business_objectives} onChange={(e) => setForm({ ...form, business_objectives: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Tonalité de voix"><textarea rows={2} className={inputCls} value={form.tone_of_voice} onChange={(e) => setForm({ ...form, tone_of_voice: e.target.value })} /></Field></div>
