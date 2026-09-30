@@ -40,6 +40,8 @@ export function OpenPositionsScreen() {
     contract_type: 'cdi', location: '', salary_min: '', salary_max: '', positions_count: '1',
   });
   const [saving, setSaving] = useState(false);
+  // Meme referentiel que la fiche employe, pour ne pas inventer un departement.
+  const [departments, setDepartments] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -50,6 +52,13 @@ export function OpenPositionsScreen() {
     setLastPage(res.data.last_page);
   };
   useEffect(() => { load(); }, [page]); // eslint-disable-line
+
+  useEffect(() => {
+    void (async () => {
+      const res = await api.get<{ values: string[] }>('hr/lookups/department');
+      if (res.ok && res.data) setDepartments(res.data.values ?? []);
+    })();
+  }, []);
 
   const save = async () => {
     if (!form.title.trim()) { toast.error('Titre requis.'); return; }
@@ -168,7 +177,15 @@ export function OpenPositionsScreen() {
                 <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </label>
               <label className="text-sm font-bold text-zinc-700">Département
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
+                  <option value="">— sélectionner —</option>
+                  {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+                {departments.length === 0 && (
+                  <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+                    Aucun département enregistré. Ajoutez-en un depuis Paramètres → Fonctions &amp; départements.
+                  </span>
+                )}
               </label>
               <label className="text-sm font-bold text-zinc-700">Type de contrat
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.contract_type} onChange={(e) => setForm({ ...form, contract_type: e.target.value })}>
