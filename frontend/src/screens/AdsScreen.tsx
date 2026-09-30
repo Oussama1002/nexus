@@ -977,13 +977,25 @@ export function AdsScreen() {
                   header: '',
                   className: 'text-right',
                   cell: (c) => (
-                    <button
-                      type="button"
-                      onClick={() => setOpenCampId(c.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-black text-zinc-700 hover:bg-zinc-50"
-                    >
-                      Détail
-                    </button>
+                    <div className="inline-flex items-center gap-1.5">
+                      {canManage && c.source === 'meta' && !c.external_campaign_id && (
+                        <button
+                          type="button"
+                          disabled={publishing}
+                          onClick={() => void publishCampaignToMeta(c.id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1877F2] text-white text-xs font-black disabled:opacity-50"
+                        >
+                          {publishing ? 'Création…' : 'Créer sur Meta'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setOpenCampId(c.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-black text-zinc-700 hover:bg-zinc-50"
+                      >
+                        Détail
+                      </button>
+                    </div>
                   ),
                 },
               ]}
