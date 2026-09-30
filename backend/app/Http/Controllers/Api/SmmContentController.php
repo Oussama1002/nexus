@@ -28,7 +28,7 @@ class SmmContentController extends Controller
             ->whereKeyNot($authorId)
             ->where('status', 'active')
             ->get()
-            ->contains(fn ($u) => $u->hasPermissionSlug('smm_content.validate'));
+            ->contains(fn ($u) => $u->hasPermissionSlug('smm_contents.validate'));
     }
 
     public function index(Request $request): JsonResponse
