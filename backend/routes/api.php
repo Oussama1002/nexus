@@ -236,6 +236,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('stock-movements/{id}', [StockMovementController::class, 'show'])->whereNumber('id')->middleware('permission:stock.view');
 
     $registerCrud('suppliers', SupplierController::class, 'suppliers');
+    Route::post('knowledge-base/upload-media', [BrandKnowledgeItemController::class, 'uploadMedia'])->middleware('permission:knowledge_base.create');
     $registerCrud('knowledge-base', BrandKnowledgeItemController::class, 'knowledge_base');
 
     Route::get('dashboards/procurement', [ProcurementDashboardController::class, 'summary'])->middleware('permission:purchase_orders.view');

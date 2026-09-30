@@ -110,6 +110,23 @@ export function BrandKnowledgeBaseScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  /** Téléverse le média et retient l'URL renvoyée par le serveur. */
+  async function uploadMedia(file: File | null) {
+    if (!file) return;
+    setUploadingMedia(true);
+    const body = new FormData();
+    body.append('media', file);
+    const res = await api.post<{ media_url: string }>('knowledge-base/upload-media', body);
+    setUploadingMedia(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    setDraft((d) => ({ ...d, media_url: res.data?.media_url ?? '' }));
+    toast.success('Fichier enregistré.');
+  }
 
   const load = useCallback(async () => {
     if (!activeBrandId) {
@@ -350,13 +367,36 @@ export function BrandKnowledgeBaseScreen() {
               />
             </label>
             <label className="block text-xs font-black uppercase text-zinc-900">
-              URL media
+              Média
               <input
-                value={draft.media_url}
-                onChange={(e) => setDraft((d) => ({ ...d, media_url: e.target.value }))}
+                type="file"
+                accept="image/*,video/mp4,application/pdf"
+                onChange={(e) => void uploadMedia(e.target.files?.[0] ?? null)}
+                disabled={uploadingMedia}
                 className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
-                placeholder="https://..."
               />
+              {uploadingMedia && (
+                <span className="mt-1 block text-[11px] font-semibold text-zinc-500">Envoi…</span>
+              )}
+              {draft.media_url && !uploadingMedia && (
+                <span className="mt-1 flex items-center gap-2">
+                  <a
+                    href={draft.media_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] font-bold text-primary-600 hover:underline truncate"
+                  >
+                    Fichier joint
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setDraft((d) => ({ ...d, media_url: '' }))}
+                    className="text-[11px] font-bold text-rose-600 hover:underline"
+                  >
+                    Retirer
+                  </button>
+                </span>
+              )}
             </label>
           </div>
 

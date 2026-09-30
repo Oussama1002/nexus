@@ -14,6 +14,30 @@ use Illuminate\Http\Request;
 
 class BrandKnowledgeItemController extends Controller
 {
+    /**
+     * Media d'une fiche : televerse le fichier et rend son URL publique,
+     * pour ne plus dependre d'un lien colle a la main.
+     */
+    public function uploadMedia(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $request->validate([
+            'media' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,mp4,pdf'],
+        ], [
+            'media.required' => 'Choisissez un fichier.',
+            'media.max' => 'Fichier trop lourd : 10 Mo maximum.',
+            'media.mimes' => 'Format accepte : image, vidéo MP4 ou PDF.',
+        ]);
+
+        $path = $request->file('media')->store('knowledge-base/'.$brandId, 'public');
+
+        return ApiResponse::success(
+            ['media_url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path)],
+            'Fichier enregistre.'
+        );
+    }
+
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);
