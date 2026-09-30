@@ -285,6 +285,12 @@ export function auditEntityFilterOptions(): { value: string; label: string }[] {
 
 /** Libellés FR pour champs d’audit (snake_case API). */
 export const AUDIT_FIELD_LABELS_FR: Record<string, string> = {
+  brands: 'Marques',
+  roles: 'Rôles',
+  email_verified_at: 'E-mail vérifié le',
+  permissions: 'Permissions',
+  section: 'Section',
+
   id: 'Réf. interne',
   brand_id: 'Marque',
   supplier_id: 'Fournisseur',

@@ -188,6 +188,35 @@ function isJsonField(key: string): boolean {
   return key.endsWith('_json') || key === 'metadata' || key === 'payload' || key === 'config' || key === 'options' || key === 'data';
 }
 
+/**
+ * Noms lisibles d'une relation enregistree telle quelle (brands, roles...).
+ * Sans ca le journal affichait le JSON complet, pivot compris.
+ */
+function relationNames(value: unknown): string[] | null {
+  let rows: unknown = value;
+
+  if (typeof rows === 'string') {
+    try {
+      rows = JSON.parse(rows);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+
+  const names: string[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') return null;
+    const r = row as Record<string, unknown>;
+    const name = r.name ?? r.full_name ?? r.title ?? r.label ?? r.account_name;
+    if (typeof name !== 'string' || name === '') return null;
+    names.push(name);
+  }
+
+  return names;
+}
+
 function AuditFieldValue({ fieldKey, value, className, lookups = {} }: { fieldKey: string; value: unknown; className?: string; lookups?: Record<string, LookupMap> }) {
   if (isAuditImageField(fieldKey) && typeof value === 'string' && value) {
     const src = resolvePublicAssetUrl(value);
@@ -195,6 +224,19 @@ function AuditFieldValue({ fieldKey, value, className, lookups = {} }: { fieldKe
   }
   const resolved = resolveAuditValue(fieldKey, value, lookups);
   if (resolved) return <span className={className}>{resolved}</span>;
+
+  const related = relationNames(value);
+  if (related) {
+    return (
+      <span className={cn('flex flex-wrap gap-1', className)}>
+        {related.map((name) => (
+          <span key={name} className="inline-flex items-center rounded-lg bg-white border border-zinc-200 px-2 py-0.5 text-xs font-bold text-zinc-800">
+            {name}
+          </span>
+        ))}
+      </span>
+    );
+  }
   if (isJsonField(fieldKey) && value !== null && value !== undefined && typeof value === 'object') {
     return <div className={className}><HumanJsonValue value={value} /></div>;
   }
