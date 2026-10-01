@@ -83,16 +83,10 @@ class MetaAdPublisher
                 ]),
             ]);
         } catch (MetaApiException $e) {
-            // Le refus porte presque toujours sur la Page du creatif : Meta
-            // exige qu'elle appartienne au meme Business Manager que le compte
-            // publicitaire, et que l'utilisateur y ait un role.
-            throw new MetaApiException(
-                $e->getMessage()
-                ." (Créatif refusé pour la Page {$pageId} sur le compte {$actId}.)"
-                .' Vérifiez dans business.facebook.com que cette Page et ce compte publicitaire'
-                .' appartiennent au même Business Manager, et que votre compte a un rôle sur la Page.'
-                .' La Page utilisée se règle dans Paramètres → Meta.'
-            );
+            // Meta deguise un compte bloque en erreur de permission : on lit
+            // son etat pour ne pas envoyer l'utilisateur chercher un droit
+            // manquant qui n'existe pas.
+            throw new MetaApiException($this->explainCreativeRefusal($brandId, $actId, $pageId, $e));
         }
 
         $creativeId = (string) ($creative['id'] ?? '');
@@ -135,6 +129,45 @@ class MetaAdPublisher
      *
      * @param  array<string, mixed>  $data
      */
+    /** Etats Meta d'un compte publicitaire qui interdisent toute creation. */
+    private const BLOCKING_ACCOUNT_STATUS = [
+        2 => 'désactivé par Meta',
+        3 => 'impayé (solde à régler)',
+        7 => 'en revue de risque',
+        8 => 'en attente de règlement',
+        9 => 'en période de grâce après impayé',
+        100 => 'en cours de fermeture',
+        101 => 'fermé',
+    ];
+
+    /**
+     * Pourquoi Meta a refuse le creatif. Le message brut parle de permissions
+     * meme quand le compte est simplement bloque pour impaye.
+     */
+    private function explainCreativeRefusal(int $brandId, string $actId, string $pageId, MetaApiException $e): string
+    {
+        try {
+            $account = $this->graph->get($brandId, $actId, ['fields' => 'account_status']);
+            $status = (int) ($account['account_status'] ?? 0);
+        } catch (MetaApiException) {
+            $status = 0;
+        }
+
+        if (isset(self::BLOCKING_ACCOUNT_STATUS[$status])) {
+            $label = self::BLOCKING_ACCOUNT_STATUS[$status];
+
+            return "Le compte publicitaire {$actId} est {$label} : Meta y refuse toute création"
+                .' (campagne, ensemble, publicité) tant que la situation n’est pas réglée.'
+                .' Allez dans business.facebook.com → Paiements pour ce compte.'
+                .' Vos autorisations ne sont pas en cause.';
+        }
+
+        return $e->getMessage()
+            ." (Créatif refusé pour la Page {$pageId} sur le compte {$actId}.)"
+            .' Vérifiez dans business.facebook.com que cette Page et ce compte publicitaire'
+            .' appartiennent au même Business Manager, et que votre compte a un rôle sur la Page.';
+    }
+
     private function uploadImage(int $brandId, string $actId, array $data): ?string
     {
         $base64 = (string) ($data['image_base64'] ?? '');
