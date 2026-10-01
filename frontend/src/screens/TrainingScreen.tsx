@@ -36,6 +36,14 @@ const STATUSES: Record<string, { label: string; cls: string }> = {
   annulee: { label: 'Annulée', cls: 'bg-zinc-100 text-zinc-500' },
 };
 
+/** 95 → « 1 h 35 min », 40 → « 40 min », 120 → « 2 h ». */
+function durationFr(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
+}
+
 export function TrainingScreen() {
   const toast = useToast();
   const [rows, setRows] = useState<TrainingRow[]>([]);
@@ -50,14 +58,16 @@ export function TrainingScreen() {
   });
   const [saving, setSaving] = useState(false);
 
-  /** Durée déduite des deux horodatages, arrondie à l'heure la plus proche. */
-  const computedHours = useMemo(() => {
+  /** Durée exacte déduite des deux horodatages, en minutes. */
+  const computedMinutes = useMemo(() => {
     if (!form.start_date || !form.end_date) return null;
     const start = new Date(form.start_date).getTime();
     const end = new Date(form.end_date).getTime();
     if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
-    return Math.max(1, Math.round((end - start) / 3_600_000));
+    return Math.round((end - start) / 60_000);
   }, [form.start_date, form.end_date]);
+
+  const computedHours = computedMinutes === null ? null : Number((computedMinutes / 60).toFixed(2));
 
   const load = async () => {
     setLoading(true);
@@ -141,7 +151,7 @@ export function TrainingScreen() {
                         {r.start_date ? new Date(r.start_date).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
                         {r.end_date ? ` → ${new Date(r.end_date).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}` : ''}
                       </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">{r.duration_hours ? `${r.duration_hours}h` : '—'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{r.duration_hours ? durationFr(Math.round(Number(r.duration_hours) * 60)) : '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${s.cls}`}>{s.label}</span>
                       </td>
@@ -194,7 +204,7 @@ export function TrainingScreen() {
               <div className="text-sm font-bold text-zinc-900">
                 Durée
                 <p className="mt-1 px-3 py-2 rounded-xl border border-zinc-200 bg-zinc-50 font-semibold text-zinc-700">
-                  {computedHours !== null ? computedHours + ' h' : 'Renseignez le début et la fin'}
+                  {computedMinutes !== null ? durationFr(computedMinutes) : 'Renseignez le début et la fin'}
                 </p>
               </div>
               <label className="col-span-2 text-sm font-bold text-zinc-900">Description
