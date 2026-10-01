@@ -67,6 +67,22 @@ type CampaignRow = {
   confirmatrice?: { id: number; name: string } | null;
   influencer?: { id: number; full_name?: string; username?: string } | null;
   metrics_rollups?: CampaignRollup | null;
+  // Champs renvoyés par l'API mais utilisés seulement par le formulaire d'édition.
+  daily_budget?: string | number | null;
+  attribution_model?: string | null;
+  creatives_summary?: string | null;
+  landing_url?: string | null;
+  confirmatrice_user_id?: number | null;
+  product_id?: number | null;
+  influencer_id?: number | null;
+  utm_source?: string | null;
+  utm_campaign?: string | null;
+  utm_medium?: string | null;
+  pixel_id?: string | null;
+  target_cpa?: string | number | null;
+  target_roas?: string | number | null;
+  target_leads?: number | null;
+  notes?: string | null;
 };
 
 type MetricRow = {
@@ -261,6 +277,8 @@ export function AdsScreen() {
 
   const [adModal, setAdModal] = useState(false);
   const [campModal, setCampModal] = useState(false);
+  // Non nul = le formulaire modifie cette campagne au lieu d'en créer une.
+  const [editCampId, setEditCampId] = useState<number | null>(null);
   const [campErrors, setCampErrors] = useState<string[]>([]);
   // Vue « Ads Manager » : ensembles de publicités puis créatifs d'une campagne.
   const [structureCamp, setStructureCamp] = useState<{ id: number; name: string } | null>(null);
@@ -572,8 +590,42 @@ export function AdsScreen() {
     await refresh();
   }
 
+  /** Pré-remplit le formulaire avec une campagne existante. */
+  function openCampEdit(c: CampaignRow) {
+    setCampErrors([]);
+    setEditCampId(c.id);
+    setCampForm({
+      name: c.name ?? '',
+      source: (c.source ?? 'meta') as (typeof PLATFORMS)[number],
+      marketing_objective: c.marketing_objective ?? '',
+      budget: c.budget != null ? String(c.budget) : '0',
+      daily_budget: c.daily_budget != null ? String(c.daily_budget) : '',
+      campaign_currency: c.campaign_currency ?? 'USD',
+      attribution_model: c.attribution_model ?? '',
+      ad_account_id: c.ad_account?.id ? String(c.ad_account.id) : '',
+      start_date: (c.start_date ?? '').slice(0, 10),
+      end_date: (c.end_date ?? '').slice(0, 10),
+      objective: c.objective ?? '',
+      description: c.description ?? '',
+      creatives_summary: c.creatives_summary ?? '',
+      landing_url: c.landing_url ?? '',
+      confirmatrice_user_id: c.confirmatrice_user_id ? String(c.confirmatrice_user_id) : '',
+      product_id: c.product_id ? String(c.product_id) : '',
+      influencer_id: c.influencer_id ? String(c.influencer_id) : '',
+      utm_source: c.utm_source ?? '',
+      utm_campaign: c.utm_campaign ?? '',
+      utm_medium: c.utm_medium ?? '',
+      pixel_id: c.pixel_id ?? '',
+      target_cpa: c.target_cpa != null ? String(c.target_cpa) : '',
+      target_roas: c.target_roas != null ? String(c.target_roas) : '',
+      target_leads: c.target_leads != null ? String(c.target_leads) : '',
+      notes: c.notes ?? '',
+    });
+    setCampModal(true);
+  }
+
   async function saveCamp() {
-    const res = await api.post('campaigns', {
+    const payload = {
       name: campForm.name,
       source: campForm.source,
       marketing_objective: campForm.marketing_objective || null,
@@ -599,8 +651,13 @@ export function AdsScreen() {
       target_roas: campForm.target_roas ? parseFloat(campForm.target_roas) : null,
       target_leads: campForm.target_leads ? parseInt(campForm.target_leads, 10) : null,
       notes: campForm.notes || null,
-      status: 'draft',
-    });
+    };
+
+    // Le statut n'est impose qu'a la creation : modifier ne doit pas
+    // repasser une campagne active en brouillon.
+    const res = editCampId
+      ? await api.put(`campaigns/${editCampId}`, payload)
+      : await api.post('campaigns', { ...payload, status: 'draft' });
     if (!res.ok) {
       const e = 'errors' in res ? res.errors : {};
       // Le message d'abord : « errors » transporte parfois autre chose que des
@@ -611,8 +668,9 @@ export function AdsScreen() {
       return;
     }
     setCampErrors([]);
-    toast.success('Campagne créée.');
+    toast.success(editCampId ? 'Campagne modifiée.' : 'Campagne créée.');
     setCampModal(false);
+    setEditCampId(null);
     setCampForm({
       name: '',
       source: 'meta',
@@ -1073,6 +1131,13 @@ export function AdsScreen() {
                         <>
                           <button
                             type="button"
+                            onClick={() => openCampEdit(c)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-black text-zinc-700 hover:bg-zinc-50"
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            type="button"
                             disabled={rowBusy === c.id}
                             onClick={() => void archiveCampaign(c)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-black text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
@@ -1289,12 +1354,12 @@ export function AdsScreen() {
         </div>
       </Modal>
 
-      <Modal open={campModal} onClose={() => { setCampErrors([]); setCampModal(false); }} title="Nouvelle campagne">
+      <Modal open={campModal} onClose={() => { setCampErrors([]); setCampModal(false); setEditCampId(null); }} title={editCampId ? 'Modifier la campagne' : 'Nouvelle campagne'}>
         <div className="space-y-5">
           {campErrors.length > 0 && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 space-y-1">
               <p className="text-xs font-black uppercase tracking-widest text-rose-700">
-                Campagne non enregistrée
+                {editCampId ? 'Modification non enregistrée' : 'Campagne non enregistrée'}
               </p>
               {campErrors.map((msg) => (
                 <p key={msg} className="text-sm font-semibold text-rose-800">• {msg}</p>
@@ -1470,7 +1535,7 @@ export function AdsScreen() {
           </div>
 
           <button type="button" onClick={() => void saveCamp()} className="w-full py-3 rounded-2xl bg-primary-600 text-white font-black">
-            Créer
+            {editCampId ? 'Enregistrer' : 'Créer'}
           </button>
         </div>
       </Modal>
