@@ -955,7 +955,12 @@ export function AdsScreen() {
             {canManage && (
               <button
                 type="button"
-                onClick={() => { setCampErrors([]); setCampModal(true); }}
+                onClick={() => {
+                  setCampErrors([]);
+                  // Venu de l'onglet Comptes : la campagne part sur ce compte.
+                  if (campAccount) setCampForm((f) => ({ ...f, ad_account_id: String(campAccount.id) }));
+                  setCampModal(true);
+                }}
                 className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex gap-2 items-center"
               >
                 <Plus className="w-4 h-4" /> Nouvelle campagne
