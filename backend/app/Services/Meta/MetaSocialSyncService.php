@@ -223,11 +223,21 @@ class MetaSocialSyncService
     /** @param array<string, mixed> $data */
     private function upsert(int $brandId, array $data, int &$created, int &$updated): void
     {
+        // Un meme compte Instagram arrive avec deux identifiants selon la voie
+        // d'import (business account de la Page, ou connexion Instagram
+        // directe) : le pseudo est ce qui l'identifie vraiment.
+        $handle = trim((string) ($data['handle'] ?? ''));
+
         $existing = SocialAccount::query()
             ->where('brand_id', $brandId)
             ->where('platform', $data['platform'])
-            ->where(fn ($q) => $q->where('credential_ref', $data['credential_ref'])
-                ->orWhere(fn ($w) => $w->whereNull('credential_ref')->where('account_name', $data['account_name'])))
+            ->where(function ($q) use ($data, $handle) {
+                $q->where('credential_ref', $data['credential_ref'])
+                    ->orWhere(fn ($w) => $w->whereNull('credential_ref')->where('account_name', $data['account_name']));
+                if ($handle !== '') {
+                    $q->orWhere('handle', $handle);
+                }
+            })
             ->first();
 
         if ($existing) {
