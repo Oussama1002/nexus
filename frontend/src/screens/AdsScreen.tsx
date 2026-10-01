@@ -1319,7 +1319,7 @@ export function AdsScreen() {
                 </select>
               </label>
               <label className={CAMP_LABEL}>
-                Objectif marketing
+                Objectif marketing *
                 <select
                   value={campForm.marketing_objective}
                   onChange={(e) => setCampForm((f) => ({ ...f, marketing_objective: e.target.value }))}

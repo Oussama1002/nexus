@@ -24,7 +24,7 @@ class StoreCampaignRequest extends FormRequest
             'confirmatrice_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'name' => ['required', 'string', 'max:255'],
             'source' => ['required', Rule::in(['meta', 'tiktok', 'google', 'snap', 'linkedin', 'other'])],
-            'marketing_objective' => ['nullable', Rule::in([
+            'marketing_objective' => ['required', Rule::in([
                 'lead_gen', 'messages', 'conversions', 'traffic', 'engagement', 'awareness', 'sales',
             ])],
             'budget' => ['required', 'numeric', 'min:0'],
