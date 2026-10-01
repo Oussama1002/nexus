@@ -181,6 +181,9 @@ export function AdStructureExplorer({
   const [adSetOpen, setAdSetOpen] = useState(false);
   const [adSetError, setAdSetError] = useState<string | null>(null);
   const [adSetForm, setAdSetForm] = useState({ name: '', daily_budget: '', age_min: '18', age_max: '65', countries: 'MA' });
+  // Non nul = la modale modifie cet ensemble au lieu d'en créer un.
+  const [editAdSet, setEditAdSet] = useState<AdSetRow | null>(null);
+  const [adSetBusy, setAdSetBusy] = useState<number | null>(null);
 
   const qs = useMemo(
     () => new URLSearchParams({ metrics_from: periodFrom, metrics_to: periodTo }).toString(),
@@ -249,6 +252,56 @@ export function AdStructureExplorer({
     });
     setCreateError(null);
     setForm((f) => ({ ...f, imageBase64: dataUrl, imagePreview: dataUrl }));
+  }
+
+  function openAdSetEdit(r: AdSetRow) {
+    setAdSetError(null);
+    setEditAdSet(r);
+    setAdSetForm({
+      name: r.name,
+      daily_budget: r.daily_budget ? String(r.daily_budget) : '',
+      age_min: '18',
+      age_max: '65',
+      countries: 'MA',
+    });
+    setAdSetOpen(true);
+  }
+
+  async function saveAdSetEdit() {
+    if (!editAdSet) return;
+    setAdSetError(null);
+    setPublishing(true);
+    const res = await api.put(`ad-sets/${editAdSet.id}`, {
+      name: adSetForm.name,
+      daily_budget: adSetForm.daily_budget ? Number(adSetForm.daily_budget) : null,
+    });
+    setPublishing(false);
+    if (!res.ok) { setAdSetError(res.message); return; }
+    toast.success(res.message);
+    setAdSetOpen(false);
+    setEditAdSet(null);
+    await loadAdSets();
+  }
+
+  async function archiveAdSet(r: AdSetRow) {
+    if (!window.confirm(`Archiver « ${r.name} » ? Il sort de la liste et passe en archivé sur Meta.`)) return;
+    setAdSetBusy(r.id);
+    const res = await api.post(`ad-sets/${r.id}/archive`, {});
+    setAdSetBusy(null);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success(res.message);
+    await loadAdSets();
+  }
+
+  async function deleteAdSet(r: AdSetRow) {
+    const onMeta = r.external_ad_set_id ? ' Il sera AUSSI supprimé sur Meta.' : '';
+    if (!window.confirm(`Supprimer « ${r.name} » et ses publicités ?${onMeta}`)) return;
+    setAdSetBusy(r.id);
+    const res = await api.del(`ad-sets/${r.id}`);
+    setAdSetBusy(null);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success(res.message);
+    await loadAdSets();
   }
 
   async function publishAdSet() {
@@ -358,19 +411,46 @@ export function AdStructureExplorer({
       header: '',
       className: 'text-right',
       cell: (r) =>
-        canSync && r.external_ad_set_id ? (
-          <button
-            type="button"
-            title={`Créer une publicité dans « ${r.name} »`}
-            onClick={() => {
-              setCreateError(null);
-              setCreateTarget({ id: r.id, name: r.name });
-              setCreateOpen(true);
-            }}
-            className="inline-flex items-center gap-1 rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-[11px] font-black text-primary-700 hover:bg-primary-100"
-          >
-            <Plus className="w-3 h-3" /> Publicité
-          </button>
+        canSync ? (
+          <div className="inline-flex items-center gap-1.5">
+            {r.external_ad_set_id && (
+              <button
+                type="button"
+                title={`Créer une publicité dans « ${r.name} »`}
+                onClick={() => {
+                  setCreateError(null);
+                  setCreateTarget({ id: r.id, name: r.name });
+                  setCreateOpen(true);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-[11px] font-black text-primary-700 hover:bg-primary-100"
+              >
+                <Plus className="w-3 h-3" /> Publicité
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => openAdSetEdit(r)}
+              className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-700 hover:bg-zinc-50"
+            >
+              Modifier
+            </button>
+            <button
+              type="button"
+              disabled={adSetBusy === r.id}
+              onClick={() => void archiveAdSet(r)}
+              className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Archiver
+            </button>
+            <button
+              type="button"
+              disabled={adSetBusy === r.id}
+              onClick={() => void deleteAdSet(r)}
+              className="rounded-lg border border-red-200 px-2.5 py-1 text-[11px] font-black text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              Supprimer
+            </button>
+          </div>
         ) : null,
     },
   ];
@@ -497,21 +577,25 @@ export function AdStructureExplorer({
 
       <Modal
         open={adSetOpen}
-        title="Nouvel ensemble de publicités"
-        subtitle={`Créé EN PAUSE dans « ${campaignName} » — le ciblage fin se règle ensuite dans Ads Manager.`}
-        onClose={() => setAdSetOpen(false)}
+        title={editAdSet ? 'Modifier l’ensemble de publicités' : 'Nouvel ensemble de publicités'}
+        subtitle={
+          editAdSet
+            ? 'Nom et budget sont envoyés à Meta. Le ciblage se modifie dans Ads Manager.'
+            : `Créé EN PAUSE dans « ${campaignName} » — le ciblage fin se règle ensuite dans Ads Manager.`
+        }
+        onClose={() => { setAdSetOpen(false); setEditAdSet(null); }}
         footer={
           <div className="flex gap-3">
-            <button type="button" onClick={() => setAdSetOpen(false)} className="flex-1 py-3 rounded-xl border border-zinc-300 font-black text-sm text-zinc-900">
+            <button type="button" onClick={() => { setAdSetOpen(false); setEditAdSet(null); }} className="flex-1 py-3 rounded-xl border border-zinc-300 font-black text-sm text-zinc-900">
               Annuler
             </button>
             <button
               type="button"
-              disabled={publishing || !adSetForm.name.trim() || !adSetForm.daily_budget}
-              onClick={() => void publishAdSet()}
+              disabled={publishing || !adSetForm.name.trim() || (!editAdSet && !adSetForm.daily_budget)}
+              onClick={() => void (editAdSet ? saveAdSetEdit() : publishAdSet())}
               className="flex-1 py-3 rounded-xl bg-primary-600 text-white font-black text-sm disabled:opacity-50"
             >
-              {publishing ? 'Envoi à Meta…' : 'Créer sur Meta'}
+              {publishing ? 'Envoi à Meta…' : editAdSet ? 'Enregistrer' : 'Créer sur Meta'}
             </button>
           </div>
         }
@@ -529,10 +613,12 @@ export function AdStructureExplorer({
           </label>
 
           <label className={AD_LABEL}>
-            Budget quotidien ({currency}) *
+            Budget quotidien ({currency}){editAdSet ? '' : ' *'}
             <input type="number" min="1" step="1" className={AD_INPUT} value={adSetForm.daily_budget} onChange={(e) => setAdSetForm({ ...adSetForm, daily_budget: e.target.value })} />
           </label>
 
+          {!editAdSet && (
+          <>
           <label className={AD_LABEL}>
             Pays ciblés (codes ISO, séparés par des virgules)
             <input className={AD_INPUT} value={adSetForm.countries} onChange={(e) => setAdSetForm({ ...adSetForm, countries: e.target.value })} />
@@ -548,6 +634,8 @@ export function AdStructureExplorer({
               <input type="number" min="13" max="65" className={AD_INPUT} value={adSetForm.age_max} onChange={(e) => setAdSetForm({ ...adSetForm, age_max: e.target.value })} />
             </label>
           </div>
+          </>
+          )}
         </div>
       </Modal>
 

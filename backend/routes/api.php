@@ -327,6 +327,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('campaigns/{id}/ad-sets', [AdStructureController::class, 'publishAdSet'])->whereNumber('id')->middleware('permission:campaigns.update');
     Route::get('ad-sets/{id}/ads', [AdStructureController::class, 'ads'])->whereNumber('id')->middleware('permission:campaigns.view');
     Route::post('ad-sets/{id}/ads', [AdStructureController::class, 'publishAd'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::put('ad-sets/{id}', [AdStructureController::class, 'updateAdSet'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::post('ad-sets/{id}/archive', [AdStructureController::class, 'archiveAdSet'])->whereNumber('id')->middleware('permission:campaigns.update');
+    Route::delete('ad-sets/{id}', [AdStructureController::class, 'destroyAdSet'])->whereNumber('id')->middleware('permission:campaigns.delete');
     Route::post('ad-structure/sync', [AdStructureController::class, 'sync'])->middleware('permission:campaigns.update');
 
     Route::get('campaign-metrics', [CampaignMetricController::class, 'index'])->middleware('permission:campaign_metrics.view');

@@ -28,6 +28,8 @@ class AdStructureController extends Controller
 
         $adSets = AdSet::query()
             ->where('campaign_id', $campaign->id)
+            // Les ensembles archives sortent de la vue, comme dans Ads Manager.
+            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'ARCHIVED'))
             ->orderBy('name')
             ->get();
 
@@ -153,6 +155,104 @@ class AdStructureController extends Controller
             'Publicité créée sur Meta, en pause. Vérifiez-la dans Ads Manager avant de l’activer.',
             201
         );
+    }
+
+    public function updateAdSet(Request $request, string $adSetId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $adSet = AdSet::query()->where('brand_id', $brandId)->findOrFail($adSetId);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'daily_budget' => ['nullable', 'numeric', 'min:1'],
+        ], [
+            'name.required' => 'Le nom de l’ensemble est obligatoire.',
+            'daily_budget.min' => 'Le budget quotidien doit être d’au moins 1.',
+        ]);
+
+        $before = $adSet->toArray();
+        $remote = ['name' => $data['name']];
+        if (array_key_exists('daily_budget', $data) && $data['daily_budget'] !== null) {
+            $remote['daily_budget'] = (int) round((float) $data['daily_budget'] * 100);
+        }
+
+        if ($adSet->external_ad_set_id) {
+            try {
+                app(\App\Services\Meta\MetaGraphClient::class)
+                    ->post($brandId, (string) $adSet->external_ad_set_id, $remote);
+            } catch (MetaApiException $e) {
+                return ApiResponse::error('Ensemble non modifié sur Meta : '.$e->getMessage(), null, 422);
+            }
+        }
+
+        $adSet->name = $data['name'];
+        if (array_key_exists('daily_budget', $data) && $data['daily_budget'] !== null) {
+            $adSet->daily_budget = $data['daily_budget'];
+        }
+        $adSet->save();
+
+        AuditLogger::log($request, 'ad_sets.update', $adSet, $before, $adSet->fresh()->toArray());
+
+        return ApiResponse::success($adSet->fresh(), 'Ensemble de publicités modifié.');
+    }
+
+    public function archiveAdSet(Request $request, string $adSetId): JsonResponse
+    {
+        return $this->setAdSetStatus($request, $adSetId, 'ARCHIVED', 'Ensemble archivé.');
+    }
+
+    public function destroyAdSet(Request $request, string $adSetId): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $adSet = AdSet::query()->where('brand_id', $brandId)->findOrFail($adSetId);
+
+        // Supprimer chez Meta d'abord : un ensemble oublie ici mais vivant
+        // la-bas continue de depenser.
+        if ($adSet->external_ad_set_id) {
+            try {
+                app(\App\Services\Meta\MetaGraphClient::class)
+                    ->post($brandId, (string) $adSet->external_ad_set_id, ['status' => 'DELETED']);
+            } catch (MetaApiException $e) {
+                return ApiResponse::error(
+                    'Ensemble non supprimé sur Meta : '.$e->getMessage()
+                    .' Rien n’a été supprimé dans le CRM.',
+                    null,
+                    422
+                );
+            }
+        }
+
+        $before = $adSet->toArray();
+        Ad::query()->where('ad_set_id', $adSet->id)->delete();
+        $adSet->delete();
+
+        AuditLogger::log($request, 'ad_sets.delete', null, $before, null);
+
+        return ApiResponse::success(null, 'Ensemble de publicités supprimé.');
+    }
+
+    private function setAdSetStatus(Request $request, string $adSetId, string $status, string $message): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $adSet = AdSet::query()->where('brand_id', $brandId)->findOrFail($adSetId);
+
+        if ($adSet->external_ad_set_id) {
+            try {
+                app(\App\Services\Meta\MetaGraphClient::class)
+                    ->post($brandId, (string) $adSet->external_ad_set_id, ['status' => $status]);
+            } catch (MetaApiException $e) {
+                return ApiResponse::error('Meta a refusé le changement de statut : '.$e->getMessage(), null, 422);
+            }
+        }
+
+        $before = $adSet->toArray();
+        $adSet->status = $status;
+        $adSet->effective_status = $status;
+        $adSet->save();
+
+        AuditLogger::log($request, 'ad_sets.archive', $adSet, $before, $adSet->fresh()->toArray());
+
+        return ApiResponse::success($adSet->fresh(), $message);
     }
 
     /** Importe ensembles, publicités et métriques depuis Meta. */
