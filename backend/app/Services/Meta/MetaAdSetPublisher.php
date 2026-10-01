@@ -43,7 +43,7 @@ class MetaAdSetPublisher
         }
 
         $remote = $this->graph->get($brandId, $externalCampaignId, [
-            'fields' => 'objective,daily_budget,lifetime_budget',
+            'fields' => 'objective,daily_budget,lifetime_budget,stop_time',
         ]);
         $objective = (string) ($remote['objective'] ?? '');
         $goal = ($data['optimization_goal'] ?? null) ?: (self::OPTIMIZATION[$objective] ?? 'LINK_CLICKS');
@@ -52,6 +52,17 @@ class MetaAdSetPublisher
         // ni strategie d'enchere propres, il herite de la campagne.
         $campaignBudget = (int) ($remote['daily_budget'] ?? 0) + (int) ($remote['lifetime_budget'] ?? 0);
         $campaignHoldsBudget = $campaignBudget > 0;
+
+        // Budget a vie : Meta impose une date de fin a l'ensemble, qu'il
+        // herite de la campagne. Sans elle, la creation est refusee.
+        $campaignIsLifetime = (int) ($remote['lifetime_budget'] ?? 0) > 0;
+        $stopTime = $remote['stop_time'] ?? ($campaign->end_date?->toIso8601String());
+        if ($campaignIsLifetime && ! $stopTime) {
+            throw new MetaApiException(
+                'Cette campagne utilise un budget à vie : Meta exige une date de fin.'
+                .' Renseignez la date de fin de la campagne (dans Ads Manager ou sur sa fiche) avant de créer un ensemble.'
+            );
+        }
 
         $dailyBudget = (float) ($data['daily_budget'] ?? 0);
         if (! $campaignHoldsBudget && $dailyBudget <= 0) {
@@ -75,6 +86,10 @@ class MetaAdSetPublisher
             'optimization_goal' => $goal,
             'targeting' => json_encode($targeting),
         ];
+
+        if ($campaignIsLifetime) {
+            $payload['end_time'] = (string) $stopTime;
+        }
 
         if (! $campaignHoldsBudget) {
             $payload['daily_budget'] = (int) round($dailyBudget * 100);
@@ -101,6 +116,7 @@ class MetaAdSetPublisher
             'billing_event' => 'IMPRESSIONS',
             'bid_strategy' => $campaignHoldsBudget ? null : 'LOWEST_COST_WITHOUT_CAP',
             'daily_budget' => $campaignHoldsBudget ? null : $dailyBudget,
+            'stop_time' => $campaignIsLifetime ? $stopTime : null,
             'targeting_summary' => implode(', ', $countries).' · '.$targeting['age_min'].'-'.$targeting['age_max'].' ans',
             'last_synced_at' => now(),
         ]);
