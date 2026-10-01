@@ -67,10 +67,13 @@ return new class extends Migration
             return [];
         }
 
+        // MySQL 8 renvoie les colonnes d'information_schema en majuscules :
+        // un alias explicite evite de dependre de la casse.
         return DB::table('information_schema.columns')
-            ->where('table_schema', DB::getDatabaseName())
-            ->where('column_name', 'social_account_id')
-            ->pluck('table_name')
+            ->selectRaw('TABLE_NAME as name')
+            ->where('TABLE_SCHEMA', DB::getDatabaseName())
+            ->where('COLUMN_NAME', 'social_account_id')
+            ->pluck('name')
             ->filter(fn ($t) => $t !== 'social_accounts')
             ->values()
             ->all();
