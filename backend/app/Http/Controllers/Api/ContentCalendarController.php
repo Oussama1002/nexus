@@ -120,10 +120,11 @@ class ContentCalendarController extends Controller
         // Retirer de la Page d'abord : supprimer la fiche seule laisserait un
         // post en ligne que le CRM ne sait plus retrouver.
         $pageNote = '';
-        if ($row->external_post_id && $row->socialAccount) {
+        $postId = (string) ($row->external_post_id ?: $this->postIdFromUrl($row->published_url));
+        if ($postId !== '' && $row->socialAccount) {
             try {
                 app(\App\Services\Meta\SocialPagePublisher::class)
-                    ->deletePost($row->socialAccount, (string) $row->external_post_id);
+                    ->deletePost($row->socialAccount, $postId);
                 $pageNote = ' Publication également retirée de la page.';
             } catch (\App\Services\Meta\MetaApiException $e) {
                 return ApiResponse::error(
@@ -358,6 +359,19 @@ class ContentCalendarController extends Controller
             ['url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path)],
             'Visuel enregistré.'
         );
+    }
+
+    /**
+     * Identifiant du post deduit de son permalien, pour les publications
+     * faites avant que le CRM ne stocke cet identifiant.
+     */
+    private function postIdFromUrl(?string $url): string
+    {
+        if (! $url) {
+            return '';
+        }
+
+        return preg_match('~facebook\.com/(\d+_\d+|\d+)~', $url, $m) ? $m[1] : '';
     }
 
     private function firstAttachmentUrl(ContentCalendar $row): ?string
