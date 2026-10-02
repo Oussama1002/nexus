@@ -1810,7 +1810,19 @@ export function InfluenceWorkspaceScreen() {
       <Modal open={delOpen} onClose={() => setDelOpen(false)} title={delId ? 'Modifier livrable' : 'Nouveau livrable'}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Collaboration *">
-            <select className={selClass} value={delForm.collaboration_id} onChange={e => setDelForm(p => ({ ...p, collaboration_id: e.target.value }))}>
+            <select className={selClass} value={delForm.collaboration_id} onChange={e => {
+              const id = e.target.value;
+              // Type de contenu et plateforme sont deja decides par la
+              // collaboration : les resaisir, c'est risquer de les contredire.
+              const col = collabs.find(c => String(c.id) === id);
+              const inf = col?.influencer as { platform?: string } | undefined;
+              setDelForm(p => ({
+                ...p,
+                collaboration_id: id,
+                content_type: col?.collaboration_type ? String(col.collaboration_type) : p.content_type,
+                platform: inf?.platform ? String(inf.platform) : p.platform,
+              }));
+            }}>
               <option value="">— Sélectionner —</option>
               {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
             </select>
