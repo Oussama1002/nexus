@@ -12,6 +12,21 @@ use Illuminate\Support\Facades\DB;
 class InfluenceDashboardService
 {
     /**
+     * Collaborations en cours. Les statuts du module sont en francais : la
+     * version anglaise cherchee jusqu'ici n'existait dans aucune ligne, d'ou
+     * un compteur toujours a zero.
+     */
+    private const ACTIVE_STATUSES = [
+        'en_preparation', 'en_cours', 'en_revue', 'en_pause',
+        'contractualisation_en_attente', 'contractualisee',
+    ];
+
+    /** Collaborations dont le montant est engage, donc comptabilisable. */
+    private const COMMITTED_STATUSES = [
+        'en_cours', 'en_revue', 'en_pause', 'contractualisee', 'terminee',
+    ];
+
+    /**
      * @return array<string, mixed>
      */
     public function summary(?int $brandId, ?string $dateFrom, ?string $dateTo): array
@@ -22,11 +37,17 @@ class InfluenceDashboardService
         $influencerCount = Influencer::query()->when($brandId, fn ($q) => $q->where('brand_id', $brandId))->count();
 
         $activeCollabs = InfluencerCollaboration::query()->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
-            ->where('status', 'active')->count();
+            ->whereIn('status', self::ACTIVE_STATUSES)->count();
 
+        // Rattache au debut de la collaboration, pas a sa derniere
+        // modification : corriger une vieille fiche la faisait basculer dans
+        // la periode courante.
         $spend = (float) InfluencerCollaboration::query()->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
-            ->whereBetween('updated_at', [$from, $to])
-            ->whereIn('status', ['active', 'completed'])
+            ->whereIn('status', self::COMMITTED_STATUSES)
+            ->where(function ($q) use ($from, $to) {
+                $q->whereBetween('start_date', [$from->toDateString(), $to->toDateString()])
+                    ->orWhere(fn ($w) => $w->whereNull('start_date')->whereBetween('created_at', [$from, $to]));
+            })
             ->sum('agreed_amount');
 
         $rev = (float) InfluencerPerformance::query()
