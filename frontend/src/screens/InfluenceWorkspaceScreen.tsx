@@ -1969,7 +1969,19 @@ export function InfluenceWorkspaceScreen() {
       <Modal open={payOpen} onClose={() => setPayOpen(false)} title={payId ? 'Modifier paiement' : 'Nouveau paiement'}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Collaboration *">
-            <select className={selClass} value={payForm.collaboration_id} onChange={e => setPayForm(p => ({ ...p, collaboration_id: e.target.value }))}>
+            <select className={selClass} value={payForm.collaboration_id} onChange={e => {
+              const id = e.target.value;
+              // Le montant convenu et l'influenceuse sont portes par la
+              // collaboration : les resaisir ouvre la porte a un ecart.
+              const col = collabs.find(c => String(c.id) === id);
+              setPayForm(p => ({
+                ...p,
+                collaboration_id: id,
+                influencer_id: col?.influencer_id != null ? String(col.influencer_id) : p.influencer_id,
+                amount: col?.agreed_amount != null ? String(col.agreed_amount) : p.amount,
+                currency: col?.currency ? String(col.currency) : p.currency,
+              }));
+            }}>
               <option value="">— Sélectionner —</option>
               {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
             </select>
