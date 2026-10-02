@@ -335,23 +335,27 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
     toast.success('Pilier ajouté.'); setPillarOpen(null); setPillarForm({ label: '', business_objective: '', target_share_percent: '', description: '' }); onReload();
   };
 
-  const solicit = async () => {
+  /** Enregistre la reponse : c'est elle, et elle seule, qui debloque la soumission. */
+  const solicit = async (withAnswer: boolean) => {
     if (!contribOpen || !contribUserId) return;
+    if (withAnswer && !contribText.trim()) {
+      toast.error('Saisissez la réponse du contributeur, ou choisissez « Solliciter seulement ».');
+      return;
+    }
 
+    // La ligne doit exister avant qu'on puisse y poser une reponse.
     const r = await api.post(`smm/strategies/${contribOpen.strategyId}/solicit-contribution`, { contributor_user_id: Number(contribUserId) });
     if (!r.ok) { toast.error(r.message); return; }
 
-    // Une stratégie ne se soumet qu'avec une contribution REÇUE : si la réponse
-    // est déjà connue, on l'enregistre dans la foulée.
-    if (contribText.trim()) {
+    if (withAnswer) {
       const rec = await api.post(`smm/strategies/${contribOpen.strategyId}/contribute`, {
         contributor_user_id: Number(contribUserId),
         contribution: contribText.trim(),
       });
       if (!rec.ok) { toast.error(rec.message); return; }
-      toast.success('Contribution enregistrée.');
+      toast.success('Contribution enregistrée — la stratégie peut être soumise.');
     } else {
-      toast.success('Contributeur sollicité. Saisissez sa réponse ici quand vous l’aurez.');
+      toast.success('Contributeur sollicité. La soumission reste bloquée tant qu’il n’a pas répondu.');
     }
 
     setContribOpen(null); setContribUserId(''); setContribText(''); onReload();
@@ -462,24 +466,27 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
               {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </Field>
-          <Field label="Sa contribution (facultatif)">
+          <Field label="Sa réponse">
             <textarea
               rows={3}
               className={inputCls}
               value={contribText}
               onChange={(e) => setContribText(e.target.value)}
-              placeholder="Saisissez sa réponse si vous l’avez déjà — sinon laissez vide, il la renseignera lui-même."
+              placeholder="Ce que cette personne apporte à la stratégie."
             />
           </Field>
           <p className="text-xs font-semibold text-zinc-500">
-            La stratégie ne peut être soumise qu’avec au moins une contribution reçue.
-            Solliciter quelqu’un ne suffit pas.
+            Seule une réponse <strong>enregistrée</strong> débloque la soumission.
+            « Solliciter seulement » envoie la demande mais laisse la stratégie bloquée.
           </p>
         </div>
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex flex-wrap justify-end gap-2 pt-4">
           <button onClick={() => setContribOpen(null)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
-          <button onClick={solicit} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black">
-            {contribText.trim() ? 'Enregistrer la contribution' : 'Solliciter'}
+          <button onClick={() => void solicit(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-700">
+            Solliciter seulement
+          </button>
+          <button onClick={() => void solicit(true)} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black">
+            Enregistrer la réponse
           </button>
         </div>
       </Modal>
