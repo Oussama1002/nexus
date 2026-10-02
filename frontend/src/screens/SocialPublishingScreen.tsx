@@ -87,7 +87,8 @@ type ContentCalendarEntry = {
   status: string;
   caption: string | null;
   description: string | null;
-  attachments_json: string[] | null;
+  // Selon l'origine : tableau d'URLs, tableau d'objets {url}, ou JSON brut.
+  attachments_json: string[] | { url?: string }[] | string | null;
   social_account?: { id: number; platform: string; account_name: string } | null;
   assignee?: { id: number; name: string } | null;
   validated_by_user?: { id: number; name: string } | null;
@@ -239,6 +240,21 @@ const itemStatusLabel: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
+
+/** Les visuels arrivent en URLs, en objets {url} ou en JSON brut selon l'origine. */
+function attachmentUrls(raw: string[] | { url?: string }[] | string | null | undefined): string[] {
+  if (!raw) return [];
+  let value: unknown = raw;
+  if (typeof raw === 'string') {
+    try { value = JSON.parse(raw); } catch { return raw.startsWith('http') ? [raw] : []; }
+  }
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((a) => (typeof a === 'string' ? a : (a as { url?: string })?.url ?? ''))
+    .filter((u) => typeof u === 'string' && u.startsWith('http'));
+}
+
+const isVideo = (url: string) => /\.(mp4|mov|webm)(\?|$)/i.test(url);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -1669,6 +1685,23 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Légende</p>
               <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-sm text-zinc-700 whitespace-pre-wrap">{detail.caption}</div>
+            </div>
+          )}
+
+          {attachmentUrls(detail.attachments_json).length > 0 && (
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 mb-1">Visuel</p>
+              <div className="flex flex-wrap gap-3">
+                {attachmentUrls(detail.attachments_json).map((url) =>
+                  isVideo(url) ? (
+                    <video key={url} src={url} controls className="max-h-64 rounded-xl border border-zinc-200" />
+                  ) : (
+                    <a key={url} href={url} target="_blank" rel="noreferrer">
+                      <img src={url} alt="" className="max-h-64 rounded-xl border border-zinc-200 object-contain" />
+                    </a>
+                  ),
+                )}
+              </div>
             </div>
           )}
 
