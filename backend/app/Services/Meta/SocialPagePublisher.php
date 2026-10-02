@@ -135,6 +135,37 @@ class SocialPagePublisher
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * Retire une publication de la Page. Instagram ne l'autorise pas par
+     * l'API : seul Facebook peut etre nettoye depuis le CRM.
+     */
+    public function deletePost(SocialAccount $account, string $postId): void
+    {
+        if ($account->platform === 'instagram') {
+            throw new MetaApiException(
+                'Instagram ne permet pas de supprimer une publication par l’API. '
+                .'Retirez-la depuis l’application Instagram.'
+            );
+        }
+
+        $pageId = trim((string) $account->credential_ref);
+        $token = $this->pageToken((int) $account->brand_id, $pageId);
+
+        if ($token === null) {
+            throw new MetaApiException('Jeton de Page introuvable. Reconnectez Meta en sélectionnant cette Page.');
+        }
+
+        $response = Http::timeout(30)->delete(self::FB_BASE.'/'.$postId, ['access_token' => $token]);
+
+        if (! $response->successful()) {
+            $err = (array) ($response->json('error') ?? []);
+            throw new MetaApiException(MetaErrorTranslator::toFrench(
+                (string) ($err['message'] ?? $response->body()),
+                is_int($err['code'] ?? null) ? $err['code'] : null
+            ));
+        }
+    }
+
     public function comments(SocialAccount $account, string $postId, int $limit = 50): array
     {
         if ($account->platform === 'instagram') {

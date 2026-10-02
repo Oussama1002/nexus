@@ -28,6 +28,7 @@ class ContentCalendar extends Model
         'validated_at',
         'status',
         'published_url',
+        'external_post_id',
         'not_published_reason',
     ];
 

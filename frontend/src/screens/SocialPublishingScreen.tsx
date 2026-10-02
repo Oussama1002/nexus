@@ -1514,7 +1514,10 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
 
   const deleteContent = async () => {
     if (!detail) return;
-    if (!window.confirm(`Supprimer définitivement « ${detail.title} » ? Cette fiche sera perdue. La publication déjà en ligne sur la page, elle, n’est pas retirée.`)) return;
+    const onPage = detail.status === 'published'
+      ? ' La publication sera AUSSI retirée de la page.'
+      : '';
+    if (!window.confirm(`Supprimer définitivement « ${detail.title} » ?${onPage}`)) return;
     setMarkSaving(true);
     try {
       const res = await api.del(`content-calendar/${detail.id}`);

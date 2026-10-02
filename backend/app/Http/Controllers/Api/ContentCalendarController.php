@@ -114,13 +114,32 @@ class ContentCalendarController extends Controller
     public function destroy(Request $request, string $id): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
-        $row = ContentCalendar::query()->where('brand_id', $brandId)->findOrFail($id);
+        $row = ContentCalendar::query()->with('socialAccount')->where('brand_id', $brandId)->findOrFail($id);
         $before = $row->toArray();
+
+        // Retirer de la Page d'abord : supprimer la fiche seule laisserait un
+        // post en ligne que le CRM ne sait plus retrouver.
+        $pageNote = '';
+        if ($row->external_post_id && $row->socialAccount) {
+            try {
+                app(\App\Services\Meta\SocialPagePublisher::class)
+                    ->deletePost($row->socialAccount, (string) $row->external_post_id);
+                $pageNote = ' Publication également retirée de la page.';
+            } catch (\App\Services\Meta\MetaApiException $e) {
+                return ApiResponse::error(
+                    'Publication non retirée de la page : '.$e->getMessage()
+                    .' La fiche n’a pas été supprimée, pour ne pas perdre la trace du post.',
+                    null,
+                    422
+                );
+            }
+        }
+
         $row->delete();
 
         AuditLogger::log($request, 'content_calendar.delete', null, $before, null);
 
-        return ApiResponse::success(null, 'Content item deleted successfully.');
+        return ApiResponse::success(null, 'Contenu supprimé.'.$pageNote);
     }
 
     public function submitForReview(Request $request, string $id): JsonResponse
@@ -302,6 +321,8 @@ class ContentCalendarController extends Controller
         $row->status = 'published';
         $row->published_at = now();
         $row->published_url = $result['permalink'] ?: $row->published_url;
+        // Garde l'id du post : c'est lui qui permettra de le retirer.
+        $row->external_post_id = $result['id'] ?? null;
         $row->social_account_id = $account->id;
         $row->save();
 
