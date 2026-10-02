@@ -1455,10 +1455,6 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
 
   // Detail panel
   const [detail, setDetail] = useState<ContentCalendarEntry | null>(null);
-  const [showMarkPublished, setShowMarkPublished] = useState(false);
-  const [showMarkNotPublished, setShowMarkNotPublished] = useState(false);
-  const [publishedUrl, setPublishedUrl] = useState('');
-  const [notPublishedReason, setNotPublishedReason] = useState('');
   const [markSaving, setMarkSaving] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -1496,27 +1492,6 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
     }
   };
 
-  const markPublished = async () => {
-    if (!publishedUrl.trim()) { toast('Le lien de publication est obligatoire', 'error'); return; }
-    if (!detail) return;
-    setMarkSaving(true);
-    try {
-      const res = await api.post(`content-calendar/${detail.id}/mark-published`, { published_url: publishedUrl });
-      if (res.ok) {
-        toast('Contenu marqué comme publié', 'success');
-        setShowMarkPublished(false);
-        setPublishedUrl('');
-        setDetail(null);
-        loadData();
-      } else {
-        toast('Erreur : le contenu doit être approuvé avant publication', 'error');
-      }
-    } catch {
-      toast('Erreur lors du marquage', 'error');
-    } finally {
-      setMarkSaving(false);
-    }
-  };
 
   /** Approuve le contenu : sans ca, « Publier maintenant » est refuse. */
   const approveContent = async () => {
@@ -1554,9 +1529,7 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
     try {
       const res = await api.post(`content-calendar/${detail.id}/publish-now`, {});
       if (res.ok) {
-        toast(res.message || 'Contenu publie', 'success');
-        setShowMarkPublished(false);
-        setPublishedUrl('');
+        toast(res.message || 'Contenu publié', 'success');
         setDetail(null);
         loadData();
       } else {
@@ -1569,27 +1542,6 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
     }
   };
 
-  const markNotPublished = async () => {
-    if (!notPublishedReason.trim()) { toast('Le motif est obligatoire', 'error'); return; }
-    if (!detail) return;
-    setMarkSaving(true);
-    try {
-      const res = await api.post(`content-calendar/${detail.id}/mark-not-published`, { not_published_reason: notPublishedReason });
-      if (res.ok) {
-        toast('Contenu marqué comme non publié', 'success');
-        setShowMarkNotPublished(false);
-        setNotPublishedReason('');
-        setDetail(null);
-        loadData();
-      } else {
-        toast('Erreur lors du marquage', 'error');
-      }
-    } catch {
-      toast('Erreur lors du marquage', 'error');
-    } finally {
-      setMarkSaving(false);
-    }
-  };
 
   // ── Detail view ──
   if (detail) {
@@ -1616,16 +1568,10 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
               </button>
             )}
             {detail.status === 'approved' && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowMarkPublished(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700">
-                  <CheckCircle size={14} /> Marquer publiée
-                </button>
-                <button onClick={() => setShowMarkNotPublished(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
-                  <XCircle size={14} /> Non publiée
-                </button>
-              </div>
+              <button onClick={publishNow} disabled={markSaving}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50">
+                {markSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />} Publier sur la page
+              </button>
             )}
           </div>
 
@@ -1684,48 +1630,6 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
           )}
         </div>
 
-        {/* Mark Published modal */}
-        <Modal open={showMarkPublished} onClose={() => setShowMarkPublished(false)} title="Publier le contenu"
-          footer={
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowMarkPublished(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button>
-              <button onClick={markPublished} disabled={markSaving || !publishedUrl.trim()} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-800 disabled:opacity-50">
-                Enregistrer le lien
-              </button>
-              <button onClick={publishNow} disabled={markSaving} className="btn btn-primary flex items-center gap-2 text-sm">
-                {markSaving && <Loader2 size={14} className="animate-spin" />} Publier maintenant
-              </button>
-            </div>
-          }
-        >
-          <div className="space-y-4">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs font-semibold text-zinc-600">
-              « Publier maintenant » envoie le contenu sur la Page Facebook ou le compte Instagram lié,
-              avec sa légende et son visuel. Sinon, publiez à la main et collez le lien ci-dessous.
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-900 mb-1">Lien d’une publication déjà faite</label>
-              <input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={publishedUrl} onChange={e => setPublishedUrl(e.target.value)} />
-            </div>
-          </div>
-        </Modal>
-
-        {/* Mark Not Published modal */}
-        <Modal open={showMarkNotPublished} onClose={() => setShowMarkNotPublished(false)} title="Marquer comme non publiée"
-          footer={
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowMarkNotPublished(false)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 hover:bg-zinc-50">Annuler</button>
-              <button onClick={markNotPublished} disabled={markSaving} className="btn btn-primary flex items-center gap-2 text-sm">
-                {markSaving && <Loader2 size={14} className="animate-spin" />} Confirmer
-              </button>
-            </div>
-          }
-        >
-          <div>
-            <label className="block text-xs font-semibold text-zinc-900 mb-1">Motif de non-publication *</label>
-            <textarea className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" rows={3} value={notPublishedReason} onChange={e => setNotPublishedReason(e.target.value)} placeholder="Expliquez pourquoi le contenu n'a pas été publié..." />
-          </div>
-        </Modal>
       </div>
     );
   }
