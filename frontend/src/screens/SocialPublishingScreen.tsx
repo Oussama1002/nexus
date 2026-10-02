@@ -740,7 +740,7 @@ export function SocialPublishingScreen() {
       {/* Panels */}
       {activeTab === 'journee' && <TabJournee toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} canValidate={canValidate} />}
       {activeTab === 'historique' && <TabHistorique toast={toast} userId={user?.id} />}
-      {activeTab === 'publications' && <TabPublications toast={toast} userId={user?.id} />}
+      {activeTab === 'publications' && <TabPublications toast={toast} userId={user?.id} canApprove={isAdmin || hasPermission('content_calendar.approve')} />}
       {activeTab === 'influenceurs' && <TabInfluenceurs toast={toast} onNewComplaint={openComplaintModal} />}
       {activeTab === 'moderation' && <TabModeration toast={toast} onNewComplaint={openComplaintModal} canModerate={hasPermission('social_accounts.update')} />}
       {activeTab === 'reclamations' && <TabReclamations toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} refreshToken={complaintRefresh} />}
@@ -1432,7 +1432,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
 /*  Tab 2 : Publications (E3)                                          */
 /* ================================================================== */
 
-function TabPublications({ toast, userId }: { toast: (m: string, t: string) => void; userId?: number }) {
+function TabPublications({ toast, userId, canApprove }: { toast: (m: string, t: string) => void; userId?: number; canApprove: boolean }) {
   const [rows, setRows] = useState<ContentCalendarEntry[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -1513,6 +1513,26 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
     }
   };
 
+  /** Approuve le contenu : sans ca, « Publier maintenant » est refuse. */
+  const approveContent = async () => {
+    if (!detail) return;
+    setMarkSaving(true);
+    try {
+      const res = await api.post(`content-calendar/${detail.id}/approve`, {});
+      if (res.ok) {
+        toast(res.message || 'Contenu approuvé', 'success');
+        setDetail({ ...detail, status: 'approved' });
+        loadData();
+      } else {
+        toast(res.message || 'Approbation refusée', 'error');
+      }
+    } catch {
+      toast('Erreur lors de l’approbation', 'error');
+    } finally {
+      setMarkSaving(false);
+    }
+  };
+
   /** Publie reellement sur la Page / le compte, sans copier-coller de lien. */
   const publishNow = async () => {
     if (!detail) return;
@@ -1575,6 +1595,12 @@ function TabPublications({ toast, userId }: { toast: (m: string, t: string) => v
                 <Badge value={pubStatusLabel[detail.status] || detail.status} colorMap={pubStatusColor} />
               </div>
             </div>
+            {detail.status !== 'approved' && detail.status !== 'published' && canApprove && (
+              <button onClick={approveContent} disabled={markSaving}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50">
+                <CheckCircle size={14} /> Approuver
+              </button>
+            )}
             {detail.status === 'approved' && (
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowMarkPublished(true)}
