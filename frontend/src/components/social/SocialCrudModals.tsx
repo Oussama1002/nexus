@@ -93,6 +93,10 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
   const canApproveProduction = hasPermission('content_production.approve');
   const canApproveCm = hasPermission('cm_tracking.approve');
 
+  /** Comptes de la plateforme choisie : proposer les autres mene a publier au mauvais endroit. */
+  const accountsFor = (platform: string) =>
+    platform ? accounts.filter((a) => a.platform === platform) : accounts;
+
   const errToast = (res: { ok: false; message: string; errors?: unknown }) => {
     const fe = flattenFieldErrors((res.errors ?? {}) as Record<string, unknown>);
     toast.error(fe.length ? fe.join(' ') : res.message);
@@ -704,7 +708,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
             </select>
           </Field>
           <Field label="Plateforme (filtre)">
-            <select className={selClass} value={calForm.platform} onChange={(e) => setCalForm({ ...calForm, platform: e.target.value })}>
+            <select className={selClass} value={calForm.platform} onChange={(e) => setCalForm({ ...calForm, platform: e.target.value, social_account_id: '' })}>
               <option value="">—</option>
               {PF.map((p) => (
                 <option key={p.v} value={p.v}>
@@ -727,12 +731,17 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
           <Field label="Compte social">
             <select className={selClass} value={calForm.social_account_id} onChange={(e) => setCalForm({ ...calForm, social_account_id: e.target.value })}>
               <option value="">—</option>
-              {accounts.map((a) => (
+              {accountsFor(calForm.platform).map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.platform} — {a.account_name}
+                  {a.account_name}
                 </option>
               ))}
             </select>
+            {calForm.platform && accountsFor(calForm.platform).length === 0 && (
+              <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+                Aucun compte {calForm.platform} connecté. Importez-les depuis Comptes sociaux.
+              </span>
+            )}
           </Field>
           <Field label="Stratégie">
             <select className={selClass} value={calForm.strategy_id} onChange={(e) => setCalForm({ ...calForm, strategy_id: e.target.value })}>
@@ -912,15 +921,20 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
           <Field label="Compte social">
             <select className={selClass} value={pubForm.social_account_id} onChange={(e) => setPubForm({ ...pubForm, social_account_id: e.target.value })}>
               <option value="">—</option>
-              {accounts.map((a) => (
+              {accountsFor(pubForm.platform).map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.platform} — {a.account_name}
+                  {a.account_name}
                 </option>
               ))}
             </select>
+            {pubForm.platform && accountsFor(pubForm.platform).length === 0 && (
+              <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+                Aucun compte {pubForm.platform} connecté. Importez-les depuis Comptes sociaux.
+              </span>
+            )}
           </Field>
           <Field label="Plateforme *">
-            <select className={selClass} value={pubForm.platform} onChange={(e) => setPubForm({ ...pubForm, platform: e.target.value })}>
+            <select className={selClass} value={pubForm.platform} onChange={(e) => setPubForm({ ...pubForm, platform: e.target.value, social_account_id: '' })}>
               {PF.map((p) => (
                 <option key={p.v} value={p.v}>
                   {p.l}
