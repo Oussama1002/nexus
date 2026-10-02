@@ -204,6 +204,15 @@ export function InfluenceWorkspaceScreen() {
   /* ── Data stores ── */
   const [dash, setDash] = useState<R | null>(null);
   const [influencers, setInfluencers] = useState<R[]>([]);
+  /**
+   * Influenceuses proposables : ni inactives, ni ecartees, ni exclues. Celle
+   * deja choisie reste listee, sinon modifier une vieille fiche effacerait
+   * silencieusement son influenceuse.
+   */
+  const selectableInfluencers = (currentId?: string) =>
+    influencers.filter(
+      i => !['inactive', 'ecartee', 'exclue'].includes(String(i.status)) || String(i.id) === currentId,
+    );
   const [collabs, setCollabs] = useState<R[]>([]);
   // Catalogue produits, pour composer la liste d'un envoi.
   const [productList, setProductList] = useState<{ id: number; name: string; sku?: string | null }[]>([]);
@@ -1699,7 +1708,7 @@ export function InfluenceWorkspaceScreen() {
           <Field label="Influenceuse *">
             <select className={selClass} value={colForm.influencer_id} onChange={e => setColForm(p => ({ ...p, influencer_id: e.target.value }))}>
               <option value="">— Sélectionner —</option>
-              {influencers.filter(i => String(i.status) !== 'exclue').map(i => (
+              {selectableInfluencers(colForm.influencer_id).map(i => (
                 <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>
               ))}
             </select>
@@ -1887,7 +1896,7 @@ export function InfluenceWorkspaceScreen() {
           <Field label="Influenceuse *">
             <select className={selClass} value={shipForm.influencer_id} onChange={e => setShipForm(p => ({ ...p, influencer_id: e.target.value }))}>
               <option value="">— Sélectionner —</option>
-              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+              {selectableInfluencers(shipForm.influencer_id).map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
             </select>
           </Field>
           <div className="sm:col-span-2">
@@ -1989,7 +1998,7 @@ export function InfluenceWorkspaceScreen() {
           <Field label="Influenceuse *">
             <select className={selClass} value={payForm.influencer_id} onChange={e => setPayForm(p => ({ ...p, influencer_id: e.target.value }))}>
               <option value="">— Sélectionner —</option>
-              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+              {selectableInfluencers(payForm.influencer_id).map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
             </select>
           </Field>
           <Field label="Nature *">
@@ -2051,7 +2060,7 @@ export function InfluenceWorkspaceScreen() {
           <Field label="Influenceuse *">
             <select className={selClass} value={pcForm.influencer_id} onChange={e => setPcForm(p => ({ ...p, influencer_id: e.target.value }))}>
               <option value="">— Sélectionner —</option>
-              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+              {selectableInfluencers(pcForm.influencer_id).map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
             </select>
           </Field>
           <Field label="Type de contenu">
@@ -2110,7 +2119,7 @@ export function InfluenceWorkspaceScreen() {
           <Field label="Influenceuse *">
             <select className={selClass} value={docForm.influencer_id} onChange={e => setDocForm(p => ({ ...p, influencer_id: e.target.value }))}>
               <option value="">— Sélectionner —</option>
-              {influencers.map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
+              {selectableInfluencers(docForm.influencer_id).map(i => <option key={String(i.id)} value={String(i.id)}>{String(i.full_name)}</option>)}
             </select>
           </Field>
           <Field label="Collaboration">
