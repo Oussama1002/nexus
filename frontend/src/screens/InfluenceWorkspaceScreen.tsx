@@ -510,6 +510,19 @@ export function InfluenceWorkspaceScreen() {
     agreed_amount: '', currency: 'MAD', start_date: '', end_date: '',
   });
   const [colSaving, setColSaving] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState<'contract_url' | 'brief_url' | null>(null);
+
+  /** Contrat et brief sont deposes, plus heberges ailleurs puis recopies. */
+  const uploadCollabDoc = async (field: 'contract_url' | 'brief_url', file: File) => {
+    setUploadingDoc(field);
+    const fd = new FormData();
+    fd.append('document', file);
+    const res = await api.post<{ url: string }>('influencer-collaborations/upload-document', fd);
+    setUploadingDoc(null);
+    if (!res.ok) { toast.error(res.message); return; }
+    setColForm(p => ({ ...p, [field]: res.data.url }));
+    toast.success('Document joint.');
+  };
 
   const openCollab = (id?: number) => {
     setColId(id);
@@ -1725,11 +1738,37 @@ export function InfluenceWorkspaceScreen() {
               <textarea className={inputClass} rows={2} value={colForm.objectives} onChange={e => setColForm(p => ({ ...p, objectives: e.target.value }))} />
             </Field>
           </div>
-          <Field label="URL Contrat">
-            <input className={inputClass} value={colForm.contract_url} onChange={e => setColForm(p => ({ ...p, contract_url: e.target.value }))} />
+          <Field label="Contrat">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.odt,image/*"
+              disabled={uploadingDoc === 'contract_url'}
+              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCollabDoc('contract_url', f); }}
+              className="w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-bold"
+            />
+            {uploadingDoc === 'contract_url' && <span className="mt-1 block text-[11px] font-semibold text-zinc-500">Envoi…</span>}
+            {uploadingDoc !== 'contract_url' && colForm.contract_url && (
+              <span className="mt-1 flex items-center gap-2">
+                <a href={colForm.contract_url} target="_blank" rel="noreferrer" className="text-[11px] font-black text-primary-600">Contrat joint — ouvrir</a>
+                <button type="button" onClick={() => setColForm(p => ({ ...p, contract_url: '' }))} className="text-[11px] font-black text-red-600">Retirer</button>
+              </span>
+            )}
           </Field>
-          <Field label="URL Brief">
-            <input className={inputClass} value={colForm.brief_url} onChange={e => setColForm(p => ({ ...p, brief_url: e.target.value }))} />
+          <Field label="Brief">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.odt,image/*"
+              disabled={uploadingDoc === 'brief_url'}
+              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCollabDoc('brief_url', f); }}
+              className="w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-bold"
+            />
+            {uploadingDoc === 'brief_url' && <span className="mt-1 block text-[11px] font-semibold text-zinc-500">Envoi…</span>}
+            {uploadingDoc !== 'brief_url' && colForm.brief_url && (
+              <span className="mt-1 flex items-center gap-2">
+                <a href={colForm.brief_url} target="_blank" rel="noreferrer" className="text-[11px] font-black text-primary-600">Brief joint — ouvrir</a>
+                <button type="button" onClick={() => setColForm(p => ({ ...p, brief_url: '' }))} className="text-[11px] font-black text-red-600">Retirer</button>
+              </span>
+            )}
           </Field>
           <div className="sm:col-span-2">
             <Field label="Livrables attendus (texte libre)">

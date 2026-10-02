@@ -25,6 +25,27 @@ class InfluencerCollaborationController extends Controller
 
     private const COLLAB_TYPES = ['story', 'reel', 'post', 'live', 'video', 'package', 'ambassador'];
 
+    /** Depot du contrat ou du brief : un fichier plutot qu'une URL a heberger ailleurs. */
+    public function uploadDocument(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false) ?? 'commun';
+
+        $request->validate([
+            'document' => ['required', 'file', 'max:20480', 'mimes:pdf,doc,docx,odt,jpg,jpeg,png'],
+        ], [
+            'document.required' => 'Choisissez un fichier.',
+            'document.max' => 'Fichier trop lourd : 20 Mo maximum.',
+            'document.mimes' => 'Formats acceptés : PDF, Word, ODT ou image.',
+        ]);
+
+        $path = $request->file('document')->store('influence/contrats/'.$brandId, 'public');
+
+        return ApiResponse::success(
+            ['url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path)],
+            'Document enregistré.'
+        );
+    }
+
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);

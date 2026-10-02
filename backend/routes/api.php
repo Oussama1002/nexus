@@ -449,6 +449,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('influencers/{id}', [InfluencerController::class, 'destroy'])->whereNumber('id')->middleware('permission:influence.delete');
 
     // ─── Influencer Collaborations ───
+    Route::post('influencer-collaborations/upload-document', [InfluencerCollaborationController::class, 'uploadDocument'])->middleware('permission:influencer_collaborations.create');
     Route::get('influencer-collaborations', [InfluencerCollaborationController::class, 'index'])->middleware('permission:influencer_collaborations.view');
     Route::post('influencer-collaborations', [InfluencerCollaborationController::class, 'store'])
         ->middleware(['permission:influencer_collaborations.create', 'am.gate:G4']); // AM lock: G4 required for influence
