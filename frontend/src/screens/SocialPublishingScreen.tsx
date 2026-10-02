@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { SocialCrudModals, type SocialCrudHandle } from '../components/social/SocialCrudModals';
+import { useBrand } from '../context/BrandContext';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -630,6 +632,7 @@ function TemplatesPanel({ toast, open, onClose, onCreateFromTemplate }: {
 
 export function SocialPublishingScreen() {
   const toastCtx = useToast();
+  const { activeBrandId } = useBrand();
   const toast = (msg: string, type: string) => type === 'success' ? toastCtx.success(msg) : toastCtx.error(msg);
   const { user, hasPermission, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -740,7 +743,7 @@ export function SocialPublishingScreen() {
       {/* Panels */}
       {activeTab === 'journee' && <TabJournee toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} canValidate={canValidate} />}
       {activeTab === 'historique' && <TabHistorique toast={toast} userId={user?.id} />}
-      {activeTab === 'publications' && <TabPublications toast={toast} userId={user?.id} canApprove={isAdmin || hasPermission('content_calendar.approve')} />}
+      {activeTab === 'publications' && <TabPublications toast={toast} toastCtx={toastCtx} userId={user?.id} canApprove={isAdmin || hasPermission('content_calendar.approve')} activeBrandId={activeBrandId} />}
       {activeTab === 'influenceurs' && <TabInfluenceurs toast={toast} onNewComplaint={openComplaintModal} />}
       {activeTab === 'moderation' && <TabModeration toast={toast} onNewComplaint={openComplaintModal} canModerate={hasPermission('social_accounts.update')} />}
       {activeTab === 'reclamations' && <TabReclamations toast={toast} userId={user?.id} onNewComplaint={openComplaintModal} refreshToken={complaintRefresh} />}
@@ -1432,7 +1435,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
 /*  Tab 2 : Publications (E3)                                          */
 /* ================================================================== */
 
-function TabPublications({ toast, userId, canApprove }: { toast: (m: string, t: string) => void; userId?: number; canApprove: boolean }) {
+function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }: { toast: (m: string, t: string) => void; toastCtx: ReturnType<typeof useToast>; userId?: number; canApprove: boolean; activeBrandId: string | null }) {
   const [rows, setRows] = useState<ContentCalendarEntry[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -1447,6 +1450,8 @@ function TabPublications({ toast, userId, canApprove }: { toast: (m: string, t: 
   // Une erreur d'API devenait « Aucune publication » : on ne savait plus si le
   // calendrier etait vide ou si la requete avait echoue.
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Le formulaire de contenu existait deja : il n'etait monte nulle part.
+  const crudRef = useRef<SocialCrudHandle>(null);
 
   // Detail panel
   const [detail, setDetail] = useState<ContentCalendarEntry | null>(null);
@@ -1719,6 +1724,18 @@ function TabPublications({ toast, userId, canApprove }: { toast: (m: string, t: 
   // ── List view ──
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => crudRef.current?.openCalendar()}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-black"
+        >
+          <Plus size={16} /> Nouvelle publication
+        </button>
+      </div>
+
+      <SocialCrudModals ref={crudRef} activeBrandId={activeBrandId} toast={toastCtx} onSaved={() => void loadData()} />
+
       <div className="flex flex-wrap gap-3">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
