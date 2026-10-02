@@ -402,6 +402,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('strategies/{id}', [StrategyController::class, 'destroy'])->whereNumber('id')->middleware('permission:strategies.delete');
     Route::post('strategies/{id}/approve', [StrategyController::class, 'approve'])->whereNumber('id')->middleware('permission:strategies.approve');
 
+    Route::post('content-calendar/upload-media', [ContentCalendarController::class, 'uploadMedia'])->middleware('permission:content_calendar.create');
     Route::get('content-calendar', [ContentCalendarController::class, 'index'])->middleware('permission:content_calendar.view');
     Route::post('content-calendar', [ContentCalendarController::class, 'store'])->middleware('permission:content_calendar.create');
     Route::get('content-calendar/{id}', [ContentCalendarController::class, 'show'])->whereNumber('id')->middleware('permission:content_calendar.view');

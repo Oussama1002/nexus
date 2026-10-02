@@ -315,6 +315,30 @@ class ContentCalendarController extends Controller
     }
 
     /** Première pièce jointe exploitable comme visuel de publication. */
+    /**
+     * Visuel du post. Meta va chercher l'image a l'URL fournie : elle doit
+     * donc etre publiquement accessible, d'ou le disque public.
+     */
+    public function uploadMedia(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+
+        $request->validate([
+            'media' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,gif,webp,mp4'],
+        ], [
+            'media.required' => 'Choisissez un fichier.',
+            'media.max' => 'Fichier trop lourd : 10 Mo maximum.',
+            'media.mimes' => 'Formats acceptés : JPG, PNG, GIF, WEBP ou MP4.',
+        ]);
+
+        $path = $request->file('media')->store('content-calendar/'.$brandId, 'public');
+
+        return ApiResponse::success(
+            ['url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path)],
+            'Visuel enregistré.'
+        );
+    }
+
     private function firstAttachmentUrl(ContentCalendar $row): ?string
     {
         $attachments = $row->attachments_json;

@@ -94,6 +94,29 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
   const canApproveCm = hasPermission('cm_tracking.approve');
 
   /** Comptes de la plateforme choisie : proposer les autres mene a publier au mauvais endroit. */
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  /** Le visuel doit être une URL publique : Meta va la chercher lui-même. */
+  const uploadMedia = async (file: File) => {
+    setUploadingMedia(true);
+    const fd = new FormData();
+    fd.append('media', file);
+    const res = await api.post<{ url: string }>('content-calendar/upload-media', fd);
+    setUploadingMedia(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    setCalForm((f) => ({ ...f, attachments_json: JSON.stringify([{ url: res.data.url }]) }));
+    toast.success('Visuel joint.');
+  };
+
+  const calMediaUrl = (() => {
+    try {
+      const parsed = JSON.parse(calForm.attachments_json || '[]') as { url?: string }[];
+      return Array.isArray(parsed) ? parsed.find((a) => a?.url)?.url ?? '' : '';
+    } catch {
+      return '';
+    }
+  })();
+
   const accountsFor = (platform: string) =>
     platform ? accounts.filter((a) => a.platform === platform) : accounts;
 
@@ -763,8 +786,30 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
               ))}
             </select>
           </Field>
-          <Field label="Pièces jointes (JSON)">
-            <textarea className={`${selClass} font-mono text-xs`} value={calForm.attachments_json} onChange={(e) => setCalForm({ ...calForm, attachments_json: e.target.value })} />
+          <Field label="Visuel du post">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+              disabled={uploadingMedia}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadMedia(f); }}
+              className="w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-bold"
+            />
+            {uploadingMedia && <span className="mt-1 block text-[11px] font-semibold text-zinc-500">Envoi du visuel…</span>}
+            {!uploadingMedia && calMediaUrl && (
+              <div className="mt-2 flex items-center gap-2">
+                <img src={calMediaUrl} alt="" className="h-14 w-14 rounded-lg object-cover border border-zinc-200" />
+                <button
+                  type="button"
+                  onClick={() => setCalForm((f) => ({ ...f, attachments_json: '' }))}
+                  className="text-[11px] font-black text-red-600 hover:underline"
+                >
+                  Retirer
+                </button>
+              </div>
+            )}
+            <span className="mt-1 block text-[11px] font-semibold text-zinc-500">
+              Instagram refuse un post sans visuel.
+            </span>
           </Field>
           <Field label="Statut">
             <select className={selClass} value={calForm.status} onChange={(e) => setCalForm({ ...calForm, status: e.target.value })}>
