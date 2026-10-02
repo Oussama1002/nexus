@@ -1493,6 +1493,43 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
   };
 
 
+  /** Archive : le contenu sort du flux sans etre detruit. */
+  const archiveContent = async () => {
+    if (!detail) return;
+    if (!window.confirm(`Archiver « ${detail.title} » ? Il passe en annulé et sort du flux de publication.`)) return;
+    setMarkSaving(true);
+    try {
+      const res = await api.patch(`content-calendar/${detail.id}`, { status: 'cancelled' });
+      if (res.ok) {
+        toast('Contenu archivé', 'success');
+        setDetail(null);
+        loadData();
+      } else {
+        toast(res.message || 'Archivage refusé', 'error');
+      }
+    } finally {
+      setMarkSaving(false);
+    }
+  };
+
+  const deleteContent = async () => {
+    if (!detail) return;
+    if (!window.confirm(`Supprimer définitivement « ${detail.title} » ? Cette fiche sera perdue. La publication déjà en ligne sur la page, elle, n’est pas retirée.`)) return;
+    setMarkSaving(true);
+    try {
+      const res = await api.del(`content-calendar/${detail.id}`);
+      if (res.ok) {
+        toast('Contenu supprimé', 'success');
+        setDetail(null);
+        loadData();
+      } else {
+        toast(res.message || 'Suppression refusée', 'error');
+      }
+    } finally {
+      setMarkSaving(false);
+    }
+  };
+
   /** Approuve le contenu : sans ca, « Publier maintenant » est refuse. */
   const approveContent = async () => {
     if (!detail) return;
@@ -1552,7 +1589,7 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
         </button>
 
         <div className="card p-6 space-y-5">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="text-lg font-black text-zinc-900">{detail.title}</h2>
               <div className="flex items-center gap-2 mt-2">
@@ -1561,6 +1598,7 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
                 <Badge value={pubStatusLabel[detail.status] || detail.status} colorMap={pubStatusColor} />
               </div>
             </div>
+            <div className="flex flex-wrap items-center gap-2">
             {detail.status !== 'approved' && detail.status !== 'published' && canApprove && (
               <button onClick={approveContent} disabled={markSaving}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50">
@@ -1573,6 +1611,21 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
                 {markSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />} Publier sur la page
               </button>
             )}
+            <button onClick={() => crudRef.current?.openCalendar(detail.id)} disabled={markSaving}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-zinc-200 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50">
+              Modifier
+            </button>
+            {detail.status !== 'cancelled' && (
+              <button onClick={archiveContent} disabled={markSaving}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-zinc-200 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 disabled:opacity-50">
+                <Archive size={14} /> Archiver
+              </button>
+            )}
+            <button onClick={deleteContent} disabled={markSaving}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+              <XCircle size={14} /> Supprimer
+            </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
