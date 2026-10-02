@@ -63,6 +63,11 @@ class InfluencerShipmentController extends Controller
         $data['created_by'] = $request->user()->id;
         $data['status'] = $data['status'] ?? 'a_preparer';
         $data['reference'] = 'ENV-' . strtoupper(uniqid());
+        // Numero de suivi interne : le transporteur n'en fournit pas au moment
+        // de la creation, et le saisir a la main n'apportait rien.
+        if (empty($data['tracking_number'])) {
+            $data['tracking_number'] = 'SUIVI-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
+        }
         $data['products_json'] = json_encode($data['products_json']);
 
         $row = InfluencerShipment::query()->create($data);

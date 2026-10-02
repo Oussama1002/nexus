@@ -742,6 +742,7 @@ export function InfluenceWorkspaceScreen() {
       influencer_id: Number(shipForm.influencer_id),
       products_json: items,
       shipping_company: shipForm.shipping_company || null,
+      // Genere par le serveur a la creation ; conserve en modification.
       tracking_number: shipForm.tracking_number || null,
       tracking_url: shipForm.tracking_url || null,
       estimated_delivery: shipForm.estimated_delivery || null,
@@ -1856,7 +1857,17 @@ export function InfluenceWorkspaceScreen() {
       <Modal open={shipOpen} onClose={() => setShipOpen(false)} title={shipId ? 'Modifier envoi' : 'Nouvel envoi'}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Collaboration *">
-            <select className={selClass} value={shipForm.collaboration_id} onChange={e => setShipForm(p => ({ ...p, collaboration_id: e.target.value }))}>
+            <select className={selClass} value={shipForm.collaboration_id} onChange={e => {
+              const id = e.target.value;
+              // L'influenceuse decoule de la collaboration : la redemander
+              // laissait saisir un envoi destine a quelqu'un d'autre.
+              const col = collabs.find(c => String(c.id) === id);
+              setShipForm(p => ({
+                ...p,
+                collaboration_id: id,
+                influencer_id: col?.influencer_id != null ? String(col.influencer_id) : p.influencer_id,
+              }));
+            }}>
               <option value="">— Sélectionner —</option>
               {collabs.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.title)}</option>)}
             </select>
@@ -1915,9 +1926,6 @@ export function InfluenceWorkspaceScreen() {
           </div>
           <Field label="Transporteur">
             <input className={inputClass} value={shipForm.shipping_company} onChange={e => setShipForm(p => ({ ...p, shipping_company: e.target.value }))} />
-          </Field>
-          <Field label="N° suivi">
-            <input className={inputClass} value={shipForm.tracking_number} onChange={e => setShipForm(p => ({ ...p, tracking_number: e.target.value }))} />
           </Field>
           <Field label="Livraison estimée">
             <input type="date" className={inputClass} value={shipForm.estimated_delivery} onChange={e => setShipForm(p => ({ ...p, estimated_delivery: e.target.value }))} />
