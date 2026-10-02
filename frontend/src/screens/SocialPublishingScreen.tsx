@@ -1523,6 +1523,15 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
     if (!detail) return;
     setMarkSaving(true);
     try {
+      // Le flux impose un passage par « en revue » : on le franchit d'abord,
+      // sinon l'approbation est refusee sur un brouillon.
+      if (detail.status !== 'review') {
+        const step = await api.post(`content-calendar/${detail.id}/submit-review`, {});
+        if (!step.ok) {
+          toast(step.message || 'Soumission refusée', 'error');
+          return;
+        }
+      }
       const res = await api.post(`content-calendar/${detail.id}/approve`, {});
       if (res.ok) {
         toast(res.message || 'Contenu approuvé', 'success');
