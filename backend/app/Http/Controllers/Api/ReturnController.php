@@ -45,6 +45,8 @@ class ReturnController extends Controller
         }
         $manual = $rq->get()->map(fn (ReturnRecord $r) => [
             'id' => 'R' . $r->id,
+            // Le numero ne suffit pas pour ouvrir la fiche : il faut l'id.
+            'order_id' => $r->order_id,
             'order_ref' => $r->order_ref ?? '',
             'customer_name' => $r->customer_name,
             'product_name' => $r->product_name,
@@ -79,6 +81,7 @@ class ReturnController extends Controller
             }
             $fromOrders = $oq->get()->map(fn (Order $o) => [
                 'id' => 'O' . $o->id,
+                'order_id' => $o->id,
                 'order_ref' => $o->order_number,
                 'customer_name' => $o->customer?->full_name ?? '—',
                 'product_name' => $o->lines->pluck('product_name')->filter()->take(3)->join(', ')

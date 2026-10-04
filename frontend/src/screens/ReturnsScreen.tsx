@@ -7,12 +7,28 @@ import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 import { useToast } from '../context/ToastContext';
 import { useBrand } from '../context/BrandContext';
-import { useNavigate } from 'react-router-dom';
-import { pathForView } from '../lib/appPaths';
+import { Drawer } from '../components/ui/Drawer';
+
+type OrderDetail = {
+  id: number;
+  order_number: string;
+  total: string;
+  payment_method: string | null;
+  shipping_address: string | null;
+  created_at: string;
+  customer?: { full_name: string; phone: string; city?: string | null; address?: string | null } | null;
+  lines?: { id: number; product_name: string; quantity: number; unit_price: string }[];
+  shipment?: {
+    tracking_number: string | null;
+    status: string;
+    delivery_company?: { name: string } | null;
+  } | null;
+};
 
 type Return = {
   id: number | string;
   order_ref: string;
+  order_id?: number | null;
   customer_name: string;
   product_name: string;
   reason: string;
@@ -53,9 +69,20 @@ const formatMAD = (n: number) =>
 
 export function ReturnsScreen() {
   const { activeBrandId } = useBrand();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const toast = useToast();
   const [rows, setRows] = useState<Return[]>([]);
+  // Fiche commande ouverte en panneau lateral, sans quitter les Retours.
+  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
+  const [orderLoading, setOrderLoading] = useState(false);
+
+  const openOrder = async (orderId: number) => {
+    setOrderLoading(true);
+    setOrderDetail(null);
+    const res = await api.get<OrderDetail>(`orders/${orderId}`);
+    setOrderLoading(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    setOrderDetail(res.data);
+  };
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -196,7 +223,8 @@ export function ReturnsScreen() {
                     {row.order_ref ? (
                       <button
                         type="button"
-                        onClick={() => navigate(`${pathForView('orders')}?order_ref=${encodeURIComponent(row.order_ref)}`)}
+                        onClick={() => row.order_id && void openOrder(row.order_id)}
+                        disabled={!row.order_id}
                         className="font-black text-primary-600 hover:underline"
                       >
                         {row.order_ref}
@@ -234,6 +262,61 @@ export function ReturnsScreen() {
           </div>
         </div>
       )}
+
+      <Drawer
+        open={orderLoading || !!orderDetail}
+        onClose={() => setOrderDetail(null)}
+        title={orderDetail?.order_number ?? 'Commande'}
+      >
+        {orderLoading ? (
+          <p className="text-sm font-semibold text-zinc-500">Chargement…</p>
+        ) : orderDetail ? (
+          <div className="space-y-4 text-sm">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Client</p>
+              <p className="font-bold text-zinc-900">{orderDetail.customer?.full_name ?? '—'}</p>
+              <p className="text-zinc-600">{orderDetail.customer?.phone ?? '—'}</p>
+              <p className="text-zinc-600">
+                {orderDetail.shipping_address || orderDetail.customer?.address || '—'}
+                {orderDetail.customer?.city ? ` · ${orderDetail.customer.city}` : ''}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Produits</p>
+              {orderDetail.lines?.length ? (
+                <ul className="mt-1 space-y-1">
+                  {orderDetail.lines.map(l => (
+                    <li key={l.id} className="flex justify-between gap-3">
+                      <span className="text-zinc-800">{l.product_name} × {l.quantity}</span>
+                      <span className="font-bold text-zinc-900">{formatMAD(Number(l.unit_price) * l.quantity)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-zinc-500">—</p>}
+            </div>
+
+            <div className="flex justify-between border-t border-zinc-100 pt-3">
+              <span className="font-black uppercase text-[10px] tracking-widest text-zinc-500">Total</span>
+              <span className="font-black text-zinc-900">{formatMAD(Number(orderDetail.total))}</span>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Expédition</p>
+              <p className="text-zinc-700">
+                {orderDetail.shipment
+                  ? `${orderDetail.shipment.delivery_company?.name ?? '—'} · ${orderDetail.shipment.tracking_number ?? 'sans suivi'}`
+                  : 'Aucune expédition'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Créée le</p>
+              <p className="text-zinc-700">{new Date(orderDetail.created_at).toLocaleString('fr-FR')}</p>
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
     </div>
   );
 }
