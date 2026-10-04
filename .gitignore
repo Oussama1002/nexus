@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Notes de travail et worktrees locaux — jamais versionnés.
+.claude/
+GESTIONS.md
+SYSTEM_SUGGESTIONS.md
+*.local
+Remarques modif Nexus.txt
+avancement test et debug nexus.txt
