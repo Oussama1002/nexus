@@ -23,7 +23,11 @@ class BrandController extends Controller
 
         // Le nombre de campagnes et le numero WhatsApp configure viennent de
         // la base, pas d'une valeur saisie sur la fiche marque.
-        $q = Brand::query()->withCount('campaigns')->orderBy('name');
+        // Les archivees sont exclues, comme dans le module Campagnes : deux
+        // compteurs divergents sur le meme objet ne s'expliquent pas.
+        $q = Brand::query()
+            ->withCount(['campaigns' => fn ($c) => $c->whereNull('archived_at')])
+            ->orderBy('name');
         if (! $user->isAdmin()) {
             $q->whereIn('id', $user->brands->pluck('id'));
         }
@@ -36,13 +40,29 @@ class BrandController extends Controller
 
         $paginator = $q->paginate($perPage);
 
-        $numbers = \App\Models\SystemSetting::query()
-            ->whereIn('brand_id', $paginator->getCollection()->pluck('id'))
+        $brandIds = $paginator->getCollection()->pluck('id');
+
+        // Source principale : les numeros declares dans Parametres -> WhatsApp.
+        // L'ancien reglage unique ne sert plus que de repli.
+        $declared = \App\Models\WhatsAppNumber::query()
+            ->whereIn('brand_id', $brandIds)
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->get(['brand_id', 'display_number', 'label'])
+            ->groupBy('brand_id')
+            ->map(fn ($rows) => $rows
+                ->map(fn ($n) => trim((string) $n->display_number))
+                ->filter()
+                ->unique()
+                ->implode(', '));
+
+        $legacy = \App\Models\SystemSetting::query()
+            ->whereIn('brand_id', $brandIds)
             ->where('setting_key', 'wa_business_number')
             ->pluck('setting_value', 'brand_id');
 
-        $paginator->getCollection()->transform(function (Brand $brand) use ($numbers) {
-            $configured = trim((string) ($numbers[$brand->id] ?? ''));
+        $paginator->getCollection()->transform(function (Brand $brand) use ($declared, $legacy) {
+            $configured = trim((string) ($declared[$brand->id] ?? '')) ?: trim((string) ($legacy[$brand->id] ?? ''));
             $brand->setAttribute('whatsapp_configured_number', $configured !== '' ? $configured : null);
 
             return $brand;
