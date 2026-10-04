@@ -41,6 +41,7 @@ type ApiPo = {
   supplier?: { id: number; name: string };
   brand?: { id: number; name: string };
   ordered_at?: string | null;
+  created_at?: string | null;
   expected_delivery_date?: string | null;
   received_at?: string | null;
   responsible_user_id?: number | null;
@@ -500,6 +501,22 @@ export function PurchaseOrdersScreen() {
                 ) : (
                   <span className="font-black text-zinc-400">—</span>
                 ),
+            },
+            {
+              key: 'createdAt',
+              header: 'Créée le',
+              // Date ET heure : plusieurs commandes fournisseur naissent le
+              // meme jour, l'heure est ce qui les ordonne.
+              cell: (r) => (
+                <span className="text-sm text-zinc-600">
+                  {r.created_at
+                    ? new Date(r.created_at).toLocaleString('fr-FR', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
+                      })
+                    : '—'}
+                </span>
+              ),
             },
             {
               key: 'orderDate',

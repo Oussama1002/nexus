@@ -157,12 +157,11 @@ class StockShortageService
                 foreach ($group as $shortage) {
                     /** @var Product $product */
                     $product = $shortage['product'];
-                    // Prix d'achat = coût du produit. Le prix de vente n'a rien à
-                    // faire sur une commande fournisseur : à 0, le montant reste
-                    // vide jusqu'à la saisie du tarif fournisseur.
-                    $unit = (float) ($product->cost ?? 0);
-                    $lineTotal = $unit * $shortage['missing'];
-                    $subtotal += $lineTotal;
+                    // Aucun montant devine : ce qu'on doit au fournisseur se
+                    // negocie et ne se deduit pas d'une valeur du catalogue.
+                    // A 0, la ligne reste vide jusqu'a la saisie du tarif.
+                    $unit = 0.0;
+                    $lineTotal = 0.0;
 
                     PurchaseOrderLine::query()->create([
                         'purchase_order_id' => $po->id,
