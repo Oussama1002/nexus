@@ -231,12 +231,20 @@ class MetaOAuthController extends Controller
             return [];
         }
 
+        // Meta a renommé certains scopes. Un ancien nom déclenche
+        // « Invalid Scopes: … » et casse toute la connexion ; on remappe
+        // en silence pour que les paramètres déjà saisis fonctionnent.
+        $aliases = [
+            'instagram_business_content_publish' => 'instagram_content_publish',
+        ];
+
         $scopes = [];
         foreach (preg_split('/[\s,]+/', $raw) ?: [] as $scope) {
             $scope = strtolower(trim($scope));
-            if ($scope !== '' && preg_match('/^[a-z0-9_]+$/', $scope)) {
-                $scopes[] = $scope;
+            if ($scope === '' || ! preg_match('/^[a-z0-9_]+$/', $scope)) {
+                continue;
             }
+            $scopes[] = $aliases[$scope] ?? $scope;
         }
 
         return array_values(array_unique($scopes));
