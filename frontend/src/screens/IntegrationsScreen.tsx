@@ -165,6 +165,8 @@ export function IntegrationsScreen() {
     window.location.href = res.data.url;
   }
 
+  const [igPending, setIgPending] = useState(false);
+
   async function connectInstagram() {
     setConnectingIg(true);
     const res = await api.get<{ url: string }>('meta/instagram/oauth/url?return=' + encodeURIComponent(window.location.pathname));
@@ -173,8 +175,28 @@ export function IntegrationsScreen() {
       toast.error(res.message || 'Impossible de générer le lien de connexion Instagram.');
       return;
     }
-    window.location.href = res.data.url;
+    // Nouvel onglet : la page de reglages garde les modifications en cours,
+    // qu'une redirection vers Instagram ferait perdre.
+    const tab = window.open(res.data.url, '_blank', 'noopener,noreferrer');
+    if (!tab) {
+      toast.error('Autorisez les fenêtres pop-up pour ce site, puis réessayez.');
+      return;
+    }
+    setIgPending(true);
   }
+
+  // Le retour d'Instagram se fait dans l'autre onglet : au retour sur
+  // celui-ci, on recharge pour afficher l'etat reel de la connexion.
+  useEffect(() => {
+    if (!igPending) return;
+    const onFocus = () => {
+      setIgPending(false);
+      setReloadToken((t) => t + 1);
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => window.removeEventListener('focus', onFocus);
+  }, [igPending]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
