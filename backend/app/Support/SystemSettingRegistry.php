@@ -100,6 +100,7 @@ class SystemSettingRegistry
             'delivery_default_company_id' => ['sensitive' => false, 'description' => 'Société de livraison par défaut (ID)'],
             'delivery_default_fee' => ['sensitive' => false, 'description' => 'Frais livraison par défaut'],
             'delivery_avg_days' => ['sensitive' => false, 'description' => 'Délai moyen de livraison (jours)'],
+            'delivery_fee_included_in_subtotal' => ['sensitive' => false, 'description' => 'Frais de livraison déjà compris dans le prix des produits'],
             'delivery_allow_open_package' => ['sensitive' => false, 'description' => 'Autoriser ouverture colis (oui/non)'],
             'delivery_insurance_enabled' => ['sensitive' => false, 'description' => 'Activer assurance'],
             'delivery_auto_tracking_number' => ['sensitive' => false, 'description' => 'Générer n° de suivi auto'],

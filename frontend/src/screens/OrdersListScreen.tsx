@@ -495,7 +495,13 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
         header: 'Commande',
         cell: (o) => (
           <div className="space-y-1">
-            <p className="text-sm font-black text-zinc-900">{o.id}</p>
+            <button
+              type="button"
+              onClick={() => setSelectedId(o.id)}
+              className="text-sm font-black text-primary-600 hover:underline text-left"
+            >
+              {o.id}
+            </button>
             <p className="text-[11px] font-medium text-zinc-500">
               {o.createdAt} • {sourceFr(o.source)}
             </p>

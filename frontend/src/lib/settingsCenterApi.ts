@@ -92,6 +92,8 @@ export type DeliveryModel = {
     allowOpenPackage: boolean;
     autoTrackingNumber: boolean;
     autoSyncTracking: boolean;
+    /** Le prix des produits comprend déjà la livraison. */
+    feeIncludedInSubtotal?: boolean;
   };
   carriers: {
     sendit: {

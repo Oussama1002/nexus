@@ -412,6 +412,13 @@ export function DeliveryPanel({
           <ToggleRow label="Autoriser ouverture du colis" checked={value.rules.allowOpenPackage} onChange={(v) => p({ rules: { ...value.rules, allowOpenPackage: v } })} disabled={disabled} />
           <ToggleRow label="Générer automatiquement le n° de suivi" checked={value.rules.autoTrackingNumber} onChange={(v) => p({ rules: { ...value.rules, autoTrackingNumber: v } })} disabled={disabled} />
           <ToggleRow label="Synchroniser le suivi automatiquement" checked={value.rules.autoSyncTracking} onChange={(v) => p({ rules: { ...value.rules, autoSyncTracking: v } })} disabled={disabled} />
+          <ToggleRow
+            label="Frais de livraison déjà compris dans le prix des produits"
+            description="Activé, les frais ne sont plus ajoutés au total de la commande : le sous-total les contient déjà. Désactivé, ils s'ajoutent comme avant."
+            checked={Boolean(value.rules.feeIncludedInSubtotal)}
+            onChange={(v) => p({ rules: { ...value.rules, feeIncludedInSubtotal: v } })}
+            disabled={disabled}
+          />
         </div>
       </SectionCard>
       <SectionCard

@@ -160,7 +160,15 @@ class OrderStateService
         $order->loadMissing('lines');
         $subtotal = round($order->lines->sum('line_total'), 2);
         $order->subtotal = $subtotal;
-        $order->total = round($subtotal - (float) $order->discount + (float) $order->shipping_fee, 2);
+        // Selon la marque, le prix affiche des produits comprend deja la
+        // livraison : l'ajouter reviendrait a la facturer deux fois.
+        $feeIncluded = \App\Models\SystemSetting::query()
+            ->where('brand_id', $order->brand_id)
+            ->where('setting_key', 'delivery_fee_included_in_subtotal')
+            ->value('setting_value') === '1';
+
+        $shipping = $feeIncluded ? 0.0 : (float) $order->shipping_fee;
+        $order->total = round($subtotal - (float) $order->discount + $shipping, 2);
         $order->save();
 
         return $order;

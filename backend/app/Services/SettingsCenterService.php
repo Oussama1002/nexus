@@ -412,6 +412,7 @@ class SettingsCenterService
                 'allowOpenPackage' => $this->boolFromStored($brandId, 'delivery_allow_open_package'),
                 'autoTrackingNumber' => $this->boolFromStored($brandId, 'delivery_auto_tracking_number'),
                 'autoSyncTracking' => $this->boolFromStored($brandId, 'delivery_auto_sync_tracking'),
+                'feeIncludedInSubtotal' => $this->boolFromStored($brandId, 'delivery_fee_included_in_subtotal'),
             ],
             'carriers' => [
                 'sendit' => [
@@ -454,6 +455,7 @@ class SettingsCenterService
             $this->upsert($brandId, 'delivery', 'delivery_default_fee', $d['defaultShippingFee'] ?? '');
             $this->upsert($brandId, 'delivery', 'delivery_avg_days', $d['averageDeliveryDays'] ?? '');
             $r = $p['rules'] ?? [];
+            $this->upsert($brandId, 'delivery', 'delivery_fee_included_in_subtotal', ! empty($r['feeIncludedInSubtotal']) ? '1' : '0');
             $this->upsert($brandId, 'delivery', 'delivery_insurance_enabled', ! empty($r['insuranceEnabled']) ? '1' : '0');
             $this->upsert($brandId, 'delivery', 'delivery_allow_open_package', ! empty($r['allowOpenPackage']) ? '1' : '0');
             $this->upsert($brandId, 'delivery', 'delivery_auto_tracking_number', ! empty($r['autoTrackingNumber']) ? '1' : '0');
