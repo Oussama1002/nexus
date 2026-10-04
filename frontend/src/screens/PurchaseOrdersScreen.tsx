@@ -146,7 +146,7 @@ export function PurchaseOrdersScreen() {
   const [internalNotes, setInternalNotes] = useState('');
   const [lines, setLines] = useState<
     { product_id: number; quantity_ordered: number; unit_price: string; line_discount: string; line_tax: string }[]
-  >([{ product_id: 0, quantity_ordered: 1, unit_price: '0', line_discount: '0', line_tax: '0' }]);
+  >([{ product_id: 0, quantity_ordered: 1, unit_price: '', line_discount: '0', line_tax: '0' }]);
 
   const loadKpis = useCallback(async () => {
     if (!activeBrandId) return;
@@ -271,7 +271,7 @@ export function PurchaseOrdersScreen() {
     }
     toast.success('Bon de commande créé.');
     setCreateOpen(false);
-    setLines([{ product_id: 0, quantity_ordered: 1, unit_price: '0', line_discount: '0', line_tax: '0' }]);
+    setLines([{ product_id: 0, quantity_ordered: 1, unit_price: '', line_discount: '0', line_tax: '0' }]);
     void load();
   }
 
@@ -750,7 +750,7 @@ export function PurchaseOrdersScreen() {
               <button
                 type="button"
                 onClick={() =>
-                  setLines((prev) => [...prev, { product_id: 0, quantity_ordered: 1, unit_price: '0', line_discount: '0', line_tax: '0' }])
+                  setLines((prev) => [...prev, { product_id: 0, quantity_ordered: 1, unit_price: '', line_discount: '0', line_tax: '0' }])
                 }
                 className="text-sm font-black text-primary-600"
               >
@@ -767,8 +767,12 @@ export function PurchaseOrdersScreen() {
                       const v = Number(e.target.value);
                       const next = [...lines];
                       next[idx] = { ...next[idx], product_id: v };
+                      // Jamais le prix de VENTE : ce qu'on doit au fournisseur
+                      // n'a rien a voir avec ce qu'on facture au client. On ne
+                      // propose que le cout d'achat connu, sinon rien.
                       const pr = products.find((p) => p.id === v);
-                      if (pr) next[idx].unit_price = pr.cost ?? pr.price;
+                      const cost = pr && Number(pr.cost) > 0 ? String(pr.cost) : '';
+                      next[idx].unit_price = cost;
                       setLines(next);
                     }}
                     className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
