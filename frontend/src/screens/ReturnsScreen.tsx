@@ -7,6 +7,8 @@ import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
 import { useToast } from '../context/ToastContext';
 import { useBrand } from '../context/BrandContext';
+import { useNavigate } from 'react-router-dom';
+import { pathForView } from '../lib/appPaths';
 
 type Return = {
   id: number | string;
@@ -51,6 +53,7 @@ const formatMAD = (n: number) =>
 
 export function ReturnsScreen() {
   const { activeBrandId } = useBrand();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [rows, setRows] = useState<Return[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +192,17 @@ export function ReturnsScreen() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm">{row.order_ref}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {row.order_ref ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`${pathForView('orders')}?order_ref=${encodeURIComponent(row.order_ref)}`)}
+                        className="font-black text-primary-600 hover:underline"
+                      >
+                        {row.order_ref}
+                      </button>
+                    ) : '—'}
+                  </td>
                   <td className="px-4 py-3 text-sm">{row.customer_name}</td>
                   <td className="px-4 py-3 text-sm">{row.product_name}</td>
                   <td className="px-4 py-3 text-sm text-zinc-700">{row.carrier || '—'}</td>

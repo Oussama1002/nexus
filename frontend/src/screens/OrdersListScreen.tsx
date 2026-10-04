@@ -301,6 +301,9 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const assignedFilter = searchParams.get('assigned_user_id');
+  // Arrivee depuis un autre module (Retours, Suivi colis…) : la commande
+  // visee s'ouvre directement au lieu d'etre cherchee a la main.
+  const focusOrderRef = searchParams.get('order_ref');
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Order[]>([]);
@@ -379,6 +382,15 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
       return matchesQuery && matchesStatus && matchesPayment && matchesBrand;
     });
   }, [rows, q, status, payment, brand]);
+
+  useEffect(() => {
+    if (!focusOrderRef) return;
+    // Les filtres par defaut masqueraient la commande ciblee.
+    setQ(focusOrderRef);
+    setStatus('Tous');
+    setDateRange('90 jours');
+    setSelectedId(focusOrderRef);
+  }, [focusOrderRef]);
 
   const selected = useMemo(
     () => filtered.find((o) => o.id === selectedId) ?? rows.find((o) => o.id === selectedId) ?? null,
