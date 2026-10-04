@@ -160,9 +160,28 @@ class SettingsConnectionTestService
             }
         }
 
+        // Comme Sendit : la fiche transporteur prime, les reglages servent de
+        // repli. Sans cette branche, un Ameex configure sur sa fiche n'etait
+        // jamais teste et le rapport ne le mentionnait meme pas.
+        $ameexTested = false;
+        $ameexCompany = DeliveryCompany::query()->where('code', 'ameex')->first();
+        if ($ameexCompany) {
+            $id = trim((string) ($ameexCompany->api_key_ref ?? ''));
+            $key = trim((string) ($ameexCompany->api_key ?? ''));
+            if ($id !== '' && $key !== '') {
+                $result = (new AmeexDeliveryProvider($ameexCompany))->testConnection([
+                    'api_id' => $id,
+                    'api_key' => $key,
+                ]);
+                $messages[] = 'Ameex: '.$result['message'];
+                $anyOk = $anyOk || ($result['ok'] ?? false);
+                $ameexTested = true;
+            }
+        }
+
         $ameexApiId = $this->val($brandId, 'carrier_ameex_api_id');
         $ameexApiKey = $this->val($brandId, 'carrier_ameex_api_key');
-        if ($ameexApiId !== '' && $ameexApiKey !== '') {
+        if (! $ameexTested && $ameexApiId !== '' && $ameexApiKey !== '') {
             $company = new DeliveryCompany([
                 'code' => 'ameex',
                 'api_url' => $this->val($brandId, 'carrier_ameex_api_url') ?: 'https://api.ameex.app',
@@ -175,6 +194,16 @@ class SettingsConnectionTestService
             ]);
             $messages[] = 'Ameex: '.$result['message'];
             $anyOk = $anyOk || ($result['ok'] ?? false);
+            $ameexTested = true;
+        }
+
+        // Un transporteur non configure doit le dire : un rapport qui ne parle
+        // que de Sendit laisse croire qu'Ameex va bien.
+        if (! $ameexTested) {
+            $messages[] = 'Ameex: non configuré (identifiants API manquants).';
+        }
+        if (! collect($messages)->contains(fn ($m) => str_starts_with($m, 'Sendit:'))) {
+            $messages[] = 'Sendit: non configuré (identifiants API manquants).';
         }
 
         if (! $anyOk && $messages === []) {
