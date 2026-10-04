@@ -1,0 +1,200 @@
+1-Tableau de bord
+
+2- Rapports
+
+3- Call Center
+
+   Espace Confirmatrice
+
+   Conversations
+
+   Leads
+
+   Commandes
+
+   Clients
+
+   Réclamations
+
+   Pilotage d'équipe
+
+4- Marketing
+
+   4-1- Réseaux sociaux
+
+        Stratégie & contenu
+
+        Publication & modération
+
+        Comptes sociaux
+
+   4-2- Media Buying
+
+   4-3- Gestion des influenceurs
+
+   4-4- Pilotage de marque
+
+        Config Pilotage
+
+5- Logistique
+
+   Expéditions & suivi
+
+   Échecs de livraison
+
+   Retours
+
+   Transporteurs
+
+   Livraison KPI
+
+6- Catalogue & Stock
+
+   Produits
+
+   Stocks
+
+   Mouvements de stock
+
+   Fournisseurs
+
+   Achats & réceptions
+
+6- Équipe & RH
+
+   Tableau de bord RH
+
+   6-1- Dossiers salariés
+
+        Fiches employés
+
+        Documents RH
+
+        Organigramme
+
+   6-2- Temps & Absences
+
+        Présence & Pointage
+
+        Congés & Absences
+
+   6-3- Paie
+
+   6-4- Recrutement & Intégration
+
+        Postes ouverts
+
+        Candidatures
+
+        Intégration
+
+   6-5- Développement
+
+        Formation
+
+        Évaluation & Carrière
+
+   6-6- Discipline
+
+   6-7- Communication interne -------------------------------------------------DONE
+
+7- Finance & Comptabilité
+
+   Tableau de bord financier
+
+   Trésorerie
+
+   Budgets
+
+   Demandes de budget
+
+   Dépenses
+
+   Comptabilité
+
+8- Marques
+
+   Mes marques
+
+   Base marque
+
+   Espace client
+
+9- Brandna Academy
+
+   Catalogue
+
+   Mes formations
+
+   Parcours
+
+   Gestion des contenus
+
+10- Administration
+
+   Utilisateurs
+
+   Rôles & permissions
+
+   Automatisations
+
+   Paramètres
+
+   Journal d'audit
+
+   Bugs & incidents
+
+   Intégrations
+
+
+
+
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Record test reset password -------DONE
+
+Record test projets collaboratifs --------DONE
+
+Record test creation de commande--------DONE
+
+Record test integration api meta pour whatsapp  et les comptes sociaux-----------DONE
+
+Record test Ajout des produits & Mouvements de stock & commandes ----------DONE
+
+Record test Communication interne------DONE
+
+Record test creation de commande & commande fournisseur------DONE
+
+Record test whatsapp ----------DONE
+
+Record test Formation Equipe
+
+Record test Rôles & permissions --------DONE
+
+Record test Automatisations --------DONE
+
+Record test Media Buying --------DONE
+
+Record test Formation Acadimie
+
+Record test Equipe & RH
+
+Record test Studio Influence--------DONE
+
+Record test Réseaux sociaux -----------DONE
+
+Record test Finance & Comptabilité
+
+
+
+
+
+
+

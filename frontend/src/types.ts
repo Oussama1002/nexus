@@ -59,6 +59,8 @@ export type View =
   | 'budgets'
   | 'budgetRequests'
   | 'expenses'
+  | 'clientInvoices'
+  | 'clientContracts'
   | 'myTrainings'
   | 'learningPaths'
   | 'contentManagement'

@@ -59,6 +59,8 @@ export const VIEW_PATH: Record<Exclude<View, 'login' | 'settings'>, string> = {
   budgets: '/finance/budgets',
   budgetRequests: '/finance/demandes-budget',
   expenses: '/finance/depenses',
+  clientInvoices: '/finance/factures',
+  clientContracts: '/finance/contrats',
   myTrainings: '/academy/mes-formations',
   learningPaths: '/academy/parcours',
   contentManagement: '/academy/gestion-contenus',

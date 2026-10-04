@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable, type Column } from '../components/ui/DataTable';
 import { Modal } from '../components/ui/Modal';
+import { Drawer } from '../components/ui/Drawer';
 import { StatusChip } from '../components/ui/StatusChip';
 import { formatCurrency } from '../lib/utils';
 import type { ChargeApi, ChargeDraftApi, ChargeTypeApi } from '../domain/finance';
@@ -71,7 +72,7 @@ type ClientInvoice = {
   total: string | number;
   recipient_email?: string | null;
   email_last_error?: string | null;
-  customer?: { id: number; full_name: string; email?: string | null } | null;
+  customer?: { id: number; full_name: string; email?: string | null; phone?: string | null } | null;
   brand?: { id: number; name: string } | null;
   order?: { id: number; order_number: string } | null;
   meta?: { order_number?: string; source?: string } | null;
@@ -90,14 +91,20 @@ type ClientContract = {
   brand?: { id: number; name: string } | null;
 };
 
-export function FinanceScreen() {
+/**
+ * `only` : monte l'ecran comme un module dedie (Factures ou Contrats),
+ * sans selecteur d'onglet. Sans la prop, c'est le tableau de bord complet.
+ */
+export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
   const { brands } = useBrand();
   const { hasPermission } = useAuth();
   const toast = useToast();
 
-  const [tab, setTab] = useState<FinanceTab>('charges');
+  const [tab, setTab] = useState<FinanceTab>(only ?? 'charges');
   const [charges, setCharges] = useState<ChargeApi[]>([]);
   const [invoices, setInvoices] = useState<ClientInvoice[]>([]);
+  // Fiche facture en panneau lateral : la ligne ne montre qu'un resume.
+  const [invoiceDetail, setInvoiceDetail] = useState<ClientInvoice | null>(null);
   const [contracts, setContracts] = useState<ClientContract[]>([]);
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -281,7 +288,13 @@ export function FinanceScreen() {
           const orderRef = i.order?.order_number ?? i.meta?.order_number;
           return (
             <div>
-              <p className="text-sm font-black text-zinc-900">{i.invoice_number}</p>
+              <button
+                type="button"
+                onClick={() => setInvoiceDetail(i)}
+                className="text-sm font-black text-primary-600 hover:underline text-left"
+              >
+                {i.invoice_number}
+              </button>
               <p className="text-[11px] text-zinc-500 font-medium">{i.brand?.name ?? 'Global'}</p>
               {orderRef ? (
                 <p className="text-[10px] font-bold text-primary-700 mt-0.5">Commande {orderRef}</p>
@@ -296,14 +309,19 @@ export function FinanceScreen() {
         cell: (i) => (
           <div>
             <p className="text-sm font-bold text-zinc-800">{i.customer?.full_name ?? '—'}</p>
-            <p className="text-[11px] text-zinc-500">{i.recipient_email ?? i.customer?.email ?? '—'}</p>
+            <p className="text-[11px] text-zinc-500">{i.customer?.phone ?? '—'}</p>
+            <p className="text-[11px] text-zinc-400">{i.recipient_email ?? i.customer?.email ?? '—'}</p>
           </div>
         ),
       },
       {
         key: 'period',
         header: 'Période',
-        cell: (i) => <span className="text-sm font-medium text-zinc-700">{i.billing_period_start} → {i.billing_period_end}</span>,
+        cell: (i) => (
+          <span className="text-sm font-medium text-zinc-700">
+            {formatChargeDate(i.billing_period_start)} → {formatChargeDate(i.billing_period_end)}
+          </span>
+        ),
       },
       {
         key: 'status',
@@ -516,10 +534,10 @@ export function FinanceScreen() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Finance"
+        title={only === 'invoices' ? 'Factures' : only === 'contracts' ? 'Contrats' : 'Tableau de bord financier'}
         right={
           <div className="flex gap-2">
-            <div className="flex rounded-xl border border-zinc-200 overflow-hidden">
+            <div className={`flex rounded-xl border border-zinc-200 overflow-hidden ${only ? 'hidden' : ''}`}>
               {([
                 ['charges', 'Charges'],
                 ['invoices', 'Factures'],
@@ -594,6 +612,7 @@ export function FinanceScreen() {
         </div>
       )}
 
+      {!only && (
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="card p-5 overflow-hidden">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Total charges</p>
@@ -619,7 +638,9 @@ export function FinanceScreen() {
         </div>
       </div>
 
-      {monthly.length > 0 && (
+      )}
+
+      {!only && monthly.length > 0 && (
         <div className="card p-6">
           <p className="text-sm font-black text-zinc-900">Dépenses mensuelles</p>
           <div className="mt-4 overflow-x-auto">
@@ -893,6 +914,73 @@ export function FinanceScreen() {
           </div>
         </Modal>
       )}
+
+      <Drawer
+        open={!!invoiceDetail}
+        onClose={() => setInvoiceDetail(null)}
+        title={invoiceDetail?.invoice_number ?? 'Facture'}
+      >
+        {invoiceDetail && (
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between">
+              <StatusChip tone={invoiceDetail.status === 'paid' ? 'success' : invoiceDetail.status === 'sent' ? 'info' : invoiceDetail.status === 'approved' ? 'warning' : 'neutral'}>
+                {statusLabelFr(invoiceDetail.status, INVOICE_STATUS_LABELS)}
+              </StatusChip>
+              <span className="text-lg font-black text-zinc-900">
+                {formatCurrency(Number(invoiceDetail.total))}
+              </span>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Client</p>
+              <p className="font-bold text-zinc-900">{invoiceDetail.customer?.full_name ?? '—'}</p>
+              <p className="text-zinc-600">{invoiceDetail.customer?.phone ?? '—'}</p>
+              <p className="text-zinc-500">{invoiceDetail.recipient_email ?? invoiceDetail.customer?.email ?? '—'}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Période</p>
+                <p className="text-zinc-700">
+                  {formatChargeDate(invoiceDetail.billing_period_start)} → {formatChargeDate(invoiceDetail.billing_period_end)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Émise le</p>
+                <p className="text-zinc-700">{formatChargeDate(invoiceDetail.issue_date)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Échéance</p>
+                <p className="text-zinc-700">{invoiceDetail.due_date ? formatChargeDate(invoiceDetail.due_date) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Marque</p>
+                <p className="text-zinc-700">{invoiceDetail.brand?.name ?? 'Global'}</p>
+              </div>
+            </div>
+
+            <div className="space-y-1 border-t border-zinc-100 pt-3">
+              <div className="flex justify-between"><span className="text-zinc-500">Sous-total</span><span className="font-bold">{formatCurrency(Number(invoiceDetail.subtotal))}</span></div>
+              <div className="flex justify-between"><span className="text-zinc-500">Remise</span><span className="font-bold">{formatCurrency(Number(invoiceDetail.discount))}</span></div>
+              <div className="flex justify-between"><span className="text-zinc-500">TVA</span><span className="font-bold">{formatCurrency(Number(invoiceDetail.tax_amount))}</span></div>
+              <div className="flex justify-between border-t border-zinc-100 pt-2"><span className="font-black uppercase text-[10px] tracking-widest text-zinc-500">Total</span><span className="font-black text-zinc-900">{formatCurrency(Number(invoiceDetail.total))}</span></div>
+            </div>
+
+            {(invoiceDetail.order?.order_number ?? invoiceDetail.meta?.order_number) && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Commande</p>
+                <p className="text-zinc-700">{invoiceDetail.order?.order_number ?? invoiceDetail.meta?.order_number}</p>
+              </div>
+            )}
+
+            {invoiceDetail.email_last_error && (
+              <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800">
+                Dernière erreur d’envoi : {invoiceDetail.email_last_error}
+              </p>
+            )}
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -49,13 +49,20 @@ class DeliveryPaymentController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $deliveryCompanyId = $request->query('delivery_company_id');
 
+        // COD en attente = colis livre, encaisse par le livreur, pas encore
+        // reverse. Exiger en plus payment_state = 'cod_pending' sur la commande
+        // ne pouvait jamais matcher : une commande livree en COD passe a
+        // « paid » des que le client a paye le livreur.
         $q = Shipment::query()
             ->when($brandId, fn ($qq) => $qq->where('brand_id', $brandId))
             ->where('status', 'delivered')
-            ->where('payment_status', 'cod_pending')
             ->whereNull('delivery_payment_id')
-            ->whereHas('order', function ($o) {
-                $o->where('payment_method', 'cod')->where('payment_state', 'cod_pending');
+            ->where(function ($w) {
+                $w->where('payment_status', 'cod_pending')->orWhereNull('payment_status');
+            })
+            ->where(function ($w) {
+                $w->where('cod_amount', '>', 0)
+                    ->orWhereHas('order', fn ($o) => $o->where('payment_method', 'cod'));
             });
 
         if ($deliveryCompanyId) {

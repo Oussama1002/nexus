@@ -564,6 +564,10 @@ export function MainApp() {
         return <AcademyScreen />;
       case 'expenses':
         return <FinanceScreen />;
+      case 'clientInvoices':
+        return <FinanceScreen only="invoices" />;
+      case 'clientContracts':
+        return <FinanceScreen only="contracts" />;
       case 'rolesPermissions':
         return <RolesPermissionsScreen />;
       case 'integrations':

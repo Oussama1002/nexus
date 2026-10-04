@@ -1,0 +1,429 @@
+- Leads should auto saved on Gestion Leads from WhatsApp(Converstations) ------------ DONE
+
+- error on http://79.143.180.186:8090/parametres Impossible de charger cette section api/settings/center/catalogue:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+
+
+-error that logo should be the same on all brands like logo should infos on parametres should be implemented to all brands -------- DONE
+- Espace Confirmatrice doesnt display on user account  Confirmatrice 
+
+-
+ 
+- add on brand switcher option of all brands to get data of all brands ----------DONE
+
+- ameex ---------- done
+
+- ERROR on https://dtcgalaxy.ma/automatisations an automatitaion should be seen and listed and applied on all brands cause when im on all brand it display but when im in a specific brand it doesnt appear --------- DONE
+
+-there is a problem in suivi colis on paiment there is some colis that is already delivred and get paid  but still COD en attente ----- DONE
+-Extract the infos from conversation to create commande and auto save as lead 
+-  fix the time on the livraison its have one more hour gap for example its 24 juil. 12:18 not 24 juil. 13:18 ------
+- on detail of the colis in suivi colis you should bring the Historique ---------- DONE
+-add 	Frais de livraison on the table of the list on colis in suivi colis -------
+-  and you should display the most recent based on the date first. ----------DONE
+-  in sync on livraison kpi so the real values is showed after a while  not in that time -------------DONE
+- test retart employee
+- when i want to create a new task in https://dtcgalaxy.ma/projets-collaboratifs it requires selection of a brand and thats an errror
+-on Conversations on agent dropdown it should only get the confirmatrices and admins accounts ----------- DONE
+
+-On conversations the emoji and attach button doesnt work ----------- DONE
+
+- image de produit a affiche
+
+
+- système follow up with client
+
+- 0704976167
+
+- 0721813393
+-on http://79.143.180.186:8090/rh it should added on the detail employe the start and end hour and how many days and historique of login and logout ------
+
+-on http://79.143.180.186:8090/projets-collaboratifs it shouldnt be a English word like collabProjects-------- DONE
+
+- on http://79.143.180.186:8090/projets-collaboratifs it should a document place on each project -------- DONE
+
+- on Intervenants du projet on by default it should be the admin as a admin and by default also as resp ---------DONE
+
+- add chat icon on   http://79.143.180.186:8090/utilisateurs that can chat between the users so do a system of chat -------- DONE
+
+- Catégorie on new fournisseur in http://79.143.180.186:8090/fournisseurs should be a dropdown  and add an ajoute button if there is a new category and generated on parametres ------------ DONE
+
+- add system of comptable-------DONE
+- error despite im choosing a brrand while pointer on https://dtcgalaxy.ma/rh  Aucun dossier employe lie a cet utilisateur pour cette marque. ---------DONE
+
+-Notiffications icon doesnt work on the topbar -------------DONE
+
+-Connect the real WhatsApp ------------------------------------------ DONE
+
+-Statut in new poduit should be active and hidden -------------------------------- DONE
+
+- the sidebar shoould fix on the select item despite refreshing -------------- done
+
+- on Espace Confirmatrice add 2 indicateurs: taux satisfaction client, rate follow up in performance ----------DONE
+
+- Mes leads/ Mes commandes in Espace Confirmatrice should go to leads / commandes and get only the assigned to that confirmatrice, and  aslo when open WhatsApp  from espace confirmatrice specific ---------- done
+
+- on Conversations when its filterd by agent it should be a dropdown of the agent selected ------- DONE 
+
+-error that when the brand is switched the sidebar hide some modules i wannt what is checked on Menu latéral in parametres general to be applied to all fkn brands ---------------- DONE
+
+- on the Centre de paramètres error when i upload a logo it return error 404 and the logo isnt showing on side bar next to  Nexus Omni and on username like AD on admin ------- DONE
+
+- on profile add image uploader on the place of the AD in admin to do a profile picture that will be showing on username like AD on admin ------- DONE
+
+- on Historique d’activité, it should track anything like profile picture or logo or anything --------- DONE
+
+- on Suivi colis if the api is missing on Livraison KPI you should return an error that you should conncect the api---------- DONE
+
+- on Livraison — tableau de bord remove button Actualiser and instead of Sync Sendit (tout) do Sync and follow just the Transporteur if tous display all id sendit display only sendit if  ameex display ameex ------------- done
+
+- the valeur on Livraison — tableau de bord should be calculated on the Chiffre d'affaires ----------- done
+
+- delete the 4 etape Qualité & suivi on new fournisseur ----------------------------------- DONE
+
+- in Mouvements de stock Raison / Type should be in frensh -------- done
+
+- when create a lead there is an error that the search filter take the phone number ----------DONE
+
+
+-when i switch between the brands it doesnt get the data of that brand directly like for example im in clients module when i switch between brands it doesnt get the client of the selected brand directly ---------- DONE
+
+-make more kpi on Tableau de bord and add access rapide ------------------------ DONE
+
+-search icon of the top doesnt work ------------------------ DONE
+
+- Nouvelle automatisation wtf is than coding???? ------------- DONE
+
+-when clicking on username it should go to a profile page ------------------------------ DONE
+
+- block of the pending commandes ----------- DONE
+- on the produits the SKU should be auto and hidden and remove that Luxe on the medicaldine... -----------DONE
+- on the Automatisations it should apply on all the brands --------DONE
+- redesign the first login page ------------ DONE
+-add on suivi colis the row of date if cree show the date of creation if livree show date of livraison etc... -----------DONE
+- send from crm to sendit and ameex ------
+- i want all the details on detail of colis scanning from api livraison on http://79.143.180.186:8090/colis ------- DONE
+
+-detail of colis on http://79.143.180.186:8090/colis shouldnt open the popup of selection of the a brand it should open the details ------- DONE
+
+- make the historique of the colis detail more visible and with out any English words -------DONE
+-ON https://dtcgalaxy.ma/influence in Nouvel influenceur form it should the write in gra and black and the tarif shouldnt be json ----- DONE
+-specify the date on the Conversations detail between the message if user sent a message yesterday and i sent it today ------------DONE
+- error on the design on  Utilisateurs module so look at the screen ssome names are centred and some is not and wtf why u displayed this Gestion des comptes (API `/users`). its only dev who can see this ------------------DONE
+- Sync Tous and ammex and sendit buttons on the Livraison — tableau de bord it took time --------DONE
+- put the Livraison KPI on the first place not on the last of the dropdown-------------DONE
+- error the Stocks, Mouvements de stock are quit the same i think the architect of the Stocks module should change ---------------DONE
+- error the message whatssap isnt sending -----DONE
+- add a push button bell badge when a message arrives while on another screen on the conversations between the client and user or on Internal chat-----DONE
+- add "typing…" indicator, and read receipts on DMs -------------DONE
+- on any supprime action it should open a confirmation delete not like on Influenceuse supprimée it delete direcltly -----------DONE
+- on dashboard on Colis par statut the English word out_for_delivery should be in fr---------DONE
+
+- error still on the conversation when i want to send a message to the client first ------------DONE
+- and error sent [Template: contact_generique] not the real template, and the template should be send it automatically like when customer open the chat automatically sent the template and for the template for example suivi commande it sent auto after confirmed the commande and the template of rappel paiment it send auto when the commande is status en livraison ------DONE
+
+- error of English words detected on Détail du journal on Historique d’activité and also nothing specific just writed Action enregistrée and that an error---------DONE
+
+ - error displayed on Historique d’activité  like that  it should really specific the info not "—" 11/09/2026 17:36:04 ---------DONE
+
+- on conversation the the input of the message is decale par apport a other buttons like send and drag file and emogis ---DONE
+
+- on the Rôles & permissions some words still in English -------DONE
+- on the Rôles & permissions  why on admin role some actions isnt checked it should be checked------DONE
+- on the Centre de paramètres when i do action retirer le logo it should be appear a confirmation first----------DONE
+- on utilisateurs module on the  Activité récente of a user English and writing of a developer detected Activité récente (30 dernières actions)
+Enregistrement du centre de paramètres -------------DONE
+
+- on the reporting module it should added a button of generate a rapport pdf of each module like livraison, etc... ---------- DONE
+- the leads list is get only the leads that i sent message whatsap i want also the clients that are from livraison api ------DONE
+- Nouvelle commande should added on the sidebar -------- DONE
+
+- i want the card that hold the conversations and also the coversation selected to be like have more height cause i barely see the message of a client inside of conversation ----------DONE
+- on the confirmatrice screen on the conversations remove the "Répondez aux clients depuis cette interface ; l’application WhatsApp sur téléphone n’est pas utilisée." ------------DONE
+
+- error on the other accounts beside the admin all the topbars that not have the "Toutes les marques" on the dropdown , it  should be the same as the admin ---------- DONE 
+- on the Utilisateurs it should add on the Utilisateurs list the brands that can user access -----------DONE
+-  error on repporting when im on a module like livraison tab then display exporter pdf rapport livraison and etc... ------------DONE
+
+- error on repporting this is what i see after clicking on pdf --------- DONE
+- error the suppression of a message from the conversation with clients should display the client name on the Historique d’activité ----------DONE
+- on the Livraison tab on reportings it should have the transporteurs like ameex and sendit the button Exporter PDF rapport Livraison for ameex if selected ameex ---------- DONE
+- if the leads are coming from the clients that from livraison api so it not statut nouveau its confirme ---------- DONE
+- error Failed to fetch when i want to submit new modèle WhatsApp to meta -------------DONE
+
+- error﻿ when submit a module WhatsApp index-Dgg7FPH8.js:60  POST https://dtcgalaxy.ma/api/whatsapp/templates 502 (Bad Gateway)------DONE
+-add credit card ---------DONE
+-error on conversation when i want to send a module to lead and return  Échec WhatsApp : Erreur Meta : User's number is part of an experiment ------DONE
+
+- error the audio on the conversation  should be readable --------DONE
+- on the the stockls i want to remove Med01 prefix just keep the name of the product ----------DONE
+- error look at the screen on the Mouvements de stock it not dispaly anything -----------DONE
+-the suivi_commande proccess ---------DONE
+
+- error on the conversation it sent a message but its on  en attente denvoi so i should see on the conversations list a thing that means its not sent yet not a check like it sent ------DONE
+-error the files dont sent on the conversation----------DONE
+-error when i create a contact it send a [Modèle : hello_world] like this but noo i want to sent let the choice to sent a free message or sent contact_generique -----------DONE
+
+- button Ajouter un employé on  module Fiches employés should do the same thing :Nouvel employé form, not Utilisez « Ressources → RH → Tableau de bord RH » pour ajouter un employé.----------DONE
+-error on Nouvel employé form when i check Medicaldine, Zest Home,Moda Casa it should automaticaly check "Toutes les marques" ------------- DONE
+- add email input on Nouvel employé form -------------DONE
+- add a slide page of detail of an employe on employés -----------DONE
+- the pointage isnt working it doesnt track the retard or the login or logout -------DONE
+-error when i want to add new employe on fiche employes it directly fill the search on the dashboard of RH ----------DONE
+
+-when i open the Ajouter un employé on fiche employe fkn stay there why it goes to the employes tab on the dashboard-------DONE
+-by default Heure début and Heure fin on new employe form to be 09:00 until 18:00, and Pause déjeuner début, Pause déjeuner fin to be 13:00 to 14:00 and Jours de travail from monday to friday -----------DONE
+-error look at the screen both dropdowns displays so remove the black one -------DONE
+-on the Nouvel employé form on  Fonction automatically for example when i developpeur it fill on Département "IT" and the reverse also when i choose IT it display the option on the fonction, so setup those settings on new tab on Centre de paramètres --------DONE
+-error Historique de présence on the detail of employee dont track anything: Historique de présence (30 derniers jours)Aucun enregistrement de présence. --------DONE
+
+-when the user is retard once is login display a popup to submit the justification why he is late and fill the justification on the pointage----DONE
+
+-send a notif to the admin when every user that is retard -------DONE
+-send a notif to the user that is already late  and auto message sent from the admin to the user via internal chat that should not  again --------DONE
+-error when the user login once again it thats not track on the pointage
+-Retard of the employee must be in      0h00min -----DONE
+-error Votre espace on the confirmatrice compte doesnt display ----------DONE
+-add edit funtion on the detail of the employee------DONE
+- error Ce numéro de téléphone existe déjà pour cette marque. but it doesnt display on the client existant -------DONE
+-Congés & Absences MODULE should display on all users type------DONE
+- on Nouvelle demande de congé Nombre de jours should calculated auto matically from Date début to Date fin -------DONE
+
+-Automatisations module musnt seen exept only by the admin----------DONE
+-error on other users account like confirmatrice on logistique module is returning an error but the api is connected on the admin side: API transporteur non connectée, Aucune société de livraison n'est configurée. Rendez-vous dans Centre de paramètres → Livraison pour connecter l'API de votre transporteur (Sendit, Ameex…) avant d'utiliser le suivi colis et le KPI livraison. -----------DONE
+-Leads must seen by the other users that have access to the call center like confirmatrice --------DONE
+
+- on commandes the commandes that annule dont put COD en attente its annule wtf is COD en attente --------DONE
+-error on the other user that can see the commandes like confirmatrice it display Aucune commande it should see every commande DESPIT I EDIT IT ON THE ROLES AND PERMISSIONS ------ DONE
+- on the Rôles & permissions add a search bar for a parameter to check like search leads to get leads ------DONE
+- on the leads the Assigné must be by default non Assigné to seen by everyone and despite who ever is Assigné to the other user keep seen the leads --------DONE
+
+- error on Présence & Pointage module it return Aucun pointage ---------- DONE
+- on the system if there is no activite or the user seems active on the crm by 10 mins just log out automatically --------DONE
+- sent of a favture AS PDF in Finance should send to the conversation beetween that client and the user of the system ------DONE
+- on the Identifiants Meta on integration each input add ? marque where u should put where to find that input on meta -------- DONE
+- RESET PASSWOrd to be developed to sent a link to the mail and the mail have  a link that go to the reset password and done ----------DONE
+- when a user reset a password a notif goes directly to the admin and add on the users module on Informations the password value ---------------DONE
+-add on whatssapp integration the possibility to modify the modeles on the conversations ----------
+- on the produits module on Catégorie if its Packs you should add input of the products on that pack ----------DONE
+-on the retours module add the filter by transporteur ---------DONE
+-ERROR when i click on connect to facebook: Can't load URL -----DONE
+- error on the Intégrations Connexion Facebook return Connecté but its not -------DONE
+- on the Intégrations  the pages insta and facebook it should add a section of pages and there it will be the button Détecter Page / Instagram / Pixel --------DONE
+- error the Historique de présence (30 derniers jours) still didnt detect the presence of the user on the Fiches employés module and users detail module-----------DONE
+- on the retours module error on what displaying on produit: -------DONE
+
+N° Retour	Commande	Client	Produit	Motif	Statut	Montant	Date
+#O472
+Commande
+NX-260725-FXVUV	malika	<span class="badge badge-dim bg-outline-dark"> 0</span>	Commande retournée	Reçu	550,00 MAD	19/09/2026
+
+
+- on the notifications you should display by the time -----DONE
+- on conversation the the input of the message remove that up and down and scroll on the right side of the input ------DONE
+- on the Modifier employé it didnt get the Fonction , Département *  ---------
+- error on the account of the confirmatrice it return Aucun lead despite on the permission had ---------DONE
+- on Conversations add button of new commande ------DONE
+- the leads on the Conversations doesnt appear on the leads table ---------DONE
+- on the Nouvelle commande the client dropdown should be from leads not clients -----------DONE
+- after create the commande it should appear which transporteur should send the commande-------DONE
+- on the conversation the confirmatrice or any other user can have permission to change the statut.---------DONE
+- error on the prefix of the commande on the facture generated should be the prefix of the brand not 🛒 *Commande :* NX-260928-A09XB -----DONE
+- add on detail commande the option of delete a commnde and move it to a new place named archive -------DONE
+- if the commande is  not sending to the transporteur add button and statut on the commandes list and detail Envoyer au transporteur ------DONE
+-error on the confirmatrice account it should have the permission: Envoyer à la livraison -------DONE
+- on the Commandes add a row "produit" on the list of commandes --------DONE
+- error the commande is not send it to ameex ---------DONE
+- the Commandes fournisseurs not auto created when a commande is created to a client and contient a product that is not available ----------DONE
+- on Colis on the commandes module dont do English "created" and return the real value if the commande is really sent to the transporteur or not yet -------- DONE
+
+
+- i need more details on detail of the commande -------DONE
+-on the Mouvements de stock on  Stock avant → après its still an error of #18	Réservation	Test Pack	-1	10 → 10	 Commande confirmée Commande #6375 Admin DTC	28/09/2026 19:12 ---------DONE
+-error on Campagnes the rows not returning any value:  Spend (période)	Leads	ROAS ---------DONE
+- error ui on Nouvelle campagne on  Configuration campagne inputs it should be as Informations générales inputs design ------DONE
+- errors why the campagne isnt submited it should be more specific not that error like : G3 ----------DONE
+- inside of each campagne it should be a new page list of all the ad sets then of each ad set it should be  list of all the crea with the saame infos as the adsmanager on facebook------DONE
+-this Softnovation | Explore | 25/12/2025 detail you should add detail button on the liste but on the link of the title of the campagne it should go to Ensembles & publicités  ---------DONE
+- the Community Manager isnt connected to the Comptes sociaux insta and facebook ----DONE
+- on the Community Manager on the facebook side Publications indisponibles : Permissions Meta insuffisantes pour cette action. Vérifiez les autorisations de l’application et l’accès au Business Manager. -----------DONE
+
+- develop section inside Formations on acadimie module cause i see only two inputs  Nouvelle section :Titre ,Description ------DONE
+- error im already on a brand but on Nouvel apprenant, quiz when submit the form it return Active brand is required (X-Brand-Id header or brand_id query parameter) ---------
+- dont u ever display this error Active brand is required (X-Brand-Id header or brand_id query parameter) instead display him the select of a brand and when selected dont reload the page keep on what the user left. -----------DONE
+- on Nouvelle fiche marque in base marque instead of URL media do upload ----------DONE
+- error when i want to connect to facebook and want to get back it goes to centre de parametres but im in integrations ----DONE
+- Produits on the Nouvel envoi produits should get the list of the products -------DONE
+- on the Nouvelle campagne form on Campagnes & Ads module make sure the words get bigger like other forms ------DONE
+- on Historique d’activité wtfff — i need the all details  29/09/2026 21:48:38 Enregistrement du centre de paramètres Admin DTC · — ------DONE
+-Objet concerné on Détail du journal not display their value ------DONE
+- Durée  on Nouvelle formation on formations -------
+-on the Comptes sociaux you didnt import instagram -------DONE
+- inside of each Comptes sociaux u should add new page of the posts , followers, all the infos... --------DONE
+
+- error when i want to save ew user from employe:api/users:1  Failed to load resource-----DONE
+-import the users of insta to add it as Nouvelle influenceuse --------DONE
+
+- create crea and ads from crm to meta ----------DONE
+- create post from crm to pages -----------DONE
+
+-error when create new campagne : Campagne non enregistrée, Action bloquée : la porte G3 de la feuille de route de la marque n'est pas franchie. Ouvrez « Roadmap AM » et marquez la porte G3 comme franchie pour débloquer cette action. ---------DONE
+- when i want to create a new publicité a crea it required me to select another  Ensemble de publicités crea this is ilogique -------DONE
+-when i create a Nouveau compte publicitaire it should be easy to connect from the comptes tabs --------DONE
+- on the Nouvelle stratégie trimestrielle the T1 is way too abvious that from 01/01 until 31/3, and etc...----------DONE
+- error on Réseaux sociaux · Stratégie & contenu tab Stratégie remove those 0 just do the normal time from 00:00 to 23:59: 2026-10-01T00:00:00.000000Z → 2026-12-31T00:00:00.000000Z ---------DONE
+- error on Réseaux sociaux · Stratégie & contenu tab Stratégie i added a contributeur but still an error when click on  Soumettre Aucune contribution enregistrée. Sollicitez au moins un contributeur. ----------DONE
+-error on Nouveau plan mensuel in Réseaux sociaux · Stratégie & contenu on the Stratégie validée dropdown doesnt display the Stratégie  i created ----------- DONE
+
+- inside the Community Manager on the publications tab it should be displayed all the pubs not displaying Aucune publication ----------DONE
+
+- on Nouveau poste ouvert on input Département it should be dropdown like other forms------DONE
+-CV input on Nouvelle candidature should be a upload, and the Source should be dropdown--------DONE
+- on Nouveau poste ouvert and  Nouvelle candidature and Initialiser la checklist it should not display the popup of brands Choisissez une marque like wtff--------DONE
+- on Campagnes & Ads module on campagnes list if the a campagne the button of create it on meta should be next to detail on the list  -------DONE
+- on Campagnes & Ads module on campagnes list add button archiver and delete from crm and from meta if its on meta --------DONE
+- inside a Campagnes it should be a button that add Ad sets for 1 Campaign "crea" ----------DONE
+- on the campagnes list add row from meta named on meta by Delivery -------DONE
+- on the campagnes list add row of the Nom compte ------------DONE
+- if the user want to delete a campagne def dont stop him by saying archive just delete ------DONE
+-On Campagnes & Ads module on  Comptes user can click on name of compte and goes to Campagnes of that compte ----------DONE 
+- create Nouvelle publicité inside Publicités de l’ensemble --------- DONE
+- add button edit on campagne to modify the campagne on the same form as Nouvelle campagne -----DONE
+- Objectif marketing on Nouvelle campagne should be required * ------DONE
+-error when i want to approuve on pubs tab it return an error: Seul un contenu en revue peut être approuvé.---------DONE
+-dont do Marquer publiée Non publiée do publier au page and push it to be published ---------DONE
+- okaay add a delete / archive / edit in  the pub detail and on type post add the upload of image for the post and the  delete burtton should be deleted from the page too ----------DONE
+
+
+- error on Nouvelle formation on https://dtcgalaxy.ma/rh/formation: Début (date et heure) ---------
+10/02/2026 04:37 PM
+Fin (date et heure)
+10/02/2026 04:38 PM
+Durée
+1 h
+
+- error on Réseaux sociaux · Stratégie & contenu tab Stratégie i added a contributeur but still an error when click on  Soumettre: Aucune contribution reçue. Solliciter un contributeur ne suffit pas : saisissez sa réponse depuis la stratégie, ou demandez-lui de la renseigner. --------DONE
+-on Studio Influence any form like for example if the Influenceur isnt active it will not be on dropdowns of Influenceur like collaborations... -----DONE
+-the paiement of an influenceur doesnt count as depense and this is an error -----------DONE
+-import the user s email/ TELE if exist on bio of insta to add it on Nouvelle influenceuse form --------DONE
+- on the Marques module on row WhatsApp it should be get the value from the integration settings WhatsApp and Campagnes also --------DONE
+-the Poste, Département are required on the employee form -----------DONE
+-the Commandes fournisseurs it getting the price of the produit and get it as price that should pay to the fournisseurs and thats an error just leave the montant empty ------
+- send commandes from crm to sendit ---------
+- create post from crm to page instagram -------
+- when i supprime a commande from the crm it should be deleted from the transporteur ----------
+- make the Commande row on the Commandes list linked to the commandes detail --------
+-error Produit value on the Retours module doesnt display
+- remove Prix from formation in https://dtcgalaxy.ma/academy -----------
+-error when i want to post a pub in insta on Community Manager: Permissions Meta insuffisantes pour cette action. Vérifiez les autorisations de l’application et l’accès au Business Manager. Meta précise : Application does not have permission for this action ---------
+-error Envoyer à la livraison ---------DONE
+Commande MED01-261004-RAG54 — Amina
+Expédition créée dans le CRM mais non envoyée à Sendit : Vous devez compléter votre dossier de vérification avant de créer des colis, ramassages ou mouvements.
+Transporteur
+Sendit
+
+-on  Tester la connexion in API transporteurs it return only message Sendit: Sendit API connection successful. where is ameex --------DONE
+-on the Commandes fournisseurs list add date and exact time of creation ----------DONE
+- on the Commandes fournisseurs list error on the Montant still display the montant of the vente of that product/pack and thats an error it should stay empty until the user fill the montant -----------DONE
+- when i want to connect to insta please go to another onglet not the same --------DONE
+-still
+- on the commandes the Livraison is inclus of the Sous total price so dont add that 35 and please add a parametres to can control it by the user ----
+- on the integrations or settings please when im in tab and i reload or go to external link go back to that fkn tab --------DONE
+- still error when publish the post from crm to insta: Permissions Meta insuffisantes pour cette action. Vérifiez les autorisations de l’application et l’accès au Business Manager. Meta précise : Application does not have permission for this action
+- on Nouvelle fiche marque in base marque Produit must be a dropdown of the list of products
+- error when sending commande to ameex: Expédition créée dans le CRM mais non envoyée à Ameex : Identifiants API Ameex manquants — renseignez-les dans Paramètres › Intégrations › Livraison.
+- error when sending commande to sendit : Expédition créée dans le CRM mais non envoyée à Sendit : Vous devez compléter votre dossier de vérification avant de créer des colis, ramassages ou mouvements.
+- on the commandes fournisseurs when a commande is  pack on the details put all the products that have that pack 
+- on the commandes fournisseurs add button edit, detail, delete, archive
+- commande on the Retours module should open the detail popup on the right side not goes to commandes module-------DONE
+- on Transporteurs module add more infos aboout Transporteurs add all the possible infos and put  direct to contact them by WhatsApp or email to support or link to their platform for support: Nom	Code	Contact	Téléphone	Statut
+Ameex	ameex	—	—	active
+Sendit	sendit	—	—	active
+-the COD on the Transporteurs module doesnt get any data
+-error on Factures on finance when clicking on WhatsApp button Class "Barryvdh\DomPDF\Facade\Pdf" not found
+- Facture row  on Factures on finance should open a detail of the facture
+-Client  on Factures on finance doesnt get the phone number
+- Période on Factures on finance should give me the exact time nit this 2026-10-04T00:00:00.000000Z → 2026-10-04T00:00:00.000000Z
+- on the Tableau de bord financier give me just the kpis and rapports and make the facture their own module on the sidebar also for contracts
+
+- i did these records vds for my client to see the working of the crm, inform me what im missing: Record test reset password -------DONE
+
+Record test projets collaboratifs --------DONE
+
+Record test creation de commande--------DONE
+
+Record test integration api meta pour whatsapp  et les comptes sociaux-----------DONE
+
+Record test Ajout des produits & Mouvements de stock & commandes ----------DONE
+
+Record test Communication interne------DONE
+
+Record test creation de commande & commande fournisseur------DONE
+
+Record test whatsapp ----------DONE
+
+Record test Formation Equipe
+
+Record test Rôles & permissions --------DONE
+
+Record test Automatisations --------DONE
+
+Record test Media Buying --------DONE
+
+Record test Formation Acadimie
+
+Record test Equipe & RH
+
+Record test Studio Influence--------DONE
+
+Record test Réseaux sociaux -----------DONE
+
+Record test Finance & Comptabilité
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+-Automatisations module test : Test 1 — le moteur répond (30 secondes, sans rien modifier)
+
+Automatisations → Nouvelle règle
+
+Déclencheur : Nouvelle commande créée
+Conditions : aucune (laisse vide — la règle acceptera tout)
+Action : Enregistrer un log
+Message :
+
+Commande {{event.order_number}} de {{event.customer.name}} — {{event.total}} MAD
+Enregistre, puis clique Tester sur la règle.
+Le message rendu doit s'afficher avec les valeurs d'exemple (MED01-SAMPLE, Client test, 350). Si les variables restent en {{...}}, le nom du champ est faux — les noms exacts sont listés sous le sélecteur de conditions.
+
+Test 2 — le CRM déclenche vraiment (le vrai test)
+Garde la règle active, puis crée une commande normalement (Nouvelle commande, un client, un produit, valide). Clique « Plus tard » sur la popup transporteur pour ne rien envoyer.
+
+Reviens dans Automatisations → Exécutions. Une ligne doit apparaître avec :
+
+ton nom de règle,
+statut Exécutée,
+le message rendu avec le vrai numéro de commande et le vrai nom du client.
+Si la ligne est là, le moteur est branché au CRM. Tu peux ensuite archiver la commande de test.
+
+Test 3 — le colis (si tu veux vérifier le second déclencheur)
+Même chose avec le déclencheur Statut colis changé et une condition Nouveau statut = Livré. Passe une expédition existante à Livré dans Expéditions : une exécution doit apparaître.
+
+
+- syc 6 ad accounts medicaldine
+- detect if an error or a bug display automatically display it on the Bugs & incidents 
+
+
+
+
+
+WABA: https://developers.facebook.com/apps/1961668264441718/use_cases/customize/wa-configurations-v2/?use_case_enum=WHATSAPP_BUSINESS_MESSAGING&product_route=whatsapp-business&selected_tab=wa-configurations-v2&business_id=1212679427431536
+
+EAAb4IHwRt3YBR3zZAIcfbvSvs3CswogWkRmBGsSu7XpfWmfrcvDoRnfltAyfsxPDLqvRZBJiAyEk2GXnMEGGZB6D0OEbvfXgS4T9KOiYgsYk6VJ5VtobNF7BgTl6geZADCBgjKuUhn74ponUZCZCzfa4UMYpDZBK447h3WHW982ZC4DOyZBiXUdmCP5z3nNUuzbEl03gAGztpDwIb2xcJFPZABj27TXtaJWZCuY7mKDdoZAWmN18R7f7
+
+100063955151923|BBBb2U9sohs8Y|VAVdh251124@@@|colqrhyman@hotmail.com|VAVdh251124|colqrhyman48pikdf@fviainboxes.com|wd=1280x470;datr=snT5Zhdyel8j_K91gy1Sjgce;fr=0gR4jLtYua4Me4O35.AWXdLiSWzq5uXtIZnSsYVCHSv7U.Bm-XSy..AAA.0.0.Bm-iYQ.AWWJ50VShh0;sb=snT5Zu0p0dUHdv5kgRY8pnaa;dbln={\\\\\\\"100063955151923\\\\\\\":\\\\\\\"RfxCRkEb\\\\\\\"};dpr=2;locale=en_US;ps_l=1;ps_n=1;c_user=100063955151923;xs=31:h1i72v
