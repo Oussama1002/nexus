@@ -587,6 +587,7 @@ class SettingsCenterService
                 'appSecretConfigured' => $this->hasStoredValue($brandId, 'instagram_app_secret'),
                 'connected' => $this->hasStoredValue($brandId, 'instagram_access_token'),
                 'username' => $this->getRaw($brandId, 'instagram_username') ?? '',
+                'extraScopes' => $this->getRaw($brandId, 'instagram_extra_scopes') ?? '',
             ],
             'targets' => [
                 'cac' => $this->getRaw($brandId, 'meta_target_cac') ?? '',
@@ -607,6 +608,7 @@ class SettingsCenterService
             $this->upsert($brandId, 'meta', 'meta_instagram_scopes', trim((string) ($cr['instagramScopes'] ?? '')));
             $ig = $p['instagram'] ?? [];
             $this->upsert($brandId, 'meta', 'instagram_app_id', $ig['appId'] ?? '');
+            $this->upsert($brandId, 'meta', 'instagram_extra_scopes', trim((string) ($ig['extraScopes'] ?? '')));
             $igSecret = $ig['appSecret'] ?? '';
             if ($isAdmin && ! SystemSetting::valueIsUnchangedSecretPlaceholder((string) $igSecret) && $igSecret !== '') {
                 $this->upsertSensitive($brandId, 'meta', 'instagram_app_secret', (string) $igSecret, $defs);

@@ -44,7 +44,7 @@ class InstagramOAuthController extends Controller
         $params = http_build_query([
             'client_id' => $appId,
             'redirect_uri' => $this->callbackUrl(),
-            'scope' => implode(',', self::SCOPES),
+            'scope' => implode(',', $this->scopesFor($brandId)),
             'response_type' => 'code',
             'state' => $this->buildState($brandId, $this->sanitizeReturnPath($request->query('return'))),
         ]);
@@ -188,6 +188,29 @@ class InstagramOAuthController extends Controller
         $return = $this->sanitizeReturnPath(rawurldecode((string) ($parts[2] ?? '')));
 
         return [($brandId > 0 && abs(time() - $timestamp) <= 600) ? $brandId : null, $return];
+    }
+
+    /**
+     * Socle en lecture, plus les autorisations saisies par la marque :
+     * instagram_business_content_publish pour publier, par exemple. Un nom
+     * que l'app n'expose pas casse toute la connexion, d'ou un reglage
+     * modifiable plutot qu'une liste figee.
+     *
+     * @return list<string>
+     */
+    private function scopesFor(int $brandId): array
+    {
+        $scopes = self::SCOPES;
+
+        $raw = (string) ($this->getSetting($brandId, 'instagram_extra_scopes') ?? '');
+        foreach (preg_split('/[\s,]+/', $raw) ?: [] as $scope) {
+            $scope = strtolower(trim($scope));
+            if ($scope !== '' && preg_match('/^[a-z0-9_]+$/', $scope)) {
+                $scopes[] = $scope;
+            }
+        }
+
+        return array_values(array_unique($scopes));
     }
 
     private function getSetting(int $brandId, string $key): ?string

@@ -182,6 +182,8 @@ export type MetaModel = {
     appId?: string;
     appSecret?: string;
     appSecretConfigured?: boolean;
+    /** Autorisations Instagram demandées en plus de la lecture. */
+    extraScopes?: string;
     connected?: boolean;
     username?: string;
   };

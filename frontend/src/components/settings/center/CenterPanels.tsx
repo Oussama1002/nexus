@@ -1267,6 +1267,16 @@ export function MetaPanel({
             onChange={(v) => p({ instagram: { ...(value.instagram ?? {}), appSecret: v } })}
             disabled={!sec}
           />
+          <div className="md:col-span-2">
+            <TextField
+              label="Autorisations Instagram supplémentaires"
+              hint="séparées par des virgules — laisser vide pour ne demander que la lecture"
+              help="Le socle ne donne que la lecture. « instagram_business_content_publish » permet de publier depuis le CRM. Chaque nom doit correspondre à une autorisation activée dans votre app Instagram : un nom inconnu fait échouer toute la connexion, videz le champ pour revenir en arrière. Reconnectez Instagram après modification."
+              value={value.instagram?.extraScopes ?? ''}
+              onChange={(v) => p({ instagram: { ...(value.instagram ?? {}), extraScopes: v } })}
+              disabled={disabled}
+            />
+          </div>
           <div className="md:col-span-2 flex flex-wrap items-center gap-3">
             <button
               type="button"

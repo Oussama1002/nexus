@@ -161,6 +161,7 @@ class SystemSettingRegistry
             'meta_page_id' => ['sensitive' => false, 'description' => 'Page Facebook utilisée pour les publicités'],
             'meta_instagram_scopes' => ['sensitive' => false, 'description' => 'Autorisations Instagram demandées à la connexion Meta (séparées par des virgules)'],
             'instagram_app_id' => ['sensitive' => false, 'description' => 'Identifiant de l’app Instagram (connexion directe)'],
+            'instagram_extra_scopes' => ['sensitive' => false, 'description' => 'Autorisations Instagram supplémentaires (ex. instagram_business_content_publish)'],
             'instagram_app_secret' => ['sensitive' => true, 'description' => 'Clé secrète de l’app Instagram'],
             'instagram_access_token' => ['sensitive' => true, 'description' => 'Jeton Instagram longue durée'],
             'instagram_user_id' => ['sensitive' => false, 'description' => 'Identifiant du compte Instagram connecté'],
