@@ -13,6 +13,7 @@ class Charge extends Model
         'brand_id',
         'order_id',
         'campaign_id',
+        'influencer_payment_id',
         'created_by',
         'charge_date',
         'type',

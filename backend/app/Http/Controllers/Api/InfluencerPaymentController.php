@@ -241,9 +241,23 @@ class InfluencerPaymentController extends Controller
         }
         $row->save();
 
+        // Un paiement regle est une depense marketing : sans cette charge, les
+        // rapports et le CAC ignorent l'argent reellement sorti.
+        \App\Models\Charge::query()->updateOrCreate(
+            ['influencer_payment_id' => $row->id],
+            [
+                'brand_id' => $row->brand_id,
+                'created_by' => $request->user()?->id,
+                'charge_date' => $row->paid_at,
+                'type' => 'influencer',
+                'amount' => $row->amount,
+                'note' => 'Paiement influenceur '.($row->reference ?: $row->id),
+            ]
+        );
+
         AuditLogger::log($request, 'influencer_payments.mark_paid', $row, $before, $row->fresh()->toArray());
 
-        return ApiResponse::success($row->fresh(), 'Paiement marqué comme payé.');
+        return ApiResponse::success($row->fresh(), 'Paiement marqué comme payé, et comptabilisé en dépense.');
     }
 
     public function destroy(Request $request, string $id): JsonResponse
