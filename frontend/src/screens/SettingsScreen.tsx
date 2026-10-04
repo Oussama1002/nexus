@@ -61,6 +61,17 @@ const NAV: { id: SettingsCenterSection; label: string; description: string }[] =
   { id: 'security', label: 'Sécurité', description: 'Sessions, mots de passe, audit' },
 ];
 
+const SETTINGS_SECTIONS: SettingsCenterSection[] = [
+  'general', 'catalogue', 'integrations', 'delivery', 'whatsapp', 'meta', 'finance', 'security',
+];
+
+/** L'onglet ouvert vit dans l'URL : un rechargement ou un retour d'un lien
+ *  externe revient sur celui qu'on consultait, pas sur le premier. */
+function readSettingsSection(): SettingsCenterSection {
+  const raw = new URLSearchParams(window.location.search).get('section');
+  return SETTINGS_SECTIONS.includes(raw as SettingsCenterSection) ? (raw as SettingsCenterSection) : 'general';
+}
+
 export function SettingsScreen() {
   const toast = useToast();
   const { activeBrandId, activeBrand } = useBrand();
@@ -68,8 +79,15 @@ export function SettingsScreen() {
   const canView = hasPermission('settings.view');
   const canUpdate = hasPermission('settings.update');
 
-  const [section, setSection] = useState<SettingsCenterSection>('general');
+  const [section, setSection] = useState<SettingsCenterSection>(readSettingsSection);
   const [hrTab, setHrTab] = useState(false);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('section') === section) return;
+    url.searchParams.set('section', section);
+    window.history.replaceState({}, '', url.toString());
+  }, [section]);
   const [model, setModel] = useState<SectionModel | null>(null);
   const [baseline, setBaseline] = useState('');
   const [loading, setLoading] = useState(true);

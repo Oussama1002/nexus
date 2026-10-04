@@ -26,6 +26,15 @@ import { cn } from '../lib/utils';
 
 type IntegrationSection = 'integrations' | 'delivery' | 'whatsapp' | 'meta';
 
+const INTEGRATION_SECTIONS: IntegrationSection[] = ['integrations', 'delivery', 'whatsapp', 'meta'];
+
+/** L'onglet ouvert vit dans l'URL : un rechargement ou un retour d'un lien
+ *  externe revient sur celui qu'on consultait, pas sur le premier. */
+function readSection(): IntegrationSection {
+  const raw = new URLSearchParams(window.location.search).get('section');
+  return INTEGRATION_SECTIONS.includes(raw as IntegrationSection) ? (raw as IntegrationSection) : 'integrations';
+}
+
 const TABS: { id: IntegrationSection; label: string; description: string }[] = [
   { id: 'integrations', label: 'Intégrations', description: 'E-mail, SMS, fichiers, webhooks' },
   { id: 'delivery', label: 'Livraison', description: 'Transporteurs, règles, COD' },
@@ -40,8 +49,16 @@ export function IntegrationsScreen() {
   const canView = hasPermission('settings.view');
   const canUpdate = hasPermission('settings.update');
 
-  const [section, setSection] = useState<IntegrationSection>('integrations');
+  const [section, setSection] = useState<IntegrationSection>(readSection);
   const [model, setModel] = useState<SectionModel | null>(null);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('section') === section) return;
+    url.searchParams.set('section', section);
+    window.history.replaceState({}, '', url.toString());
+  }, [section]);
+
   const [baseline, setBaseline] = useState('');
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
