@@ -22,7 +22,9 @@ class StockShortageService
         try {
             $order->loadMissing('lines');
 
-            $shortages = [];
+            // Un pack n'a pas de stock propre : ce sont ses composants qu'il
+            // faut reapprovisionner, et c'est eux que le fournisseur vend.
+            $needed = [];
             foreach ($order->lines as $line) {
                 if (! $line->product_id) {
                     continue;
@@ -32,10 +34,22 @@ class StockShortageService
                     continue;
                 }
 
+                foreach ($this->explodePack($product, (int) $line->quantity) as $componentId => $qty) {
+                    $needed[$componentId] = ($needed[$componentId] ?? 0) + $qty;
+                }
+            }
+
+            $shortages = [];
+            foreach ($needed as $productId => $ordered) {
+                $product = Product::query()->find($productId);
+                if (! $product) {
+                    continue;
+                }
+
                 $available = max(0, (int) $product->stock_quantity - (int) $product->reserved_quantity);
-                $missing = (int) $line->quantity - $available;
+                $missing = $ordered - $available;
                 if ($missing > 0) {
-                    $shortages[] = ['product' => $product, 'missing' => $missing, 'ordered' => (int) $line->quantity];
+                    $shortages[] = ['product' => $product, 'missing' => $missing, 'ordered' => $ordered];
                 }
             }
 
@@ -70,6 +84,46 @@ class StockShortageService
             // Ne jamais faire échouer la commande à cause du réapprovisionnement.
             Log::warning('stock.shortage_handling_failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Quantites reellement a reapprovisionner pour un produit commande :
+     * ses composants s'il s'agit d'un pack, lui-meme sinon. Un pack dont un
+     * composant est lui-meme un pack est descendu recursivement.
+     *
+     * @return array<int, int>  product_id => quantite
+     */
+    private function explodePack(Product $product, int $quantity, int $depth = 0): array
+    {
+        $items = $product->pack_items;
+        if (is_string($items)) {
+            $items = json_decode($items, true);
+        }
+
+        // Garde-fou : un pack qui se contiendrait lui-meme boucherait a l'infini.
+        if (! is_array($items) || $items === [] || $depth > 3) {
+            return [(int) $product->id => $quantity];
+        }
+
+        $needed = [];
+        foreach ($items as $item) {
+            $componentId = (int) (is_array($item) ? ($item['product_id'] ?? 0) : 0);
+            $componentQty = (int) (is_array($item) ? ($item['quantity'] ?? 1) : 1);
+            if ($componentId <= 0 || $componentQty <= 0) {
+                continue;
+            }
+
+            $component = Product::query()->find($componentId);
+            if (! $component) {
+                continue;
+            }
+
+            foreach ($this->explodePack($component, $componentQty * $quantity, $depth + 1) as $id => $qty) {
+                $needed[$id] = ($needed[$id] ?? 0) + $qty;
+            }
+        }
+
+        return $needed === [] ? [(int) $product->id => $quantity] : $needed;
     }
 
     /**
