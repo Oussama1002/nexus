@@ -478,7 +478,20 @@ export function ShipmentsScreen() {
       {
         key: 'status',
         header: 'Statut',
-        cell: (s) => <StatusChip tone={toneForStatus(s.status)}>{statusFr(s.status)}</StatusChip>,
+        cell: (s) => (
+          // Un colis refuse par le transporteur restait affiche « Créée » :
+          // le statut local ne dit rien de ce qui s'est passe chez eux.
+          s.sync_error && !s.external_tracking_id ? (
+            <span className="space-y-0.5">
+              <StatusChip tone="danger">Échec envoi</StatusChip>
+              <span className="block max-w-[260px] truncate text-[11px] font-semibold text-rose-700" title={s.sync_error}>
+                {s.sync_error}
+              </span>
+            </span>
+          ) : (
+            <StatusChip tone={toneForStatus(s.status)}>{statusFr(s.status)}</StatusChip>
+          )
+        ),
       },
       {
         key: 'pay',

@@ -281,6 +281,9 @@ class ShipmentController extends Controller
             $shipment->carrier_response_json = $data['raw'] ?? null;
             $shipment->carrier_last_sync_at = now();
             $shipment->status = 'created';
+            // Un envoi reussi efface l'echec precedent, sinon le colis reste
+            // marque en erreur alors qu'il est bien parti.
+            $shipment->sync_error = null;
             $shipment->save();
 
             $result['message'] = sprintf('Colis enregistré chez %s (suivi : %s).', $company->name, $tracking ?? '—');
