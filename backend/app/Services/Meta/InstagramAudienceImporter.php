@@ -31,6 +31,32 @@ class InstagramAudienceImporter
      *
      * @return array{username: string, name: string, followers: int, media_count: int, biography: string, website: string, avatar: string|null, found: bool, warning: string|null}
      */
+    /**
+     * Beaucoup de createurs mettent leur contact pro dans la bio. Le relever
+     * evite de le recopier a la main, et de se tromper.
+     *
+     * @return array{email: string, phone: string}
+     */
+    public static function contactFromBio(string $bio): array
+    {
+        $email = '';
+        if (preg_match('/[\w.+-]+@[\w-]+\.[\w.-]+/u', $bio, $m)) {
+            $email = rtrim($m[0], '.');
+        }
+
+        $phone = '';
+        // Numero marocain ou international, avec separateurs courants.
+        if (preg_match('/(?:\+?\d{1,3}[\s.-]?)?0?[\s.-]?\d(?:[\s.-]?\d){7,12}/u', $bio, $m)) {
+            $candidate = preg_replace('/[^\d+]/', '', $m[0]) ?? '';
+            // Sous 9 chiffres c'est une date ou un compteur, pas un numero.
+            if (strlen(preg_replace('/\D/', '', $candidate) ?? '') >= 9) {
+                $phone = $candidate;
+            }
+        }
+
+        return ['email' => $email, 'phone' => $phone];
+    }
+
     public function lookupAccount(int $brandId, string $username): array
     {
         $username = ltrim(trim($username), '@');
@@ -46,6 +72,8 @@ class InstagramAudienceImporter
             'biography' => '',
             'website' => '',
             'avatar' => null,
+            'email' => '',
+            'phone' => '',
             'found' => false,
             'warning' => 'Compte tiers non lisible : Instagram exige l’autorisation instagram_manage_insights, '
                 .'à activer dans App Review de votre app Meta, et ne renseigne de toute façon que les comptes Business ou Créateur. Saisissez le nom, les abonnés et les publications à la main.',
@@ -71,14 +99,19 @@ class InstagramAudienceImporter
             ]);
         }
 
+        $bio = (string) ($profile['bio'] ?? '');
+        $contact = self::contactFromBio($bio);
+
         return [
             'username' => (string) $profile['handle'],
             'name' => (string) ($profile['name'] ?? ''),
             'followers' => (int) ($profile['followers'] ?? 0),
             'media_count' => (int) ($profile['media_count'] ?? 0),
-            'biography' => (string) ($profile['bio'] ?? ''),
+            'biography' => $bio,
             'website' => (string) ($profile['website'] ?? ''),
             'avatar' => $profile['avatar'] ?? null,
+            'email' => $contact['email'],
+            'phone' => $contact['phone'],
             'found' => true,
             'warning' => null,
         ];
@@ -119,14 +152,19 @@ class InstagramAudienceImporter
             return [null, 'Instagram n’a rien renvoye pour ce pseudo.'];
         }
 
+        $bio = (string) ($found['biography'] ?? '');
+        $contact = self::contactFromBio($bio);
+
         return [[
             'username' => (string) ($found['username'] ?? $username),
             'name' => (string) ($found['name'] ?? ''),
             'followers' => (int) ($found['followers_count'] ?? 0),
             'media_count' => (int) ($found['media_count'] ?? 0),
-            'biography' => (string) ($found['biography'] ?? ''),
+            'biography' => $bio,
             'website' => (string) ($found['website'] ?? ''),
             'avatar' => $found['profile_picture_url'] ?? null,
+            'email' => $contact['email'],
+            'phone' => $contact['phone'],
             'found' => true,
             'warning' => null,
         ], null];

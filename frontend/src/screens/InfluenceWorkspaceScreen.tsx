@@ -349,7 +349,7 @@ export function InfluenceWorkspaceScreen() {
     try {
       const r = await api.get<{
         username: string; name: string; followers: number; media_count: number;
-        biography: string; found: boolean; warning: string | null;
+        biography: string; email: string; phone: string; found: boolean; warning: string | null;
       }>('influencers/instagram-lookup?username=' + encodeURIComponent(handle));
 
       const a = r.ok ? r.data : null;
@@ -363,11 +363,15 @@ export function InfluenceWorkspaceScreen() {
         bio: a?.found && a.biography ? a.biography : p.bio,
         audience_size: a?.found && a.followers ? String(a.followers) : p.audience_size,
         posts_count: a?.found && a.media_count ? String(a.media_count) : p.posts_count,
+        // Contact pro souvent ecrit dans la bio : on ne l'ecrase jamais.
+        contact_email: p.contact_email || (a?.email ?? ''),
+        contact_phone: p.contact_phone || (a?.phone ?? ''),
       }));
 
       setIgLookupNote(
         a?.found
           ? 'Fiche remplie depuis Instagram : ' + a.followers.toLocaleString('fr-FR') + ' abonnés, ' + a.media_count + ' publication(s).'
+            + (a.email || a.phone ? ' Contact trouvé dans la bio — vérifiez-le.' : '')
           : (a?.warning || r.message),
       );
       setIgSuggestions([]);
