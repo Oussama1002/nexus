@@ -179,7 +179,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'tresorerie', label: 'Trésorerie', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 2, icon: Wallet, view: 'treasury' },
   { id: 'budgets', label: 'Budgets', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 3, icon: CreditCard, view: 'budgets' },
   { id: 'demandes-budget', label: 'Demandes de budget', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 4, icon: ClipboardList, view: 'budgetRequests' },
-  { id: 'depenses', label: 'Dépenses', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 5, icon: Receipt, view: 'expenses' },
+  { id: 'depenses', label: 'Charges', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 5, icon: Receipt, view: 'expenses' },
   { id: 'factures-clients', label: 'Factures', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 6, icon: Receipt, view: 'clientInvoices' },
   { id: 'contrats-clients', label: 'Contrats', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 7, icon: ClipboardList, view: 'clientContracts' },
   { id: 'comptabilite', label: 'Comptabilité', level: 2, block: 'ressources', parentId: 'finance-comptabilite', order: 8, icon: Calculator, view: 'comptabilite' },

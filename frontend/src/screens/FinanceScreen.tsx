@@ -100,7 +100,6 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
   const { hasPermission } = useAuth();
   const toast = useToast();
 
-  const [tab, setTab] = useState<FinanceTab>(only ?? 'charges');
   const [charges, setCharges] = useState<ChargeApi[]>([]);
   const [invoices, setInvoices] = useState<ClientInvoice[]>([]);
   // Fiche facture en panneau lateral : la ligne ne montre qu'un resume.
@@ -209,7 +208,7 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
   }, [loadAll]);
 
   const rows = useMemo(() => {
-    if (tab !== 'charges') return [];
+    if (only !== 'charges') return [];
     const s = q.trim().toLowerCase();
     if (!s) return charges;
     return charges.filter((c) => {
@@ -534,25 +533,14 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={only === 'invoices' ? 'Factures' : only === 'contracts' ? 'Contrats' : 'Tableau de bord financier'}
+        title={
+          only === 'invoices' ? 'Factures'
+            : only === 'contracts' ? 'Contrats'
+              : only === 'charges' ? 'Charges'
+                : 'Tableau de bord financier'
+        }
         right={
           <div className="flex gap-2">
-            <div className={`flex rounded-xl border border-zinc-200 overflow-hidden ${only ? 'hidden' : ''}`}>
-              {([
-                ['charges', 'Charges'],
-                ['invoices', 'Factures'],
-                ['contracts', 'Contrats'],
-              ] as const).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={`px-3 py-2 text-xs font-black ${tab === id ? 'bg-primary-600 text-white' : 'bg-white text-zinc-700'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
             <button
               type="button"
               onClick={() => void loadAll()}
@@ -560,7 +548,7 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Rafraîchir
             </button>
-            {canCreate && tab === 'charges' && (
+            {canCreate && only === 'charges' && (
               <button
                 type="button"
                 onClick={() => setCreateOpen(true)}
@@ -569,7 +557,7 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
                 <Plus className="w-4 h-4" /> Ajouter charge
               </button>
             )}
-            {canCreate && tab === 'invoices' && (
+            {canCreate && only === 'invoices' && (
               <>
                 <button
                   type="button"
@@ -593,7 +581,7 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
                 </button>
               </>
             )}
-            {canCreate && tab === 'contracts' && (
+            {canCreate && only === 'contracts' && (
               <button
                 type="button"
                 onClick={() => setCreateContractOpen(true)}
@@ -664,6 +652,7 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
         </div>
       )}
 
+      {only && (
       <FilterBar
         query={q}
         onQueryChange={setQ}
@@ -696,8 +685,9 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
           </>
         }
       />
+      )}
 
-      {tab === 'charges' && (
+      {only === 'charges' && (
         <DataTable
           rows={rows}
           columns={columns}
@@ -706,7 +696,7 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
         />
       )}
 
-      {tab === 'invoices' && (
+      {only === 'invoices' && (
         <DataTable
           rows={invoiceRows}
           columns={invoiceColumns}
@@ -715,7 +705,7 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
         />
       )}
 
-      {tab === 'contracts' && (
+      {only === 'contracts' && (
         <DataTable
           rows={contractRows}
           columns={contractColumns}

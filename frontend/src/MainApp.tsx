@@ -563,7 +563,7 @@ export function MainApp() {
       case 'myTrainings':
         return <AcademyScreen />;
       case 'expenses':
-        return <FinanceScreen />;
+        return <FinanceScreen only="charges" />;
       case 'clientInvoices':
         return <FinanceScreen only="invoices" />;
       case 'clientContracts':
