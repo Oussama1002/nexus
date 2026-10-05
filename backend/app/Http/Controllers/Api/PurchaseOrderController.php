@@ -42,6 +42,10 @@ class PurchaseOrderController extends Controller
         $q
             ->orderByDesc('ordered_at')
             ->orderByDesc('id');
+        // Les archivees sortent de la liste sans etre supprimees.
+        $request->boolean('archived')
+            ? $q->whereNotNull('archived_at')
+            : $q->whereNull('archived_at');
         if ($status) {
             $q->where('status', $status);
         }
@@ -242,8 +246,12 @@ class PurchaseOrderController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $po = PurchaseOrder::query()->where('brand_id', $brandId)->findOrFail($id);
 
-        if ($po->status !== 'draft') {
-            return ApiResponse::error('Only draft purchase orders can be deleted.', null, 422);
+        if ($po->status !== 'draft' && $po->archived_at === null) {
+            return ApiResponse::error(
+                'Seule une commande fournisseur en brouillon ou archivée peut être supprimée.',
+                null,
+                422
+            );
         }
 
         $before = $po->toArray();
@@ -253,6 +261,38 @@ class PurchaseOrderController extends Controller
         AuditLogger::log($request, 'purchase_orders.delete', null, $before, null);
 
         return ApiResponse::success(null, 'Purchase order deleted successfully.');
+    }
+
+    public function archive(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $po = PurchaseOrder::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        if ($po->archived_at) {
+            return ApiResponse::error('Cette commande fournisseur est déjà archivée.', null, 422);
+        }
+
+        $before = $po->toArray();
+        $po->archived_at = now();
+        $po->save();
+
+        AuditLogger::log($request, 'purchase_orders.archive', $po, $before, $po->fresh()->toArray());
+
+        return ApiResponse::success($po->fresh(), 'Commande fournisseur archivée.');
+    }
+
+    public function restore(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $po = PurchaseOrder::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        $before = $po->toArray();
+        $po->archived_at = null;
+        $po->save();
+
+        AuditLogger::log($request, 'purchase_orders.restore', $po, $before, $po->fresh()->toArray());
+
+        return ApiResponse::success($po->fresh(), 'Commande fournisseur restaurée.');
     }
 
     public function receive(ReceivePurchaseOrderRequest $request, string $id): JsonResponse

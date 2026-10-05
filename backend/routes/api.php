@@ -246,6 +246,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receive'])->whereNumber('id')->middleware('permission:purchase_orders.receive');
     Route::post('purchase-orders/{id}/send-supplier', [PurchaseOrderController::class, 'sendToSupplier'])->whereNumber('id')->middleware('permission:purchase_orders.update');
     Route::post('purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::post('purchase-orders/{id}/archive', [PurchaseOrderController::class, 'archive'])->whereNumber('id')->middleware('permission:purchase_orders.update');
+    Route::post('purchase-orders/{id}/restore', [PurchaseOrderController::class, 'restore'])->whereNumber('id')->middleware('permission:purchase_orders.update');
     Route::get('purchase-orders/{id}', [PurchaseOrderController::class, 'show'])->whereNumber('id')->middleware('permission:purchase_orders.view');
     Route::put('purchase-orders/{id}', [PurchaseOrderController::class, 'update'])->whereNumber('id')->middleware('permission:purchase_orders.update');
     Route::patch('purchase-orders/{id}', [PurchaseOrderController::class, 'update'])->whereNumber('id')->middleware('permission:purchase_orders.update');

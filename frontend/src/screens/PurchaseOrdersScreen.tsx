@@ -25,7 +25,7 @@ type ApiPoLine = {
   line_total: string;
   sku_snapshot?: string | null;
   product_name_snapshot?: string | null;
-  product?: { name: string; sku: string };
+  product?: { id: number; name: string; sku: string };
 };
 
 type ApiPo = {
@@ -54,6 +54,8 @@ type ApiPo = {
   warehouse_destination?: string | null;
   internal_notes?: string | null;
   supplier_conditions?: string | null;
+  discount?: string | number | null;
+  tax?: string | number | null;
   lines?: ApiPoLine[];
 };
 
@@ -124,6 +126,9 @@ export function PurchaseOrdersScreen() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<ApiPo | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  // Non nul = le formulaire modifie cette commande au lieu d'en creer une.
+  const [editId, setEditId] = useState<number | null>(null);
+  const [rowBusy, setRowBusy] = useState<number | null>(null);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [receiveQty, setReceiveQty] = useState<Record<number, string>>({});
 
@@ -263,16 +268,65 @@ export function PurchaseOrdersScreen() {
     if (supplierConditions.trim()) body.supplier_conditions = supplierConditions;
     if (internalNotes.trim()) body.internal_notes = internalNotes;
 
-    const res = await api.post<ApiPo>('purchase-orders', body);
+    const res = editId
+      ? await api.put<ApiPo>(`purchase-orders/${editId}`, body)
+      : await api.post<ApiPo>('purchase-orders', body);
     if (!res.ok) {
       const rawErr = 'errors' in res ? res.errors : {};
       const fe = flattenFieldErrors(rawErr as Record<string, unknown>);
       toast.error(fe.length ? fe.join(' ') : res.message);
       return;
     }
-    toast.success('Bon de commande créé.');
+    toast.success(editId ? 'Bon de commande modifié.' : 'Bon de commande créé.');
     setCreateOpen(false);
+    setEditId(null);
     setLines([{ product_id: 0, quantity_ordered: 1, unit_price: '', line_discount: '0', line_tax: '0' }]);
+    void load();
+  }
+
+  /** Pre-remplit le formulaire avec une commande existante. */
+  async function openEdit(po: ApiPo) {
+    const res = await api.get<ApiPo>(`purchase-orders/${po.id}`);
+    if (!res.ok) { toast.error(res.message); return; }
+    const d = res.data;
+    setEditId(d.id);
+    setSupplierId(d.supplier?.id ?? null);
+    setOrderedAt(d.ordered_at ? String(d.ordered_at).slice(0, 10) : '');
+    setExpectedDelivery(d.expected_delivery_date ? String(d.expected_delivery_date).slice(0, 10) : '');
+    setCurrency(d.currency ?? 'MAD');
+    setPaymentStatus(d.payment_status ?? 'unpaid');
+    setHdrDiscount(String(d.discount ?? '0'));
+    setHdrTax(String(d.tax ?? '0'));
+    setPaidAmount(String(d.paid_amount ?? '0'));
+    setLines(
+      (d.lines ?? []).map((l) => ({
+        product_id: l.product?.id ?? 0,
+        quantity_ordered: Number(l.quantity_ordered ?? 1),
+        unit_price: l.unit_price != null ? String(l.unit_price) : '',
+        line_discount: '0',
+        line_tax: '0',
+      })),
+    );
+    setCreateOpen(true);
+  }
+
+  async function archivePo(po: ApiPo) {
+    if (!window.confirm(`Archiver « ${po.reference} » ? Elle sort de la liste sans être supprimée.`)) return;
+    setRowBusy(po.id);
+    const res = await api.post(`purchase-orders/${po.id}/archive`, {});
+    setRowBusy(null);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success(res.message);
+    void load();
+  }
+
+  async function deletePo(po: ApiPo) {
+    if (!window.confirm(`Supprimer définitivement « ${po.reference} » et ses lignes ?`)) return;
+    setRowBusy(po.id);
+    const res = await api.del(`purchase-orders/${po.id}`);
+    setRowBusy(null);
+    if (!res.ok) { toast.error(res.message); return; }
+    toast.success(res.message);
     void load();
   }
 
@@ -542,6 +596,45 @@ export function PurchaseOrdersScreen() {
                 return <span className="text-sm font-semibold text-zinc-700">{ru?.name ?? '—'}</span>;
               },
             },
+            {
+              key: 'actions',
+              header: '',
+              className: 'text-right',
+              cell: (r) => (
+                <div className="inline-flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(r.id)}
+                    className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Détail
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void openEdit(r)}
+                    className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={rowBusy === r.id}
+                    onClick={() => void archivePo(r)}
+                    className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    Archiver
+                  </button>
+                  <button
+                    type="button"
+                    disabled={rowBusy === r.id}
+                    onClick={() => void deletePo(r)}
+                    className="rounded-lg border border-red-200 px-2.5 py-1 text-[11px] font-black text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              ),
+            },
           ]}
         />
       )}
@@ -707,7 +800,7 @@ export function PurchaseOrdersScreen() {
         )}
       </Modal>
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nouvelle commande fournisseur" panelClassName="max-w-4xl">
+      <Modal open={createOpen} onClose={() => { setCreateOpen(false); setEditId(null); }} title={editId ? 'Modifier la commande fournisseur' : 'Nouvelle commande fournisseur'} panelClassName="max-w-4xl">
         <div className="space-y-6">
           <section className="space-y-3">
             <p className="text-xs font-black uppercase text-primary-600">Informations générales</p>

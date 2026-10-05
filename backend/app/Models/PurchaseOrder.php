@@ -16,6 +16,7 @@ class PurchaseOrder extends Model
         'responsible_user_id',
         'reference',
         'status',
+        'archived_at',
         'payment_status',
         'currency',
         'subtotal',
