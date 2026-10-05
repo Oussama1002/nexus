@@ -11,6 +11,7 @@ import { useBrand } from '../context/BrandContext';
 import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { isPaginator, type LaravelPaginator } from '../lib/apiTypes';
+import { Drawer } from '../components/ui/Drawer';
 import { flattenFieldErrors } from '../lib/formErrors';
 
 type ApiDc = {
@@ -20,6 +21,17 @@ type ApiDc = {
   email?: string | null;
   contact_name: string | null;
   phone: string | null;
+  whatsapp?: string | null;
+  support_email?: string | null;
+  support_url?: string | null;
+  website?: string | null;
+  address?: string | null;
+  account_reference?: string | null;
+  api_url?: string | null;
+  tracking_base_url?: string | null;
+  avg_cost?: string | number | null;
+  avg_delivery_days?: number | null;
+  notes?: string | null;
   status: string;
 };
 type ApiDp = {
@@ -32,6 +44,49 @@ type ApiDp = {
   reconciled_at: string | null;
   delivery_company?: { name: string };
 };
+
+/** Numero au format WhatsApp : lien direct, pas un copier-coller. */
+function waLink(raw: string): string {
+  return 'https://wa.me/' + raw.replace(/[^\d]/g, '');
+}
+
+function externalUrl(raw: string): string {
+  return /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+}
+
+const CONTACT_BTN =
+  'inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-2 py-1 text-[11px] font-black text-zinc-700 hover:bg-zinc-50';
+
+/** Joindre le transporteur sans quitter le CRM ni chercher ses coordonnées. */
+function CarrierContactLinks({ carrier }: { carrier: ApiDc }) {
+  const wa = carrier.whatsapp || carrier.phone;
+  const mail = carrier.support_email || carrier.email;
+  const portal = carrier.support_url || carrier.website;
+
+  if (!wa && !mail && !portal) {
+    return <span className="text-sm text-zinc-400">—</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {wa && (
+        <a href={waLink(wa)} target="_blank" rel="noreferrer" className={CONTACT_BTN} title={wa}>
+          WhatsApp
+        </a>
+      )}
+      {mail && (
+        <a href={`mailto:${mail}`} className={CONTACT_BTN} title={mail}>
+          Email
+        </a>
+      )}
+      {portal && (
+        <a href={externalUrl(portal)} target="_blank" rel="noreferrer" className={CONTACT_BTN} title={portal}>
+          Plateforme
+        </a>
+      )}
+    </div>
+  );
+}
 
 export function DeliveryScreen() {
   const { activeBrandId } = useBrand();
@@ -47,6 +102,15 @@ export function DeliveryScreen() {
   const [dcCode, setDcCode] = useState('');
   const [dcEmail, setDcEmail] = useState('');
   const [dcPhone, setDcPhone] = useState('');
+  const [dcWhatsapp, setDcWhatsapp] = useState('');
+  const [dcContact, setDcContact] = useState('');
+  const [dcSupportEmail, setDcSupportEmail] = useState('');
+  const [dcSupportUrl, setDcSupportUrl] = useState('');
+  const [dcWebsite, setDcWebsite] = useState('');
+  const [dcAddress, setDcAddress] = useState('');
+  const [dcAccountRef, setDcAccountRef] = useState('');
+  // Fiche transporteur ouverte a droite.
+  const [dcDetail, setDcDetail] = useState<ApiDc | null>(null);
   const [dcApiUrl, setDcApiUrl] = useState('');
   const [dcApiKeyRef, setDcApiKeyRef] = useState('');
   const [dcAvgCost, setDcAvgCost] = useState('');
@@ -105,6 +169,13 @@ export function DeliveryScreen() {
     if (dcCode.trim()) body.code = dcCode.trim().toLowerCase();
     if (dcEmail.trim()) body.email = dcEmail.trim();
     if (dcPhone.trim()) body.phone = dcPhone.trim();
+    if (dcWhatsapp.trim()) body.whatsapp = dcWhatsapp.trim();
+    if (dcContact.trim()) body.contact_name = dcContact.trim();
+    if (dcSupportEmail.trim()) body.support_email = dcSupportEmail.trim();
+    if (dcSupportUrl.trim()) body.support_url = dcSupportUrl.trim();
+    if (dcWebsite.trim()) body.website = dcWebsite.trim();
+    if (dcAddress.trim()) body.address = dcAddress.trim();
+    if (dcAccountRef.trim()) body.account_reference = dcAccountRef.trim();
     if (dcApiUrl.trim()) body.api_url = dcApiUrl.trim();
     if (dcApiKeyRef.trim()) body.api_key_ref = dcApiKeyRef.trim();
     if (dcAvgCost.trim()) body.avg_cost = parseFloat(dcAvgCost);
@@ -233,13 +304,45 @@ export function DeliveryScreen() {
           {filteredDc.length === 0 ? (
             <EmptyState title="Aucun transporteur" description="Ajoutez une société de livraison." />
           ) : (
-            <DataTable
+            <DataTable<ApiDc>
               rows={filteredDc}
               columns={[
-                { key: 'n', header: 'Nom', cell: (c) => <span className="font-black">{c.name}</span> },
-                { key: 'code', header: 'Code', cell: (c) => <span className="text-xs font-bold text-zinc-600">{c.code ?? '—'}</span> },
-                { key: 'co', header: 'Contact', cell: (c) => <span>{c.contact_name ?? '—'}</span> },
-                { key: 'ph', header: 'Téléphone', cell: (c) => <span>{c.phone ?? '—'}</span> },
+                {
+                  key: 'n',
+                  header: 'Nom',
+                  cell: (c) => (
+                    <button type="button" onClick={() => setDcDetail(c)} className="font-black text-primary-600 hover:underline text-left">
+                      {c.name}
+                      <span className="block text-[11px] font-bold text-zinc-500">{c.code ?? '—'}</span>
+                    </button>
+                  ),
+                },
+                {
+                  key: 'co',
+                  header: 'Contact',
+                  cell: (c) => (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-zinc-800">{c.contact_name || '—'}</p>
+                      <p className="text-[11px] text-zinc-500">{c.phone || c.whatsapp || '—'}</p>
+                      <p className="text-[11px] text-zinc-400">{c.support_email || c.email || '—'}</p>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'delai',
+                  header: 'Délai / coût',
+                  cell: (c) => (
+                    <span className="text-sm text-zinc-700">
+                      {c.avg_delivery_days != null ? `${c.avg_delivery_days} j` : '—'}
+                      {c.avg_cost != null && Number(c.avg_cost) > 0 ? ` · ${Number(c.avg_cost).toFixed(2)} MAD` : ''}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'support',
+                  header: 'Support',
+                  cell: (c) => <CarrierContactLinks carrier={c} />,
+                },
                 {
                   key: 'st',
                   header: 'Statut',
@@ -353,6 +456,48 @@ export function DeliveryScreen() {
             className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
           />
           <input
+            value={dcWhatsapp}
+            onChange={(e) => setDcWhatsapp(e.target.value)}
+            placeholder="WhatsApp support (ex. +212600000000)"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+          />
+          <input
+            value={dcContact}
+            onChange={(e) => setDcContact(e.target.value)}
+            placeholder="Nom du contact"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+          />
+          <input
+            value={dcSupportEmail}
+            onChange={(e) => setDcSupportEmail(e.target.value)}
+            placeholder="Email du support"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+          />
+          <input
+            value={dcSupportUrl}
+            onChange={(e) => setDcSupportUrl(e.target.value)}
+            placeholder="Plateforme / portail support (URL)"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+          />
+          <input
+            value={dcWebsite}
+            onChange={(e) => setDcWebsite(e.target.value)}
+            placeholder="Site web"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+          />
+          <input
+            value={dcAddress}
+            onChange={(e) => setDcAddress(e.target.value)}
+            placeholder="Adresse"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+          />
+          <input
+            value={dcAccountRef}
+            onChange={(e) => setDcAccountRef(e.target.value)}
+            placeholder="N° de compte chez le transporteur"
+            className="w-full px-4 py-3 rounded-xl border border-zinc-200 font-bold"
+          />
+          <input
             value={dcApiUrl}
             onChange={(e) => setDcApiUrl(e.target.value)}
             placeholder="URL API / tracking"
@@ -431,6 +576,49 @@ export function DeliveryScreen() {
           </button>
         </div>
       </Modal>
+
+      <Drawer open={!!dcDetail} onClose={() => setDcDetail(null)} title={dcDetail?.name ?? ''}>
+        {dcDetail && (
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between">
+              <StatusChip tone={dcDetail.status === 'active' ? 'success' : 'neutral'}>{dcDetail.status}</StatusChip>
+              <span className="font-mono text-xs font-bold text-zinc-500">{dcDetail.code ?? '—'}</span>
+            </div>
+
+            <CarrierContactLinks carrier={dcDetail} />
+
+            <dl className="space-y-2">
+              {([
+                ['Contact', dcDetail.contact_name],
+                ['Téléphone', dcDetail.phone],
+                ['WhatsApp', dcDetail.whatsapp],
+                ['Email', dcDetail.email],
+                ['Email support', dcDetail.support_email],
+                ['Plateforme support', dcDetail.support_url],
+                ['Site web', dcDetail.website],
+                ['Adresse', dcDetail.address],
+                ['N° de compte', dcDetail.account_reference],
+                ['Délai moyen', dcDetail.avg_delivery_days != null ? `${dcDetail.avg_delivery_days} jours` : null],
+                ['Coût moyen', dcDetail.avg_cost != null && Number(dcDetail.avg_cost) > 0 ? `${Number(dcDetail.avg_cost).toFixed(2)} MAD` : null],
+                ['URL de suivi', dcDetail.tracking_base_url],
+                ['URL API', dcDetail.api_url],
+              ] as const).map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-3 border-b border-zinc-100 pb-1.5">
+                  <dt className="text-[11px] font-black uppercase tracking-widest text-zinc-500">{label}</dt>
+                  <dd className="text-right text-zinc-800 break-all">{value || '—'}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {dcDetail.notes && (
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Notes</p>
+                <p className="whitespace-pre-wrap text-zinc-700">{dcDetail.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }
