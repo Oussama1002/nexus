@@ -102,6 +102,16 @@ class StockShortageService
 
         // Garde-fou : un pack qui se contiendrait lui-meme boucherait a l'infini.
         if (! is_array($items) || $items === [] || $depth > 3) {
+            // Un produit annonce comme pack mais sans composition part tel quel
+            // chez le fournisseur : on le signale au lieu de le laisser passer.
+            if (mb_stripos((string) $product->category, 'pack') !== false && ! is_array($items)) {
+                Log::warning('stock.pack_without_items', [
+                    'product_id' => $product->id,
+                    'sku' => $product->sku,
+                    'name' => $product->name,
+                ]);
+            }
+
             return [(int) $product->id => $quantity];
         }
 

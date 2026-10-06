@@ -373,8 +373,15 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
   }, [canEdit]);
 
   async function saveProduct() {
-    setSaving(true);
     setFormErr([]);
+    // Un pack sans composition se comporte partout comme un produit simple :
+    // il part tel quel en commande fournisseur et laisse ses composants hors
+    // du réapprovisionnement. Mieux vaut refuser l'enregistrement.
+    if (isPack && packItems.length === 0) {
+      setFormErr(['Un pack doit contenir au moins un produit. Ajoutez sa composition ci-dessous.']);
+      return;
+    }
+    setSaving(true);
     const fd = new FormData();
     fd.append('name', draft.name.trim());
     fd.append('category', draft.category.trim());
@@ -414,8 +421,15 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
 
   async function saveEdit() {
     if (!selected) return;
-    setSaving(true);
     setFormErr([]);
+    // Un pack sans composition se comporte partout comme un produit simple :
+    // il part tel quel en commande fournisseur et laisse ses composants hors
+    // du réapprovisionnement. Mieux vaut refuser l'enregistrement.
+    if (isPack && packItems.length === 0) {
+      setFormErr(['Un pack doit contenir au moins un produit. Ajoutez sa composition ci-dessous.']);
+      return;
+    }
+    setSaving(true);
     const fd = new FormData();
     fd.append('_method', 'PUT');
     fd.append('name', draft.name.trim());
