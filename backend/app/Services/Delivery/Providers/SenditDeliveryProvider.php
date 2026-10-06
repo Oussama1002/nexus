@@ -48,7 +48,7 @@ class SenditDeliveryProvider extends AbstractHttpDeliveryProvider
         }
 
         if (! $this->ensureToken($credentials)) {
-            return $this->failure('sendit_auth_failed', 'Sendit authentication failed. Check public and secret keys.');
+            return $this->failure('sendit_auth_failed', 'Authentification Sendit refusée : vérifiez la clé publique et la clé secrète.');
         }
 
         $districtId = $payload['district_id'] ?? null;
@@ -198,14 +198,14 @@ class SenditDeliveryProvider extends AbstractHttpDeliveryProvider
         $this->token = null;
 
         if ($credentials['public_key'] === '' || $credentials['secret_key'] === '') {
-            return $this->failure('sendit_incomplete', 'Sendit requires a public key and a secret key.');
+            return $this->failure('sendit_incomplete', 'Sendit exige une clé publique et une clé secrète.');
         }
 
         if (! $this->ensureToken($credentials)) {
-            return $this->failure('sendit_auth_failed', 'Sendit authentication failed. Verify public and secret keys.');
+            return $this->failure('sendit_auth_failed', 'Authentification Sendit refusée : vérifiez la clé publique et la clé secrète.');
         }
 
-        return $this->success('sendit_connected', 'Sendit API connection successful.');
+        return $this->success('sendit_connected', 'Authentification Sendit réussie. La création de colis dépend en plus de la validation de votre compte chez Sendit.');
     }
 
     /**
