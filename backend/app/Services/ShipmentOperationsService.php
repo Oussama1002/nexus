@@ -67,8 +67,16 @@ class ShipmentOperationsService
 
             $recipientName = $overrides['recipient_name'] ?? ($customer instanceof Customer ? $customer->full_name : null);
             $recipientPhone = $overrides['recipient_phone'] ?? ($customer instanceof Customer ? $customer->phone : null);
-            $recipientCity = $overrides['recipient_city'] ?? $overrides['city'] ?? ($customer instanceof Customer ? $customer->city : null);
-            $recipientAddress = $overrides['recipient_address'] ?? $overrides['address'] ?? $order->shipping_address;
+            // La fiche client porte deux villes : celle de facturation et
+            // celle de livraison. Ne lire que la premiere creait des colis
+            // sans ville, que le transporteur refuse.
+            $recipientCity = $overrides['recipient_city']
+                ?? $overrides['city']
+                ?? ($customer instanceof Customer ? ($customer->delivery_city ?: $customer->city) : null);
+            $recipientAddress = $overrides['recipient_address']
+                ?? $overrides['address']
+                ?? $order->shipping_address
+                ?? ($customer instanceof Customer ? ($customer->delivery_address ?: $customer->address) : null);
 
             $shipment = Shipment::query()->create([
                 'order_id' => $order->id,
