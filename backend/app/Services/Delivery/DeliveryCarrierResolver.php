@@ -85,17 +85,26 @@ class DeliveryCarrierResolver
         return $company;
     }
 
+    /**
+     * Reglage de la marque, sinon reglage global. Les identifiants
+     * transporteur sont souvent saisis une fois pour toute l'entreprise :
+     * les chercher uniquement sous la marque de la commande les faisait
+     * passer pour absents.
+     */
     protected function brandSetting(int $brandId, string $key): string
     {
-        $value = trim((string) (SystemSetting::query()
-            ->where('brand_id', $brandId)
-            ->where('setting_key', $key)
-            ->value('setting_value') ?? ''));
+        foreach ([$brandId, null] as $scope) {
+            $value = trim((string) (SystemSetting::query()
+                ->where('setting_key', $key)
+                ->when($scope === null, fn ($q) => $q->whereNull('brand_id'))
+                ->when($scope !== null, fn ($q) => $q->where('brand_id', $scope))
+                ->value('setting_value') ?? ''));
 
-        if ($value === '' || preg_match('/^\*+$/', $value)) {
-            return '';
+            if ($value !== '' && ! preg_match('/^\*+$/', $value)) {
+                return $value;
+            }
         }
 
-        return $value;
+        return '';
     }
 }

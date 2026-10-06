@@ -43,8 +43,11 @@ abstract class AbstractHttpDeliveryProvider implements DeliveryProviderInterface
         return [
             'ok' => false,
             'code' => 'not_configured',
+            // Nommer les deux emplacements consultes : les identifiants sont
+            // parfois saisis sur la fiche transporteur, parfois en reglages.
             'message' => sprintf(
-                'Identifiants API %s manquants — renseignez-les dans Paramètres › Intégrations › Livraison.',
+                'Identifiants API %s manquants. Renseignez-les sur la fiche du transporteur '
+                .'(Logistique › Transporteurs) ou dans Paramètres › Intégrations › Livraison.',
                 ucfirst($this->providerCode())
             ),
             'data' => [],
