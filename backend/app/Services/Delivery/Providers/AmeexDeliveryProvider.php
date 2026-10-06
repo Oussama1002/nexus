@@ -488,6 +488,14 @@ class AmeexDeliveryProvider extends AbstractHttpDeliveryProvider
             return (string) $data['message'];
         }
 
+        // {"login":"error","data":{"pg_title":"Page de connexion…"}} : Ameex
+        // renvoie sa page de login sans message. Sans ce cas, le refus
+        // d'authentification ressortait en erreur generique.
+        if (isset($data['login']) && mb_strtolower((string) $data['login']) !== 'success') {
+            return 'Ameex a refusé l’authentification : vérifiez C-Api-Id et C-Api-Key '
+                .'dans Paramètres › Intégrations › Livraison.';
+        }
+
         return $fallback;
     }
 
