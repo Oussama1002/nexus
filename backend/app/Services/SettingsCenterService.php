@@ -473,7 +473,13 @@ class SettingsCenterService
             }
             $ax = $car['ameex'] ?? [];
             $this->upsert($brandId, 'delivery', 'carrier_ameex_api_url', $ax['apiUrl'] ?? '');
-            $this->upsert($brandId, 'delivery', 'carrier_ameex_api_id', $ax['apiId'] ?? '');
+            // Un identifiant vide n'efface pas celui en place : la section
+            // Livraison s'enregistre d'un bloc, et un champ laissé vide
+            // effaçait silencieusement des identifiants valides.
+            $axId = trim((string) ($ax['apiId'] ?? ''));
+            if ($axId !== '') {
+                $this->upsert($brandId, 'delivery', 'carrier_ameex_api_id', $axId);
+            }
             $ak = $ax['apiKey'] ?? '';
             if ($isAdmin && ! SystemSetting::valueIsUnchangedSecretPlaceholder((string) $ak) && $ak !== '') {
                 $this->upsertSensitive($brandId, 'delivery', 'carrier_ameex_api_key', (string) $ak, $defs);
