@@ -83,6 +83,7 @@ class SettingsCenterRules
                 'rules.allowOpenPackage' => 'nullable|boolean',
                 'rules.autoTrackingNumber' => 'nullable|boolean',
                 'rules.autoSyncTracking' => 'nullable|boolean',
+                'rules.feeIncludedInSubtotal' => 'nullable|boolean',
                 'carriers' => 'nullable|array',
                 'carriers.sendit' => 'nullable|array',
                 'carriers.sendit.apiUrl' => $urlEmptyOrHttp,
@@ -90,6 +91,9 @@ class SettingsCenterRules
                 'carriers.sendit.secretKey' => 'nullable|string|max:2048',
                 'carriers.ameex' => 'nullable|array',
                 'carriers.ameex.apiUrl' => $urlEmptyOrHttp,
+                // Sans cette regle, validate() retirait l'identifiant du
+                // payload : le champ etait saisissable mais jamais enregistre.
+                'carriers.ameex.apiId' => 'nullable|string|max:255',
                 'carriers.ameex.apiKey' => 'nullable|string|max:2048',
                 'cod' => 'nullable|array',
                 'cod.reconciliationDelayDays' => 'nullable|numeric|min:0',
@@ -135,6 +139,7 @@ class SettingsCenterRules
                 'instagram.appSecretConfigured' => 'nullable|boolean',
                 'instagram.connected' => 'nullable|boolean',
                 'instagram.username' => 'nullable|string|max:191',
+                'instagram.extraScopes' => 'nullable|string|max:512',
                 'ads' => 'nullable|array',
                 'ads.attributionWindowDays' => 'nullable|numeric|min:0',
                 'ads.leadActionTypes' => 'nullable|string|max:500',
