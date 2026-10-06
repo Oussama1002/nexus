@@ -60,7 +60,15 @@ type ApiPo = {
 };
 
 type ApiSupplier = { id: number; name: string };
-type ApiProduct = { id: number; name: string; sku: string; price: string; cost?: string };
+type ApiProduct = {
+  id: number;
+  name: string;
+  sku: string;
+  price: string;
+  cost?: string;
+  /** Composition d'un pack : [{product_id, quantity}]. Null pour un produit simple. */
+  pack_items?: { product_id: number; quantity: number }[] | string | null;
+};
 
 type ProcurementKpis = {
   purchase_orders_count: number;
@@ -107,6 +115,51 @@ function parseNum(v: string | undefined): number {
   if (v === undefined || v === null) return 0;
   const n = parseFloat(String(v));
   return Number.isFinite(n) ? n : 0;
+}
+
+type PoLine = { product_id: number; quantity_ordered: number; unit_price: string; line_discount: string; line_tax: string };
+
+function parsePackItems(raw: ApiProduct['pack_items']): { product_id: number; quantity: number }[] {
+  if (!raw) return [];
+  let value: unknown = raw;
+  if (typeof raw === 'string') {
+    try { value = JSON.parse(raw); } catch { return []; }
+  }
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((i) => ({ product_id: Number((i as { product_id?: unknown })?.product_id ?? 0), quantity: Number((i as { quantity?: unknown })?.quantity ?? 1) }))
+    .filter((i) => i.product_id > 0 && i.quantity > 0);
+}
+
+/**
+ * Un fournisseur vend les composants, pas le pack : choisir un pack ajoute
+ * ses produits. Un composant déjà présent voit sa quantité cumulée plutôt
+ * que dupliquée sur une seconde ligne.
+ */
+function expandPackLine(lines: PoLine[], index: number, product: ApiProduct, products: ApiProduct[]): PoLine[] {
+  const items = parsePackItems(product.pack_items);
+  if (items.length === 0) return lines;
+
+  const packQty = Math.max(1, Number(lines[index]?.quantity_ordered) || 1);
+  const next = lines.filter((_, i) => i !== index);
+
+  for (const item of items) {
+    const component = products.find((p) => p.id === item.product_id);
+    if (!component) continue;
+
+    const needed = item.quantity * packQty;
+    const existing = next.findIndex((l) => l.product_id === component.id);
+    if (existing >= 0) {
+      next[existing] = { ...next[existing], quantity_ordered: next[existing].quantity_ordered + needed };
+      continue;
+    }
+
+    const cost = Number(component.cost) > 0 ? String(component.cost) : '';
+    next.push({ product_id: component.id, quantity_ordered: needed, unit_price: cost, line_discount: '0', line_tax: '0' });
+  }
+
+  return next.length > 0 ? next : lines;
 }
 
 export function PurchaseOrdersScreen() {
@@ -883,6 +936,12 @@ export function PurchaseOrdersScreen() {
                       const pr = products.find((p) => p.id === v);
                       const cost = pr && Number(pr.cost) > 0 ? String(pr.cost) : '';
                       next[idx].unit_price = cost;
+                      const packItems = pr ? parsePackItems(pr.pack_items) : [];
+                      if (pr && packItems.length > 0) {
+                        setLines(expandPackLine(next, idx, pr, products));
+                        toast.success(`« ${pr.name} » remplacé par ses ${packItems.length} produit(s).`);
+                        return;
+                      }
                       setLines(next);
                     }}
                     className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold"
