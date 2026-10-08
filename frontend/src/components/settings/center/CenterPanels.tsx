@@ -964,15 +964,41 @@ export function WhatsappPanel({
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <TextField label="Fournisseur" value={value.connection.provider} onChange={(v) => p({ connection: { ...value.connection, provider: v } })} disabled={disabled} />
-          <TextField label="URL de base API" hint="https://graph.facebook.com/…" value={value.connection.apiBaseUrl} onChange={(v) => p({ connection: { ...value.connection, apiBaseUrl: v } })} disabled={disabled} />
-          <TextField label="Numéro professionnel" value={value.connection.businessNumber} onChange={(v) => p({ connection: { ...value.connection, businessNumber: v } })} disabled={disabled} />
-          <TextField label="Business Account ID (WABA)" value={value.connection.businessAccountId} onChange={(v) => p({ connection: { ...value.connection, businessAccountId: v } })} disabled={disabled} />
-          <SecretField label="Jeton API" configured={value.connection.apiTokenConfigured} value={value.connection.apiToken} onChange={(v) => p({ connection: { ...value.connection, apiToken: v } })} disabled={!sec} />
-          <TextField label="Phone ID" value={value.connection.phoneId} onChange={(v) => p({ connection: { ...value.connection, phoneId: v } })} disabled={disabled} />
-          <SecretField label="Jeton de vérification webhook" configured={value.connection.webhookVerifyConfigured} value={value.connection.webhookVerifyToken} onChange={(v) => p({ connection: { ...value.connection, webhookVerifyToken: v } })} disabled={!sec} />
+          <TextField
+            label="Fournisseur"
+            help="Nom du fournisseur WhatsApp Cloud utilisé. En général « meta » (API officielle Meta Cloud). À changer uniquement si vous passez par un BSP tiers (Twilio, 360dialog, etc.) : la valeur sert seulement d’étiquette dans l’audit."
+            value={value.connection.provider} onChange={(v) => p({ connection: { ...value.connection, provider: v } })} disabled={disabled} />
+          <TextField
+            label="URL de base API"
+            hint="https://graph.facebook.com/…"
+            help="Point d’entrée de l’API Graph. Valeur par défaut : https://graph.facebook.com/v25.0. Ne la changez que si Meta publie une nouvelle version (ex. v26.0) ou si vous passez par un proxy / un BSP tiers avec sa propre URL."
+            value={value.connection.apiBaseUrl} onChange={(v) => p({ connection: { ...value.connection, apiBaseUrl: v } })} disabled={disabled} />
+          <TextField
+            label="Numéro professionnel"
+            help="Numéro WhatsApp Business affiché aux clients, au format international (ex. +212 6 12 34 56 78). C’est le numéro visible dans business.facebook.com → WhatsApp Manager → Numéros de téléphone, en face de son Phone ID."
+            value={value.connection.businessNumber} onChange={(v) => p({ connection: { ...value.connection, businessNumber: v } })} disabled={disabled} />
+          <TextField
+            label="Business Account ID (WABA)"
+            help="Identifiant du compte WhatsApp Business (WABA). business.facebook.com → Paramètres → Comptes → Comptes WhatsApp → sélectionnez le compte : l’ID à 15-16 chiffres s’affiche sous le nom. Sert à lister et créer les modèles de messages."
+            value={value.connection.businessAccountId} onChange={(v) => p({ connection: { ...value.connection, businessAccountId: v } })} disabled={disabled} />
+          <SecretField
+            label="Jeton API"
+            help="Jeton permanent d’accès à l’API WhatsApp Cloud. business.facebook.com → Paramètres → Utilisateurs système → votre utilisateur système → « Générer un nouveau token », app WhatsApp sélectionnée, autorisations whatsapp_business_messaging et whatsapp_business_management, expiration « Jamais ». Le jeton n’est affiché qu’une seule fois."
+            configured={value.connection.apiTokenConfigured} value={value.connection.apiToken} onChange={(v) => p({ connection: { ...value.connection, apiToken: v } })} disabled={!sec} />
+          <TextField
+            label="Phone ID"
+            help="Identifiant interne Meta du numéro WhatsApp (différent du numéro lui-même). business.facebook.com → WhatsApp Manager → Numéros de téléphone → ligne du numéro : « ID de téléphone ». C’est l’ID utilisé pour envoyer les messages via /{phone_id}/messages."
+            value={value.connection.phoneId} onChange={(v) => p({ connection: { ...value.connection, phoneId: v } })} disabled={disabled} />
+          <SecretField
+            label="Jeton de vérification webhook"
+            help="Chaîne libre que vous choisissez (ex. une suite aléatoire de 32 caractères) et que Meta renverra lors du handshake du webhook. Vous la saisissez à l’identique ici et dans business.facebook.com → votre app → WhatsApp → Configuration → Webhooks → « Verify token »."
+            configured={value.connection.webhookVerifyConfigured} value={value.connection.webhookVerifyToken} onChange={(v) => p({ connection: { ...value.connection, webhookVerifyToken: v } })} disabled={!sec} />
           <div className="md:col-span-2">
-            <TextField label="URL webhook (référence)" hint="À déclarer chez Meta / fournisseur" value={value.connection.webhookUrlHint} onChange={(v) => p({ connection: { ...value.connection, webhookUrlHint: v } })} disabled={disabled} />
+            <TextField
+              label="URL webhook (référence)"
+              hint="À déclarer chez Meta / fournisseur"
+              help="URL publique où Meta pousse les événements WhatsApp (messages entrants, statuts). Format : https://votre-domaine/api/whatsapp/webhook. À coller dans business.facebook.com → votre app → WhatsApp → Configuration → Webhooks → « Callback URL », puis à abonner aux champs messages et message_template_status_update. Ce champ ici n’est qu’un pense-bête."
+              value={value.connection.webhookUrlHint} onChange={(v) => p({ connection: { ...value.connection, webhookUrlHint: v } })} disabled={disabled} />
           </div>
         </div>
       </SectionCard>
