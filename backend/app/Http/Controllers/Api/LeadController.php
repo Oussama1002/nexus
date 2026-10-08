@@ -15,6 +15,7 @@ use App\Services\AuditLogger;
 use App\Services\LeadService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
+use App\Support\UserRoleHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -39,8 +40,13 @@ class LeadController extends Controller
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('id');
 
-        // Call center agents (confirmatrices) see every lead of the brand, like managers.
-        if ($assigned !== null && $assigned !== '') {
+        // Chacun ne voit que les leads qui lui sont attribués ; admin et
+        // manager opérationnel gardent la vue globale.
+        $user = $request->user();
+        $privileged = $user && (UserRoleHelper::isAdmin($user) || UserRoleHelper::isManagerOperationnel($user));
+        if (! $privileged) {
+            $q->where('assigned_user_id', (int) $user->id);
+        } elseif ($assigned !== null && $assigned !== '') {
             $q->where('assigned_user_id', (int) $assigned);
         }
 
@@ -145,6 +151,12 @@ class LeadController extends Controller
     {
         $brandId = ApiBrandContext::resolveBrandId($request);
         $lead = Lead::query()->with(['customer', 'assignedUser', 'events.actor'])->where('brand_id', $brandId)->findOrFail($id);
+
+        $user = $request->user();
+        $privileged = $user && (UserRoleHelper::isAdmin($user) || UserRoleHelper::isManagerOperationnel($user));
+        if (! $privileged && (int) $lead->assigned_user_id !== (int) $user->id) {
+            abort(404);
+        }
 
         return ApiResponse::success($lead, 'Lead retrieved successfully.');
     }
