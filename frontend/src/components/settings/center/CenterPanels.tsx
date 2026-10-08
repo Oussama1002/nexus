@@ -512,8 +512,9 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
       return;
     }
     setSaving(true);
+    const submittedName = form.name.trim();
     const res = await api.post('whatsapp/templates', {
-      name: form.name.trim(),
+      name: submittedName,
       language: form.language.trim(),
       category: form.category,
       body: form.body.trim(),
@@ -521,13 +522,23 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
     }, brandOpt);
     setSaving(false);
     if (!res.ok) {
-      // "Failed to fetch" is a browser fetch-level TypeError: the request
-      // never got a response (proxy timeout, connection dropped). Give the
-      // user something actionable.
-      const msg = res.message === 'Failed to fetch'
-        ? "Le serveur n'a pas répondu (délai proxy dépassé). Meta prend parfois >30 s pour créer un modèle : réessayez, ou vérifiez dans quelques minutes si le modèle apparaît quand même dans la liste."
-        : res.message ?? 'Erreur.';
-      alert(msg);
+      // 502 / 504 / "Failed to fetch" = Meta/proxy mangled the response, but
+      // Meta often created the template anyway. Poll the list once to find out.
+      const proxyTimeout =
+        res.status === 502 || res.status === 504 || res.message === 'Failed to fetch' || res.status === 0;
+      if (proxyTimeout) {
+        alert(
+          "Meta a mis trop de temps à répondre — on vérifie si le modèle a quand même été créé. "
+          + "Si « " + submittedName + " » n'apparaît pas dans la liste, réessayez (ou créez-le dans Meta Business Suite)."
+        );
+        setCreateOpen(false);
+        setForm({ name: '', language: 'fr', category: 'UTILITY', body: '', samples: '' });
+        // Give Meta a few seconds to settle, then refresh.
+        await new Promise((r) => setTimeout(r, 4000));
+        await load();
+        return;
+      }
+      alert(res.message ?? 'Erreur.');
       return;
     }
     setCreateOpen(false);

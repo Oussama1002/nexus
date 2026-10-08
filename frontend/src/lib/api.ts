@@ -82,7 +82,10 @@ async function parseJson(res: Response): Promise<unknown> {
   try {
     return JSON.parse(text) as unknown;
   } catch {
-    return { success: false, message: 'Invalid JSON response.', errors: {} };
+    // Non-JSON body (typically a proxy's HTML error page: 502/504/413).
+    // Return an empty object so normalize() falls through to its curated
+    // status-based message instead of showing "Invalid JSON response.".
+    return {};
   }
 }
 

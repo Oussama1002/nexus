@@ -210,22 +210,26 @@ class WhatsAppCloudService
         }
 
         try {
-            // Keep the total HTTP time well under the typical proxy read
-            // timeout (nginx/apache default 30-60s) so a slow Meta reply
-            // still surfaces as a proper JSON 502 from Laravel instead of
-            // the proxy's own HTML "Bad Gateway" page. Meta's create
-            // endpoint normally answers in 2-5s.
+            // Keep the total HTTP time well under the proxy's own read timeout
+            // so a slow Meta reply surfaces as a proper JSON error from Laravel
+            // instead of the proxy's HTML "Bad Gateway" page. Meta's create
+            // endpoint normally answers in 2-5s; 10s leaves comfortable headroom.
             $res = Http::withToken($token)
                 ->acceptJson()
                 ->asJson()
                 ->connectTimeout(5)
-                ->timeout(15)
+                ->timeout(10)
                 ->post($url, [
                     'name' => $name,
                     'language' => $language,
                     'category' => strtoupper($category),
                     'components' => $components,
                 ]);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Timeout or connection drop: Meta may still have accepted the
+            // request. Tell the caller to refresh the template list.
+            Log::warning('whatsapp.template.create_timeout', ['brand_id' => $brandId, 'error' => $e->getMessage()]);
+            throw new \RuntimeException("Meta n'a pas répondu à temps. Rafraîchissez la liste dans quelques secondes : si le modèle y figure, il a bien été créé. Sinon, réessayez.");
         } catch (\Throwable $e) {
             Log::warning('whatsapp.template.create_http_error', ['brand_id' => $brandId, 'error' => $e->getMessage()]);
             throw new \RuntimeException('Impossible de joindre Meta (' . $e->getMessage() . '). Réessayez dans un instant.');
