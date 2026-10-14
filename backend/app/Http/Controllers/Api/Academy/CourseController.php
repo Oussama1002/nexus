@@ -170,8 +170,10 @@ class CourseController extends Controller
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($id);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->findOrFail($id);
         $this->authorize('delete', $course);
 
         $course->updated_by = $request->user()?->id;
