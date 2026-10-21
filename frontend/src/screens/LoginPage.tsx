@@ -193,28 +193,28 @@ export function LoginPage() {
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
         {/* Content */}
-        <div className="relative flex flex-col justify-center px-16 xl:px-24 w-full">
+        <div className="relative flex flex-col justify-center px-16 xl:px-24 w-full max-h-screen overflow-y-auto py-12 scrollbar-hide">
           <div className="max-w-lg">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-500/10 border border-accent-500/20 text-accent-300 text-xs font-bold uppercase tracking-wider mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-500/10 border border-accent-500/20 text-accent-300 text-xs font-bold uppercase tracking-wider mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
               Plateforme securisee
             </div>
 
-            <h2 className="font-display text-5xl text-white leading-tight mb-6">
+            <h2 className="font-display text-4xl xl:text-5xl text-white leading-tight mb-4">
               Tout piloter<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-200 to-accent-500">depuis un seul endroit.</span>
             </h2>
 
-            <p className="text-zinc-400 text-lg leading-relaxed mb-12">
+            <p className="text-zinc-400 text-base leading-relaxed mb-8">
               Commandes, livraison, marketing, stocks et equipes — centralises dans une interface unique.
             </p>
 
             {/* Feature cards */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {features.map((f) => (
                 <div key={f.title} className="group p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-accent-500/20 transition-all duration-300">
-                  <div className="w-10 h-10 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-300 mb-3 group-hover:bg-accent-500/20 transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-300 mb-2.5 group-hover:bg-accent-500/20 transition-colors">
                     {f.icon}
                   </div>
                   <p className="text-white font-bold text-sm mb-1">{f.title}</p>
