@@ -168,6 +168,70 @@ class CourseController extends Controller
         return ApiResponse::success(new CourseResource($course), 'Course archived successfully.');
     }
 
+    public function duplicate(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $source = Course::query()
+            ->where('brand_id', $brandId)
+            ->with(['sections' => fn ($q) => $q->orderBy('sort_order'), 'lessons' => fn ($q) => $q->orderBy('sort_order')])
+            ->findOrFail($id);
+        $this->authorize('create', Course::class);
+
+        $copy = \Illuminate\Support\Facades\DB::transaction(function () use ($source, $brandId, $request) {
+            $data = $source->only([
+                'course_category_id', 'certificate_template_id', 'short_description', 'description',
+                'enrollment_type', 'price', 'currency', 'thumbnail_url', 'cover_image_url',
+                'duration_minutes', 'difficulty_level', 'learning_objectives', 'prerequisites',
+                'seo_title', 'seo_description', 'seo_keywords',
+            ]);
+            $data['brand_id'] = $brandId;
+            $data['title'] = Str::limit($source->title, 240, '').' (copie)';
+            $data['status'] = 'draft';
+            $data['published_at'] = null;
+            $data['is_featured'] = false;
+            $data['created_by'] = $request->user()?->id;
+            $data['updated_by'] = $request->user()?->id;
+
+            $baseSlug = Str::slug($source->slug.'-copie') ?: 'course-copie';
+            $slug = $baseSlug;
+            $counter = 0;
+            while (Course::query()->where('brand_id', $brandId)->where('slug', $slug)->exists()) {
+                $counter++;
+                $slug = $baseSlug.'-'.$counter;
+            }
+            $data['slug'] = $slug;
+
+            $copy = Course::query()->create($data);
+
+            $sectionMap = [];
+            foreach ($source->sections as $section) {
+                $newSection = $section->replicate(['uuid']);
+                $newSection->course_id = $copy->id;
+                $newSection->created_by = $request->user()?->id;
+                $newSection->updated_by = $request->user()?->id;
+                $newSection->save();
+                $sectionMap[$section->id] = $newSection->id;
+            }
+
+            foreach ($source->lessons as $lesson) {
+                $newLesson = $lesson->replicate(['uuid']);
+                $newLesson->course_id = $copy->id;
+                $newLesson->course_section_id = $sectionMap[$lesson->course_section_id] ?? null;
+                $newLesson->created_by = $request->user()?->id;
+                $newLesson->updated_by = $request->user()?->id;
+                $newLesson->save();
+            }
+
+            return $copy;
+        });
+
+        return ApiResponse::success(
+            new CourseResource($copy->load(['category:id,name,slug', 'certificateTemplate:id,name'])),
+            'Course duplicated successfully.',
+            201
+        );
+    }
+
     public function destroy(Request $request, string $id): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);

@@ -15,6 +15,8 @@ import {
   Trash2,
   Users,
   UserPlus,
+  Eye,
+  Copy,
   Video,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -30,6 +32,7 @@ import { useAuth } from '../context/AuthContext';
 import { flattenFieldErrors } from '../lib/formErrors';
 import { buildQuery } from '../lib/pagination';
 import * as api from '../lib/api';
+import { CoursePreview } from './MyLearningScreen';
 
 /* ──────────── Types ──────────── */
 
@@ -315,6 +318,7 @@ function CoursesTab({
   const [draft, setDraft] = useState<CourseDraft>(defaultDraft);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [assignCourse, setAssignCourse] = useState<AcademyCourse | null>(null);
+  const [previewCourseId, setPreviewCourseId] = useState<number | null>(null);
 
   const queryKey = ['academy-courses', brandId, q, status];
 
@@ -362,6 +366,16 @@ function CoursesTab({
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Erreur.'),
   });
 
+  const duplicateMut = useMutation({
+    mutationFn: async (id: number) => { const r = await api.post(`academy/courses/${id}/duplicate`); if (!r.ok) throw new Error(r.message); },
+    onSuccess: () => { toast.success('Formation dupliquée (brouillon).'); void qc.invalidateQueries({ queryKey: ['academy-courses'] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Erreur.'),
+  });
+
+  if (previewCourseId !== null) {
+    return <CoursePreview courseId={previewCourseId} onBack={() => setPreviewCourseId(null)} />;
+  }
+
   return (
     <>
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -402,8 +416,10 @@ function CoursesTab({
           { key: 'difficulty', header: 'Niveau', cell: (r) => <span className="text-sm">{DIFFICULTY_LABELS[r.difficulty_level] ?? r.difficulty_level}</span> },
           { key: 'actions', header: '', cell: (r) => (
             <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setPreviewCourseId(r.id)} className="text-sm font-black text-zinc-600 hover:underline inline-flex items-center gap-1"><Eye className="w-3.5 h-3.5" />Aperçu</button>
               {canUpdate && <button type="button" onClick={() => { setEditingCourse(r); setDraft(courseToDraft(r)); setFormErrors([]); setModalOpen(true); }} className="text-sm font-black text-primary-600 hover:underline">Modifier</button>}
               {canUpdate && <button type="button" onClick={() => setAssignCourse(r)} className="text-sm font-black text-indigo-700 hover:underline inline-flex items-center gap-1"><UserPlus className="w-3.5 h-3.5" />Assigner</button>}
+              {canCreate && <button type="button" onClick={() => { if (window.confirm(`Dupliquer « ${r.title} » ?`)) duplicateMut.mutate(r.id); }} className="text-sm font-black text-amber-700 hover:underline inline-flex items-center gap-1"><Copy className="w-3.5 h-3.5" />Dupliquer</button>}
               {canPublish && r.status !== 'published' && <button type="button" onClick={() => publishMut.mutate(r.id)} className="text-sm font-black text-emerald-700 hover:underline inline-flex items-center gap-1"><Rocket className="w-3.5 h-3.5" />Publier</button>}
               {canDelete && <button type="button" onClick={() => { if (window.confirm(`Supprimer « ${r.title} » ?`)) deleteMut.mutate(r.id); }} className="text-sm font-black text-rose-700 hover:underline inline-flex items-center gap-1"><Trash2 className="w-3.5 h-3.5" />Suppr.</button>}
             </div>

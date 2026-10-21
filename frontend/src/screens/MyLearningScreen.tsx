@@ -74,7 +74,8 @@ type PlayerPayload = {
     status: EnrollmentStatus;
     progress_percent: number;
     completed_at: string | null;
-  };
+  } | null;
+  preview?: boolean;
   sections: PlayerSection[];
 };
 
@@ -247,15 +248,27 @@ function lessonIcon(type: LessonType) {
   return <BookOpen className="w-3.5 h-3.5" />;
 }
 
-function CoursePlayer({ courseId, onBack }: { courseId: number; onBack: () => void }) {
+export function CoursePreview({ courseId, onBack }: { courseId: number; onBack: () => void }) {
+  return <CoursePlayer courseId={courseId} onBack={onBack} preview backLabel="Retour à la formation" />;
+}
+
+function CoursePlayer({
+  courseId, onBack, preview = false, backLabel = 'Retour à mes formations',
+}: {
+  courseId: number;
+  onBack: () => void;
+  preview?: boolean;
+  backLabel?: string;
+}) {
   const toast = useToast();
   const qc = useQueryClient();
   const [currentLessonId, setCurrentLessonId] = useState<number | null>(null);
 
   const courseQuery = useQuery({
-    queryKey: ['my-learning-course', courseId],
+    queryKey: ['player-course', preview, courseId],
     queryFn: async () => {
-      const res = await api.get<PlayerPayload>(`academy/learn/courses/${courseId}`);
+      const path = preview ? `academy/courses/${courseId}/preview` : `academy/learn/courses/${courseId}`;
+      const res = await api.get<PlayerPayload>(path);
       if (!res.ok) throw new Error(res.message);
       return res.data as PlayerPayload;
     },
@@ -276,10 +289,11 @@ function CoursePlayer({ courseId, onBack }: { courseId: number; onBack: () => vo
   const activeLessonId = currentLessonId ?? firstUnfinishedLessonId;
 
   const lessonQuery = useQuery({
-    queryKey: ['my-learning-lesson', activeLessonId],
+    queryKey: ['player-lesson', preview, activeLessonId],
     enabled: activeLessonId != null,
     queryFn: async () => {
-      const res = await api.get<LessonDetail>(`academy/learn/lessons/${activeLessonId}`);
+      const path = preview ? `academy/lessons/${activeLessonId}/preview` : `academy/learn/lessons/${activeLessonId}`;
+      const res = await api.get<LessonDetail>(path);
       if (!res.ok) throw new Error(res.message);
       return res.data as LessonDetail;
     },
@@ -293,7 +307,7 @@ function CoursePlayer({ courseId, onBack }: { courseId: number; onBack: () => vo
     },
     onSuccess: () => {
       toast.success('Leçon marquée comme terminée.');
-      void qc.invalidateQueries({ queryKey: ['my-learning-course', courseId] });
+      void qc.invalidateQueries({ queryKey: ['player-course', preview, courseId] });
       void qc.invalidateQueries({ queryKey: ['my-learning-courses'] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Erreur.'),
@@ -321,19 +335,23 @@ function CoursePlayer({ courseId, onBack }: { courseId: number; onBack: () => vo
   return (
     <div className="space-y-4">
       <button type="button" onClick={onBack} className="text-sm font-black text-zinc-700 inline-flex items-center gap-1 hover:text-primary-600">
-        <ArrowLeft className="w-4 h-4" /> Retour à mes formations
+        <ArrowLeft className="w-4 h-4" /> {backLabel}
       </button>
 
       <div className="card p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <h2 className="text-xl font-black text-zinc-900">{payload.course.title}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black text-zinc-900">{payload.course.title}</h2>
+              {preview && <StatusChip tone="info">Aperçu</StatusChip>}
+            </div>
             <p className="text-sm text-zinc-500 mt-1">{payload.course.short_description || '—'}</p>
           </div>
-          {payload.enrollment.status === 'completed' && (
+          {!preview && payload.enrollment?.status === 'completed' && (
             <button
               type="button"
               onClick={() =>
+                payload.enrollment &&
                 openCertificatePdf(payload.enrollment.id).catch((e) =>
                   toast.error(e instanceof Error ? e.message : 'Erreur.'),
                 )
@@ -344,13 +362,17 @@ function CoursePlayer({ courseId, onBack }: { courseId: number; onBack: () => vo
             </button>
           )}
         </div>
-        <div className="mt-3 flex items-center justify-between text-xs font-black text-zinc-700">
-          <span>Progression du cours</span>
-          <span>{payload.enrollment.progress_percent}%</span>
-        </div>
-        <div className="h-2 rounded-full bg-zinc-100 overflow-hidden mt-1">
-          <div className="h-full bg-primary-600 transition-all" style={{ width: `${payload.enrollment.progress_percent}%` }} />
-        </div>
+        {!preview && payload.enrollment && (
+          <>
+            <div className="mt-3 flex items-center justify-between text-xs font-black text-zinc-700">
+              <span>Progression du cours</span>
+              <span>{payload.enrollment.progress_percent}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-zinc-100 overflow-hidden mt-1">
+              <div className="h-full bg-primary-600 transition-all" style={{ width: `${payload.enrollment.progress_percent}%` }} />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
@@ -402,19 +424,21 @@ function CoursePlayer({ courseId, onBack }: { courseId: number; onBack: () => vo
                   <h3 className="text-lg font-black text-zinc-900">{lesson.title}</h3>
                   <p className="text-xs text-zinc-500 mt-1">{lesson.duration_minutes} min</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => completeMut.mutate(lesson.id)}
-                  disabled={isCompleted || completeMut.isPending}
-                  className={`px-3 py-2 rounded-xl text-sm font-black inline-flex items-center gap-1 ${
-                    isCompleted
-                      ? 'bg-emerald-100 text-emerald-700 cursor-default'
-                      : 'bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60'
-                  }`}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  {isCompleted ? 'Terminée' : 'Marquer comme terminée'}
-                </button>
+                {!preview && (
+                  <button
+                    type="button"
+                    onClick={() => completeMut.mutate(lesson.id)}
+                    disabled={isCompleted || completeMut.isPending}
+                    className={`px-3 py-2 rounded-xl text-sm font-black inline-flex items-center gap-1 ${
+                      isCompleted
+                        ? 'bg-emerald-100 text-emerald-700 cursor-default'
+                        : 'bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {isCompleted ? 'Terminée' : 'Marquer comme terminée'}
+                  </button>
+                )}
               </div>
 
               <LessonViewer lesson={lesson} />

@@ -163,6 +163,94 @@ class LearnController extends Controller
     }
 
     /**
+     * GET /api/academy/courses/{id}/preview
+     * Admin preview of the player payload — no enrollment, gated by permission.
+     */
+    public function previewCourse(Request $request, int $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+
+        $course = Course::query()
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->with([
+                'sections' => fn ($q) => $q->orderBy('sort_order'),
+                'lessons' => fn ($q) => $q->orderBy('sort_order'),
+            ])
+            ->findOrFail($id);
+
+        $sections = $course->sections->map(function ($section) use ($course) {
+            $lessons = $course->lessons
+                ->where('course_section_id', $section->id)
+                ->sortBy('sort_order')
+                ->values()
+                ->map(fn (CourseLesson $lesson) => [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'lesson_type' => $lesson->lesson_type,
+                    'duration_minutes' => $lesson->duration_minutes,
+                    'is_preview' => (bool) $lesson->is_preview,
+                    'sort_order' => $lesson->sort_order,
+                    'progress_status' => null,
+                    'completed_at' => null,
+                ]);
+
+            return [
+                'id' => $section->id,
+                'title' => $section->title,
+                'description' => $section->description,
+                'sort_order' => $section->sort_order,
+                'lessons' => $lessons,
+            ];
+        });
+
+        return ApiResponse::success([
+            'course' => [
+                'id' => $course->id,
+                'title' => $course->title,
+                'short_description' => $course->short_description,
+                'description' => $course->description,
+                'difficulty_level' => $course->difficulty_level,
+                'duration_minutes' => $course->duration_minutes,
+            ],
+            'enrollment' => null,
+            'preview' => true,
+            'sections' => $sections,
+        ], 'Course preview retrieved.');
+    }
+
+    /**
+     * GET /api/academy/lessons/{id}/preview
+     * Admin preview of a single lesson — no enrollment, gated by permission.
+     */
+    public function previewLesson(Request $request, int $id): JsonResponse
+    {
+        $lesson = CourseLesson::query()->with('resources')->findOrFail($id);
+
+        return ApiResponse::success([
+            'lesson' => [
+                'id' => $lesson->id,
+                'course_id' => $lesson->course_id,
+                'course_section_id' => $lesson->course_section_id,
+                'title' => $lesson->title,
+                'lesson_type' => $lesson->lesson_type,
+                'content' => $lesson->content,
+                'video_url' => $lesson->video_url,
+                'pdf_url' => $lesson->pdf_url,
+                'external_url' => $lesson->external_url,
+                'duration_minutes' => $lesson->duration_minutes,
+                'resources' => $lesson->resources->map(fn ($r) => [
+                    'id' => $r->id,
+                    'title' => $r->title,
+                    'resource_type' => $r->resource_type,
+                    'resource_url' => $r->resource_url,
+                    'file_path' => $r->file_path,
+                ]),
+            ],
+            'progress' => null,
+        ], 'Lesson preview retrieved.');
+    }
+
+    /**
      * GET /api/academy/learn/lessons/{id}
      * Full lesson payload for the player viewer.
      */

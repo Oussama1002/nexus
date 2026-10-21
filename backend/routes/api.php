@@ -591,6 +591,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('courses/{id}', [AcademyCourseController::class, 'destroy'])->whereNumber('id');
         Route::post('courses/{id}/publish', [AcademyCourseController::class, 'publish'])->whereNumber('id');
         Route::post('courses/{id}/archive', [AcademyCourseController::class, 'archive'])->whereNumber('id');
+        Route::post('courses/{id}/duplicate', [AcademyCourseController::class, 'duplicate'])->whereNumber('id');
+
+        // Admin preview (player payload, no enrollment)
+        Route::get('courses/{id}/preview', [AcademyLearnController::class, 'previewCourse'])
+            ->whereNumber('id')->middleware('permission:academy_courses.view');
+        Route::get('lessons/{id}/preview', [AcademyLearnController::class, 'previewLesson'])
+            ->whereNumber('id')->middleware('permission:academy_courses.view');
 
         // Sections (nested under courses)
         Route::get('courses/{courseId}/sections', [AcademySectionController::class, 'index'])->whereNumber('courseId');
