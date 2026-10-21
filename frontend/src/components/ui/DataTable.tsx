@@ -61,13 +61,13 @@ export function DataTable<T>({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-zinc-50/60 border-b border-zinc-100">
+            <thead className="border-b border-[color:var(--color-border-subtle)]">
               <tr>
                 {columns.map((c, ci) => (
                   <th
                     key={c.key ?? `c-${ci}`}
                     className={cn(
-                      'text-[11px] font-bold text-zinc-400 uppercase tracking-widest whitespace-nowrap',
+                      'text-[10px] font-medium text-[color:var(--color-text-2)] uppercase tracking-[0.12em] whitespace-nowrap',
                       pad,
                       c.className,
                     )}
@@ -77,9 +77,9 @@ export function DataTable<T>({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-[color:var(--color-border-subtle)]">
               {list.map((row, idx) => (
-                <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
+                <tr key={idx} className="hover:bg-[color:var(--color-surface-2)] transition-colors">
                   {columns.map((c, ci) => {
                     const render = c.cell ?? c.accessor;
                     return (

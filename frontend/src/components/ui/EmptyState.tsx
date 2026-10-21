@@ -13,9 +13,9 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn('card p-10 text-center', className)}>
-      <p className="text-sm font-bold text-[color:var(--color-text-0)]">{title}</p>
-      {description && <p className="mt-2 text-sm font-medium text-[color:var(--color-text-2)]">{description}</p>}
+    <div className={cn('card p-12 text-center', className)}>
+      <p className="font-display text-lg text-[color:var(--color-text-0)]">{title}</p>
+      {description && <p className="mt-2 text-sm text-[color:var(--color-text-2)] max-w-md mx-auto">{description}</p>}
       {action && <div className="mt-6 flex justify-center">{action}</div>}
     </div>
   );

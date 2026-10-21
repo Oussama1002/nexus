@@ -4,11 +4,11 @@ import { cn } from '../../lib/utils';
 export type StatusTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 const toneStyles: Record<StatusTone, string> = {
-  neutral: 'bg-zinc-100 text-zinc-700 border-zinc-200',
-  success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  warning: 'bg-amber-50 text-amber-700 border-amber-100',
-  danger: 'bg-rose-50 text-rose-700 border-rose-100',
-  info: 'bg-blue-50 text-blue-700 border-blue-100',
+  neutral: 'bg-zinc-100 text-zinc-600 border-zinc-200/70',
+  success: 'bg-[color:var(--color-success-50)] text-[color:var(--color-success-600)] border-[color:var(--color-success-600)]/15',
+  warning: 'bg-[color:var(--color-warning-50)] text-[color:var(--color-warning-600)] border-[color:var(--color-warning-600)]/15',
+  danger: 'bg-[color:var(--color-danger-50)] text-[color:var(--color-danger-600)] border-[color:var(--color-danger-600)]/15',
+  info: 'bg-[color:var(--color-accent-50)] text-[color:var(--color-accent-700)] border-[color:var(--color-accent-600)]/20',
 };
 
 export function StatusChip({
@@ -23,7 +23,7 @@ export function StatusChip({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider',
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.1em]',
         toneStyles[tone],
         className,
       )}

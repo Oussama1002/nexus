@@ -99,27 +99,27 @@ function KpiCard({
   breakdown?: { label: string; value: string; tone?: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }[];
   subtitle?: string;
 }) {
-  const toneBg =
+  const toneText =
     tone === 'success'
-      ? 'bg-emerald-600'
+      ? 'text-[color:var(--color-success-600)]'
       : tone === 'warning'
-        ? 'bg-amber-600'
+        ? 'text-[color:var(--color-warning-600)]'
         : tone === 'info'
-          ? 'bg-blue-600'
+          ? 'text-[color:var(--color-accent-600)]'
           : tone === 'danger'
-            ? 'bg-rose-600'
-            : 'bg-primary-600';
+            ? 'text-[color:var(--color-danger-600)]'
+            : 'text-[color:var(--color-text-1)]';
   return (
     <div className="card p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className={cn('p-2 rounded-xl text-white', toneBg)}>
-          <Icon className="w-5 h-5" />
+      <div className="flex items-center justify-between gap-4">
+        <p className="label-eyebrow">{title}</p>
+        <div className={cn('shrink-0', toneText)}>
+          <Icon className="w-4 h-4" />
         </div>
       </div>
-      <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[color:var(--color-text-2)]">{title}</p>
-      <p className="mt-2 text-2xl font-black tracking-tight text-[color:var(--color-text-0)]">{value}</p>
+      <p className="mt-5 num text-[34px] leading-none text-[color:var(--color-text-0)]">{value}</p>
       {subtitle && (
-        <p className="mt-1 text-[11px] font-medium text-zinc-500">{subtitle}</p>
+        <p className="mt-2 text-[11px] text-[color:var(--color-text-2)]">{subtitle}</p>
       )}
       {breakdown && breakdown.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">

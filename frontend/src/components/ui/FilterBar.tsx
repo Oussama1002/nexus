@@ -23,14 +23,14 @@ export function FilterBar({
     <div className={cn('card p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4', className)}>
       <div className="flex-1 min-w-0 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-0 sm:min-w-[280px] max-w-full sm:max-w-[520px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[color:var(--color-text-2)]" />
           <input
             type="search"
             name="filter-search"
             autoComplete="off"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium"
+            className="w-full pl-10 pr-10 py-2.5 rounded-full bg-[color:var(--color-surface-2)] border border-[color:var(--color-border)] outline-none focus:ring-2 focus:ring-[color:var(--color-accent-400)] focus:border-[color:var(--color-accent-400)] text-sm transition"
             placeholder={placeholder}
           />
           {query && (

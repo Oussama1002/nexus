@@ -55,7 +55,7 @@ const L3Item: React.FC<{ node: NavTreeNode; sidebarOpen: boolean }> = ({ node, s
       )}
       aria-current={node.active ? 'page' : undefined}
     >
-      {node.icon && <node.icon className={cn('w-3.5 h-3.5 shrink-0', node.active ? 'text-white' : 'text-zinc-300 group-hover/l3:text-zinc-500')} />}
+      {node.icon && <node.icon className={cn('w-3.5 h-3.5 shrink-0', node.active ? 'text-[color:var(--color-accent-400)]' : 'text-zinc-300 group-hover/l3:text-zinc-500')} />}
       <span className="flex-1 font-medium text-[11.5px] truncate">{node.label}</span>
     </button>
   );
@@ -113,7 +113,7 @@ const L2Item: React.FC<{
       )}
       aria-current={node.active ? 'page' : undefined}
     >
-      {node.icon && <node.icon className={cn('w-4 h-4 shrink-0', node.active ? 'text-white' : 'text-zinc-400 group-hover/item:text-zinc-600')} />}
+      {node.icon && <node.icon className={cn('w-4 h-4 shrink-0', node.active ? 'text-[color:var(--color-accent-400)]' : 'text-zinc-400 group-hover/item:text-zinc-600')} />}
       {sidebarOpen && <span className="flex-1 font-medium text-[12.5px] truncate">{node.label}</span>}
     </button>
   );
@@ -145,7 +145,7 @@ const L1Section: React.FC<{
         )}
         aria-current={node.active ? 'page' : undefined}
       >
-        {node.icon && <node.icon className={cn('w-[18px] h-[18px] shrink-0', node.active ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-700')} />}
+        {node.icon && <node.icon className={cn('w-[18px] h-[18px] shrink-0', node.active ? 'text-[color:var(--color-accent-400)]' : 'text-zinc-400 group-hover:text-zinc-700')} />}
         {sidebarOpen && <span className="font-semibold text-[13px]">{node.label}</span>}
       </button>
     );

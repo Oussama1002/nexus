@@ -10,48 +10,168 @@ html, body {
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
 
-  /* Surfaces & text (enterprise neutrals) */
-  --color-surface-0: #fafafa; /* app background */
+  /* Soften the heavy admin feel: dial down the top weights so the
+   * ~1700 `font-black` / `font-extrabold` usages read as refined, not shouty.
+   * Tailwind v4 utilities resolve these tokens, so this reskins them globally. */
+  --font-weight-black: 600;
+  --font-weight-extrabold: 600;
+  --font-weight-bold: 600;
+
+  /* ── Warm greige neutrals — remaps Tailwind's built-in `zinc` scale so the
+   * ~4700 hardcoded `zinc-*` usages shift to a warm luxe palette app-wide. */
+  --color-zinc-50:  #f7f5f2;
+  --color-zinc-100: #f0ece6;
+  --color-zinc-200: #e4ded5;
+  --color-zinc-300: #d2c9bd;
+  --color-zinc-400: #a89e92;
+  --color-zinc-500: #857b70;
+  --color-zinc-600: #6b635b;
+  --color-zinc-700: #4e4842;
+  --color-zinc-800: #332f2b;
+  --color-zinc-900: #1f1b18;
+  --color-zinc-950: #141110;
+
+  /* Surfaces & text (warm neutrals) */
+  --color-surface-0: #f7f5f2; /* app background — warm ivory */
   --color-surface-1: #ffffff; /* cards */
-  --color-surface-2: #f6f7fb; /* subtle tinted surface */
-  --color-border: #e5e7eb;
-  --color-border-subtle: #eff0f4;
-  --color-text-0: #0f172a; /* primary */
-  --color-text-1: #334155; /* secondary */
-  --color-text-2: #64748b; /* tertiary */
+  --color-surface-2: #f2efea; /* subtle tinted surface */
+  --color-border: #e8e3dc;
+  --color-border-subtle: #efebe4;
+  --color-text-0: #1a1714; /* primary — espresso */
+  --color-text-1: #6b635b; /* secondary */
+  --color-text-2: #9a9089; /* tertiary */
   --color-text-inverted: #ffffff;
-  
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
-  --color-primary-950: #1e1b4b;
 
-  /* Semantic */
-  --color-success-50: #ecfdf5;
-  --color-success-600: #059669;
-  --color-warning-50: #fffbeb;
-  --color-warning-600: #d97706;
-  --color-danger-50: #fff1f2;
-  --color-danger-600: #e11d48;
-  --color-info-50: #eff6ff;
-  --color-info-600: #2563eb;
+  /* ── Primary = espresso black (CTAs, active nav, key fills). High contrast,
+   * accessible, inverts cleanly for dark mode. */
+  --color-primary-50:  #f4f2f0;
+  --color-primary-100: #e7e3df;
+  --color-primary-200: #cfc8c1;
+  --color-primary-300: #a89e95;
+  --color-primary-400: #6f665e;
+  --color-primary-500: #403a35;
+  --color-primary-600: #1a1714;
+  --color-primary-700: #16130f;
+  --color-primary-800: #110e0b;
+  --color-primary-900: #0b0908;
+  --color-primary-950: #060504;
+
+  /* ── Accent = champagne gold. Used sparingly: key numbers, active highlights,
+   * focus rings, deltas. Not for large white-text fills (contrast). */
+  --color-accent-50:  #faf6ef;
+  --color-accent-100: #f3ead8;
+  --color-accent-200: #e6d2b0;
+  --color-accent-300: #d6b985;
+  --color-accent-400: #c6a064;
+  --color-accent-500: #b08d57;
+  --color-accent-600: #957346;
+  --color-accent-700: #74593a;
+  --color-accent-800: #574432;
+  --color-accent-900: #3d2f24;
+
+  /* Semantic — warmed slightly to sit with the greige base */
+  --color-success-50: #eef6f0;
+  --color-success-600: #3f7d55;
+  --color-warning-50: #fbf3e6;
+  --color-warning-600: #b07d2f;
+  --color-danger-50: #fbeeee;
+  --color-danger-600: #a93f3f;
+  --color-info-50: #f1f2f0;
+  --color-info-600: #5a5650;
 
   /* Radii */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
 
-  /* Shadows (subtle, premium) */
-  --shadow-card: 0 1px 0 rgba(15, 23, 42, 0.04), 0 12px 20px -18px rgba(15, 23, 42, 0.22);
-  --shadow-overlay: 0 10px 30px -12px rgba(15, 23, 42, 0.35);
+  /* Shadows (soft, premium elevation — warm-tinted) */
+  --shadow-card: 0 1px 2px rgba(26, 23, 20, 0.04), 0 8px 24px -16px rgba(26, 23, 20, 0.18);
+  --shadow-overlay: 0 24px 60px -24px rgba(26, 23, 20, 0.40);
+}
+
+/* ── Dark mode: deep charcoal, champagne accent carries over. Opt-in via
+ * [data-theme="dark"] and automatic via prefers-color-scheme. Each token is
+ * redefined on :root so every component that reads them flips in one place. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-zinc-50:  #141110;
+    --color-zinc-100: #1c1916;
+    --color-zinc-200: #262220;
+    --color-zinc-300: #35302c;
+    --color-zinc-400: #655d55;
+    --color-zinc-500: #8a8178;
+    --color-zinc-600: #a89f96;
+    --color-zinc-700: #c7bfb6;
+    --color-zinc-800: #e2dbd3;
+    --color-zinc-900: #f3eee8;
+    --color-zinc-950: #faf7f3;
+
+    --color-surface-0: #141110;
+    --color-surface-1: #1e1a17;
+    --color-surface-2: #262220;
+    --color-border: #322d29;
+    --color-border-subtle: #2a2522;
+    --color-text-0: #f3eee8;
+    --color-text-1: #b3aaa0;
+    --color-text-2: #867d74;
+    --color-text-inverted: #141110;
+
+    --color-primary-50:  #201c19;
+    --color-primary-100: #2a2521;
+    --color-primary-200: #3a342e;
+    --color-primary-300: #6f665e;
+    --color-primary-400: #a89e95;
+    --color-primary-500: #d8cfc5;
+    --color-primary-600: #f3eee8; /* light fills on dark */
+    --color-primary-700: #e2dbd3;
+    --color-primary-800: #cfc8c1;
+    --color-primary-900: #b3aaa0;
+    --color-primary-950: #f7f4f0;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.30), 0 10px 28px -16px rgba(0, 0, 0, 0.60);
+    --shadow-overlay: 0 24px 60px -24px rgba(0, 0, 0, 0.75);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-zinc-50:  #141110;
+  --color-zinc-100: #1c1916;
+  --color-zinc-200: #262220;
+  --color-zinc-300: #35302c;
+  --color-zinc-400: #655d55;
+  --color-zinc-500: #8a8178;
+  --color-zinc-600: #a89f96;
+  --color-zinc-700: #c7bfb6;
+  --color-zinc-800: #e2dbd3;
+  --color-zinc-900: #f3eee8;
+  --color-zinc-950: #faf7f3;
+
+  --color-surface-0: #141110;
+  --color-surface-1: #1e1a17;
+  --color-surface-2: #262220;
+  --color-border: #322d29;
+  --color-border-subtle: #2a2522;
+  --color-text-0: #f3eee8;
+  --color-text-1: #b3aaa0;
+  --color-text-2: #867d74;
+  --color-text-inverted: #141110;
+
+  --color-primary-50:  #201c19;
+  --color-primary-100: #2a2521;
+  --color-primary-200: #3a342e;
+  --color-primary-300: #6f665e;
+  --color-primary-400: #a89e95;
+  --color-primary-500: #d8cfc5;
+  --color-primary-600: #f3eee8;
+  --color-primary-700: #e2dbd3;
+  --color-primary-800: #cfc8c1;
+  --color-primary-900: #b3aaa0;
+  --color-primary-950: #f7f4f0;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.30), 0 10px 28px -16px rgba(0, 0, 0, 0.60);
+  --shadow-overlay: 0 24px 60px -24px rgba(0, 0, 0, 0.75);
 }
 
 @layer base {
@@ -62,7 +182,8 @@ html, body {
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-primary-200) 70%, white);
+    background: color-mix(in oklab, var(--color-accent-200) 75%, white);
+    color: var(--color-text-0);
   }
 
   /*
@@ -112,6 +233,37 @@ html, body {
     border: 1px solid var(--color-border-subtle);
     background: var(--color-surface-2);
     border-radius: var(--radius-md);
+  }
+
+  /* Elegant display face — headings and large figures. */
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  /* Premium numerals: light-weight display serif, tabular so columns align. */
+  .num {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Muted uppercase micro-label used above KPI figures and section heads. */
+  .label-eyebrow {
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+  }
+
+  /* Accent focus ring for interactive chrome. */
+  .focus-accent:focus-visible {
+    outline: 2px solid var(--color-accent-400);
+    outline-offset: 2px;
   }
 }
 
