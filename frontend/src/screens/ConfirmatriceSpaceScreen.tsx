@@ -146,14 +146,14 @@ export function ConfirmatriceSpaceScreen({
         title={pageTitle}
         subtitle={pageSubtitle}
         right={
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 w-full sm:w-auto">
             {viewerRole === 'admin' && confirmatriceOptions.length > 0 && (
               <div className="flex flex-col gap-1 min-w-[200px]">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Confirmatrice</label>
                 <select
                   value={workspaceUserId}
                   onChange={(e) => onSelectConfirmatrice(e.target.value)}
-                  className="px-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-800 outline-none focus:ring-2 focus:ring-primary-500"
+                  className="h-10 px-3 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-800 outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   {confirmatriceOptions.map((o) => (
                     <option key={o.id} value={o.id}>
@@ -170,7 +170,7 @@ export function ConfirmatriceSpaceScreen({
                   trackSession({ name: 'audit.confirmatrice.quick.open_whatsapp', ts: Date.now() });
                   onOpenWhatsApp();
                 }}
-                className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50 inline-flex items-center gap-2"
+                className="h-10 px-4 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50 inline-flex items-center gap-2"
               >
                 <MessageSquare className="w-4 h-4" /> Ouvrir WhatsApp
               </button>
@@ -180,7 +180,7 @@ export function ConfirmatriceSpaceScreen({
                   trackSession({ name: 'audit.confirmatrice.quick.create_order', ts: Date.now() });
                   onCreateOrder();
                 }}
-                className="px-4 py-2 bg-primary-600 text-white rounded-2xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
+                className="h-10 px-4 bg-primary-600 text-white rounded-xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
               >
                 <ArrowUpRight className="w-4 h-4" /> Créer commande
               </button>
