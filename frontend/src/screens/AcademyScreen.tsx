@@ -604,12 +604,7 @@ function CoursesTab({
           <label className="block text-xs font-black uppercase text-zinc-900">Description
             <textarea value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-900">Statut
-              <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as CourseStatus }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
-                <option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option>
-              </select>
-            </label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <label className="block text-xs font-black uppercase text-zinc-900">Inscription
               <select value={draft.enrollment_type} onChange={(e) => setDraft((d) => ({ ...d, enrollment_type: e.target.value as EnrollmentType }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
                 <option value="free">Gratuite</option><option value="paid">Payante</option>
