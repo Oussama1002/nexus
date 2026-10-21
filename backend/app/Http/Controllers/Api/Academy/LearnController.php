@@ -81,6 +81,106 @@ class LearnController extends Controller
     }
 
     /**
+     * GET /api/academy/learn/catalog
+     * Published courses in accessible brands the current user is NOT yet enrolled in.
+     */
+    public function catalog(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $user = $request->user();
+
+        $student = $this->resolveStudent($user, $brandId);
+        $enrolledCourseIds = $student
+            ? Enrollment::query()->where('student_id', $student->id)->pluck('course_id')->all()
+            : [];
+
+        $courses = Course::query()
+            ->where('status', 'published')
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->when(! empty($enrolledCourseIds), fn ($q) => $q->whereNotIn('id', $enrolledCourseIds))
+            ->withCount(['lessons', 'sections'])
+            ->orderByDesc('id')
+            ->get(['id', 'title', 'slug', 'short_description', 'description', 'difficulty_level', 'duration_minutes']);
+
+        $data = $courses->map(fn (Course $c) => [
+            'course' => [
+                'id' => $c->id,
+                'title' => $c->title,
+                'short_description' => $c->short_description,
+                'description' => $c->description,
+                'difficulty_level' => $c->difficulty_level,
+                'duration_minutes' => $c->duration_minutes,
+            ],
+            'lessons_count' => (int) $c->lessons_count,
+            'sections_count' => (int) $c->sections_count,
+        ]);
+
+        return ApiResponse::success(['data' => $data], 'Catalog retrieved.');
+    }
+
+    /**
+     * POST /api/academy/learn/courses/{id}/enroll
+     * Self-enroll the current user into a published course (creates Student if needed).
+     */
+    public function enroll(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $course = Course::query()->findOrFail($id);
+
+        if ($course->status !== 'published') {
+            throw new HttpException(422, 'Formation non disponible.');
+        }
+
+        $student = Student::query()
+            ->where('brand_id', $course->brand_id)
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)->orWhere('email', $user->email);
+            })
+            ->first();
+
+        if (! $student) {
+            $student = new Student([
+                'brand_id' => $course->brand_id,
+                'user_id' => $user->id,
+                'full_name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'status' => 'active',
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+            ]);
+            $student->save();
+        } elseif (! $student->user_id) {
+            $student->user_id = $user->id;
+            $student->save();
+        }
+
+        $enrollment = Enrollment::query()
+            ->where('course_id', $course->id)
+            ->where('student_id', $student->id)
+            ->first();
+
+        if (! $enrollment) {
+            $enrollment = new Enrollment([
+                'brand_id' => $course->brand_id,
+                'course_id' => $course->id,
+                'student_id' => $student->id,
+                'status' => 'active',
+                'enrollment_type' => 'free',
+                'price_paid' => 0,
+                'currency' => 'MAD',
+                'progress_percent' => 0,
+                'enrolled_at' => now(),
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+            ]);
+            $enrollment->save();
+        }
+
+        return ApiResponse::success(['course_id' => $course->id, 'enrollment_id' => $enrollment->id], 'Inscription confirmée.');
+    }
+
+    /**
      * GET /api/academy/learn/courses/{id}
      * Full course player payload: sections, lessons, per-lesson progress.
      */

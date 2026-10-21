@@ -628,6 +628,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Learner side (current user's enrollments)
         Route::get('learn/courses', [AcademyLearnController::class, 'myCourses']);
+        Route::get('learn/catalog', [AcademyLearnController::class, 'catalog']);
+        Route::post('learn/courses/{id}/enroll', [AcademyLearnController::class, 'enroll'])->whereNumber('id');
         Route::get('learn/courses/{id}', [AcademyLearnController::class, 'courseDetail'])->whereNumber('id');
         Route::get('learn/lessons/{id}', [AcademyLearnController::class, 'lessonDetail'])->whereNumber('id');
         Route::post('learn/lessons/{id}/view', [AcademyLearnController::class, 'markViewed'])->whereNumber('id');

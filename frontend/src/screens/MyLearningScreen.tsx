@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Award, ArrowLeft, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Link2, Play, Video } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { BookOpenCheck } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StatusChip } from '../components/ui/StatusChip';
@@ -140,8 +141,22 @@ export function MyLearningScreen() {
   return <MyCoursesList onOpen={(id) => setOpenCourseId(id)} />;
 }
 
+type CatalogRow = {
+  course: {
+    id: number;
+    title: string;
+    short_description: string | null;
+    description: string | null;
+    difficulty_level: string;
+    duration_minutes: number;
+  };
+  lessons_count: number;
+  sections_count: number;
+};
+
 function MyCoursesList({ onOpen }: { onOpen: (courseId: number) => void }) {
   const toast = useToast();
+  const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ['my-learning-courses'],
     queryFn: async () => {
@@ -151,7 +166,31 @@ function MyCoursesList({ onOpen }: { onOpen: (courseId: number) => void }) {
     },
   });
 
+  const catalogQuery = useQuery({
+    queryKey: ['my-learning-catalog'],
+    queryFn: async () => {
+      const res = await api.get<unknown>('academy/learn/catalog');
+      if (!res.ok) throw new Error(res.message);
+      return res.data;
+    },
+  });
+
+  const enrollMut = useMutation({
+    mutationFn: async (courseId: number) => {
+      const res = await api.post(`academy/learn/courses/${courseId}/enroll`);
+      if (!res.ok) throw new Error(res.message);
+      return courseId;
+    },
+    onSuccess: (courseId) => {
+      void qc.invalidateQueries({ queryKey: ['my-learning-courses'] });
+      void qc.invalidateQueries({ queryKey: ['my-learning-catalog'] });
+      onOpen(courseId);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Erreur.'),
+  });
+
   const rows = useMemo(() => parseRows<MyCourseRow>(data), [data]);
+  const catalog = useMemo(() => parseRows<CatalogRow>(catalogQuery.data), [catalogQuery.data]);
 
   return (
     <div className="space-y-6">
@@ -160,13 +199,14 @@ function MyCoursesList({ onOpen }: { onOpen: (courseId: number) => void }) {
       {isLoading && <div className="text-sm text-zinc-500">Chargement…</div>}
       {error instanceof Error && <div className="text-sm font-bold text-rose-700">{error.message}</div>}
 
-      {!isLoading && rows.length === 0 && (
+      {!isLoading && rows.length === 0 && catalog.length === 0 && (
         <EmptyState
           title="Aucune formation"
-          description="Vous n'êtes inscrit à aucune formation pour l'instant."
+          description="Aucune formation publiée pour l'instant. Créez-en une dans l'Académie puis publiez-la."
         />
       )}
 
+      {rows.length > 0 && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {rows.map((row) => (
           <button
@@ -237,6 +277,44 @@ function MyCoursesList({ onOpen }: { onOpen: (courseId: number) => void }) {
           </button>
         ))}
       </div>
+      )}
+
+      {catalog.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 pt-2">
+            <BookOpenCheck className="w-4 h-4 text-[color:var(--color-text-2)]" />
+            <h2 className="label-eyebrow !text-[12px]">Catalogue des formations</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {catalog.map((row) => (
+              <div key={row.course.id} className="card p-5 flex flex-col">
+                <div className="p-2 rounded-xl bg-[color:var(--color-surface-2)] text-[color:var(--color-text-1)] w-fit mb-3">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <h3 className="font-black text-zinc-900 text-base mb-1">{row.course.title}</h3>
+                <p className="text-xs text-zinc-500 line-clamp-2 min-h-[2rem]">
+                  {row.course.short_description || row.course.description || '—'}
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-[11px] font-bold text-zinc-500">
+                  <span>{DIFFICULTY_LABELS[row.course.difficulty_level] ?? row.course.difficulty_level}</span>
+                  <span>·</span>
+                  <span>{row.lessons_count} leçon(s)</span>
+                  <span>·</span>
+                  <span>{row.course.duration_minutes} min</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => enrollMut.mutate(row.course.id)}
+                  disabled={enrollMut.isPending}
+                  className="mt-4 self-end px-3 py-2 rounded-xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-1 disabled:opacity-60"
+                >
+                  Commencer <Play className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
