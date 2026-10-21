@@ -91,50 +91,10 @@ html, body {
   --shadow-overlay: 0 24px 60px -24px rgba(26, 23, 20, 0.40);
 }
 
-/* ── Dark mode: deep charcoal, champagne accent carries over. Opt-in via
- * [data-theme="dark"] and automatic via prefers-color-scheme. Each token is
- * redefined on :root so every component that reads them flips in one place. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-zinc-50:  #141110;
-    --color-zinc-100: #1c1916;
-    --color-zinc-200: #262220;
-    --color-zinc-300: #35302c;
-    --color-zinc-400: #655d55;
-    --color-zinc-500: #8a8178;
-    --color-zinc-600: #a89f96;
-    --color-zinc-700: #c7bfb6;
-    --color-zinc-800: #e2dbd3;
-    --color-zinc-900: #f3eee8;
-    --color-zinc-950: #faf7f3;
-
-    --color-surface-0: #141110;
-    --color-surface-1: #1e1a17;
-    --color-surface-2: #262220;
-    --color-border: #322d29;
-    --color-border-subtle: #2a2522;
-    --color-text-0: #f3eee8;
-    --color-text-1: #b3aaa0;
-    --color-text-2: #867d74;
-    --color-text-inverted: #141110;
-
-    --color-primary-50:  #201c19;
-    --color-primary-100: #2a2521;
-    --color-primary-200: #3a342e;
-    --color-primary-300: #6f665e;
-    --color-primary-400: #a89e95;
-    --color-primary-500: #d8cfc5;
-    --color-primary-600: #f3eee8; /* light fills on dark */
-    --color-primary-700: #e2dbd3;
-    --color-primary-800: #cfc8c1;
-    --color-primary-900: #b3aaa0;
-    --color-primary-950: #f7f4f0;
-
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.30), 0 10px 28px -16px rgba(0, 0, 0, 0.60);
-    --shadow-overlay: 0 24px 60px -24px rgba(0, 0, 0, 0.75);
-  }
-}
-
+/* ── Dark mode: deep charcoal, champagne accent carries over. OPT-IN ONLY via
+ * [data-theme="dark"]. We intentionally do NOT key off prefers-color-scheme:
+ * the app's components hardcode light-on-primary fills, so an automatic flip
+ * breaks contrast app-wide. A proper dark theme needs a dedicated pass. */
 :root[data-theme="dark"] {
   --color-zinc-50:  #141110;
   --color-zinc-100: #1c1916;

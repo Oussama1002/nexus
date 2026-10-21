@@ -84,21 +84,21 @@ export function LoginPage() {
         <div className="max-w-md w-full mx-auto">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-16">
-            <div className="w-11 h-11 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
-              <Layers className="text-white w-6 h-6" />
+            <div className="w-11 h-11 bg-gradient-to-br from-accent-300 to-accent-600 rounded-2xl flex items-center justify-center shadow-lg shadow-accent-500/20">
+              <Layers className="text-zinc-950 w-6 h-6" />
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight text-white">Brandna</span>
-              <span className="text-xl font-light tracking-tight text-zinc-500 ml-1">CRM</span>
+              <span className="font-display text-xl tracking-tight text-white">Brandna</span>
+              <span className="text-xl font-light tracking-tight text-zinc-400 ml-1">CRM</span>
             </div>
           </div>
 
           {/* Header */}
           <div className="mb-10">
-            <h1 className="text-4xl font-black text-white mb-3 leading-tight">
-              Bon retour<span className="text-primary-500">.</span>
+            <h1 className="font-display text-4xl text-white mb-3 leading-tight">
+              Bon retour<span className="text-accent-400">.</span>
             </h1>
-            <p className="text-zinc-500 text-base font-medium">
+            <p className="text-zinc-400 text-base">
               Connectez-vous pour acceder a votre espace de gestion.
             </p>
           </div>
@@ -107,7 +107,7 @@ export function LoginPage() {
           <form className="space-y-5" onSubmit={onSubmit}>
             <div>
               <label className="block text-xs font-bold text-zinc-400 mb-2 uppercase tracking-wider">Email</label>
-              <div className={`relative rounded-2xl transition-all duration-200 ${focused === 'email' ? 'ring-2 ring-primary-500/50' : ''}`}>
+              <div className={`relative rounded-2xl transition-all duration-200 ${focused === 'email' ? 'ring-2 ring-accent-500/50' : ''}`}>
                 <input
                   type="email"
                   autoComplete="email"
@@ -115,7 +115,7 @@ export function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocused('email')}
                   onBlur={() => setFocused(null)}
-                  className="w-full px-5 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:border-primary-500 outline-none transition-all text-sm font-medium"
+                  className="w-full px-5 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:border-accent-500 outline-none transition-all text-sm font-medium"
                   placeholder="email@exemple.com"
                   required
                 />
@@ -125,11 +125,11 @@ export function LoginPage() {
             <div>
               <div className="flex items-baseline justify-between mb-2">
                 <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">Mot de passe</label>
-                <Link to="/forgot-password" className="text-xs font-bold text-primary-400 hover:text-primary-300">
+                <Link to="/forgot-password" className="text-xs font-bold text-accent-400 hover:text-accent-300">
                   Mot de passe oublié ?
                 </Link>
               </div>
-              <div className={`relative rounded-2xl transition-all duration-200 ${focused === 'password' ? 'ring-2 ring-primary-500/50' : ''}`}>
+              <div className={`relative rounded-2xl transition-all duration-200 ${focused === 'password' ? 'ring-2 ring-accent-500/50' : ''}`}>
                 <input
                   type="password"
                   autoComplete="current-password"
@@ -137,7 +137,7 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocused('password')}
                   onBlur={() => setFocused(null)}
-                  className="w-full px-5 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:border-primary-500 outline-none transition-all text-sm font-medium"
+                  className="w-full px-5 py-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:border-accent-500 outline-none transition-all text-sm font-medium"
                   required
                 />
               </div>
@@ -159,10 +159,10 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={submitting || loading}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 disabled:opacity-50 text-white font-black py-4 rounded-2xl shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 mt-2 text-sm uppercase tracking-wider group"
+              className="w-full bg-gradient-to-r from-accent-300 to-accent-500 hover:from-accent-200 hover:to-accent-400 disabled:opacity-50 text-zinc-950 font-semibold py-4 rounded-2xl shadow-xl shadow-accent-500/20 transition-all flex items-center justify-center gap-3 mt-2 text-sm uppercase tracking-wider group"
             >
               {submitting ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" />
               ) : (
                 <>
                   Se connecter
@@ -186,8 +186,8 @@ export function LoginPage() {
       {/* Right — Feature panel */}
       <div className="hidden lg:flex lg:flex-1 relative overflow-hidden">
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-600/20 via-zinc-900 to-zinc-950" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary-500/10 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-700/20 via-zinc-900 to-zinc-950" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent-500/10 via-transparent to-transparent" />
 
         {/* Grid pattern */}
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
@@ -196,14 +196,14 @@ export function LoginPage() {
         <div className="relative flex flex-col justify-center px-16 xl:px-24 w-full">
           <div className="max-w-lg">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-400 text-xs font-bold uppercase tracking-wider mb-8">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-500/10 border border-accent-500/20 text-accent-300 text-xs font-bold uppercase tracking-wider mb-8">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
               Plateforme securisee
             </div>
 
-            <h2 className="text-5xl font-black text-white leading-tight mb-6">
+            <h2 className="font-display text-5xl text-white leading-tight mb-6">
               Tout piloter<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">depuis un seul endroit.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-200 to-accent-500">depuis un seul endroit.</span>
             </h2>
 
             <p className="text-zinc-400 text-lg leading-relaxed mb-12">
@@ -213,8 +213,8 @@ export function LoginPage() {
             {/* Feature cards */}
             <div className="grid grid-cols-2 gap-4">
               {features.map((f) => (
-                <div key={f.title} className="group p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-primary-500/20 transition-all duration-300">
-                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400 mb-3 group-hover:bg-primary-500/20 transition-colors">
+                <div key={f.title} className="group p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-accent-500/20 transition-all duration-300">
+                  <div className="w-10 h-10 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-300 mb-3 group-hover:bg-accent-500/20 transition-colors">
                     {f.icon}
                   </div>
                   <p className="text-white font-bold text-sm mb-1">{f.title}</p>
