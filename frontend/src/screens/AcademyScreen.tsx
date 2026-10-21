@@ -398,7 +398,6 @@ function CoursesTab({
           )},
           { key: 'status', header: 'Statut', cell: (r) => <StatusChip tone={statusTone(r.status)}>{STATUS_LABELS[r.status] ?? r.status}</StatusChip> },
           { key: 'difficulty', header: 'Niveau', cell: (r) => <span className="text-sm">{DIFFICULTY_LABELS[r.difficulty_level] ?? r.difficulty_level}</span> },
-          { key: 'price', header: 'Prix', cell: (r) => <span className="text-sm font-bold">{Number(r.price).toFixed(2)} {r.currency}</span> },
           { key: 'actions', header: '', cell: (r) => (
             <div className="flex items-center gap-3">
               {canUpdate && <button type="button" onClick={() => { setEditingCourse(r); setDraft(courseToDraft(r)); setFormErrors([]); setModalOpen(true); }} className="text-sm font-black text-primary-600 hover:underline">Modifier</button>}
@@ -454,14 +453,6 @@ function CoursesTab({
             </label>
             <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
               <input type="number" min={0} value={draft.duration_minutes} onChange={(e) => setDraft((d) => ({ ...d, duration_minutes: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
-            </label>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-900">Prix
-              <input type="number" min={0} step="0.01" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
-            </label>
-            <label className="block text-xs font-black uppercase text-zinc-900">Devise
-              <input value={draft.currency} maxLength={3} onChange={(e) => setDraft((d) => ({ ...d, currency: e.target.value.toUpperCase() }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
           </div>
         </div>
@@ -596,7 +587,6 @@ function CourseDetailTab({
           <span>{STATUS_LABELS[course.status]}</span>
           <span>{DIFFICULTY_LABELS[course.difficulty_level]}</span>
           <span>{course.duration_minutes} min</span>
-          <span>{Number(course.price).toFixed(2)} {course.currency}</span>
         </div>
       </div>
 
