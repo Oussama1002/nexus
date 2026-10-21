@@ -50,6 +50,7 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { InfluenceWorkspaceScreen } from './screens/InfluenceWorkspaceScreen';
 import { BrandKnowledgeBaseScreen } from './screens/BrandKnowledgeBaseScreen';
 import { AcademyScreen } from './screens/AcademyScreen';
+import { MyLearningScreen } from './screens/MyLearningScreen';
 import { AutomationsScreen } from './screens/AutomationsScreen';
 import { MediaBuyingScreen } from './screens/MediaBuyingScreen';
 import { ClientPortalScreen } from './screens/ClientPortalScreen';
@@ -561,7 +562,7 @@ export function MainApp() {
       case 'profile':
         return <ProfileScreen />;
       case 'myTrainings':
-        return <AcademyScreen />;
+        return <MyLearningScreen />;
       case 'expenses':
         return <FinanceScreen only="charges" />;
       case 'clientInvoices':

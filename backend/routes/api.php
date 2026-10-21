@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\AcademyLessonController as LegacyAcademyLessonContr
 use App\Http\Controllers\Api\Academy\StudentController as AcademyStudentController;
 use App\Http\Controllers\Api\Academy\EnrollmentController as AcademyEnrollmentController;
 use App\Http\Controllers\Api\Academy\QuizController as AcademyQuizController;
+use App\Http\Controllers\Api\Academy\LearnController as AcademyLearnController;
 use App\Http\Controllers\Api\AdStructureController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\CampaignMetricController;
@@ -615,6 +616,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('students/{id}', [AcademyStudentController::class, 'show'])->whereNumber('id');
         Route::put('students/{id}', [AcademyStudentController::class, 'update'])->whereNumber('id');
         Route::delete('students/{id}', [AcademyStudentController::class, 'destroy'])->whereNumber('id');
+
+        // Learner side (current user's enrollments)
+        Route::get('learn/courses', [AcademyLearnController::class, 'myCourses']);
+        Route::get('learn/courses/{id}', [AcademyLearnController::class, 'courseDetail'])->whereNumber('id');
+        Route::get('learn/lessons/{id}', [AcademyLearnController::class, 'lessonDetail'])->whereNumber('id');
+        Route::post('learn/lessons/{id}/view', [AcademyLearnController::class, 'markViewed'])->whereNumber('id');
+        Route::post('learn/lessons/{id}/complete', [AcademyLearnController::class, 'markCompleted'])->whereNumber('id');
 
         // Enrollments
         Route::get('enrollments', [AcademyEnrollmentController::class, 'index']);
