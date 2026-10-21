@@ -17,6 +17,8 @@ import {
   UserPlus,
   Eye,
   Copy,
+  BarChart3,
+  Download,
   Video,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -40,7 +42,7 @@ type CourseStatus = 'draft' | 'published' | 'archived';
 type EnrollmentType = 'free' | 'paid';
 type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 type LessonType = 'video' | 'pdf' | 'text' | 'external_link';
-type Tab = 'courses' | 'detail' | 'students' | 'enrollments' | 'quizzes';
+type Tab = 'courses' | 'detail' | 'students' | 'enrollments' | 'quizzes' | 'analytics';
 
 type AcademyCourse = {
   id: number;
@@ -280,6 +282,7 @@ export function AcademyScreen() {
         <TabBtn active={tab === 'students'} label="Apprenants" icon={<Users className="w-4 h-4" />} onClick={() => setTab('students')} />
         <TabBtn active={tab === 'enrollments'} label="Inscriptions" icon={<ClipboardList className="w-4 h-4" />} onClick={() => setTab('enrollments')} />
         <TabBtn active={tab === 'quizzes'} label="Quiz" icon={<Play className="w-4 h-4" />} onClick={() => setTab('quizzes')} />
+        <TabBtn active={tab === 'analytics'} label="Statistiques" icon={<BarChart3 className="w-4 h-4" />} onClick={() => setTab('analytics')} />
       </div>
 
       {tab === 'courses' && (
@@ -297,6 +300,153 @@ export function AcademyScreen() {
       {tab === 'students' && <StudentsTab brandId={activeBrandId} canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} toast={toast} qc={qc} />}
       {tab === 'enrollments' && <EnrollmentsTab brandId={activeBrandId} canCreate={canCreate} canDelete={canDelete} toast={toast} qc={qc} />}
       {tab === 'quizzes' && <QuizzesTab brandId={activeBrandId} canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} toast={toast} qc={qc} />}
+      {tab === 'analytics' && <AnalyticsTab brandId={activeBrandId} toast={toast} qc={qc} />}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   TAB: Statistiques (Analytics)
+   ══════════════════════════════════════════════════════ */
+
+type CourseStat = {
+  course_id: number;
+  title: string;
+  status: CourseStatus;
+  difficulty_level: DifficultyLevel;
+  enrolled: number;
+  completed: number;
+  completion_rate: number;
+  avg_progress: number;
+  overdue: number;
+  avg_quiz_score: number | null;
+  quiz_attempts: number;
+  quiz_pass_rate: number | null;
+};
+
+type AnalyticsPayload = {
+  totals: {
+    courses: number;
+    published_courses: number;
+    enrollments: number;
+    completed: number;
+    overall_completion_rate: number;
+  };
+  courses: CourseStat[];
+};
+
+function AnalyticsTab({
+  brandId, toast, qc,
+}: {
+  brandId: string;
+  toast: ReturnType<typeof useToast>;
+  qc: ReturnType<typeof useQueryClient>;
+}) {
+  const analyticsQuery = useQuery({
+    queryKey: ['academy-analytics', brandId],
+    enabled: !!brandId,
+    queryFn: async () => {
+      const res = await api.get<AnalyticsPayload>('academy/analytics');
+      if (!res.ok) throw new Error(res.message);
+      return res.data as AnalyticsPayload;
+    },
+  });
+
+  const payload = analyticsQuery.data;
+
+  async function exportCsv(courseId: number) {
+    try {
+      const token = api.getStoredToken();
+      const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://127.0.0.1:8000/api';
+      const url = `${base.replace(/\/$/, '')}/academy/analytics/courses/${courseId}/export`;
+      const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}`, 'X-Brand-Id': brandId } : {} });
+      if (!res.ok) throw new Error('Export impossible.');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `formation-${courseId}-apprenants.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erreur.');
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <button type="button" onClick={() => void qc.invalidateQueries({ queryKey: ['academy-analytics'] })} className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex items-center gap-2">
+          <RefreshCw className="w-4 h-4" /> Actualiser
+        </button>
+      </div>
+
+      {analyticsQuery.isLoading && <div className="text-sm text-zinc-500">Chargement…</div>}
+      {analyticsQuery.error instanceof Error && <div className="text-sm font-bold text-rose-700">{analyticsQuery.error.message}</div>}
+
+      {payload && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KpiCard label="Formations" value={`${payload.totals.courses}`} hint={`${payload.totals.published_courses} publiée(s)`} />
+            <KpiCard label="Inscriptions" value={`${payload.totals.enrollments}`} />
+            <KpiCard label="Terminées" value={`${payload.totals.completed}`} />
+            <KpiCard label="Taux de complétion" value={`${payload.totals.overall_completion_rate}%`} />
+          </div>
+
+          {payload.courses.length === 0 ? (
+            <EmptyState title="Aucune donnée" description="Créez des formations et inscrivez des apprenants pour voir les statistiques." />
+          ) : (
+            <DataTable<CourseStat>
+              rows={payload.courses}
+              columns={[
+                { key: 'title', header: 'Formation', cell: (r) => (
+                  <div>
+                    <p className="font-black text-zinc-900">{r.title}</p>
+                    <p className="text-xs text-zinc-500">{STATUS_LABELS[r.status] ?? r.status} · {DIFFICULTY_LABELS[r.difficulty_level] ?? r.difficulty_level}</p>
+                  </div>
+                )},
+                { key: 'enrolled', header: 'Inscrits', cell: (r) => <span className="text-sm font-bold">{r.enrolled}</span> },
+                { key: 'completion', header: 'Complétion', cell: (r) => (
+                  <div className="min-w-[120px]">
+                    <div className="flex items-center justify-between text-xs font-black text-zinc-700">
+                      <span>{r.completed}/{r.enrolled}</span>
+                      <span>{r.completion_rate}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden mt-1">
+                      <div className="h-full bg-primary-600" style={{ width: `${r.completion_rate}%` }} />
+                    </div>
+                  </div>
+                )},
+                { key: 'avg_progress', header: 'Progression moy.', cell: (r) => <span className="text-sm">{r.avg_progress}%</span> },
+                { key: 'quiz', header: 'Score quiz moy.', cell: (r) => (
+                  <span className="text-sm">
+                    {r.avg_quiz_score === null ? '—' : `${r.avg_quiz_score}`}
+                    {r.quiz_pass_rate !== null && <span className="text-xs text-zinc-500"> · {r.quiz_pass_rate}% réussite</span>}
+                  </span>
+                )},
+                { key: 'overdue', header: 'En retard', cell: (r) => r.overdue > 0 ? <span className="text-sm font-black text-rose-600">{r.overdue}</span> : <span className="text-sm text-zinc-400">0</span> },
+                { key: 'actions', header: '', cell: (r) => (
+                  <button type="button" onClick={() => exportCsv(r.course_id)} className="text-sm font-black text-primary-600 hover:underline inline-flex items-center gap-1">
+                    <Download className="w-3.5 h-3.5" /> CSV
+                  </button>
+                )},
+              ]}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function KpiCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="card p-4">
+      <p className="text-xs font-black uppercase text-zinc-500">{label}</p>
+      <p className="text-2xl font-black text-zinc-900 mt-1">{value}</p>
+      {hint && <p className="text-xs text-zinc-400 mt-0.5">{hint}</p>}
     </div>
   );
 }

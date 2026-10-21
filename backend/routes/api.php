@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Academy\EnrollmentController as AcademyEnrollmentCo
 use App\Http\Controllers\Api\Academy\QuizController as AcademyQuizController;
 use App\Http\Controllers\Api\Academy\LearnController as AcademyLearnController;
 use App\Http\Controllers\Api\Academy\AssignmentController as AcademyAssignmentController;
+use App\Http\Controllers\Api\Academy\AnalyticsController as AcademyAnalyticsController;
 use App\Http\Controllers\Api\AdStructureController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\CampaignMetricController;
@@ -636,6 +637,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Course assignment (admin / RH)
         Route::post('assignments', [AcademyAssignmentController::class, 'store'])
             ->middleware('permission:academy_courses.update');
+
+        // Analytics (admin / RH)
+        Route::get('analytics', [AcademyAnalyticsController::class, 'overview'])
+            ->middleware('permission:academy_courses.view');
+        Route::get('analytics/courses/{id}/export', [AcademyAnalyticsController::class, 'exportCourse'])
+            ->whereNumber('id')->middleware('permission:academy_courses.view');
 
         // Enrollments
         Route::get('enrollments', [AcademyEnrollmentController::class, 'index']);
