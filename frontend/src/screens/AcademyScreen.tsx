@@ -469,6 +469,10 @@ function CoursesTab({
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [assignCourse, setAssignCourse] = useState<AcademyCourse | null>(null);
   const [previewCourseId, setPreviewCourseId] = useState<number | null>(null);
+  const [createBrandId, setCreateBrandId] = useState('');
+  const { brands } = useBrand();
+
+  const needsBrandPick = !editingCourse && brandId === 'all';
 
   const queryKey = ['academy-courses', brandId, q, status];
 
@@ -484,10 +488,10 @@ function CoursesTab({
   const rows = useMemo(() => parseRows<AcademyCourse>(coursesQuery.data), [coursesQuery.data]);
 
   const saveMutation = useMutation({
-    mutationFn: async (p: { id?: number; payload: Record<string, unknown> }) => {
+    mutationFn: async (p: { id?: number; payload: Record<string, unknown>; brandId?: string }) => {
       const res = p.id
         ? await api.patch<AcademyCourse>(`academy/courses/${p.id}`, p.payload)
-        : await api.post<AcademyCourse>('academy/courses', p.payload);
+        : await api.post<AcademyCourse>('academy/courses', p.payload, p.brandId ? { brandId: p.brandId } : undefined);
       if (!res.ok) {
         const err = flattenFieldErrors(res.errors as Record<string, unknown>);
         const msgs = err.length > 0 ? err : [res.message];
@@ -542,7 +546,7 @@ function CoursesTab({
             <RefreshCw className="w-4 h-4" /> Actualiser
           </button>
           {canCreate && (
-            <button type="button" onClick={() => { setEditingCourse(null); setDraft(defaultDraft); setFormErrors([]); setModalOpen(true); }}
+            <button type="button" onClick={() => { setEditingCourse(null); setDraft(defaultDraft); setCreateBrandId(brandId !== 'all' ? brandId : ''); setFormErrors([]); setModalOpen(true); }}
               className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2">
               <Plus className="w-4 h-4" /> Nouvelle formation
             </button>
@@ -586,7 +590,9 @@ function CoursesTab({
             <button type="button" onClick={() => { setModalOpen(false); setEditingCourse(null); setDraft(defaultDraft); }} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black">Annuler</button>
             <button type="button" onClick={() => {
               if (!draft.title.trim()) { toast.error('Le titre est requis.'); return; }
-              saveMutation.mutate({ id: editingCourse?.id, payload: draftToPayload(draft) });
+              if (needsBrandPick && !createBrandId) { toast.error('Choisissez une marque pour la formation.'); return; }
+              const targetBrand = editingCourse ? undefined : (brandId === 'all' ? createBrandId : brandId);
+              saveMutation.mutate({ id: editingCourse?.id, payload: draftToPayload(draft), brandId: targetBrand });
             }} disabled={saveMutation.isPending} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">
               {editingCourse ? 'Mettre à jour' : 'Créer'}
             </button>
@@ -595,6 +601,14 @@ function CoursesTab({
       >
         <div className="space-y-4">
           {formErrors.length > 0 && <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800 space-y-1">{formErrors.map((e) => <p key={e}>{e}</p>)}</div>}
+          {needsBrandPick && (
+            <label className="block text-xs font-black uppercase text-zinc-900">Marque
+              <select value={createBrandId} onChange={(e) => setCreateBrandId(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+                <option value="">— Choisir une marque —</option>
+                {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </label>
+          )}
           <label className="block text-xs font-black uppercase text-zinc-900">Titre
             <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value, slug: slugify(e.target.value) }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="Titre de la formation" />
           </label>

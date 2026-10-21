@@ -117,8 +117,10 @@ class CourseController extends Controller
 
     public function update(UpdateAcademyCourseRequest $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($id);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->findOrFail($id);
         $this->authorize('update', $course);
 
         $data = $request->validated();
@@ -126,7 +128,7 @@ class CourseController extends Controller
         if (array_key_exists('slug', $data) && $data['slug'] !== $course->slug) {
             $request->validate([
                 'slug' => [
-                    Rule::unique('courses', 'slug')->where(fn ($q) => $q->where('brand_id', $brandId)),
+                    Rule::unique('courses', 'slug')->where(fn ($q) => $q->where('brand_id', $course->brand_id)),
                 ],
             ]);
         }
@@ -143,8 +145,10 @@ class CourseController extends Controller
 
     public function publish(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($id);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->findOrFail($id);
         $this->authorize('publish', $course);
 
         $course->status = 'published';
@@ -157,8 +161,10 @@ class CourseController extends Controller
 
     public function archive(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($id);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->findOrFail($id);
         $this->authorize('archive', $course);
 
         $course->status = 'archived';
@@ -170,14 +176,17 @@ class CourseController extends Controller
 
     public function duplicate(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $source = Course::query()
-            ->where('brand_id', $brandId)
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
             ->with(['sections' => fn ($q) => $q->orderBy('sort_order'), 'lessons' => fn ($q) => $q->orderBy('sort_order')])
             ->findOrFail($id);
         $this->authorize('create', Course::class);
 
-        $copy = \Illuminate\Support\Facades\DB::transaction(function () use ($source, $brandId, $request) {
+        $targetBrandId = $source->brand_id;
+
+        $copy = \Illuminate\Support\Facades\DB::transaction(function () use ($source, $targetBrandId, $request) {
+            $brandId = $targetBrandId;
             $data = $source->only([
                 'course_category_id', 'certificate_template_id', 'short_description', 'description',
                 'enrollment_type', 'price', 'currency', 'thumbnail_url', 'cover_image_url',
