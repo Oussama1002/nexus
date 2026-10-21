@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Academy;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
+use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\CourseLesson;
 use App\Models\Enrollment;
@@ -10,9 +12,12 @@ use App\Models\LessonProgress;
 use App\Models\Student;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class LearnController extends Controller
@@ -40,7 +45,13 @@ class LearnController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $data = $enrollments->map(function (Enrollment $e) {
+        $enrollmentIds = $enrollments->pluck('id')->all();
+        $certByEnrollment = Certificate::query()
+            ->whereIn('enrollment_id', $enrollmentIds)
+            ->get()
+            ->keyBy('enrollment_id');
+
+        $data = $enrollments->map(function (Enrollment $e) use ($certByEnrollment) {
             $course = $e->course;
             if (! $course) {
                 return null;
@@ -60,7 +71,9 @@ class LearnController extends Controller
                 'status' => $e->status,
                 'progress_percent' => (int) $e->progress_percent,
                 'enrolled_at' => $e->enrolled_at,
+                'due_at' => $e->due_at,
                 'completed_at' => $e->completed_at,
+                'has_certificate' => $certByEnrollment->has($e->id),
             ];
         })->filter()->values();
 
@@ -279,6 +292,70 @@ class LearnController extends Controller
         ], 'Progress updated.');
     }
 
+    /**
+     * GET /api/academy/learn/enrollments/{id}/certificate
+     * Streams the certificate PDF for the current user's enrollment.
+     */
+    public function downloadCertificate(Request $request, int $id): Response
+    {
+        $user = $request->user();
+        $enrollment = Enrollment::query()
+            ->with(['course', 'student', 'brand'])
+            ->findOrFail($id);
+
+        $student = $enrollment->student;
+        if (! $student || ($student->user_id !== $user->id && $student->email !== $user->email)) {
+            throw new HttpException(403, 'This certificate is not yours.');
+        }
+
+        if ($enrollment->progress_percent < 100) {
+            throw new HttpException(422, 'Formation non terminée.');
+        }
+
+        $cert = $this->ensureCertificate($enrollment);
+        $brand = $enrollment->brand;
+
+        $pdf = Pdf::loadView('pdf.certificate', [
+            'brand_name' => $brand?->name,
+            'student_name' => $student->full_name,
+            'course_title' => $enrollment->course->title,
+            'issued_at' => optional($cert->issued_at)->format('d/m/Y') ?? now()->format('d/m/Y'),
+            'certificate_number' => $cert->certificate_number,
+            'verification_token' => $cert->verification_token,
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'certificat-'.Str::slug($enrollment->course->title).'.pdf';
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
+    }
+
+    private function ensureCertificate(Enrollment $enrollment): Certificate
+    {
+        $existing = Certificate::query()->where('enrollment_id', $enrollment->id)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $number = 'CERT-'.now()->format('Y').'-'.str_pad((string) $enrollment->id, 6, '0', STR_PAD_LEFT);
+        $cert = new Certificate([
+            'course_id' => $enrollment->course_id,
+            'enrollment_id' => $enrollment->id,
+            'student_id' => $enrollment->student_id,
+            'certificate_template_id' => null,
+            'certificate_number' => $number,
+            'verification_token' => Str::upper(Str::random(12)),
+            'issued_at' => now(),
+            'created_by' => $enrollment->updated_by,
+            'updated_by' => $enrollment->updated_by,
+        ]);
+        $cert->save();
+
+        return $cert;
+    }
+
     private function recomputeEnrollmentProgress(Enrollment $enrollment): void
     {
         $totalLessons = (int) DB::table('course_lessons')
@@ -301,9 +378,11 @@ class LearnController extends Controller
         $percent = max(0, min(100, $percent));
 
         $enrollment->progress_percent = $percent;
+        $justCompleted = false;
         if ($percent >= 100 && $enrollment->status !== 'completed') {
             $enrollment->status = 'completed';
             $enrollment->completed_at = now();
+            $justCompleted = true;
         } elseif ($percent > 0 && $enrollment->status === 'pending') {
             $enrollment->status = 'active';
             if (! $enrollment->enrolled_at) {
@@ -311,6 +390,10 @@ class LearnController extends Controller
             }
         }
         $enrollment->save();
+
+        if ($justCompleted) {
+            $this->ensureCertificate($enrollment);
+        }
     }
 
     private function resolveStudent($user, ?int $brandId): ?Student

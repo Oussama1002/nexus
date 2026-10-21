@@ -6,10 +6,12 @@ use App\Models\AuditLog;
 use App\Models\AutomationRun;
 use App\Models\ClientInvoice;
 use App\Models\EmployeeAttendanceRecord;
+use App\Models\Enrollment;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shipment;
+use App\Models\Student;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,6 +59,7 @@ class DashboardNotificationService
         }
 
         $items = array_merge($items, $this->ownLatenessToday($user));
+        $items = array_merge($items, $this->myTrainings($user));
 
         if ($user->hasPermissionSlug('automations.view')) {
             $items = array_merge($items, $this->failedAutomations($user));
@@ -535,6 +538,90 @@ class DashboardNotificationService
     }
 
     /** @return array<string, mixed> */
+    private function myTrainings(User $user): array
+    {
+        $studentIds = Student::query()
+            ->where(function (Builder $q) use ($user) {
+                $q->where('user_id', $user->id)->orWhere('email', $user->email);
+            })
+            ->pluck('id');
+
+        if ($studentIds->isEmpty()) {
+            return [];
+        }
+
+        $items = [];
+        $now = Carbon::now();
+
+        $overdue = Enrollment::query()
+            ->whereIn('student_id', $studentIds)
+            ->whereNotIn('status', ['completed', 'cancelled', 'expired'])
+            ->whereNotNull('due_at')
+            ->where('due_at', '<', $now)
+            ->with('course:id,title')
+            ->orderBy('due_at')
+            ->get();
+
+        foreach ($overdue as $e) {
+            $items[] = $this->item(
+                'training_overdue_'.$e->id,
+                'danger',
+                'P1',
+                'training',
+                'Formation en retard : '.($e->course?->title ?? 'Formation'),
+                'Échéance dépassée le '.optional($e->due_at)->locale('fr')->isoFormat('D MMM YYYY').' · progression '.(int) $e->progress_percent.'%',
+                'myTrainings',
+                $e->due_at,
+            );
+        }
+
+        $soon = Enrollment::query()
+            ->whereIn('student_id', $studentIds)
+            ->whereNotIn('status', ['completed', 'cancelled', 'expired'])
+            ->whereNotNull('due_at')
+            ->whereBetween('due_at', [$now, $now->copy()->addDays(7)])
+            ->with('course:id,title')
+            ->orderBy('due_at')
+            ->get();
+
+        foreach ($soon as $e) {
+            $items[] = $this->item(
+                'training_soon_'.$e->id,
+                'warning',
+                'P2',
+                'training',
+                'Formation à terminer : '.($e->course?->title ?? 'Formation'),
+                'À finir avant le '.optional($e->due_at)->locale('fr')->isoFormat('D MMM YYYY').' · progression '.(int) $e->progress_percent.'%',
+                'myTrainings',
+                $e->due_at,
+            );
+        }
+
+        $recentlyCompleted = Enrollment::query()
+            ->whereIn('student_id', $studentIds)
+            ->where('status', 'completed')
+            ->where('completed_at', '>=', $now->copy()->subDays(30))
+            ->with('course:id,title')
+            ->orderByDesc('completed_at')
+            ->limit(5)
+            ->get();
+
+        foreach ($recentlyCompleted as $e) {
+            $items[] = $this->item(
+                'training_cert_'.$e->id,
+                'success',
+                'P3',
+                'training',
+                'Certificat disponible : '.($e->course?->title ?? 'Formation'),
+                'Formation terminée · téléchargez votre certificat.',
+                'myTrainings',
+                $e->completed_at,
+            );
+        }
+
+        return $items;
+    }
+
     private function item(
         string $id,
         string $severity,

@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Academy\StudentController as AcademyStudentControll
 use App\Http\Controllers\Api\Academy\EnrollmentController as AcademyEnrollmentController;
 use App\Http\Controllers\Api\Academy\QuizController as AcademyQuizController;
 use App\Http\Controllers\Api\Academy\LearnController as AcademyLearnController;
+use App\Http\Controllers\Api\Academy\AssignmentController as AcademyAssignmentController;
 use App\Http\Controllers\Api\AdStructureController;
 use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\CampaignMetricController;
@@ -623,6 +624,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('learn/lessons/{id}', [AcademyLearnController::class, 'lessonDetail'])->whereNumber('id');
         Route::post('learn/lessons/{id}/view', [AcademyLearnController::class, 'markViewed'])->whereNumber('id');
         Route::post('learn/lessons/{id}/complete', [AcademyLearnController::class, 'markCompleted'])->whereNumber('id');
+        Route::get('learn/enrollments/{id}/certificate', [AcademyLearnController::class, 'downloadCertificate'])->whereNumber('id');
+
+        // Course assignment (admin / RH)
+        Route::post('assignments', [AcademyAssignmentController::class, 'store'])
+            ->middleware('permission:academy_courses.update');
 
         // Enrollments
         Route::get('enrollments', [AcademyEnrollmentController::class, 'index']);

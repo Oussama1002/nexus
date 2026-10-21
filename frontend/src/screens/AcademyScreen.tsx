@@ -14,6 +14,7 @@ import {
   Rocket,
   Trash2,
   Users,
+  UserPlus,
   Video,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -313,6 +314,7 @@ function CoursesTab({
   const [editingCourse, setEditingCourse] = useState<AcademyCourse | null>(null);
   const [draft, setDraft] = useState<CourseDraft>(defaultDraft);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [assignCourse, setAssignCourse] = useState<AcademyCourse | null>(null);
 
   const queryKey = ['academy-courses', brandId, q, status];
 
@@ -401,6 +403,7 @@ function CoursesTab({
           { key: 'actions', header: '', cell: (r) => (
             <div className="flex items-center gap-3">
               {canUpdate && <button type="button" onClick={() => { setEditingCourse(r); setDraft(courseToDraft(r)); setFormErrors([]); setModalOpen(true); }} className="text-sm font-black text-primary-600 hover:underline">Modifier</button>}
+              {canUpdate && <button type="button" onClick={() => setAssignCourse(r)} className="text-sm font-black text-indigo-700 hover:underline inline-flex items-center gap-1"><UserPlus className="w-3.5 h-3.5" />Assigner</button>}
               {canPublish && r.status !== 'published' && <button type="button" onClick={() => publishMut.mutate(r.id)} className="text-sm font-black text-emerald-700 hover:underline inline-flex items-center gap-1"><Rocket className="w-3.5 h-3.5" />Publier</button>}
               {canDelete && <button type="button" onClick={() => { if (window.confirm(`Supprimer « ${r.title} » ?`)) deleteMut.mutate(r.id); }} className="text-sm font-black text-rose-700 hover:underline inline-flex items-center gap-1"><Trash2 className="w-3.5 h-3.5" />Suppr.</button>}
             </div>
@@ -457,7 +460,136 @@ function CoursesTab({
           </div>
         </div>
       </Modal>
+
+      {assignCourse && (
+        <AssignCourseModal
+          course={assignCourse}
+          onClose={() => setAssignCourse(null)}
+          toast={toast}
+          qc={qc}
+        />
+      )}
     </>
+  );
+}
+
+function AssignCourseModal({
+  course, onClose, toast, qc,
+}: {
+  course: AcademyCourse;
+  onClose: () => void;
+  toast: ReturnType<typeof useToast>;
+  qc: ReturnType<typeof useQueryClient>;
+}) {
+  const [selected, setSelected] = useState<number[]>([]);
+  const [dueAt, setDueAt] = useState<string>('');
+  const [search, setSearch] = useState('');
+
+  const usersQuery = useQuery({
+    queryKey: ['academy-assign-users', search],
+    queryFn: async () => {
+      const res = await api.get<{ data?: Array<{ id: number; name: string; email: string }> } | Array<{ id: number; name: string; email: string }>>(
+        `users${buildQuery({ per_page: 100, search: search.trim() || undefined })}`,
+      );
+      if (!res.ok) throw new Error(res.message);
+      return res.data;
+    },
+  });
+
+  const users = useMemo(() => {
+    const d = usersQuery.data;
+    if (Array.isArray(d)) return d;
+    if (d && typeof d === 'object' && Array.isArray((d as { data?: unknown }).data)) {
+      return (d as { data: Array<{ id: number; name: string; email: string }> }).data;
+    }
+    return [] as Array<{ id: number; name: string; email: string }>;
+  }, [usersQuery.data]);
+
+  const assignMut = useMutation({
+    mutationFn: async () => {
+      const res = await api.post<{ assigned: number; already_enrolled: number }>('academy/assignments', {
+        course_id: course.id,
+        user_ids: selected,
+        due_at: dueAt || null,
+      });
+      if (!res.ok) throw new Error(res.message);
+      return res.data;
+    },
+    onSuccess: (d) => {
+      toast.success(`${d?.assigned ?? 0} nouvelle(s) assignation(s), ${d?.already_enrolled ?? 0} déjà inscrit(s).`);
+      void qc.invalidateQueries({ queryKey: ['academy-enrollments'] });
+      onClose();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Erreur.'),
+  });
+
+  const toggle = (id: number) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  return (
+    <Modal
+      open={true}
+      onClose={onClose}
+      title={`Assigner « ${course.title} »`}
+      subtitle="Sélectionnez les utilisateurs et une échéance optionnelle."
+      footer={
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black">Annuler</button>
+          <button
+            type="button"
+            onClick={() => {
+              if (selected.length === 0) { toast.error('Sélectionnez au moins un utilisateur.'); return; }
+              assignMut.mutate();
+            }}
+            disabled={assignMut.isPending}
+            className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60"
+          >
+            Assigner ({selected.length})
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        <label className="block text-xs font-black uppercase text-zinc-900">Échéance (optionnelle)
+          <input
+            type="date"
+            value={dueAt}
+            onChange={(e) => setDueAt(e.target.value)}
+            className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
+          />
+        </label>
+
+        <label className="block text-xs font-black uppercase text-zinc-900">Rechercher un utilisateur
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nom ou email…"
+            className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm"
+          />
+        </label>
+
+        <div className="max-h-72 overflow-y-auto border border-zinc-200 rounded-xl divide-y divide-zinc-100">
+          {usersQuery.isLoading && <p className="text-sm text-zinc-500 p-3">Chargement…</p>}
+          {!usersQuery.isLoading && users.length === 0 && (
+            <p className="text-sm text-zinc-500 p-3">Aucun utilisateur trouvé.</p>
+          )}
+          {users.map((u) => (
+            <label key={u.id} className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-zinc-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selected.includes(u.id)}
+                onChange={() => toggle(u.id)}
+                className="w-4 h-4"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-zinc-900 truncate">{u.name}</p>
+                <p className="text-xs text-zinc-500 truncate">{u.email}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+    </Modal>
   );
 }
 

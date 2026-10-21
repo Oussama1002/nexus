@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Link2, Play, Video } from 'lucide-react';
+import { Award, ArrowLeft, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Link2, Play, Video } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -7,6 +7,18 @@ import { StatusChip } from '../components/ui/StatusChip';
 import { useToast } from '../context/ToastContext';
 import { useBrand } from '../context/BrandContext';
 import * as api from '../lib/api';
+
+async function openCertificatePdf(enrollmentId: number): Promise<void> {
+  const token = api.getStoredToken();
+  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://127.0.0.1:8000/api';
+  const url = `${base.replace(/\/$/, '')}/academy/learn/enrollments/${enrollmentId}/certificate`;
+  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error('Certificat indisponible.');
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, '_blank');
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+}
 
 type LessonType = 'video' | 'pdf' | 'text' | 'external_link';
 type EnrollmentStatus = 'pending' | 'active' | 'completed' | 'expired' | 'cancelled';
@@ -24,7 +36,9 @@ type MyCourseRow = {
   status: EnrollmentStatus;
   progress_percent: number;
   enrolled_at: string | null;
+  due_at: string | null;
   completed_at: string | null;
+  has_certificate: boolean;
 };
 
 type PlayerLesson = {
@@ -126,6 +140,7 @@ export function MyLearningScreen() {
 }
 
 function MyCoursesList({ onOpen }: { onOpen: (courseId: number) => void }) {
+  const toast = useToast();
   const { data, isLoading, error } = useQuery({
     queryKey: ['my-learning-courses'],
     queryFn: async () => {
@@ -190,7 +205,29 @@ function MyCoursesList({ onOpen }: { onOpen: (courseId: number) => void }) {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-end">
+            {row.due_at && row.status !== 'completed' && (
+              <p className="mt-2 text-[11px] font-bold text-rose-600">
+                À terminer avant le {new Date(row.due_at).toLocaleDateString('fr-FR')}
+              </p>
+            )}
+
+            <div className="mt-4 flex items-center justify-between">
+              {row.has_certificate ? (
+                <span
+                  role="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openCertificatePdf(row.enrollment_id).catch((err) =>
+                      toast.error(err instanceof Error ? err.message : 'Erreur.'),
+                    );
+                  }}
+                  className="text-xs font-black text-emerald-700 inline-flex items-center gap-1 hover:underline"
+                >
+                  <Award className="w-3.5 h-3.5" /> Certificat
+                </span>
+              ) : (
+                <span />
+              )}
               <span className="text-sm font-black text-primary-600 inline-flex items-center gap-1">
                 {row.progress_percent === 0 ? 'Commencer' : row.progress_percent >= 100 ? 'Revoir' : 'Continuer'}
                 <Play className="w-3.5 h-3.5" />
@@ -288,8 +325,25 @@ function CoursePlayer({ courseId, onBack }: { courseId: number; onBack: () => vo
       </button>
 
       <div className="card p-5">
-        <h2 className="text-xl font-black text-zinc-900">{payload.course.title}</h2>
-        <p className="text-sm text-zinc-500 mt-1">{payload.course.short_description || '—'}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <h2 className="text-xl font-black text-zinc-900">{payload.course.title}</h2>
+            <p className="text-sm text-zinc-500 mt-1">{payload.course.short_description || '—'}</p>
+          </div>
+          {payload.enrollment.status === 'completed' && (
+            <button
+              type="button"
+              onClick={() =>
+                openCertificatePdf(payload.enrollment.id).catch((e) =>
+                  toast.error(e instanceof Error ? e.message : 'Erreur.'),
+                )
+              }
+              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-black inline-flex items-center gap-2"
+            >
+              <Award className="w-4 h-4" /> Télécharger le certificat
+            </button>
+          )}
+        </div>
         <div className="mt-3 flex items-center justify-between text-xs font-black text-zinc-700">
           <span>Progression du cours</span>
           <span>{payload.enrollment.progress_percent}%</span>

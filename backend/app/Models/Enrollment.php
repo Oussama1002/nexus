@@ -10,6 +10,7 @@ class Enrollment extends AcademyModel
         'course_id',
         'student_id',
         'sales_agent_id',
+        'assigned_by',
         'status',
         'enrollment_type',
         'price_paid',
@@ -17,6 +18,7 @@ class Enrollment extends AcademyModel
         'progress_percent',
         'enrolled_at',
         'expires_at',
+        'due_at',
         'completed_at',
         'created_by',
         'updated_by',
@@ -26,6 +28,7 @@ class Enrollment extends AcademyModel
         'price_paid' => 'decimal:2',
         'enrolled_at' => 'datetime',
         'expires_at' => 'datetime',
+        'due_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
 
