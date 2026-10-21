@@ -10,7 +10,9 @@ html, body {
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  /* One typeface across the whole UI — hierarchy comes from size/weight,
+   * not a second font. (Was Fraunces serif; mixing two faces read as busy.) */
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* Soften the heavy admin feel: dial down the top weights so the
    * ~1700 `font-black` / `font-extrabold` usages read as refined, not shouty.
@@ -195,11 +197,11 @@ html, body {
     border-radius: var(--radius-md);
   }
 
-  /* Elegant display face — headings and large figures. */
+  /* Headings — same Inter family, distinguished by size + tighter tracking. */
   .font-display {
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.01em;
+    font-weight: 500;
+    letter-spacing: -0.015em;
   }
 
   /* Premium numerals: light-weight display serif, tabular so columns align. */
