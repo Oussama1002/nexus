@@ -9,6 +9,14 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('orders:verify-bank-transfers')->everyTenMinutes();
+
+// Livraison — tire les statuts/colis Sendit & Ameex vers le CRM pour rester
+// à jour sans clic « Rafraîchir ». Toutes les 15 min, quelques pages à chaque
+// fois (les plus récentes), withoutOverlapping pour ne pas empiler deux runs.
+Schedule::command('delivery:sync-inbound --max-pages=10')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
 Schedule::command('finance:generate-monthly-invoices')->monthlyOn(1, '06:00');
 Schedule::command('finance:send-monthly-invoices')->monthlyOn(2, '08:00');
 
