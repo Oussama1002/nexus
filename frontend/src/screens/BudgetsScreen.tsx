@@ -65,10 +65,17 @@ export function BudgetsScreen() {
   const [reloadTick, setReloadTick] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [form, setForm] = useState({
-    name: '', department: 'marketing', period_label: '',
+    name: '', department: '', period_label: '',
     period_start: '', period_end: '', allocated: '', notes: '',
   });
+
+  // Départements de la fiche RH (Paramètres → Rôles & départements), source unique.
+  // Repli sur la liste statique si l'utilisateur n'a pas accès aux lookups RH.
+  const deptOptions = departments.length
+    ? departments.map((d) => ({ value: d, label: d }))
+    : DEPARTMENT_OPTIONS.filter((o) => o.value);
 
   const submitCreate = async () => {
     if (!form.name.trim() || !form.period_start || !form.period_end || !form.allocated) {
@@ -86,10 +93,17 @@ export function BudgetsScreen() {
       if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
       toast('success', 'Budget créé.');
       setShowCreate(false);
-      setForm({ name: '', department: 'marketing', period_label: '', period_start: '', period_end: '', allocated: '', notes: '' });
+      setForm({ name: '', department: '', period_label: '', period_start: '', period_end: '', allocated: '', notes: '' });
       setReloadTick((t) => t + 1);
     } finally { setSaving(false); }
   };
+
+  useEffect(() => {
+    void (async () => {
+      const res = await api.get<{ values: string[] }>('hr/lookups/department');
+      if (res.ok && res.data) setDepartments(res.data.values ?? []);
+    })();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +145,7 @@ export function BudgetsScreen() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="Budgets" subtitle="Budgets prévisionnels et suivi des enveloppes">
-        <button className="btn btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
+        <button className="btn btn-primary flex items-center gap-2" onClick={() => { setForm((f) => ({ ...f, department: f.department || deptOptions[0]?.value || '' })); setShowCreate(true); }}>
           <Plus size={16} />
           Nouveau budget
         </button>
@@ -147,7 +161,8 @@ export function BudgetsScreen() {
               </label>
               <label className="text-sm font-bold text-zinc-700">Département
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
-                  {DEPARTMENT_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {deptOptions.length === 0 && <option value="">— Aucun département —</option>}
+                  {deptOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
               <label className="text-sm font-bold text-zinc-700">Libellé période
@@ -208,7 +223,8 @@ export function BudgetsScreen() {
           value={departmentFilter}
           onChange={e => { setDepartmentFilter(e.target.value); setPage(1); }}
         >
-          {DEPARTMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <option value="">Tous</option>
+          {deptOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <select
           className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium"
