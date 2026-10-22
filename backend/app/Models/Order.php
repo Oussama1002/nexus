@@ -19,6 +19,36 @@ class Order extends Model
                 $order->payment_state = 'unpaid';
             }
         });
+
+        // Une commande payee (COD livre, virement verifie, paiement manuel...) genere
+        // une charge de livraison. Branche ici et non dans le controleur : la synchro
+        // transporteur (Ameex/Sendit) et les commandes console passent aussi par save().
+        static::saved(function (Order $order) {
+            self::ensureDeliveryCharge($order);
+        });
+    }
+
+    protected static function ensureDeliveryCharge(Order $order): void
+    {
+        if ($order->payment_state !== 'paid' || (float) $order->shipping_fee <= 0) {
+            return;
+        }
+        $alreadyBilled = Charge::query()
+            ->where('order_id', $order->id)
+            ->where('type', 'delivery')
+            ->exists();
+        if ($alreadyBilled) {
+            return;
+        }
+        Charge::query()->create([
+            'brand_id' => $order->brand_id,
+            'order_id' => $order->id,
+            'created_by' => auth()->id(),
+            'charge_date' => $order->delivered_at ? $order->delivered_at->toDateString() : now()->toDateString(),
+            'type' => 'delivery',
+            'amount' => (float) $order->shipping_fee,
+            'note' => 'Frais de livraison – Commande '.$order->order_number,
+        ]);
     }
 
     protected $fillable = [
