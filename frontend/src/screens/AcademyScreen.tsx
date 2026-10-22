@@ -1167,6 +1167,17 @@ function StudentsTab({
 
   const rows = useMemo(() => parseRows<StudentRow>(studentsQuery.data), [studentsQuery.data]);
 
+  // Postes = intitulés de poste RH (Paramètres → Rôles & départements).
+  // Repli sur une saisie libre si l'utilisateur n'a pas accès aux lookups RH.
+  const postesQuery = useQuery({
+    queryKey: ['hr-lookup-role-title'],
+    queryFn: async () => {
+      const res = await api.get<{ values: string[] }>('hr/lookups/role_title');
+      return res.ok && res.data ? (res.data.values ?? []) : [];
+    },
+  });
+  const postes = postesQuery.data ?? [];
+
   const saveMut = useMutation({
     mutationFn: async (p: { id?: number; data: Record<string, unknown> }) => {
       const res = p.id
@@ -1239,7 +1250,15 @@ function StudentsTab({
               <input value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
             <label className="block text-xs font-black uppercase text-zinc-900">Poste
-              <input value={draft.position} onChange={(e) => setDraft((d) => ({ ...d, position: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+              {postes.length > 0 ? (
+                <select value={draft.position} onChange={(e) => setDraft((d) => ({ ...d, position: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-bold">
+                  <option value="">— Sélectionner —</option>
+                  {!postes.includes(draft.position) && draft.position && <option value={draft.position}>{draft.position}</option>}
+                  {postes.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : (
+                <input value={draft.position} onChange={(e) => setDraft((d) => ({ ...d, position: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+              )}
             </label>
           </div>
         </div>
