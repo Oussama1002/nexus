@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Award, ArrowLeft, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Link2, Play, Video } from 'lucide-react';
+import { Award, ArrowLeft, BookOpen, CheckCircle2, Circle, FileText, GraduationCap, Link2, Play, Settings, Video } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpenCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StatusChip } from '../components/ui/StatusChip';
 import { useToast } from '../context/ToastContext';
 import { useBrand } from '../context/BrandContext';
+import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
 
 async function openCertificatePdf(enrollmentId: number): Promise<void> {
@@ -340,6 +342,9 @@ function CoursePlayer({
 }) {
   const toast = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission(['academy_courses.update', 'hr.update']);
   const [currentLessonId, setCurrentLessonId] = useState<number | null>(null);
 
   const courseQuery = useQuery({
@@ -425,20 +430,31 @@ function CoursePlayer({
             </div>
             <p className="text-sm text-zinc-500 mt-1">{payload.course.short_description || '—'}</p>
           </div>
-          {!preview && payload.enrollment?.status === 'completed' && (
-            <button
-              type="button"
-              onClick={() =>
-                payload.enrollment &&
-                openCertificatePdf(payload.enrollment.id).catch((e) =>
-                  toast.error(e instanceof Error ? e.message : 'Erreur.'),
-                )
-              }
-              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-black inline-flex items-center gap-2"
-            >
-              <Award className="w-4 h-4" /> Télécharger le certificat
-            </button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => navigate(`/academy?course=${courseId}`)}
+                className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50 inline-flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" /> Gérer le contenu
+              </button>
+            )}
+            {!preview && payload.enrollment?.status === 'completed' && (
+              <button
+                type="button"
+                onClick={() =>
+                  payload.enrollment &&
+                  openCertificatePdf(payload.enrollment.id).catch((e) =>
+                    toast.error(e instanceof Error ? e.message : 'Erreur.'),
+                  )
+                }
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-black inline-flex items-center gap-2"
+              >
+                <Award className="w-4 h-4" /> Télécharger le certificat
+              </button>
+            )}
+          </div>
         </div>
         {!preview && payload.enrollment && (
           <>

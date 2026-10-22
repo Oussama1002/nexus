@@ -22,6 +22,7 @@ import {
   Video,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
 import { FilterBar } from '../components/ui/FilterBar';
 import { DataTable } from '../components/ui/DataTable';
@@ -262,6 +263,27 @@ export function AcademyScreen() {
     setSelectedCourse(course);
     setTab('detail');
   }
+
+  // Deep-link from the learner player ("Gérer le contenu"): /academy?course=ID
+  // opens that course's Sections & Leçons directly.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const courseParam = searchParams.get('course');
+    if (!courseParam) return;
+    let cancelled = false;
+    (async () => {
+      const res = await api.get<AcademyCourse>(`academy/courses/${courseParam}`);
+      if (!cancelled && res.ok && res.data) {
+        setSelectedCourse(res.data as AcademyCourse);
+        setTab('detail');
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete('course');
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!activeBrandId) {
     return <EmptyState title="Marque requise" description="Choisissez une marque active pour accéder à l'académie." />;
