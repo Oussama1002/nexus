@@ -570,6 +570,7 @@ function CoursesTab({
           { key: 'difficulty', header: 'Niveau', cell: (r) => <span className="text-sm">{DIFFICULTY_LABELS[r.difficulty_level] ?? r.difficulty_level}</span> },
           { key: 'actions', header: '', cell: (r) => (
             <div className="flex items-center gap-3">
+              <button type="button" onClick={() => onOpenDetail(r)} className="text-sm font-black text-primary-700 hover:underline inline-flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />Contenu</button>
               <button type="button" onClick={() => setPreviewCourseId(r.id)} className="text-sm font-black text-zinc-600 hover:underline inline-flex items-center gap-1"><Eye className="w-3.5 h-3.5" />Aperçu</button>
               {canUpdate && <button type="button" onClick={() => { setEditingCourse(r); setDraft(courseToDraft(r)); setFormErrors([]); setModalOpen(true); }} className="text-sm font-black text-primary-600 hover:underline">Modifier</button>}
               {canUpdate && <button type="button" onClick={() => setAssignCourse(r)} className="text-sm font-black text-indigo-700 hover:underline inline-flex items-center gap-1"><UserPlus className="w-3.5 h-3.5" />Assigner</button>}
