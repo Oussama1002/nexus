@@ -157,11 +157,6 @@ export function LearningPathsScreen() {
               <label className="text-sm font-bold text-zinc-700">Durée (heures)
                 <input type="number" step="0.5" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_hours} onChange={(e) => setForm({ ...form, duration_hours: e.target.value })} />
               </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Statut
-                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  {STATUS_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
