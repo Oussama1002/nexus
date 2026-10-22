@@ -51,6 +51,21 @@ const STATUS_LABELS: Record<string, string> = {
 const fmtMAD = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'MAD' }).format(n);
 
+// Libellé de période dérivé automatiquement des dates : année + trimestre
+// (ex. 2026-Q3), l'année seule pour une année civile complète, ou une plage.
+const autoPeriodLabel = (start: string, end: string): string => {
+  if (!start) return '';
+  const [sy, sm, sd] = start.split('-').map(Number);
+  const sq = Math.floor((sm - 1) / 3) + 1;
+  if (!end) return `${sy}-Q${sq}`;
+  const [ey, em, ed] = end.split('-').map(Number);
+  const eq = Math.floor((em - 1) / 3) + 1;
+  if (sy === ey && sm === 1 && sd === 1 && em === 12 && ed === 31) return `${sy}`;
+  if (sy === ey && sq === eq) return `${sy}-Q${sq}`;
+  if (sy === ey) return `${sy}-Q${sq}→Q${eq}`;
+  return `${sy}-Q${sq} → ${ey}-Q${eq}`;
+};
+
 export function BudgetsScreen() {
   const { activeBrandId } = useBrand();
   const { toast } = useToast();
@@ -85,7 +100,7 @@ export function BudgetsScreen() {
     try {
       const res = await api.post('budgets', {
         name: form.name, department: form.department,
-        period_label: form.period_label || undefined,
+        period_label: autoPeriodLabel(form.period_start, form.period_end) || undefined,
         period_start: form.period_start, period_end: form.period_end,
         allocated: Number(form.allocated),
         notes: form.notes || undefined,
@@ -166,7 +181,7 @@ export function BudgetsScreen() {
                 </select>
               </label>
               <label className="text-sm font-bold text-zinc-700">Libellé période
-                <input placeholder="2026-Q3" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.period_label} onChange={(e) => setForm({ ...form, period_label: e.target.value })} />
+                <input readOnly placeholder="auto" title="Généré automatiquement depuis les dates" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-500" value={autoPeriodLabel(form.period_start, form.period_end)} />
               </label>
               <label className="text-sm font-bold text-zinc-700">Début *
                 <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.period_start} onChange={(e) => setForm({ ...form, period_start: e.target.value })} />
