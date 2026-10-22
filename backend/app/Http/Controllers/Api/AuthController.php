@@ -41,13 +41,47 @@ class AuthController extends Controller
             ->merge(\App\Models\SystemSetting::query()->where('setting_key', 'smtp_host')->where('setting_value', '!=', '')->pluck('brand_id'))
             ->first(fn ($id) => $id && $brandMailer->settings((int) $id));
 
+        $safeName = e($user->name);
+        $safeLink = e($link);
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f7f5f2;-webkit-text-size-adjust:100%;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f2;padding:32px 0;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" style="width:480px;max-width:92%;background:#ffffff;border:1px solid #efebe4;border-radius:18px;overflow:hidden;">
+        <tr><td style="height:4px;background:#b08d57;line-height:4px;font-size:0;">&nbsp;</td></tr>
+        <tr><td style="padding:32px 36px 4px 36px;font-family:Inter,Arial,Helvetica,sans-serif;">
+          <div style="font-size:18px;font-weight:600;color:#1a1714;letter-spacing:-0.01em;">Brandna <span style="color:#b08d57;">CRM</span></div>
+        </td></tr>
+        <tr><td style="padding:16px 36px 0 36px;font-family:Inter,Arial,Helvetica,sans-serif;">
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#1a1714;letter-spacing:-0.01em;">Réinitialisation du mot de passe</h1>
+          <p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#1a1714;">Bonjour {$safeName},</p>
+          <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#6b635b;">Vous avez demandé à réinitialiser votre mot de passe du CRM. Cliquez sur le bouton ci-dessous pour en choisir un nouveau. Ce lien est valable <strong style="color:#1a1714;">60 minutes</strong>.</p>
+        </td></tr>
+        <tr><td align="center" style="padding:0 36px 8px 36px;">
+          <a href="{$safeLink}" style="display:inline-block;background:#1a1714;color:#ffffff;font-family:Inter,Arial,Helvetica,sans-serif;font-size:14px;font-weight:600;text-decoration:none;padding:14px 30px;border-radius:12px;">Choisir un nouveau mot de passe</a>
+        </td></tr>
+        <tr><td style="padding:20px 36px 0 36px;font-family:Inter,Arial,Helvetica,sans-serif;">
+          <p style="margin:0 0 6px;font-size:12px;color:#9a9089;">Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :</p>
+          <p style="margin:0 0 24px;font-size:12px;word-break:break-all;"><a href="{$safeLink}" style="color:#957346;text-decoration:none;">{$safeLink}</a></p>
+          <hr style="border:none;border-top:1px solid #efebe4;margin:0 0 16px;">
+          <p style="margin:0 0 24px;font-size:12px;line-height:1.6;color:#9a9089;">Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.</p>
+        </td></tr>
+        <tr><td style="padding:0 36px 28px 36px;font-family:Inter,Arial,Helvetica,sans-serif;">
+          <p style="margin:0;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#c9c0b6;">Brandna CRM</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+
         try {
-            $brandMailer->for($brandId ? (int) $brandId : null)->raw(
-                "Bonjour {$user->name},\n\n"
-                ."Vous avez demandé à réinitialiser votre mot de passe du CRM.\n"
-                ."Cliquez sur ce lien pour en choisir un nouveau (valable 60 minutes) :\n\n"
-                ."{$link}\n\n"
-                ."Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.\n",
+            $brandMailer->for($brandId ? (int) $brandId : null)->html(
+                $html,
                 fn ($m) => $m->to($user->email)->subject('Réinitialisation de votre mot de passe')
             );
         } catch (\Throwable $e) {
