@@ -18,7 +18,7 @@ class UpdateOrderStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::in(['draft', 'pending', 'confirmed', 'cancelled', 'returned', 'delivered', 'other'])],
+            'status' => ['required', Rule::in(['draft', 'pending', 'confirmed', 'scheduled', 'postponed', 'cancelled', 'returned', 'delivered', 'other'])],
             'note' => ['nullable', 'string', 'max:2000'],
             'cancellation_reason' => ['nullable', 'string', 'max:2000'],
         ];
