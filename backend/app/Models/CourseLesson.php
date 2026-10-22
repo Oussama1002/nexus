@@ -19,6 +19,8 @@ class CourseLesson extends AcademyModel
         'is_preview',
         'is_published',
         'published_at',
+        'starts_at',
+        'ends_at',
         'created_by',
         'updated_by',
     ];
@@ -27,6 +29,8 @@ class CourseLesson extends AcademyModel
         'is_preview' => 'boolean',
         'is_published' => 'boolean',
         'published_at' => 'datetime',
+        'starts_at' => 'datetime',
+        'ends_at' => 'datetime',
     ];
 
     public function course()

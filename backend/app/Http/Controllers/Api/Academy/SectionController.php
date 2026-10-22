@@ -47,6 +47,8 @@ class SectionController extends Controller
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after_or_equal:starts_at',
         ]);
 
         $maxOrder = $course->sections()->max('sort_order') ?? 0;
@@ -57,6 +59,8 @@ class SectionController extends Controller
             'description' => $validated['description'] ?? null,
             'sort_order' => $validated['sort_order'] ?? ($maxOrder + 1),
             'is_published' => $validated['is_published'] ?? true,
+            'starts_at' => $validated['starts_at'] ?? null,
+            'ends_at' => $validated['ends_at'] ?? null,
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
@@ -83,6 +87,8 @@ class SectionController extends Controller
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after_or_equal:starts_at',
         ]);
 
         $validated['updated_by'] = $user->id;

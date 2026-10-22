@@ -11,12 +11,16 @@ class CourseSection extends AcademyModel
         'description',
         'sort_order',
         'is_published',
+        'starts_at',
+        'ends_at',
         'created_by',
         'updated_by',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
+        'starts_at' => 'datetime',
+        'ends_at' => 'datetime',
     ];
 
     public function course()

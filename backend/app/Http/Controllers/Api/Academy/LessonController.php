@@ -55,6 +55,8 @@ class LessonController extends Controller
             'sort_order' => 'nullable|integer|min:0',
             'is_preview' => 'nullable|boolean',
             'is_published' => 'nullable|boolean',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after_or_equal:starts_at',
         ]);
 
         $maxOrder = $course->lessons()
@@ -74,6 +76,8 @@ class LessonController extends Controller
             'sort_order' => $validated['sort_order'] ?? ($maxOrder + 1),
             'is_preview' => $validated['is_preview'] ?? false,
             'is_published' => $validated['is_published'] ?? true,
+            'starts_at' => $validated['starts_at'] ?? null,
+            'ends_at' => $validated['ends_at'] ?? null,
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
@@ -111,6 +115,8 @@ class LessonController extends Controller
             'sort_order' => 'nullable|integer|min:0',
             'is_preview' => 'nullable|boolean',
             'is_published' => 'nullable|boolean',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after_or_equal:starts_at',
         ]);
 
         $validated['updated_by'] = $user->id;

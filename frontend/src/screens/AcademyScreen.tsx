@@ -73,6 +73,8 @@ type Section = {
   description: string | null;
   sort_order: number;
   is_published: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
   lessons_count?: number;
 };
 
@@ -90,8 +92,26 @@ type Lesson = {
   sort_order: number;
   is_preview: boolean;
   is_published: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
   section?: { id: number; title: string } | null;
 };
+
+/** ISO datetime → value for <input type="datetime-local"> (YYYY-MM-DDTHH:mm), local time. */
+function toDateTimeLocal(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
 
 type StudentRow = {
   id: number;
@@ -810,7 +830,9 @@ function CourseDetailTab({
   const [sectionDesc, setSectionDesc] = useState('');
   const [sectionOrder, setSectionOrder] = useState('');
   const [sectionPublished, setSectionPublished] = useState(true);
-  const [lessonDraft, setLessonDraft] = useState({ title: '', course_section_id: 0, lesson_type: 'text' as LessonType, content: '', video_url: '', pdf_url: '', external_url: '', duration_minutes: '0' });
+  const [sectionStart, setSectionStart] = useState('');
+  const [sectionEnd, setSectionEnd] = useState('');
+  const [lessonDraft, setLessonDraft] = useState({ title: '', course_section_id: 0, lesson_type: 'text' as LessonType, content: '', video_url: '', pdf_url: '', external_url: '', duration_minutes: '0', starts_at: '', ends_at: '' });
 
   const sectionsQuery = useQuery({
     queryKey: ['academy-sections', course.id],
@@ -840,12 +862,14 @@ function CourseDetailTab({
   });
 
   const saveSectionMut = useMutation({
-    mutationFn: async (p: { id?: number; title: string; description: string; sort_order?: number; is_published?: boolean }) => {
+    mutationFn: async (p: { id?: number; title: string; description: string; sort_order?: number; is_published?: boolean; starts_at?: string | null; ends_at?: string | null }) => {
       const body = {
         title: p.title,
         description: p.description || null,
         sort_order: p.sort_order,
         is_published: p.is_published,
+        starts_at: p.starts_at || null,
+        ends_at: p.ends_at || null,
       };
       const res = p.id
         ? await api.put(`academy/courses/${course.id}/sections/${p.id}`, body)
@@ -890,7 +914,7 @@ function CourseDetailTab({
 
   function openLessonCreate(sectionId: number) {
     setEditLesson(null);
-    setLessonDraft({ title: '', course_section_id: sectionId, lesson_type: 'text', content: '', video_url: '', pdf_url: '', external_url: '', duration_minutes: '0' });
+    setLessonDraft({ title: '', course_section_id: sectionId, lesson_type: 'text', content: '', video_url: '', pdf_url: '', external_url: '', duration_minutes: '0', starts_at: '', ends_at: '' });
     setLessonModal(true);
   }
 
@@ -900,6 +924,7 @@ function CourseDetailTab({
       title: lesson.title, course_section_id: lesson.course_section_id, lesson_type: lesson.lesson_type,
       content: lesson.content ?? '', video_url: lesson.video_url ?? '', pdf_url: lesson.pdf_url ?? '',
       external_url: lesson.external_url ?? '', duration_minutes: String(lesson.duration_minutes),
+      starts_at: toDateTimeLocal(lesson.starts_at), ends_at: toDateTimeLocal(lesson.ends_at),
     });
     setLessonModal(true);
   }
@@ -923,7 +948,7 @@ function CourseDetailTab({
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-black text-zinc-800">Sections & Leçons</h3>
         {canUpdate && (
-          <button type="button" onClick={() => { setEditSection(null); setSectionTitle(''); setSectionDesc(''); setSectionOrder(''); setSectionPublished(false); setSectionModal(true); }}
+          <button type="button" onClick={() => { setEditSection(null); setSectionTitle(''); setSectionDesc(''); setSectionOrder(''); setSectionPublished(false); setSectionStart(''); setSectionEnd(''); setSectionModal(true); }}
             className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2">
             <Plus className="w-4 h-4" /> Nouvelle section
           </button>
@@ -945,11 +970,16 @@ function CourseDetailTab({
                     <div>
                       <p className="font-black text-zinc-900">{sec.title}</p>
                       <p className="text-xs text-zinc-500">{sectionLessons.length} leçon(s){sec.description ? ` · ${sec.description}` : ''}</p>
+                      {(sec.starts_at || sec.ends_at) && (
+                        <p className="text-[11px] font-bold text-[color:var(--color-accent-700)] mt-0.5">
+                          {sec.starts_at ? formatDateTime(sec.starts_at) : '…'} → {sec.ends_at ? formatDateTime(sec.ends_at) : '…'}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {canUpdate && (
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => { setEditSection(sec); setSectionTitle(sec.title); setSectionDesc(sec.description ?? ''); setSectionOrder(sec.sort_order != null ? String(sec.sort_order) : ''); setSectionPublished(sec.is_published ?? true); setSectionModal(true); }} className="text-xs font-black text-primary-600 hover:underline">Modifier</button>
+                      <button type="button" onClick={() => { setEditSection(sec); setSectionTitle(sec.title); setSectionDesc(sec.description ?? ''); setSectionOrder(sec.sort_order != null ? String(sec.sort_order) : ''); setSectionPublished(sec.is_published ?? true); setSectionStart(toDateTimeLocal(sec.starts_at)); setSectionEnd(toDateTimeLocal(sec.ends_at)); setSectionModal(true); }} className="text-xs font-black text-primary-600 hover:underline">Modifier</button>
                       <button type="button" onClick={() => { if (window.confirm('Supprimer cette section ?')) deleteSectionMut.mutate(sec.id); }} className="text-xs font-black text-rose-600 hover:underline">Suppr.</button>
                       <button type="button" onClick={() => openLessonCreate(sec.id)} className="text-xs font-black text-emerald-700 hover:underline inline-flex items-center gap-1"><Plus className="w-3 h-3" />Leçon</button>
                     </div>
@@ -963,7 +993,7 @@ function CourseDetailTab({
                           {LESSON_TYPE_ICONS[lesson.lesson_type] ?? <BookOpen className="w-4 h-4" />}
                           <div>
                             <p className="text-sm font-bold text-zinc-800">{lesson.title}</p>
-                            <p className="text-xs text-zinc-500">{LESSON_TYPE_LABELS[lesson.lesson_type]} · {lesson.duration_minutes} min</p>
+                            <p className="text-xs text-zinc-500">{LESSON_TYPE_LABELS[lesson.lesson_type]} · {lesson.duration_minutes} min{(lesson.starts_at || lesson.ends_at) ? ` · ${lesson.starts_at ? formatDateTime(lesson.starts_at) : '…'} → ${lesson.ends_at ? formatDateTime(lesson.ends_at) : '…'}` : ''}</p>
                           </div>
                         </div>
                         {canUpdate && (
@@ -1000,7 +1030,7 @@ function CourseDetailTab({
       <Modal open={sectionModal} onClose={() => setSectionModal(false)} title={editSection ? 'Modifier la section' : 'Nouvelle section'} footer={
         <div className="flex justify-end gap-2">
           <button type="button" onClick={() => setSectionModal(false)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black">Annuler</button>
-          <button type="button" onClick={() => { if (!sectionTitle.trim()) { toast.error('Titre requis.'); return; } saveSectionMut.mutate({ id: editSection?.id, title: sectionTitle.trim(), description: sectionDesc.trim(), sort_order: sectionOrder ? Number(sectionOrder) : undefined, is_published: sectionPublished }); }} disabled={saveSectionMut.isPending} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">Enregistrer</button>
+          <button type="button" onClick={() => { if (!sectionTitle.trim()) { toast.error('Titre requis.'); return; } saveSectionMut.mutate({ id: editSection?.id, title: sectionTitle.trim(), description: sectionDesc.trim(), sort_order: sectionOrder ? Number(sectionOrder) : undefined, is_published: sectionPublished, starts_at: sectionStart || null, ends_at: sectionEnd || null }); }} disabled={saveSectionMut.isPending} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">Enregistrer</button>
         </div>
       }>
         <div className="space-y-4">
@@ -1013,6 +1043,14 @@ function CourseDetailTab({
           <label className="block text-xs font-black uppercase text-zinc-900">Ordre d’affichage
             <input type="number" min={0} value={sectionOrder} onChange={(e) => setSectionOrder(e.target.value)} placeholder="Automatique" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs font-black uppercase text-zinc-900">Début
+              <input type="datetime-local" value={sectionStart} onChange={(e) => setSectionStart(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+            <label className="block text-xs font-black uppercase text-zinc-900">Fin
+              <input type="datetime-local" value={sectionEnd} onChange={(e) => setSectionEnd(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+          </div>
           <p className="text-xs font-semibold text-zinc-500">
             Une section n’est qu’un regroupement : son contenu se crée ensuite leçon par leçon,
             avec le bouton « Leçon » sur la ligne de la section.
@@ -1033,6 +1071,7 @@ function CourseDetailTab({
               video_url: lessonDraft.video_url.trim() || null, pdf_url: lessonDraft.pdf_url.trim() || null,
               external_url: lessonDraft.external_url.trim() || null,
               duration_minutes: Number(lessonDraft.duration_minutes) || 0,
+              starts_at: lessonDraft.starts_at || null, ends_at: lessonDraft.ends_at || null,
             }});
           }} disabled={saveLessonMut.isPending} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">Enregistrer</button>
         </div>
@@ -1077,6 +1116,14 @@ function CourseDetailTab({
           <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
             <input type="number" min={0} value={lessonDraft.duration_minutes} onChange={(e) => setLessonDraft((d) => ({ ...d, duration_minutes: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-xs font-black uppercase text-zinc-900">Début
+              <input type="datetime-local" value={lessonDraft.starts_at} onChange={(e) => setLessonDraft((d) => ({ ...d, starts_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+            <label className="block text-xs font-black uppercase text-zinc-900">Fin
+              <input type="datetime-local" value={lessonDraft.ends_at} onChange={(e) => setLessonDraft((d) => ({ ...d, ends_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+          </div>
         </div>
       </Modal>
     </>
