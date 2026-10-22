@@ -960,6 +960,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Academy contents (library)
     Route::get('academy-contents', [AcademyContentController::class, 'index'])->middleware('permission:academy_contents.view');
+    Route::post('academy-contents/upload-media', [AcademyContentController::class, 'uploadMedia'])->middleware('permission:academy_contents.create');
     Route::post('academy-contents', [AcademyContentController::class, 'store'])->middleware('permission:academy_contents.create');
     Route::patch('academy-contents/{id}', [AcademyContentController::class, 'update'])->whereNumber('id')->middleware('permission:academy_contents.update');
     Route::put('academy-contents/{id}', [AcademyContentController::class, 'update'])->whereNumber('id')->middleware('permission:academy_contents.update');

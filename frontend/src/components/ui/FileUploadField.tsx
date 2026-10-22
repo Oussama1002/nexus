@@ -31,6 +31,7 @@ export function FileUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const preview = resolvePublicAssetUrl(value);
   const isImage = preview && isImageAssetUrl(preview);
   const fileName = fileNameFromUrl(value);
@@ -83,7 +84,7 @@ export function FileUploadField({
             Aucun document
           </div>
         )}
-        <div className="flex flex-col gap-2 min-w-[12rem]">
+        <div className="flex flex-col gap-2 min-w-[12rem] flex-1">
           <input
             ref={inputRef}
             id={id}
@@ -101,12 +102,22 @@ export function FileUploadField({
             type="button"
             disabled={disabled || uploading}
             onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); if (!disabled && !uploading) setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              if (disabled || uploading) return;
+              const file = e.dataTransfer.files?.[0];
+              if (file) void uploadFile(file);
+            }}
             className={cn(
-              'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-800 hover:bg-zinc-50 disabled:opacity-50',
+              'inline-flex flex-col items-center justify-center gap-1 px-4 py-5 rounded-xl border-2 border-dashed text-sm font-bold transition-colors disabled:opacity-50',
+              dragging ? 'border-primary-400 bg-primary-50 text-primary-700' : 'border-zinc-300 bg-zinc-50 text-zinc-700 hover:bg-zinc-100',
             )}
           >
-            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            {uploading ? 'Envoi…' : value ? 'Remplacer' : 'Choisir un fichier'}
+            {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+            {uploading ? 'Envoi…' : value ? 'Remplacer le fichier' : 'Glissez un fichier ici ou cliquez'}
           </button>
           {value && !disabled ? (
             <button

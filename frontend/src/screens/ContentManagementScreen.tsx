@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BookOpen, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
+import { FileUploadField } from '../components/ui/FileUploadField';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
@@ -172,11 +173,6 @@ export function ContentManagementScreen() {
                   {TYPE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
-              <label className="text-sm font-bold text-zinc-700">Statut
-                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  {STATUS_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </label>
               <label className="col-span-2 text-sm font-bold text-zinc-700">Parcours de rattachement
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.learning_path_id} onChange={(e) => setForm({ ...form, learning_path_id: e.target.value })}>
                   <option value="">— aucun —</option>
@@ -186,9 +182,17 @@ export function ContentManagementScreen() {
               <label className="text-sm font-bold text-zinc-700">Durée (minutes)
                 <input type="number" min="0" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
               </label>
-              <label className="text-sm font-bold text-zinc-700">URL média
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.media_url} onChange={(e) => setForm({ ...form, media_url: e.target.value })} />
-              </label>
+              <div className="col-span-2">
+                <FileUploadField
+                  label="Média"
+                  value={form.media_url}
+                  onChange={(v) => setForm({ ...form, media_url: v })}
+                  uploadEndpoint="academy-contents/upload-media"
+                  formFieldName="media"
+                  accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx"
+                  hint="Image, vidéo, PDF ou document — 20 Mo max."
+                />
+              </div>
               <label className="col-span-2 text-sm font-bold text-zinc-700">Description
                 <textarea rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </label>
