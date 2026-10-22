@@ -179,10 +179,13 @@ class HrAttendanceController extends Controller
 
     public function justify(Request $request, string $id): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        // A lateness justification is about the employee, not the active brand.
+        // The record carries its own brand; owner/manager check below gates access,
+        // so we don't force a selected brand (fails on "Toutes les marques").
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
         $record = EmployeeAttendanceRecord::query()
             ->with('employee:id,user_id,brand_id')
-            ->where('brand_id', $brandId)
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
             ->findOrFail($id);
 
         $isManager = $request->user()?->hasPermissionSlug('hr.update') ?? false;
