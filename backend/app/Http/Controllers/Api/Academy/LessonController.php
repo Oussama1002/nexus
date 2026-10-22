@@ -40,8 +40,8 @@ class LessonController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($courseId);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))->findOrFail($courseId);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -92,8 +92,8 @@ class LessonController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($courseId);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))->findOrFail($courseId);
 
         $lesson = CourseLesson::query()
             ->where('course_id', $course->id)
@@ -130,8 +130,8 @@ class LessonController extends Controller
             abort(403);
         }
 
-        $brandId = ApiBrandContext::resolveBrandId($request);
-        $course = Course::query()->where('brand_id', $brandId)->findOrFail($courseId);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $course = Course::query()->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))->findOrFail($courseId);
 
         $lesson = CourseLesson::query()
             ->where('course_id', $course->id)
