@@ -901,7 +901,7 @@ function CourseDetailTab({
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-black text-zinc-800">Sections & Leçons</h3>
         {canUpdate && (
-          <button type="button" onClick={() => { setEditSection(null); setSectionTitle(''); setSectionDesc(''); setSectionOrder(''); setSectionPublished(true); setSectionModal(true); }}
+          <button type="button" onClick={() => { setEditSection(null); setSectionTitle(''); setSectionDesc(''); setSectionOrder(''); setSectionPublished(false); setSectionModal(true); }}
             className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2">
             <Plus className="w-4 h-4" /> Nouvelle section
           </button>
@@ -988,15 +988,9 @@ function CourseDetailTab({
           <label className="block text-xs font-black uppercase text-zinc-900">Description
             <textarea value={sectionDesc} onChange={(e) => setSectionDesc(e.target.value)} rows={2} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs font-black uppercase text-zinc-900">Ordre d’affichage
-              <input type="number" min={0} value={sectionOrder} onChange={(e) => setSectionOrder(e.target.value)} placeholder="Automatique" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
-            </label>
-            <label className="flex items-center gap-2 self-end pb-2 text-xs font-black uppercase text-zinc-900">
-              <input type="checkbox" checked={sectionPublished} onChange={(e) => setSectionPublished(e.target.checked)} className="w-5 h-5 rounded accent-primary-600" />
-              Publiée
-            </label>
-          </div>
+          <label className="block text-xs font-black uppercase text-zinc-900">Ordre d’affichage
+            <input type="number" min={0} value={sectionOrder} onChange={(e) => setSectionOrder(e.target.value)} placeholder="Automatique" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+          </label>
           <p className="text-xs font-semibold text-zinc-500">
             Une section n’est qu’un regroupement : son contenu se crée ensuite leçon par leçon,
             avec le bouton « Leçon » sur la ligne de la section.
