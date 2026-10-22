@@ -106,6 +106,15 @@ function toDateTimeLocal(iso: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** Durée en minutes déduite des dates début/fin (0 si incomplet ou incohérent). */
+function durationFromRange(start: string | null | undefined, end: string | null | undefined): number {
+  if (!start || !end) return 0;
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return 0;
+  return Math.round((e - s) / 60000);
+}
+
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -923,7 +932,8 @@ function CourseDetailTab({
     setLessonDraft({
       title: lesson.title, course_section_id: lesson.course_section_id, lesson_type: lesson.lesson_type,
       content: lesson.content ?? '', video_url: lesson.video_url ?? '', pdf_url: lesson.pdf_url ?? '',
-      external_url: lesson.external_url ?? '', duration_minutes: String(lesson.duration_minutes),
+      external_url: lesson.external_url ?? '',
+      duration_minutes: String(durationFromRange(toDateTimeLocal(lesson.starts_at), toDateTimeLocal(lesson.ends_at)) || lesson.duration_minutes),
       starts_at: toDateTimeLocal(lesson.starts_at), ends_at: toDateTimeLocal(lesson.ends_at),
     });
     setLessonModal(true);
@@ -1113,17 +1123,18 @@ function CourseDetailTab({
               <input value={lessonDraft.external_url} onChange={(e) => setLessonDraft((d) => ({ ...d, external_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" placeholder="https://..." />
             </label>
           )}
-          <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
-            <input type="number" min={0} value={lessonDraft.duration_minutes} onChange={(e) => setLessonDraft((d) => ({ ...d, duration_minutes: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
-          </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs font-black uppercase text-zinc-900">Début
-              <input type="datetime-local" value={lessonDraft.starts_at} onChange={(e) => setLessonDraft((d) => ({ ...d, starts_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+              <input type="datetime-local" value={lessonDraft.starts_at} onChange={(e) => setLessonDraft((d) => ({ ...d, starts_at: e.target.value, duration_minutes: String(durationFromRange(e.target.value, d.ends_at)) }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
             <label className="block text-xs font-black uppercase text-zinc-900">Fin
-              <input type="datetime-local" value={lessonDraft.ends_at} onChange={(e) => setLessonDraft((d) => ({ ...d, ends_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
+              <input type="datetime-local" value={lessonDraft.ends_at} onChange={(e) => setLessonDraft((d) => ({ ...d, ends_at: e.target.value, duration_minutes: String(durationFromRange(d.starts_at, e.target.value)) }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
           </div>
+          <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
+            <input type="number" min={0} value={lessonDraft.duration_minutes} readOnly disabled title="Calculée automatiquement depuis Début et Fin" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-500 text-sm" />
+            <span className="mt-1 block text-[10px] font-medium normal-case text-zinc-400">Calculée automatiquement depuis Début et Fin.</span>
+          </label>
         </div>
       </Modal>
     </>
