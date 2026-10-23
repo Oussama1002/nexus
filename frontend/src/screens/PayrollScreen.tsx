@@ -35,7 +35,7 @@ const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet'
 const money = (n: number | string) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'MAD', maximumFractionDigits: 2 }).format(Number(n || 0));
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  ouvert: { label: 'Ouvert', cls: 'bg-blue-50 text-blue-700' },
+  ouvert: { label: 'Ouvert', cls: 'bg-accent-50 text-accent-700' },
   valide: { label: 'Validé', cls: 'bg-emerald-50 text-emerald-700' },
   cloture: { label: 'Clôturé', cls: 'bg-zinc-100 text-zinc-500' },
   brouillon: { label: 'Brouillon', cls: 'bg-amber-50 text-amber-700' },

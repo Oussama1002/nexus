@@ -49,7 +49,7 @@ export function ConfirmatriceStats({
         </div>
         <div className="card-muted p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux satisfaction</p>
-          <p className="mt-2 text-2xl font-black text-blue-600">{satisfactionRate != null ? `${satisfactionRate}%` : '—'}</p>
+          <p className="mt-2 text-2xl font-black text-accent-700">{satisfactionRate != null ? `${satisfactionRate}%` : '—'}</p>
         </div>
         <div className="card-muted p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Taux suivi (follow-up)</p>

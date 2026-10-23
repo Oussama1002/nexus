@@ -1280,7 +1280,7 @@ export function WhatsAppWorkspaceScreen({
                           <span className="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-zinc-100 text-zinc-600">{TEMPLATE_CATEGORY_FR[t.category?.toUpperCase()] ?? t.category}</span>
                           <span className="text-[10px] font-semibold text-zinc-400">{t.language}</span>
                           {t.param_count > 0 && (
-                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
+                            <span className="text-[10px] font-bold text-accent-700 bg-accent-50 rounded-full px-2 py-0.5">
                               {t.param_count} variable{t.param_count > 1 ? 's' : ''}
                             </span>
                           )}

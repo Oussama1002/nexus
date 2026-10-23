@@ -206,7 +206,7 @@ const emptyComplaintForm: ComplaintForm = {
 };
 
 const checklistStatusColor: Record<string, string> = {
-  en_cours: 'bg-blue-50 text-blue-700',
+  en_cours: 'bg-accent-50 text-accent-700',
   soumis: 'bg-yellow-50 text-yellow-700',
   'validé': 'bg-emerald-50 text-emerald-700',
   valide: 'bg-emerald-50 text-emerald-700',
@@ -270,7 +270,7 @@ const tabs: { key: CmTab; label: string; icon: typeof ClipboardCheck }[] = [
 const pubStatusColor: Record<string, string> = {
   draft: 'bg-zinc-100 text-zinc-600',
   brouillon: 'bg-zinc-100 text-zinc-600',
-  planned: 'bg-blue-50 text-blue-700',
+  planned: 'bg-accent-50 text-accent-700',
   in_production: 'bg-yellow-50 text-yellow-700',
   review: 'bg-orange-50 text-orange-700',
   approved: 'bg-emerald-50 text-emerald-700',
@@ -289,18 +289,18 @@ const pubStatusLabel: Record<string, string> = {
 };
 
 const platformColor: Record<string, string> = {
-  facebook: 'bg-blue-50 text-blue-700',
+  facebook: 'bg-accent-50 text-accent-700',
   instagram: 'bg-pink-50 text-pink-700',
   tiktok: 'bg-zinc-900 text-white',
-  twitter: 'bg-sky-50 text-sky-700',
-  linkedin: 'bg-indigo-50 text-indigo-700',
+  twitter: 'bg-accent-50 text-accent-700',
+  linkedin: 'bg-accent-50 text-accent-700',
   youtube: 'bg-red-50 text-red-700',
 };
 
 const actionTypeColor: Record<string, string> = {
   'commentaire_supprimé': 'bg-red-100 text-red-700',
   'commentaire_masqué': 'bg-yellow-50 text-yellow-700',
-  'message_envoyé': 'bg-blue-50 text-blue-700',
+  'message_envoyé': 'bg-accent-50 text-accent-700',
   'avis_signalé': 'bg-orange-50 text-orange-700',
   ban_utilisateur: 'bg-red-200 text-red-900',
   autre: 'bg-zinc-100 text-zinc-600',
@@ -316,7 +316,7 @@ const severityColor: Record<string, string> = {
 
 const signalStatusColor: Record<string, string> = {
   ouvert: 'bg-orange-50 text-orange-700',
-  en_traitement: 'bg-blue-50 text-blue-700',
+  en_traitement: 'bg-accent-50 text-accent-700',
   'résolu': 'bg-emerald-50 text-emerald-700',
   resolu: 'bg-emerald-50 text-emerald-700',
   'escaladé': 'bg-red-100 text-red-700',
@@ -330,7 +330,7 @@ const priorityColor: Record<string, string> = {
 };
 
 const complaintStatusColor: Record<string, string> = {
-  nouvelle: 'bg-blue-50 text-blue-700',
+  nouvelle: 'bg-accent-50 text-accent-700',
   'assignée': 'bg-yellow-50 text-yellow-700',
   assignee: 'bg-yellow-50 text-yellow-700',
   en_traitement: 'bg-orange-50 text-orange-700',
@@ -1068,7 +1068,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
                 <span className={`text-sm flex-1 ${item.is_completed ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
                   {item.label}
                 </span>
-                <Badge value={item.category} colorMap={{ publication: 'bg-blue-50 text-blue-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
+                <Badge value={item.category} colorMap={{ publication: 'bg-accent-50 text-accent-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-accent-50 text-accent-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
                 {item.status && <Badge value={itemStatusLabel[item.status] || item.status} colorMap={itemStatusColor} />}
                 {item.scheduled_time && <span className="text-[10px] text-zinc-400 flex items-center gap-0.5"><Clock size={10} />{item.scheduled_time}</span>}
                 {item.delay_minutes !== null && item.delay_minutes > 0 && <span className="text-[10px] text-red-500 font-bold">+{item.delay_minutes}min</span>}
@@ -1277,8 +1277,8 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <Badge value={item.category} colorMap={{ publication: 'bg-blue-50 text-blue-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
-                    {item.task_type && <Badge value={item.task_type} colorMap={{ publication: 'bg-blue-50 text-blue-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700', interaction: 'bg-pink-50 text-pink-700' }} />}
+                    <Badge value={item.category} colorMap={{ publication: 'bg-accent-50 text-accent-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-accent-50 text-accent-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
+                    {item.task_type && <Badge value={item.task_type} colorMap={{ publication: 'bg-accent-50 text-accent-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-accent-50 text-accent-700', reporting: 'bg-emerald-50 text-emerald-700', interaction: 'bg-pink-50 text-pink-700' }} />}
                     {item.platform && <Badge value={item.platform} colorMap={platformColor} />}
                     {item.status && item.status !== 'pending' && <Badge value={itemStatusLabel[item.status] || item.status} colorMap={itemStatusColor} />}
                     {item.scheduled_time && <span className="text-[10px] text-zinc-400 flex items-center gap-0.5"><Clock size={10} />{item.scheduled_time}</span>}
@@ -1340,7 +1340,7 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge value={s.severity} colorMap={severityColor} />
-                  <Badge value={s.signal_type} colorMap={{ retard: 'bg-orange-50 text-orange-700', contenu_non_conforme: 'bg-yellow-50 text-yellow-700', injoignable: 'bg-red-50 text-red-700', comportement: 'bg-purple-50 text-purple-700', autre: 'bg-zinc-100 text-zinc-600' }} />
+                  <Badge value={s.signal_type} colorMap={{ retard: 'bg-orange-50 text-orange-700', contenu_non_conforme: 'bg-yellow-50 text-yellow-700', injoignable: 'bg-red-50 text-red-700', comportement: 'bg-accent-50 text-accent-700', autre: 'bg-zinc-100 text-zinc-600' }} />
                 </div>
               </div>
             ))}
@@ -1420,8 +1420,8 @@ function TabJournee({ toast, userId, onNewComplaint, canValidate }: { toast: (m:
             <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 space-y-1">
               <p className="text-sm font-bold text-zinc-700">{editItem.item.label}</p>
               <div className="flex gap-2">
-                <Badge value={editItem.item.category} colorMap={{ publication: 'bg-blue-50 text-blue-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
-                {editItem.item.task_type && <Badge value={editItem.item.task_type} colorMap={{ publication: 'bg-blue-50 text-blue-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-purple-50 text-purple-700', reporting: 'bg-emerald-50 text-emerald-700', interaction: 'bg-pink-50 text-pink-700' }} />}
+                <Badge value={editItem.item.category} colorMap={{ publication: 'bg-accent-50 text-accent-700', 'modération': 'bg-yellow-50 text-yellow-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-accent-50 text-accent-700', reporting: 'bg-emerald-50 text-emerald-700' }} />
+                {editItem.item.task_type && <Badge value={editItem.item.task_type} colorMap={{ publication: 'bg-accent-50 text-accent-700', moderation: 'bg-yellow-50 text-yellow-700', veille: 'bg-accent-50 text-accent-700', reporting: 'bg-emerald-50 text-emerald-700', interaction: 'bg-pink-50 text-pink-700' }} />}
                 {editItem.item.status && <Badge value={itemStatusLabel[editItem.item.status] || editItem.item.status} colorMap={itemStatusColor} />}
               </div>
               {editItem.item.scheduled_time && <p className="text-xs text-zinc-500">Heure prévue : {editItem.item.scheduled_time}</p>}
@@ -1613,7 +1613,7 @@ function TabPublications({ toast, toastCtx, userId, canApprove, activeBrandId }:
               <h2 className="text-lg font-black text-zinc-900">{detail.title}</h2>
               <div className="flex items-center gap-2 mt-2">
                 <Badge value={detail.platform} colorMap={platformColor} />
-                <Badge value={detail.content_type} colorMap={{ post: 'bg-blue-50 text-blue-700', story: 'bg-pink-50 text-pink-700', reel: 'bg-purple-50 text-purple-700', video: 'bg-red-50 text-red-700', carousel: 'bg-indigo-50 text-indigo-700' }} />
+                <Badge value={detail.content_type} colorMap={{ post: 'bg-accent-50 text-accent-700', story: 'bg-pink-50 text-pink-700', reel: 'bg-accent-50 text-accent-700', video: 'bg-red-50 text-red-700', carousel: 'bg-accent-50 text-accent-700' }} />
                 <Badge value={pubStatusLabel[detail.status] || detail.status} colorMap={pubStatusColor} />
               </div>
             </div>
@@ -1961,7 +1961,7 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
                       <td className="px-4 py-3 text-sm font-medium text-zinc-700">{r.influencer?.full_name ?? `#${r.influencer_id}`}</td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center gap-1">
-                          <Badge value={r.content_type} colorMap={{ post: 'bg-blue-50 text-blue-700', story: 'bg-pink-50 text-pink-700', reel: 'bg-purple-50 text-purple-700', video: 'bg-red-50 text-red-700', 'vidéo': 'bg-red-50 text-red-700', live: 'bg-emerald-50 text-emerald-700' }} />
+                          <Badge value={r.content_type} colorMap={{ post: 'bg-accent-50 text-accent-700', story: 'bg-pink-50 text-pink-700', reel: 'bg-accent-50 text-accent-700', video: 'bg-red-50 text-red-700', 'vidéo': 'bg-red-50 text-red-700', live: 'bg-emerald-50 text-emerald-700' }} />
                           {r.no_publication && <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase bg-amber-50 text-amber-700">Pas publié</span>}
                         </div>
                       </td>
@@ -2012,7 +2012,7 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
                   {signals.map(s => (
                     <tr key={s.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                       <td className="px-4 py-3 text-sm font-medium text-zinc-700">{s.influencer?.full_name ?? `#${s.influencer_id}`}</td>
-                      <td className="px-4 py-3 text-sm"><Badge value={s.signal_type} colorMap={{ retard: 'bg-orange-50 text-orange-700', contenu_non_conforme: 'bg-yellow-50 text-yellow-700', injoignable: 'bg-red-50 text-red-700', comportement: 'bg-purple-50 text-purple-700', autre: 'bg-zinc-100 text-zinc-600' }} /></td>
+                      <td className="px-4 py-3 text-sm"><Badge value={s.signal_type} colorMap={{ retard: 'bg-orange-50 text-orange-700', contenu_non_conforme: 'bg-yellow-50 text-yellow-700', injoignable: 'bg-red-50 text-red-700', comportement: 'bg-accent-50 text-accent-700', autre: 'bg-zinc-100 text-zinc-600' }} /></td>
                       <td className="px-4 py-3 text-sm"><Badge value={s.severity} colorMap={severityColor} /></td>
                       <td className="px-4 py-3 text-sm text-zinc-600 max-w-[240px] truncate">{s.description}</td>
                       <td className="px-4 py-3 text-sm"><Badge value={s.status} colorMap={signalStatusColor} /></td>

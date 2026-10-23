@@ -37,12 +37,12 @@ const FINALITIES = ['awareness', 'consideration', 'conversion', 'fidelisation', 
 
 const CONTENT_STATUSES: Record<string, { label: string; cls: string }> = {
   a_briefer: { label: 'À briefer', cls: 'bg-zinc-100 text-zinc-700' },
-  briefe: { label: 'Briefé', cls: 'bg-blue-50 text-blue-700' },
+  briefe: { label: 'Briefé', cls: 'bg-accent-50 text-accent-700' },
   en_production: { label: 'En production', cls: 'bg-amber-50 text-amber-700' },
-  en_revision: { label: 'En révision', cls: 'bg-violet-50 text-violet-700' },
+  en_revision: { label: 'En révision', cls: 'bg-accent-50 text-accent-700' },
   a_valider_direction: { label: 'À valider Direction', cls: 'bg-orange-50 text-orange-700' },
   valide: { label: 'Validé', cls: 'bg-emerald-50 text-emerald-700' },
-  transmis_cm: { label: 'Transmis CM', cls: 'bg-cyan-50 text-cyan-700' },
+  transmis_cm: { label: 'Transmis CM', cls: 'bg-accent-50 text-accent-700' },
   publie: { label: 'Publié', cls: 'bg-emerald-100 text-emerald-800' },
   non_publie: { label: 'Non publié', cls: 'bg-red-50 text-red-700' },
   annule: { label: 'Annulé', cls: 'bg-zinc-100 text-zinc-500' },
@@ -223,14 +223,14 @@ export function SocialMediaWorkspaceScreen() {
 function DashboardTab({ dash }: { dash: R | null }) {
   if (!dash) return <EmptyState title="Aucune donnée" description="Le tableau de bord se remplira dès qu'il y aura de l'activité." />;
   const kpis = [
-    { label: 'Contenus à publier aujourd\'hui', value: dash.today_contents, cls: 'text-blue-600' },
+    { label: 'Contenus à publier aujourd\'hui', value: dash.today_contents, cls: 'text-accent-700' },
     { label: 'En production', value: dash.in_production, cls: 'text-amber-600' },
     { label: 'En retard', value: dash.late_contents, cls: dash.late_contents > 0 ? 'text-red-600' : 'text-emerald-600' },
     { label: 'À valider Direction', value: dash.pending_validation_direction, cls: 'text-orange-600' },
-    { label: 'Plans en attente', value: dash.pending_plans, cls: 'text-violet-600' },
-    { label: 'Stratégies en attente', value: dash.pending_strategies, cls: 'text-violet-600' },
+    { label: 'Plans en attente', value: dash.pending_plans, cls: 'text-accent-700' },
+    { label: 'Stratégies en attente', value: dash.pending_strategies, cls: 'text-accent-700' },
     { label: 'Écarts aujourd\'hui', value: dash.today_deviations, cls: dash.today_deviations > 0 ? 'text-red-600' : 'text-emerald-600' },
-    { label: 'Événements à venir (30 j)', value: dash.upcoming_events, cls: 'text-cyan-600' },
+    { label: 'Événements à venir (30 j)', value: dash.upcoming_events, cls: 'text-accent-700' },
     { label: 'Automatisations actives', value: dash.active_automations, cls: 'text-emerald-600' },
     { label: 'Échecs de sync', value: dash.sync_failures, cls: dash.sync_failures > 0 ? 'text-red-600' : 'text-emerald-600' },
   ];
@@ -920,11 +920,11 @@ function ContentDetailModal({ content, onClose, onReload }: { content: R; onClos
         <div className="flex items-center justify-between">
           <Badge label={CONTENT_STATUSES[content.status]?.label ?? content.status} cls={CONTENT_STATUSES[content.status]?.cls ?? 'bg-zinc-100'} />
           <div className="flex flex-wrap gap-2">
-            {content.status === 'a_briefer' && <button onClick={markBriefed} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black">Marquer briefé</button>}
+            {content.status === 'a_briefer' && <button onClick={markBriefed} className="px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-black">Marquer briefé</button>}
             {(content.status === 'briefe' || content.status === 'en_production') && <button onClick={uploadVersion} className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-black">Déposer version</button>}
             {content.status === 'en_revision' && <button onClick={validate} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-black">Valider</button>}
             {content.status === 'a_valider_direction' && <button onClick={directionValidate} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-black">Valider (Direction)</button>}
-            {content.status === 'valide' && <button onClick={transmit} className="px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-black">Transmettre au CM</button>}
+            {content.status === 'valide' && <button onClick={transmit} className="px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-black">Transmettre au CM</button>}
             {content.status === 'transmis_cm' && <button onClick={setPublished} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-black">Marquer publié</button>}
             {!['publie', 'annule'].includes(content.status) && <button onClick={cancel} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-black">Annuler</button>}
           </div>
@@ -1114,7 +1114,7 @@ function EventsTab({ events, onReload }: { events: R[]; onReload: () => void }) 
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-black text-zinc-900">{e.label}</h3>
-                    <Badge label={e.event_type} cls={e.event_type === 'temps_reel' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'} />
+                    <Badge label={e.event_type} cls={e.event_type === 'temps_reel' ? 'bg-red-50 text-red-700' : 'bg-accent-50 text-accent-700'} />
                     <Badge label={e.status} cls="bg-zinc-100 text-zinc-600" />
                     {e.has_commercial_offer && <Badge label="Offre commerciale" cls="bg-orange-50 text-orange-700" />}
                   </div>
@@ -1648,8 +1648,8 @@ function LibraryTab({ learnings, reports, insights, onReload }: { learnings: R[]
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex gap-2 items-center">
-                        <Badge label={i.source} cls="bg-blue-50 text-blue-700" />
-                        <Badge label={i.insight_type} cls="bg-violet-50 text-violet-700" />
+                        <Badge label={i.source} cls="bg-accent-50 text-accent-700" />
+                        <Badge label={i.insight_type} cls="bg-accent-50 text-accent-700" />
                         <Badge label={i.status} cls={i.status === 'exploite' ? 'bg-emerald-50 text-emerald-700' : i.status === 'ecarte' ? 'bg-red-50 text-red-700' : 'bg-zinc-100'} />
                         <span className="text-xs text-zinc-500">×{i.observed_frequency}</span>
                       </div>

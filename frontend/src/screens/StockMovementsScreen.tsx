@@ -35,7 +35,7 @@ const TYPE_OPTIONS = [{ value: '', label: 'Tous' }, ...MOVEMENT_TYPES.map((t) =>
 const TYPE_COLORS: Record<string, string> = {
   in: 'bg-green-50 text-green-700',
   out: 'bg-red-50 text-red-700',
-  returned: 'bg-blue-50 text-blue-700',
+  returned: 'bg-accent-50 text-accent-700',
   adjustment: 'bg-orange-50 text-orange-700',
   damaged: 'bg-rose-50 text-rose-700',
 };

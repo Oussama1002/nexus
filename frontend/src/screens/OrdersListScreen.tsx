@@ -613,7 +613,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                 type="button"
                 onClick={() => openDispatch(o)}
                 title="Envoyer au transporteur"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-black hover:bg-primary-700 transition-colors"
               >
                 <Truck className="w-3.5 h-3.5" /> Envoyer
               </button>
@@ -975,7 +975,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                     <button
                       type="button"
                       onClick={() => openDispatch(selected)}
-                      className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
+                      className="w-full py-3 rounded-xl bg-primary-600 text-white font-black text-sm hover:bg-primary-700 transition-colors inline-flex items-center justify-center gap-2"
                     >
                       <Truck className="w-4 h-4" />
                       {selected.shipment ? 'Renvoyer au transporteur' : 'Envoyer au transporteur'}
@@ -1004,7 +1004,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                       type="button"
                       disabled={statusSaving || selected.status === 'Programmé'}
                       onClick={() => void patchStatus('Programmé')}
-                      className="py-3 rounded-xl border border-blue-200 text-blue-700 font-black text-sm hover:bg-blue-50 transition-colors disabled:opacity-50"
+                      className="py-3 rounded-xl border border-accent-200 text-accent-700 font-black text-sm hover:bg-accent-50 transition-colors disabled:opacity-50"
                     >
                       Programmer
                     </button>

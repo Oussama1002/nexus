@@ -35,7 +35,7 @@ const PRIORITY_OPTIONS = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  open: 'bg-blue-50 text-blue-700',
+  open: 'bg-accent-50 text-accent-700',
   in_progress: 'bg-yellow-50 text-yellow-700',
   resolved: 'bg-green-50 text-green-700',
   closed: 'bg-zinc-100 text-zinc-600',

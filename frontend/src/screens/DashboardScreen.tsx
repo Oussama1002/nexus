@@ -341,13 +341,13 @@ export function DashboardScreen() {
         <p className="text-sm font-black uppercase tracking-widest text-zinc-500">Accès rapide</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Media Buying', icon: Target, path: 'mediaBuying', color: 'bg-violet-600' },
+            { label: 'Media Buying', icon: Target, path: 'mediaBuying', color: 'bg-primary-600' },
             { label: 'Dashboard Confirmation', icon: Headset, path: 'confirmatrice', color: 'bg-emerald-600' },
-            { label: 'Dashboard Manager Call Center', icon: PhoneCall, path: 'deliveryDashboard', color: 'bg-blue-600' },
-            { label: 'Dashboard Project Manager', icon: FolderKanban, path: 'collabProjects', color: 'bg-indigo-600' },
+            { label: 'Dashboard Manager Call Center', icon: PhoneCall, path: 'deliveryDashboard', color: 'bg-primary-600' },
+            { label: 'Dashboard Project Manager', icon: FolderKanban, path: 'collabProjects', color: 'bg-primary-600' },
             { label: 'Finance', icon: DollarSign, path: 'finance', color: 'bg-rose-600' },
             { label: 'Stock', icon: Warehouse, path: 'stock', color: 'bg-amber-600' },
-            { label: 'Colis & expéditions', icon: Truck, path: 'trackingParcels', color: 'bg-teal-600' },
+            { label: 'Colis & expéditions', icon: Truck, path: 'trackingParcels', color: 'bg-primary-600' },
             { label: 'Social Media Management', icon: Share2, path: 'socialMedia', color: 'bg-pink-600' },
             { label: 'Ressources Humaines', icon: Briefcase, path: 'hr', color: 'bg-zinc-700' },
           ].map((item) => (
@@ -383,7 +383,7 @@ export function DashboardScreen() {
               {(() => {
                 const entries = (Object.entries(payload.orders_by_status) as [string, number][]).sort((a, b) => b[1] - a[1]);
                 const max = Math.max(...entries.map(([, v]) => v), 1);
-                const colors: Record<string, string> = { confirmed: 'bg-emerald-500', pending: 'bg-amber-500', shipped: 'bg-blue-500', delivered: 'bg-primary-600', cancelled: 'bg-rose-500', returned: 'bg-zinc-400', new: 'bg-cyan-500' };
+                const colors: Record<string, string> = { confirmed: 'bg-emerald-500', pending: 'bg-amber-500', shipped: 'bg-primary-600', delivered: 'bg-primary-600', cancelled: 'bg-rose-500', returned: 'bg-zinc-400', new: 'bg-primary-600' };
                 const orderLbl: Record<string, string> = { confirmed: 'Confirmé', pending: 'En attente', shipped: 'Expédié', delivered: 'Livré', cancelled: 'Annulé', returned: 'Retourné', new: 'Nouveau' };
                 return entries.map(([label, value]) => (
                   <div key={label} className="flex items-center gap-3">
@@ -414,7 +414,7 @@ export function DashboardScreen() {
               {(() => {
                 const entries = (Object.entries(payload.shipments_by_status) as [string, number][]).sort((a, b) => b[1] - a[1]);
                 const max = Math.max(...entries.map(([, v]) => v), 1);
-                const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-blue-500', out_for_delivery: 'bg-violet-500', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-cyan-500', picked_up: 'bg-indigo-500', failed: 'bg-red-500', shipped: 'bg-blue-400', on_hold: 'bg-orange-500', lost: 'bg-red-700', damaged: 'bg-red-600' };
+                const colors: Record<string, string> = { delivered: 'bg-emerald-500', in_transit: 'bg-primary-600', out_for_delivery: 'bg-primary-600', pending: 'bg-amber-500', returned: 'bg-rose-500', cancelled: 'bg-zinc-400', created: 'bg-primary-600', picked_up: 'bg-primary-600', failed: 'bg-red-500', shipped: 'bg-accent-300', on_hold: 'bg-orange-500', lost: 'bg-red-700', damaged: 'bg-red-600' };
                 const shipLbl: Record<string, string> = { delivered: 'Livré', in_transit: 'En transit', out_for_delivery: 'En distribution', pending: 'En attente', returned: 'Retourné', cancelled: 'Annulé', created: 'Créé', picked_up: 'Ramassé', failed: 'Échoué', shipped: 'Expédié', on_hold: 'En attente', lost: 'Perdu', damaged: 'Endommagé' };
                 return entries.map(([label, value]) => (
                   <div key={label} className="flex items-center gap-3">

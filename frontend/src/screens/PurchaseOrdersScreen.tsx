@@ -777,7 +777,7 @@ export function PurchaseOrdersScreen() {
                 <button
                   type="button"
                   onClick={() => void sendSupplier(detail.id)}
-                  className="w-full py-3 rounded-2xl bg-sky-600 text-white text-sm font-black hover:bg-sky-700"
+                  className="w-full py-3 rounded-2xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700"
                 >
                   Envoyer au fournisseur
                 </button>

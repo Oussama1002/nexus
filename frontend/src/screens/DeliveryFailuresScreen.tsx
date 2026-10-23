@@ -29,7 +29,7 @@ const STATUS_OPTIONS = [
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700',
-  rescheduled: 'bg-blue-50 text-blue-700',
+  rescheduled: 'bg-accent-50 text-accent-700',
   cancelled: 'bg-red-50 text-red-700',
 };
 

@@ -30,7 +30,7 @@ const TYPES = [
 ];
 
 const STATUSES: Record<string, { label: string; cls: string }> = {
-  planifiee: { label: 'Planifiée', cls: 'bg-blue-50 text-blue-700' },
+  planifiee: { label: 'Planifiée', cls: 'bg-accent-50 text-accent-700' },
   en_cours: { label: 'En cours', cls: 'bg-amber-50 text-amber-700' },
   terminee: { label: 'Terminée', cls: 'bg-emerald-50 text-emerald-700' },
   annulee: { label: 'Annulée', cls: 'bg-zinc-100 text-zinc-500' },

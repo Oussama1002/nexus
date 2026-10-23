@@ -716,15 +716,15 @@ export function AutomationsScreen() {
           </div>
 
           {/* Trigger selector */}
-          <div className="rounded-2xl border-2 border-indigo-100 bg-indigo-50/50 p-4">
-            <p className="text-xs font-black uppercase text-indigo-600 mb-3 inline-flex items-center gap-2">
+          <div className="rounded-2xl border-2 border-accent-200 bg-accent-50/50 p-4">
+            <p className="text-xs font-black uppercase text-accent-700 mb-3 inline-flex items-center gap-2">
               <Zap className="w-4 h-4" /> Quand (déclencheur)
             </p>
             <div className="flex flex-wrap gap-2 mb-3">
               {allTriggers.map((t) => (
                 <button key={t.value} type="button" onClick={() => changeTrigger(t.value)}
                   className={`px-4 py-2.5 rounded-xl text-sm font-black inline-flex items-center gap-2 transition-all ${
-                    draftTrigger === t.value ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                    draftTrigger === t.value ? 'bg-primary-600 text-white shadow-md' : 'bg-white border border-accent-200 text-accent-700 hover:bg-accent-100'
                   }`}>
                   {t.icon} {t.label}
                   {!t.builtin && (
@@ -738,7 +738,7 @@ export function AutomationsScreen() {
               <button
                 type="button"
                 onClick={() => void openTriggerPicker()}
-                className="inline-flex items-center gap-1 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm font-black text-indigo-700 hover:bg-indigo-50"
+                className="inline-flex items-center gap-1 rounded-xl border border-accent-200 bg-white px-3 py-2 text-sm font-black text-accent-700 hover:bg-accent-50"
               >
                 <Plus className="w-4 h-4" /> Ajouter un déclencheur
               </button>
@@ -763,7 +763,7 @@ export function AutomationsScreen() {
                           key={c.key}
                           type="button"
                           onClick={() => useEventAsTrigger(c.key)}
-                          className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-3 py-2 text-left hover:border-indigo-300 hover:bg-indigo-50"
+                          className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-3 py-2 text-left hover:border-accent-300 hover:bg-accent-50"
                         >
                           <span className="text-sm font-bold text-zinc-800">
                             {eventLabelFr(c.key)}
@@ -798,22 +798,22 @@ export function AutomationsScreen() {
 
           {/* Custom fields builder (for custom triggers — shown BEFORE conditions) */}
           {!triggerConfig.builtin && (
-            <div className="rounded-2xl border-2 border-violet-100 bg-violet-50/50 p-4">
+            <div className="rounded-2xl border-2 border-accent-200 bg-accent-50/50 p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-black uppercase text-violet-700 inline-flex items-center gap-2">
+                <p className="text-xs font-black uppercase text-accent-700 inline-flex items-center gap-2">
                   <List className="w-4 h-4" /> Champs de l'événement
                 </p>
                 <button type="button" onClick={addCustomField}
-                  className="text-xs font-black text-violet-700 hover:underline inline-flex items-center gap-1">
+                  className="text-xs font-black text-accent-700 hover:underline inline-flex items-center gap-1">
                   <Plus className="w-3 h-3" /> Ajouter champ
                 </button>
               </div>
               {customFields.length === 0 ? (
-                <p className="text-xs text-violet-600">Ajoutez les champs que cet événement contient pour les utiliser dans les conditions et messages.</p>
+                <p className="text-xs text-accent-700">Ajoutez les champs que cet événement contient pour les utiliser dans les conditions et messages.</p>
               ) : (
                 <div className="space-y-2">
                   {customFields.map((cf, fi) => (
-                    <div key={fi} className="flex items-center gap-2 bg-white rounded-xl p-2.5 border border-violet-100">
+                    <div key={fi} className="flex items-center gap-2 bg-white rounded-xl p-2.5 border border-accent-200">
                       <input value={cf.label} onChange={(e) => {
                         const label = e.target.value;
                         const key = `event.${slugifyTrigger(label) || `champ_${fi + 1}`}`;
@@ -955,7 +955,7 @@ export function AutomationsScreen() {
                       <div className="space-y-2">
                         {step.variants.map((v, vi) => (
                           <div key={vi} className="flex items-start gap-2 bg-zinc-50 rounded-lg p-2">
-                            <span className={`text-[10px] font-black px-2 py-1 rounded-full mt-1 ${vi === 0 ? 'bg-indigo-100 text-indigo-700' : vi === 1 ? 'bg-amber-100 text-amber-700' : 'bg-zinc-200 text-zinc-600'}`}>
+                            <span className={`text-[10px] font-black px-2 py-1 rounded-full mt-1 ${vi === 0 ? 'bg-accent-100 text-accent-700' : vi === 1 ? 'bg-amber-100 text-amber-700' : 'bg-zinc-200 text-zinc-600'}`}>
                               {v.label}
                             </span>
                             <textarea value={v.message} onChange={(e) => setActions((prev) => prev.map((s, i) => i === si ? { ...s, variants: s.variants.map((vv, j) => j === vi ? { ...vv, message: e.target.value } : vv) } : s))}
@@ -974,7 +974,7 @@ export function AutomationsScreen() {
                         <button type="button" onClick={() => {
                           const nextLabel = String.fromCharCode(65 + (actions[si]?.variants.length ?? 0));
                           setActions((prev) => prev.map((s, i) => i === si ? { ...s, variants: [...s.variants, { label: nextLabel, message: '', weight: 1 }] } : s));
-                        }} className="text-xs font-black text-indigo-600 hover:underline inline-flex items-center gap-1">
+                        }} className="text-xs font-black text-accent-700 hover:underline inline-flex items-center gap-1">
                           <Plus className="w-3 h-3" /> Ajouter variante
                         </button>
                       </div>
@@ -997,10 +997,10 @@ export function AutomationsScreen() {
             <div className="flex flex-wrap gap-1.5">
               {triggerConfig.fields.map((f) => (
                 <button key={f.value} type="button"
-                  className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg cursor-pointer transition-colors inline-flex items-center gap-1.5 border border-indigo-200"
+                  className="text-xs bg-accent-50 hover:bg-accent-100 text-accent-700 px-2.5 py-1 rounded-lg cursor-pointer transition-colors inline-flex items-center gap-1.5 border border-accent-200"
                   title={`Insère [${f.label}] dans le message`}
                   onClick={() => { void navigator.clipboard.writeText(`[${f.label}]`); toast.success(`Variable « ${f.label} » copiée — collez-la dans votre message.`); }}>
-                  <Copy className="w-3 h-3 text-indigo-400" />
+                  <Copy className="w-3 h-3 text-accent-500" />
                   <span className="font-bold">[{f.label}]</span>
                 </button>
               ))}

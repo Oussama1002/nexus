@@ -110,7 +110,7 @@ const CHARGE_TYPE_FR: Record<string, string> = {
   other: 'Autre',
 };
 
-const CHART_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316', '#eab308'];
+const CHART_COLORS = ['#b08d57', '#6b635b', '#c6a064', '#9a9089', '#a93f3f', '#b07d2f', '#857b70', '#d6b985'];
 
 /** Laravel pluck / sums often serialize as object maps */
 function recordToRows(rec: unknown): { key: string; label: string; value: number }[] {
@@ -242,7 +242,7 @@ function BreakdownPanel({
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={56} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill="#b08d57" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -745,7 +745,7 @@ export function ReportingScreen() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="v" fill="#6366f1" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="v" fill="#b08d57" radius={[6, 6, 0, 0]}>
                     {chartRows.map((_, i) => (
                       <Cell key={`vol-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
@@ -761,7 +761,7 @@ export function ReportingScreen() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="v" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="v" fill="#6b635b" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -776,7 +776,7 @@ export function ReportingScreen() {
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-12} textAnchor="end" height={48} />
                   <YAxis />
                   <Tooltip formatter={(v: number) => formatCurrency(Number(v))} />
-                  <Bar dataKey="v" fill="#059669" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="v" fill="#3f7d55" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -788,7 +788,7 @@ export function ReportingScreen() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} />
                   <Tooltip formatter={(v: number) => `${Number(v).toFixed(1)} %`} />
-                  <Bar dataKey="v" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="v" fill="#b07d2f" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -821,7 +821,7 @@ export function ReportingScreen() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip formatter={(v: number) => Number(v).toLocaleString('fr-FR')} />
-                  <Bar dataKey="v" fill="#6366f1" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="v" fill="#b08d57" radius={[6, 6, 0, 0]}>
                     {adsVolumeChart.map((_, i) => (
                       <Cell key={`ads-v-${i}`} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
@@ -837,7 +837,7 @@ export function ReportingScreen() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip formatter={(v: number) => formatCurrency(Number(v))} />
-                  <Bar dataKey="v" fill="#10b981" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="v" fill="#5c9b72" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -967,7 +967,7 @@ export function ReportingScreen() {
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis />
                       <Tooltip formatter={(v: number) => formatCurrency(Number(v))} />
-                      <Bar dataKey="value" fill="#059669" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="value" fill="#3f7d55" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

@@ -321,7 +321,7 @@ export function UserFicheDrawer({ userId, open, onClose }: Props) {
                     return (
                       <div key={m.id} className="py-2 border-b border-zinc-100 last:border-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isSender ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-600'}`}>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isSender ? 'bg-accent-50 text-accent-700' : 'bg-zinc-100 text-zinc-600'}`}>
                             {isSender ? 'Envoyé' : 'Reçu'}
                           </span>
                           <span className="text-[10px] font-bold text-zinc-700">

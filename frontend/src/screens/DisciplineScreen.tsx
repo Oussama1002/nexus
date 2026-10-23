@@ -48,8 +48,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COLOR: Record<string, string> = {
   signale: 'bg-zinc-100 text-zinc-700',
-  instruction: 'bg-blue-50 text-blue-700',
-  entretien: 'bg-violet-50 text-violet-700',
+  instruction: 'bg-accent-50 text-accent-700',
+  entretien: 'bg-accent-50 text-accent-700',
   decision: 'bg-amber-50 text-amber-700',
   notification: 'bg-orange-50 text-orange-700',
   accuse: 'bg-emerald-50 text-emerald-700',

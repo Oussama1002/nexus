@@ -183,7 +183,7 @@ const DIFFICULTY_LABELS: Record<string, string> = { beginner: 'Débutant', inter
 const ENROLLMENT_STATUS_LABELS: Record<string, string> = { pending: 'En attente', active: 'Actif', completed: 'Terminé', expired: 'Expiré', cancelled: 'Annulé' };
 const LESSON_TYPE_LABELS: Record<string, string> = { video: 'Vidéo', pdf: 'PDF', text: 'Texte', external_link: 'Lien externe' };
 const LESSON_TYPE_ICONS: Record<string, React.ReactNode> = {
-  video: <Video className="w-4 h-4 text-blue-600" />,
+  video: <Video className="w-4 h-4 text-accent-700" />,
   pdf: <FileText className="w-4 h-4 text-rose-600" />,
   text: <BookOpen className="w-4 h-4 text-amber-600" />,
   external_link: <Link2 className="w-4 h-4 text-emerald-600" />,
@@ -624,7 +624,7 @@ function CoursesTab({
               <button type="button" onClick={() => onOpenDetail(r)} className="text-sm font-black text-primary-700 hover:underline inline-flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />Contenu</button>
               <button type="button" onClick={() => setPreviewCourseId(r.id)} className="text-sm font-black text-zinc-600 hover:underline inline-flex items-center gap-1"><Eye className="w-3.5 h-3.5" />Aperçu</button>
               {canUpdate && <button type="button" onClick={() => { setEditingCourse(r); setDraft(courseToDraft(r)); setFormErrors([]); setModalOpen(true); }} className="text-sm font-black text-primary-600 hover:underline">Modifier</button>}
-              {canUpdate && <button type="button" onClick={() => setAssignCourse(r)} className="text-sm font-black text-indigo-700 hover:underline inline-flex items-center gap-1"><UserPlus className="w-3.5 h-3.5" />Assigner</button>}
+              {canUpdate && <button type="button" onClick={() => setAssignCourse(r)} className="text-sm font-black text-accent-700 hover:underline inline-flex items-center gap-1"><UserPlus className="w-3.5 h-3.5" />Assigner</button>}
               {canCreate && <button type="button" onClick={() => { if (window.confirm(`Dupliquer « ${r.title} » ?`)) duplicateMut.mutate(r.id); }} className="text-sm font-black text-amber-700 hover:underline inline-flex items-center gap-1"><Copy className="w-3.5 h-3.5" />Dupliquer</button>}
               {canPublish && r.status !== 'published' && <button type="button" onClick={() => publishMut.mutate(r.id)} className="text-sm font-black text-emerald-700 hover:underline inline-flex items-center gap-1"><Rocket className="w-3.5 h-3.5" />Publier</button>}
               {canDelete && <button type="button" onClick={() => { if (window.confirm(`Supprimer « ${r.title} » ?`)) deleteMut.mutate(r.id); }} className="text-sm font-black text-rose-700 hover:underline inline-flex items-center gap-1"><Trash2 className="w-3.5 h-3.5" />Suppr.</button>}

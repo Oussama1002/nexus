@@ -102,7 +102,7 @@ function KpiDot({ tone }: { tone?: 'success' | 'info' | 'danger' | 'warning' | '
     tone === 'success'
       ? 'bg-emerald-600'
       : tone === 'info'
-        ? 'bg-blue-600'
+        ? 'bg-primary-600'
         : tone === 'danger'
           ? 'bg-rose-600'
           : tone === 'warning'
@@ -599,7 +599,7 @@ export function LeadsScreen({
                     'px-2 py-1 rounded-lg border text-sm font-black cursor-pointer',
                     l.status === 'confirmed' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
                     l.status === 'lost' ? 'border-rose-200 bg-rose-50 text-rose-800' :
-                    l.status === 'new' ? 'border-blue-200 bg-blue-50 text-blue-800' :
+                    l.status === 'new' ? 'border-accent-200 bg-accent-50 text-accent-800' :
                     'border-zinc-200 bg-zinc-50 text-zinc-800'
                   )}
                 >

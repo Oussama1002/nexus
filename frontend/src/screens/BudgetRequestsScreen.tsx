@@ -39,7 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700',
   approved: 'bg-green-50 text-green-700',
   rejected: 'bg-red-50 text-red-700',
-  partial: 'bg-blue-50 text-blue-700',
+  partial: 'bg-accent-50 text-accent-700',
 };
 
 const STATUS_LABELS: Record<string, string> = {

@@ -49,9 +49,9 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  requested: 'bg-blue-50 text-blue-700',
+  requested: 'bg-accent-50 text-accent-700',
   in_transit: 'bg-yellow-50 text-yellow-700',
-  received: 'bg-purple-50 text-purple-700',
+  received: 'bg-accent-50 text-accent-700',
   refunded: 'bg-green-50 text-green-700',
   refused: 'bg-red-50 text-red-700',
 };
@@ -213,7 +213,7 @@ export function ReturnsScreen() {
                     <div className="flex items-center gap-1.5">
                       <span>#{row.id}</span>
                       {row.source === 'order' && (
-                        <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase bg-blue-50 text-blue-700" title="Commande retournée">
+                        <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase bg-accent-50 text-accent-700" title="Commande retournée">
                           Commande
                         </span>
                       )}

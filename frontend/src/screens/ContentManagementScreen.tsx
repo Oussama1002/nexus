@@ -39,8 +39,8 @@ const STATUS_OPTIONS = [
 ];
 
 const TYPE_COLORS: Record<string, string> = {
-  video: 'bg-purple-50 text-purple-700',
-  article: 'bg-blue-50 text-blue-700',
+  video: 'bg-accent-50 text-accent-700',
+  article: 'bg-accent-50 text-accent-700',
   quiz: 'bg-orange-50 text-orange-700',
   document: 'bg-zinc-100 text-zinc-600',
   exercise: 'bg-green-50 text-green-700',

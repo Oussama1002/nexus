@@ -51,11 +51,11 @@ function PlatformIcon({ platform }: { platform: string }) {
   const p = platform.toLowerCase();
   const cls = 'shrink-0';
   switch (p) {
-    case 'facebook': return <Facebook size={20} className={`${cls} text-blue-600`} />;
+    case 'facebook': return <Facebook size={20} className={`${cls} text-accent-700`} />;
     case 'instagram': return <Instagram size={20} className={`${cls} text-pink-600`} />;
     case 'tiktok': return <Music2 size={20} className={`${cls} text-zinc-900`} />;
     case 'youtube': return <Youtube size={20} className={`${cls} text-red-600`} />;
-    case 'linkedin': return <Linkedin size={20} className={`${cls} text-blue-700`} />;
+    case 'linkedin': return <Linkedin size={20} className={`${cls} text-accent-700`} />;
     case 'x': return <Twitter size={20} className={`${cls} text-zinc-900`} />;
     default: return <Link2 size={20} className={`${cls} text-zinc-400`} />;
   }
@@ -218,7 +218,7 @@ export function SocialAccountsScreen() {
         </div>
         <div className="card p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">API connectée</p>
-          <p className="text-2xl font-black text-blue-600 mt-1">{stats.apiConnected}</p>
+          <p className="text-2xl font-black text-accent-700 mt-1">{stats.apiConnected}</p>
         </div>
         <div className="card p-4">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Abonnés (page)</p>

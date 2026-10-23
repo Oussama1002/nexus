@@ -25,7 +25,7 @@ type Payload = {
 const SEVERITY = {
   danger: { Icon: AlertCircle, ring: 'border-rose-200', bg: 'bg-rose-50', text: 'text-rose-700', chip: 'bg-rose-100 text-rose-700' },
   warning: { Icon: AlertTriangle, ring: 'border-amber-200', bg: 'bg-amber-50', text: 'text-amber-800', chip: 'bg-amber-100 text-amber-800' },
-  info: { Icon: Info, ring: 'border-blue-200', bg: 'bg-blue-50', text: 'text-blue-700', chip: 'bg-blue-100 text-blue-700' },
+  info: { Icon: Info, ring: 'border-accent-200', bg: 'bg-accent-50', text: 'text-accent-700', chip: 'bg-accent-100 text-accent-700' },
   success: { Icon: CheckCircle2, ring: 'border-emerald-200', bg: 'bg-emerald-50', text: 'text-emerald-700', chip: 'bg-emerald-100 text-emerald-700' },
 } as const;
 
@@ -119,7 +119,7 @@ export function NotificationsScreen() {
       {severityFilter !== 'all' && (
         <button
           onClick={() => setSeverityFilter('all')}
-          className="text-xs font-semibold text-blue-600 hover:underline"
+          className="text-xs font-semibold text-accent-700 hover:underline"
         >
           ← Voir toutes les notifications
         </button>
@@ -164,7 +164,7 @@ export function NotificationsScreen() {
                     <span title={new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}>
                       {new Date(n.occurred_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · {formatRelativeTime(n.occurred_at)}
                     </span>
-                    {clickable && <span className="text-blue-600 font-semibold">→ Ouvrir</span>}
+                    {clickable && <span className="text-accent-700 font-semibold">→ Ouvrir</span>}
                   </div>
                 </div>
               </div>
@@ -182,7 +182,7 @@ function SummaryTile({ label, value, tone, active, onClick }: {
   const toneMap = {
     danger: 'from-rose-50 to-rose-100 text-rose-800',
     warning: 'from-amber-50 to-amber-100 text-amber-800',
-    info: 'from-blue-50 to-blue-100 text-blue-800',
+    info: 'from-accent-100 to-accent-100 text-accent-800',
     success: 'from-emerald-50 to-emerald-100 text-emerald-800',
   };
   return (

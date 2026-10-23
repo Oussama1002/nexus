@@ -55,7 +55,7 @@ const ROLE_OPTIONS: { value: RoleType; label: string }[] = [
   { value: 'reviewer', label: 'Relecture/validation' }, { value: 'other', label: 'Autre' },
 ];
 const PRIORITY_LABELS: Record<string, string> = { low: 'Basse', medium: 'Moyenne', high: 'Haute', urgent: 'Urgente' };
-const PRIORITY_COLORS: Record<string, string> = { low: 'bg-zinc-100 text-zinc-600', medium: 'bg-blue-100 text-blue-700', high: 'bg-amber-100 text-amber-700', urgent: 'bg-rose-100 text-rose-700' };
+const PRIORITY_COLORS: Record<string, string> = { low: 'bg-zinc-100 text-zinc-600', medium: 'bg-accent-100 text-accent-700', high: 'bg-amber-100 text-amber-700', urgent: 'bg-rose-100 text-rose-700' };
 const DEFAULT_COLUMNS = [
   { title: 'À faire', color: '#6366f1' },
   { title: 'En cours', color: '#f59e0b' },

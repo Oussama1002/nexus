@@ -605,7 +605,7 @@ function WhatsappTemplatesManager({ disabled }: { disabled: boolean }) {
                   <span className="text-[10px] font-bold uppercase text-zinc-500">{t.category}</span>
                   <span className="text-[10px] font-semibold text-zinc-400">{t.language}</span>
                   {t.param_count > 0 && (
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">{t.param_count} variable{t.param_count > 1 ? 's' : ''}</span>
+                    <span className="text-[10px] font-bold text-accent-700 bg-accent-50 rounded-full px-2 py-0.5">{t.param_count} variable{t.param_count > 1 ? 's' : ''}</span>
                   )}
                 </div>
                 <p className="text-xs text-zinc-600 whitespace-pre-wrap line-clamp-3">{t.body}</p>

@@ -36,8 +36,8 @@ const STATUS_OPTIONS = [
 
 const LEVEL_COLORS: Record<string, string> = {
   beginner: 'bg-green-50 text-green-700',
-  intermediate: 'bg-blue-50 text-blue-700',
-  advanced: 'bg-purple-50 text-purple-700',
+  intermediate: 'bg-accent-50 text-accent-700',
+  advanced: 'bg-accent-50 text-accent-700',
 };
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -243,7 +243,7 @@ export function LearningPathsScreen() {
                     <td className="px-4 py-3 text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-20 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
+                          <div className="h-full rounded-full bg-primary-600" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="text-xs font-bold">{pct}%</span>
                       </div>

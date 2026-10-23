@@ -430,7 +430,7 @@ export function MediaBuyingScreen() {
                 <label className="text-xs font-bold text-zinc-500">Clics<input value={draft.organic_clicks} onChange={(e) => setDraft((d) => ({ ...d, organic_clicks: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
               </div>
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">Sponsorisé</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-accent-700">Sponsorisé</p>
                 <label className="text-xs font-bold text-zinc-500">Portée<input value={draft.sponsored_reach} onChange={(e) => setDraft((d) => ({ ...d, sponsored_reach: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
                 <label className="text-xs font-bold text-zinc-500">Impressions<input value={draft.sponsored_impressions} onChange={(e) => setDraft((d) => ({ ...d, sponsored_impressions: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0" /></label>
                 <label className="text-xs font-bold text-zinc-500">Engagement %<input value={draft.sponsored_engagement} onChange={(e) => setDraft((d) => ({ ...d, sponsored_engagement: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white" placeholder="0.00" /></label>

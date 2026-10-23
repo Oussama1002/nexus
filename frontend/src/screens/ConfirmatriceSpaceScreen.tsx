@@ -220,7 +220,7 @@ export function ConfirmatriceSpaceScreen({
         </div>
         <div className="card p-5">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Upsells ouverts</p>
-          <p className="mt-2 text-2xl font-black text-indigo-600">{summary?.upsells_open ?? 0}</p>
+          <p className="mt-2 text-2xl font-black text-accent-700">{summary?.upsells_open ?? 0}</p>
           <p className="mt-1 text-[10px] text-zinc-400">Non branché en base pour l’instant.</p>
         </div>
       </div>

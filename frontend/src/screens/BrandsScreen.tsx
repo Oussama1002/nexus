@@ -75,7 +75,7 @@ function nameToCode(name: string): string {
 
 function KpiDot({ tone }: { tone?: 'success' | 'info' | 'neutral' }) {
   const cls =
-    tone === 'success' ? 'bg-emerald-600' : tone === 'info' ? 'bg-blue-600' : 'bg-zinc-300';
+    tone === 'success' ? 'bg-emerald-600' : tone === 'info' ? 'bg-primary-600' : 'bg-zinc-300';
   return <span className={cn('w-2 h-2 rounded-full shrink-0', cls)} aria-hidden="true" />;
 }
 

@@ -227,7 +227,7 @@ export function LoginPage() {
 
         {/* Decorative blurs */}
         <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-[120px]" />
-        <div className="absolute -top-32 right-32 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px]" />
+        <div className="absolute -top-32 right-32 w-[400px] h-[400px] bg-primary-600/5 rounded-full blur-[100px]" />
       </div>
     </div>
   );

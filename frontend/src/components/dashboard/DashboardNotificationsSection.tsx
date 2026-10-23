@@ -37,7 +37,7 @@ type NotificationsPayload = {
 const PRIORITY_STYLES: Record<string, { label: string; bg: string; text: string; border: string }> = {
   P1: { label: 'P1', bg: 'bg-rose-600', text: 'text-white', border: 'border-rose-500' },
   P2: { label: 'P2', bg: 'bg-amber-500', text: 'text-white', border: 'border-amber-400' },
-  P3: { label: 'P3', bg: 'bg-blue-500', text: 'text-white', border: 'border-blue-400' },
+  P3: { label: 'P3', bg: 'bg-primary-600', text: 'text-white', border: 'border-accent-400' },
 };
 
 const SEVERITY_STYLES: Record<
@@ -46,7 +46,7 @@ const SEVERITY_STYLES: Record<
 > = {
   danger: { icon: AlertCircle, ring: 'border-rose-200', bg: 'bg-rose-50', text: 'text-rose-700' },
   warning: { icon: AlertTriangle, ring: 'border-amber-200', bg: 'bg-amber-50', text: 'text-amber-700' },
-  info: { icon: Info, ring: 'border-blue-200', bg: 'bg-blue-50', text: 'text-blue-700' },
+  info: { icon: Info, ring: 'border-accent-200', bg: 'bg-accent-50', text: 'text-accent-700' },
   success: { icon: CheckCircle2, ring: 'border-emerald-200', bg: 'bg-emerald-50', text: 'text-emerald-700' },
 };
 
@@ -138,7 +138,7 @@ export function DashboardNotificationsSection({
                 </span>
               )}
               {p3Count > 0 && (
-                <span className="px-2 py-1 rounded-md bg-blue-500/80 text-[10px] font-black uppercase tracking-wide">
+                <span className="px-2 py-1 rounded-md bg-primary-600/80 text-[10px] font-black uppercase tracking-wide">
                   {p3Count} P3
                 </span>
               )}
@@ -163,7 +163,7 @@ export function DashboardNotificationsSection({
                 filter === f
                   ? f === 'P1' ? 'bg-rose-600 text-white'
                     : f === 'P2' ? 'bg-amber-500 text-white'
-                    : f === 'P3' ? 'bg-blue-500 text-white'
+                    : f === 'P3' ? 'bg-primary-600 text-white'
                     : 'bg-zinc-900 text-white'
                   : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200',
               )}

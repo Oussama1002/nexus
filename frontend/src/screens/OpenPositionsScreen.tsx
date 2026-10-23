@@ -23,7 +23,7 @@ type JobRow = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  ouvert: { label: 'Ouvert', cls: 'bg-blue-50 text-blue-700' },
+  ouvert: { label: 'Ouvert', cls: 'bg-accent-50 text-accent-700' },
   publie: { label: 'Publié', cls: 'bg-emerald-50 text-emerald-700' },
   ferme: { label: 'Fermé', cls: 'bg-zinc-100 text-zinc-600' },
 };

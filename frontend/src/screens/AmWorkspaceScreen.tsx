@@ -36,7 +36,7 @@ const SPACES: { key: Space; label: string; Icon: any }[] = [
 
 const ROADMAP_STATUS: Record<string, { label: string; cls: string }> = {
   non_demarree: { label: 'Non démarrée', cls: 'bg-zinc-100 text-zinc-700' },
-  en_cours: { label: 'En cours', cls: 'bg-blue-50 text-blue-700' },
+  en_cours: { label: 'En cours', cls: 'bg-accent-50 text-accent-700' },
   suspendue: { label: 'Suspendue', cls: 'bg-orange-50 text-orange-700' },
   terminee: { label: 'Terminée', cls: 'bg-emerald-50 text-emerald-700' },
   abandonnee: { label: 'Abandonnée', cls: 'bg-red-50 text-red-700' },
@@ -44,11 +44,11 @@ const ROADMAP_STATUS: Record<string, { label: string; cls: string }> = {
 
 const GATE_STATUS: Record<string, { label: string; cls: string }> = {
   non_atteinte: { label: 'Non atteinte', cls: 'bg-zinc-100 text-zinc-700' },
-  criteres_en_cours: { label: 'Critères en cours', cls: 'bg-blue-50 text-blue-700' },
+  criteres_en_cours: { label: 'Critères en cours', cls: 'bg-accent-50 text-accent-700' },
   demandee: { label: 'Demandée', cls: 'bg-amber-50 text-amber-700' },
   franchie: { label: 'Franchie', cls: 'bg-emerald-50 text-emerald-700' },
   refusee: { label: 'Refusée', cls: 'bg-red-50 text-red-700' },
-  franchie_par_derogation: { label: 'Franchie / dérogation', cls: 'bg-violet-50 text-violet-700' },
+  franchie_par_derogation: { label: 'Franchie / dérogation', cls: 'bg-accent-50 text-accent-700' },
 };
 
 const DEROG_STATUS: Record<string, { label: string; cls: string }> = {
@@ -56,13 +56,13 @@ const DEROG_STATUS: Record<string, { label: string; cls: string }> = {
   accordee: { label: 'Accordée', cls: 'bg-emerald-50 text-emerald-700' },
   refusee: { label: 'Refusée', cls: 'bg-red-50 text-red-700' },
   expiree: { label: 'Expirée', cls: 'bg-zinc-100 text-zinc-600' },
-  levee: { label: 'Levée', cls: 'bg-blue-50 text-blue-700' },
+  levee: { label: 'Levée', cls: 'bg-accent-50 text-accent-700' },
 };
 
 const DELIV_STATUS: Record<string, { label: string; cls: string }> = {
   a_produire: { label: 'À produire', cls: 'bg-zinc-100 text-zinc-700' },
-  en_production: { label: 'En production', cls: 'bg-blue-50 text-blue-700' },
-  depose: { label: 'Déposé', cls: 'bg-cyan-50 text-cyan-700' },
+  en_production: { label: 'En production', cls: 'bg-accent-50 text-accent-700' },
+  depose: { label: 'Déposé', cls: 'bg-accent-50 text-accent-700' },
   en_controle: { label: 'En contrôle', cls: 'bg-amber-50 text-amber-700' },
   valide: { label: 'Validé', cls: 'bg-emerald-50 text-emerald-700' },
   a_corriger: { label: 'À corriger', cls: 'bg-orange-50 text-orange-700' },
@@ -369,7 +369,7 @@ function GatesTab({ toast }: { toast: any }) {
             </div>
             <div className="flex flex-wrap gap-2">
               {selected.status === 'criteres_en_cours' && (
-                <button onClick={() => action(selected.id, 'request')} className="px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">Demander le franchissement</button>
+                <button onClick={() => action(selected.id, 'request')} className="px-3 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold">Demander le franchissement</button>
               )}
               {selected.status === 'demandee' && (
                 <>
@@ -636,7 +636,7 @@ function AlertsTab({ toast }: { toast: any }) {
           <div className="text-xs text-zinc-500">{a.rule_code} • Ouverte le {fmtDate(a.opened_at)}</div>
           {a.description && <div className="text-sm text-zinc-700 mt-1">{a.description}</div>}
           <div className="mt-2 flex gap-2">
-            {a.status === 'ouverte' && <button onClick={() => act(a.id, 'take')} className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-semibold">Prendre en charge</button>}
+            {a.status === 'ouverte' && <button onClick={() => act(a.id, 'take')} className="px-3 py-1 rounded-lg bg-primary-600 text-white text-xs font-semibold">Prendre en charge</button>}
             {['ouverte', 'prise_en_charge'].includes(a.status) && (
               <button onClick={() => {
                 const r = prompt('Action de résolution ?'); if (r) act(a.id, 'resolve', { resolution_action: r });
@@ -711,7 +711,7 @@ function ReportsTab({ toast }: { toast: any }) {
               <div className="text-xs text-zinc-500">Statut : {r.status}</div>
             </div>
             <div className="flex gap-2">
-              {r.status === 'brouillon' && <button onClick={() => act(r.id, 'validate')} className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-semibold">Valider</button>}
+              {r.status === 'brouillon' && <button onClick={() => act(r.id, 'validate')} className="px-3 py-1 rounded-lg bg-primary-600 text-white text-xs font-semibold">Valider</button>}
               {r.status === 'valide' && (
                 <button onClick={() => {
                   const ids = prompt('IDs utilisateurs destinataires (séparés par virgule) ?');

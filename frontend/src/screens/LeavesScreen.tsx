@@ -207,7 +207,7 @@ export function LeavesScreen() {
                     <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                       <td className="px-4 py-3 text-sm font-bold text-zinc-900">{r.employee?.full_name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase bg-blue-50 text-blue-700">{TYPE_LABEL(r.leave_type)}</span>
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase bg-accent-50 text-accent-700">{TYPE_LABEL(r.leave_type)}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-700">{new Date(r.start_date).toLocaleDateString('fr-FR')}</td>
                       <td className="px-4 py-3 text-sm text-zinc-700">{new Date(r.end_date).toLocaleDateString('fr-FR')}</td>

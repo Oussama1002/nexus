@@ -285,8 +285,8 @@ export function RolePermissionsPanel({
 
       {/* Spec Phase 1 §7.3 — landing view per role */}
       {selectedRole && canEditRoles && !isAdminRole && (
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center rounded-xl border border-zinc-100 bg-blue-50/40 px-4 py-3">
-          <label className="text-[10px] font-black uppercase tracking-widest text-blue-800 shrink-0 inline-flex items-center gap-1.5">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center rounded-xl border border-zinc-100 bg-accent-50/40 px-4 py-3">
+          <label className="text-[10px] font-black uppercase tracking-widest text-accent-800 shrink-0 inline-flex items-center gap-1.5">
             <Home className="w-3.5 h-3.5" /> Écran d'accueil
           </label>
           <select

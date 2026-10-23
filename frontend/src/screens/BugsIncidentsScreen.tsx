@@ -64,7 +64,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  open: 'bg-blue-50 text-blue-700',
+  open: 'bg-accent-50 text-accent-700',
   in_progress: 'bg-yellow-50 text-yellow-700',
   resolved: 'bg-green-50 text-green-700',
   closed: 'bg-zinc-100 text-zinc-600',
@@ -294,7 +294,7 @@ export function BugsIncidentsScreen() {
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
                       {row.source === 'runtime' && (
-                        <span title="Détecté automatiquement par le CRM" className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-black uppercase bg-violet-50 text-violet-700">
+                        <span title="Détecté automatiquement par le CRM" className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-black uppercase bg-accent-50 text-accent-700">
                           Auto
                         </span>
                       )}

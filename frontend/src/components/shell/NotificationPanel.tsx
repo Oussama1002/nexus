@@ -26,7 +26,7 @@ const SEVERITY_STYLES: Record<
 > = {
   danger: { icon: AlertCircle, ring: 'border-rose-200', bg: 'bg-rose-50', text: 'text-rose-700' },
   warning: { icon: AlertTriangle, ring: 'border-amber-200', bg: 'bg-amber-50', text: 'text-amber-800' },
-  info: { icon: Info, ring: 'border-blue-200', bg: 'bg-blue-50', text: 'text-blue-700' },
+  info: { icon: Info, ring: 'border-accent-200', bg: 'bg-accent-50', text: 'text-accent-700' },
   success: { icon: CheckCircle2, ring: 'border-emerald-200', bg: 'bg-emerald-50', text: 'text-emerald-700' },
 };
 

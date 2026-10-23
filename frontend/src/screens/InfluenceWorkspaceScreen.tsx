@@ -108,9 +108,9 @@ function Badge({ color, children }: { color: string; children: React.ReactNode }
 function StatusBadge({ value, labels }: { value: string | null | undefined; labels: Record<string, string> }) {
   if (!value) return <span className="text-zinc-400">—</span>;
   const colors: Record<string, string> = {
-    reperee: 'bg-blue-50 text-blue-700',
-    qualifiee: 'bg-indigo-50 text-indigo-700',
-    contactee: 'bg-cyan-50 text-cyan-700',
+    reperee: 'bg-accent-50 text-accent-700',
+    qualifiee: 'bg-accent-50 text-accent-700',
+    contactee: 'bg-accent-50 text-accent-700',
     en_discussion: 'bg-amber-50 text-amber-700',
     en_negociation: 'bg-orange-50 text-orange-700',
     active: 'bg-green-50 text-green-700',
@@ -120,25 +120,25 @@ function StatusBadge({ value, labels }: { value: string | null | undefined; labe
     brouillon: 'bg-zinc-100 text-zinc-600',
     en_attente_validation: 'bg-amber-50 text-amber-700',
     refusee: 'bg-red-50 text-red-600',
-    en_preparation: 'bg-blue-50 text-blue-700',
-    en_cours: 'bg-cyan-50 text-cyan-700',
-    en_revue: 'bg-purple-50 text-purple-700',
+    en_preparation: 'bg-accent-50 text-accent-700',
+    en_cours: 'bg-accent-50 text-accent-700',
+    en_revue: 'bg-accent-50 text-accent-700',
     en_pause: 'bg-amber-100 text-amber-800',
     contractualisation_en_attente: 'bg-orange-50 text-orange-700',
-    contractualisee: 'bg-teal-50 text-teal-700',
+    contractualisee: 'bg-accent-50 text-accent-700',
     terminee: 'bg-green-50 text-green-700',
     arretee: 'bg-red-50 text-red-600',
     a_produire: 'bg-zinc-100 text-zinc-600',
-    livre: 'bg-blue-50 text-blue-700',
+    livre: 'bg-accent-50 text-accent-700',
     valide: 'bg-green-50 text-green-700',
     refuse: 'bg-red-50 text-red-600',
     a_preparer: 'bg-zinc-100 text-zinc-600',
-    expedie: 'bg-blue-50 text-blue-700',
-    en_acheminement: 'bg-cyan-50 text-cyan-700',
+    expedie: 'bg-accent-50 text-accent-700',
+    en_acheminement: 'bg-accent-50 text-accent-700',
     recu: 'bg-green-50 text-green-700',
     non_parvenu: 'bg-red-50 text-red-600',
     en_attente_validation_n1: 'bg-amber-50 text-amber-700',
-    valide_n1: 'bg-blue-50 text-blue-700',
+    valide_n1: 'bg-accent-50 text-accent-700',
     en_attente_validation_n2: 'bg-orange-50 text-orange-700',
     valide_n2: 'bg-green-50 text-green-700',
     paye: 'bg-emerald-50 text-emerald-700',
@@ -1216,7 +1216,7 @@ export function InfluenceWorkspaceScreen() {
                     <div className="flex items-center gap-1">
                       {canEditInf && <button type="button" onClick={() => openInf(id)} className="p-1 text-zinc-500 hover:text-zinc-900"><Pencil size={14} /></button>}
                       {canManage && st !== 'exclue' && (
-                        <button type="button" onClick={() => openQualify(id, r)} className="p-1 text-indigo-500 hover:text-indigo-700" title="Qualifier"><Star size={14} /></button>
+                        <button type="button" onClick={() => openQualify(id, r)} className="p-1 text-accent-600 hover:text-accent-700" title="Qualifier"><Star size={14} /></button>
                       )}
                       {canManage && !['active', 'exclue'].includes(st) && (
                         <button type="button" onClick={() => changeInfStatus(id, 'active')} className="p-1 text-green-500 hover:text-green-700" title="Activer"><UserCheck size={14} /></button>
@@ -1301,10 +1301,10 @@ export function InfluenceWorkspaceScreen() {
                         <button type="button" onClick={() => changeCollabStatus(id, 'en_pause')} className="p-1 text-amber-500 hover:text-amber-700" title="Pause"><Pause size={14} /></button>
                       )}
                       {canEditCollab && st === 'en_pause' && (
-                        <button type="button" onClick={() => changeCollabStatus(id, 'en_cours')} className="p-1 text-cyan-500 hover:text-cyan-700" title="Reprendre"><RefreshCw size={14} /></button>
+                        <button type="button" onClick={() => changeCollabStatus(id, 'en_cours')} className="p-1 text-accent-600 hover:text-accent-700" title="Reprendre"><RefreshCw size={14} /></button>
                       )}
                       {canEditCollab && (
-                        <button type="button" onClick={() => { setColId(id); void api.post(`influencer-collaborations/${id}/submit-review`, { review_notes: 'Revue soumise', review_rating: 4 }).then(() => { toast.success('Revue soumise.'); void load(); }); }} className="p-1 text-purple-500 hover:text-purple-700" title="Soumettre revue" style={{ display: ['en_cours', 'contractualisee'].includes(st) ? 'block' : 'none' }}><Eye size={14} /></button>
+                        <button type="button" onClick={() => { setColId(id); void api.post(`influencer-collaborations/${id}/submit-review`, { review_notes: 'Revue soumise', review_rating: 4 }).then(() => { toast.success('Revue soumise.'); void load(); }); }} className="p-1 text-accent-600 hover:text-accent-700" title="Soumettre revue" style={{ display: ['en_cours', 'contractualisee'].includes(st) ? 'block' : 'none' }}><Eye size={14} /></button>
                       )}
                       {canEditCollab && <button type="button" onClick={() => deleteCollab(id)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={14} /></button>}
                     </div>
@@ -1515,7 +1515,7 @@ export function InfluenceWorkspaceScreen() {
                   return u ? String(u.name ?? '—') : '—';
                 }},
                 { header: 'Fichier', accessor: (r: R) => r.file_url ? (
-                  <a href={String(r.file_url)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">Voir</a>
+                  <a href={String(r.file_url)} target="_blank" rel="noopener noreferrer" className="text-accent-700 hover:underline text-xs">Voir</a>
                 ) : '—' },
                 { header: 'Actions', accessor: (r: R) => (
                   <div className="flex items-center gap-1">
@@ -1673,7 +1673,7 @@ export function InfluenceWorkspaceScreen() {
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map(v => (
                   <button key={v} type="button" onClick={() => setQualScores(p => ({ ...p, [d.key]: v }))}
-                    className={`w-8 h-8 rounded-lg text-sm font-bold ${qualScores[d.key] === v ? 'bg-indigo-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
+                    className={`w-8 h-8 rounded-lg text-sm font-bold ${qualScores[d.key] === v ? 'bg-primary-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>
                     {v}
                   </button>
                 ))}
@@ -1682,7 +1682,7 @@ export function InfluenceWorkspaceScreen() {
           ))}
           <div className="border-t pt-3 text-center">
             <span className="text-sm text-zinc-500">Score moyen : </span>
-            <span className="text-lg font-black text-indigo-700">
+            <span className="text-lg font-black text-accent-700">
               {(Object.values(qualScores).reduce((a, b) => a + b, 0) / Math.max(Object.values(qualScores).length, 1)).toFixed(1)}/5
             </span>
           </div>
@@ -1690,7 +1690,7 @@ export function InfluenceWorkspaceScreen() {
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" onClick={() => setQualOpen(false)} className="rounded-xl border px-4 py-2 text-sm font-semibold text-zinc-600">Annuler</button>
           <button type="button" onClick={saveQualify} disabled={qualSaving}
-            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{qualSaving ? 'Enregistrement…' : 'Qualifier'}</button>
+            className="rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{qualSaving ? 'Enregistrement…' : 'Qualifier'}</button>
         </div>
       </Modal>
 

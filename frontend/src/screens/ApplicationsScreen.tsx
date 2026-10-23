@@ -24,10 +24,10 @@ type JobOpt = { id: number; title: string };
 
 const STATUSES = [
   { value: 'recue', label: 'Reçue', cls: 'bg-zinc-100 text-zinc-700' },
-  { value: 'a_examiner', label: 'À examiner', cls: 'bg-blue-50 text-blue-700' },
-  { value: 'preselectionne', label: 'Présélectionné', cls: 'bg-cyan-50 text-cyan-700' },
-  { value: 'contacte', label: 'Contacté', cls: 'bg-indigo-50 text-indigo-700' },
-  { value: 'entretien', label: 'Entretien', cls: 'bg-violet-50 text-violet-700' },
+  { value: 'a_examiner', label: 'À examiner', cls: 'bg-accent-50 text-accent-700' },
+  { value: 'preselectionne', label: 'Présélectionné', cls: 'bg-accent-50 text-accent-700' },
+  { value: 'contacte', label: 'Contacté', cls: 'bg-accent-50 text-accent-700' },
+  { value: 'entretien', label: 'Entretien', cls: 'bg-accent-50 text-accent-700' },
   { value: 'accepte', label: 'Accepté', cls: 'bg-emerald-50 text-emerald-700' },
   { value: 'refuse', label: 'Refusé', cls: 'bg-red-50 text-red-700' },
   { value: 'vivier', label: 'Vivier', cls: 'bg-amber-50 text-amber-700' },
