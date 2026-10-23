@@ -91,6 +91,10 @@ function statusFr(s: string): OrderStatus {
       return 'En attente';
     case 'confirmed':
       return 'Confirmé';
+    case 'scheduled':
+      return 'Programmé';
+    case 'postponed':
+      return 'Reporté';
     case 'prepared':
       return 'Préparée';
     case 'shipped':
@@ -168,6 +172,10 @@ function statusApi(s: OrderStatus): string {
       return 'pending';
     case 'Confirmé':
       return 'confirmed';
+    case 'Programmé':
+      return 'scheduled';
+    case 'Reporté':
+      return 'postponed';
     case 'Préparée':
       return 'prepared';
     case 'Expédiée':
@@ -264,9 +272,11 @@ function toneForStatus(s: OrderStatus): Parameters<typeof StatusChip>[0]['tone']
       return 'success';
     case 'Préparée':
     case 'Expédiée':
+    case 'Programmé':
       return 'info';
     case 'En attente':
     case 'Brouillon':
+    case 'Reporté':
       return 'warning';
     case 'Annulé':
     case 'Retourné':
@@ -699,6 +709,8 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
               <option>Brouillon</option>
               <option>En attente</option>
               <option>Confirmé</option>
+              <option>Programmé</option>
+              <option>Reporté</option>
               <option>Préparée</option>
               <option>Expédiée</option>
               <option>Annulé</option>
@@ -987,6 +999,22 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                       className="py-3 rounded-xl border border-rose-200 text-rose-700 font-black text-sm hover:bg-rose-50 transition-colors disabled:opacity-50"
                     >
                       Annuler
+                    </button>
+                    <button
+                      type="button"
+                      disabled={statusSaving || selected.status === 'Programmé'}
+                      onClick={() => void patchStatus('Programmé')}
+                      className="py-3 rounded-xl border border-blue-200 text-blue-700 font-black text-sm hover:bg-blue-50 transition-colors disabled:opacity-50"
+                    >
+                      Programmer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={statusSaving || selected.status === 'Reporté'}
+                      onClick={() => void patchStatus('Reporté')}
+                      className="py-3 rounded-xl border border-amber-200 text-amber-700 font-black text-sm hover:bg-amber-50 transition-colors disabled:opacity-50"
+                    >
+                      Reporter
                     </button>
                   </div>
                 )}

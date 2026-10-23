@@ -74,6 +74,8 @@ const ORDER_STATUS_FR: Record<string, string> = {
   draft: 'Brouillon',
   pending: 'En attente',
   confirmed: 'Confirmée',
+  scheduled: 'Programmée',
+  postponed: 'Reportée',
   cancelled: 'Annulée',
   returned: 'Retournée',
   delivered: 'Livrée',

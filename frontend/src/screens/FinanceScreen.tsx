@@ -872,34 +872,34 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Client
-              <select value={contractDraft.customer_id} onChange={(e) => setContractDraft((d) => ({ ...d, customer_id: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold">
+            <label className="text-sm font-bold text-zinc-700">Client
+              <select value={contractDraft.customer_id} onChange={(e) => setContractDraft((d) => ({ ...d, customer_id: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200">
                 <option value="">— Sélectionner —</option>
                 {customers.map((c) => <option key={c.id} value={String(c.id)}>{c.full_name}</option>)}
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Titre
-              <input value={contractDraft.title} onChange={(e) => setContractDraft((d) => ({ ...d, title: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
+            <label className="text-sm font-bold text-zinc-700">Titre
+              <input value={contractDraft.title} onChange={(e) => setContractDraft((d) => ({ ...d, title: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">N° Contrat
-              <input value={contractDraft.contract_number} onChange={(e) => setContractDraft((d) => ({ ...d, contract_number: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
+            <label className="text-sm font-bold text-zinc-700">N° Contrat
+              <input value={contractDraft.contract_number} onChange={(e) => setContractDraft((d) => ({ ...d, contract_number: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Stockage
-              <select value={contractDraft.storage_provider} onChange={(e) => setContractDraft((d) => ({ ...d, storage_provider: e.target.value as 'google_drive' | 'dropbox' | 'onedrive' | 'other' }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold">
+            <label className="text-sm font-bold text-zinc-700">Stockage
+              <select value={contractDraft.storage_provider} onChange={(e) => setContractDraft((d) => ({ ...d, storage_provider: e.target.value as 'google_drive' | 'dropbox' | 'onedrive' | 'other' }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200">
                 <option value="google_drive">Google Drive</option>
                 <option value="dropbox">Dropbox</option>
                 <option value="onedrive">OneDrive</option>
                 <option value="other">Autre</option>
               </select>
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700 md:col-span-2">Lien externe (Drive/Cloud)
-              <input value={contractDraft.external_url} onChange={(e) => setContractDraft((d) => ({ ...d, external_url: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
+            <label className="text-sm font-bold text-zinc-700 md:col-span-2">Lien externe (Drive/Cloud)
+              <input value={contractDraft.external_url} onChange={(e) => setContractDraft((d) => ({ ...d, external_url: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Début
-              <input type="date" value={contractDraft.starts_at} onChange={(e) => setContractDraft((d) => ({ ...d, starts_at: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
+            <label className="text-sm font-bold text-zinc-700">Début
+              <input type="date" value={contractDraft.starts_at} onChange={(e) => setContractDraft((d) => ({ ...d, starts_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
             </label>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Fin
-              <input type="date" value={contractDraft.ends_at} onChange={(e) => setContractDraft((d) => ({ ...d, ends_at: e.target.value }))} className="mt-2 w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200" />
+            <label className="text-sm font-bold text-zinc-700">Fin
+              <input type="date" value={contractDraft.ends_at} onChange={(e) => setContractDraft((d) => ({ ...d, ends_at: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" />
             </label>
           </div>
         </Modal>

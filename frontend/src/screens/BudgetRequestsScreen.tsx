@@ -163,9 +163,12 @@ export function BudgetRequestsScreen() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="Demandes de budget" subtitle="Demandes d'allocation et de dépassement budgétaire">
-        <button className="btn btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
-          <Plus size={16} />
-          Nouvelle demande
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="px-4 py-2 bg-primary-600 text-white rounded-2xl text-sm font-black shadow-md shadow-primary-100 hover:bg-primary-700 transition-colors inline-flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> Nouvelle demande
         </button>
       </PageHeader>
 

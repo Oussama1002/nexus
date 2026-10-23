@@ -13,6 +13,30 @@ use Illuminate\Http\Request;
 class AcademyContentController extends Controller
 {
     /**
+     * Media d'un contenu : televerse le fichier et rend son URL publique,
+     * pour remplacer la saisie manuelle d'un lien par un depot de fichier.
+     */
+    public function uploadMedia(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+
+        $request->validate([
+            'media' => ['required', 'file', 'max:20480', 'mimes:jpg,jpeg,png,gif,webp,mp4,webm,pdf,doc,docx,ppt,pptx'],
+        ], [
+            'media.required' => 'Choisissez un fichier.',
+            'media.max' => 'Fichier trop lourd : 20 Mo maximum.',
+            'media.mimes' => 'Format accepté : image, vidéo, PDF ou document.',
+        ]);
+
+        $path = $request->file('media')->store('academy/'.($brandId ?: 'global'), 'public');
+
+        return ApiResponse::success(
+            ['media_url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path)],
+            'Fichier enregistré.'
+        );
+    }
+
+    /**
      * Frontend contract: { id, title, type, path_name, duration, author,
      * views_count, rating, status, updated_at }
      */

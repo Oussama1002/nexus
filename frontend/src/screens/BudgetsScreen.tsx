@@ -51,6 +51,21 @@ const STATUS_LABELS: Record<string, string> = {
 const fmtMAD = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'MAD' }).format(n);
 
+// Libellé de période dérivé automatiquement des dates : année + trimestre
+// (ex. 2026-Q3), l'année seule pour une année civile complète, ou une plage.
+const autoPeriodLabel = (start: string, end: string): string => {
+  if (!start) return '';
+  const [sy, sm, sd] = start.split('-').map(Number);
+  const sq = Math.floor((sm - 1) / 3) + 1;
+  if (!end) return `${sy}-Q${sq}`;
+  const [ey, em, ed] = end.split('-').map(Number);
+  const eq = Math.floor((em - 1) / 3) + 1;
+  if (sy === ey && sm === 1 && sd === 1 && em === 12 && ed === 31) return `${sy}`;
+  if (sy === ey && sq === eq) return `${sy}-Q${sq}`;
+  if (sy === ey) return `${sy}-Q${sq}→Q${eq}`;
+  return `${sy}-Q${sq} → ${ey}-Q${eq}`;
+};
+
 export function BudgetsScreen() {
   const { activeBrandId } = useBrand();
   const { toast } = useToast();
@@ -65,10 +80,17 @@ export function BudgetsScreen() {
   const [reloadTick, setReloadTick] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [form, setForm] = useState({
-    name: '', department: 'marketing', period_label: '',
+    name: '', department: '', period_label: '',
     period_start: '', period_end: '', allocated: '', notes: '',
   });
+
+  // Départements de la fiche RH (Paramètres → Rôles & départements), source unique.
+  // Repli sur la liste statique si l'utilisateur n'a pas accès aux lookups RH.
+  const deptOptions = departments.length
+    ? departments.map((d) => ({ value: d, label: d }))
+    : DEPARTMENT_OPTIONS.filter((o) => o.value);
 
   const submitCreate = async () => {
     if (!form.name.trim() || !form.period_start || !form.period_end || !form.allocated) {
@@ -78,7 +100,7 @@ export function BudgetsScreen() {
     try {
       const res = await api.post('budgets', {
         name: form.name, department: form.department,
-        period_label: form.period_label || undefined,
+        period_label: autoPeriodLabel(form.period_start, form.period_end) || undefined,
         period_start: form.period_start, period_end: form.period_end,
         allocated: Number(form.allocated),
         notes: form.notes || undefined,
@@ -86,10 +108,17 @@ export function BudgetsScreen() {
       if (!res.ok) { toast('error', res.message ?? 'Erreur.'); return; }
       toast('success', 'Budget créé.');
       setShowCreate(false);
-      setForm({ name: '', department: 'marketing', period_label: '', period_start: '', period_end: '', allocated: '', notes: '' });
+      setForm({ name: '', department: '', period_label: '', period_start: '', period_end: '', allocated: '', notes: '' });
       setReloadTick((t) => t + 1);
     } finally { setSaving(false); }
   };
+
+  useEffect(() => {
+    void (async () => {
+      const res = await api.get<{ values: string[] }>('hr/lookups/department');
+      if (res.ok && res.data) setDepartments(res.data.values ?? []);
+    })();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +160,7 @@ export function BudgetsScreen() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader title="Budgets" subtitle="Budgets prévisionnels et suivi des enveloppes">
-        <button className="btn btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
+        <button className="btn btn-primary flex items-center gap-2" onClick={() => { setForm((f) => ({ ...f, department: f.department || deptOptions[0]?.value || '' })); setShowCreate(true); }}>
           <Plus size={16} />
           Nouveau budget
         </button>
@@ -147,11 +176,12 @@ export function BudgetsScreen() {
               </label>
               <label className="text-sm font-bold text-zinc-700">Département
                 <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
-                  {DEPARTMENT_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {deptOptions.length === 0 && <option value="">— Aucun département —</option>}
+                  {deptOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </label>
               <label className="text-sm font-bold text-zinc-700">Libellé période
-                <input placeholder="2026-Q3" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.period_label} onChange={(e) => setForm({ ...form, period_label: e.target.value })} />
+                <input readOnly placeholder="auto" title="Généré automatiquement depuis les dates" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-500" value={autoPeriodLabel(form.period_start, form.period_end)} />
               </label>
               <label className="text-sm font-bold text-zinc-700">Début *
                 <input type="date" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.period_start} onChange={(e) => setForm({ ...form, period_start: e.target.value })} />
@@ -208,7 +238,8 @@ export function BudgetsScreen() {
           value={departmentFilter}
           onChange={e => { setDepartmentFilter(e.target.value); setPage(1); }}
         >
-          {DEPARTMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <option value="">Tous</option>
+          {deptOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <select
           className="px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium"

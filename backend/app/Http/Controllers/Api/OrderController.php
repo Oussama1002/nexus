@@ -10,7 +10,6 @@ use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\OrderLine;
-use App\Models\Charge;
 use App\Models\Product;
 use App\Services\AuditLogger;
 use App\Services\Delivery\CarrierCancellationService;
@@ -201,7 +200,6 @@ class OrderController extends Controller
         }
 
         $before = $order->toArray();
-        $previousPaymentState = $order->payment_state;
         $data = $request->validated();
 
         if (array_key_exists('customer_id', $data) && $data['customer_id']) {
@@ -232,8 +230,6 @@ class OrderController extends Controller
         $order->save();
         $this->orderStateService->recalculateTotals($order->fresh(['lines']));
 
-        $this->createDeliveryChargeIfPaid($order->fresh(), $previousPaymentState, $request->user());
-
         AuditLogger::log($request, 'orders.update', $order, $before, $order->fresh()->toArray());
 
         return ApiResponse::success($order->fresh(['lines', 'customer']), 'Order updated successfully.');
@@ -244,7 +240,6 @@ class OrderController extends Controller
         $brandId = ApiBrandContext::resolveBrandId($request);
         $order = Order::query()->where('brand_id', $brandId)->findOrFail($id);
         $from = $order->status;
-        $previousPaymentState = $order->payment_state;
         $to = $request->validated()['status'];
         $note = $request->validated()['note'] ?? null;
         $cancellationReason = $request->validated()['cancellation_reason'] ?? null;
@@ -263,8 +258,6 @@ class OrderController extends Controller
         } catch (RuntimeException $e) {
             return ApiResponse::error($e->getMessage(), null, 422);
         }
-
-        $this->createDeliveryChargeIfPaid($order->fresh(), $previousPaymentState, $request->user());
 
         AuditLogger::log($request, 'orders.status', $order, null, ['status' => $to]);
         $this->automationEngine->runForEvent($brandId, 'order.status_changed', [
@@ -562,26 +555,4 @@ class OrderController extends Controller
         ];
     }
 
-    protected function createDeliveryChargeIfPaid(Order $order, string $previousPaymentState, ?\App\Models\User $actor): void
-    {
-        if ($order->payment_state !== 'paid' || $previousPaymentState === 'paid') {
-            return;
-        }
-        if ((float) $order->shipping_fee <= 0) {
-            return;
-        }
-        if (Charge::query()->where('order_id', $order->id)->where('type', 'delivery')->exists()) {
-            return;
-        }
-
-        Charge::query()->create([
-            'brand_id' => $order->brand_id,
-            'order_id' => $order->id,
-            'created_by' => $actor?->id,
-            'charge_date' => now()->toDateString(),
-            'type' => 'delivery',
-            'amount' => (float) $order->shipping_fee,
-            'note' => 'Frais de livraison – Commande '.$order->order_number,
-        ]);
-    }
 }

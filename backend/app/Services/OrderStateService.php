@@ -23,7 +23,7 @@ class OrderStateService
 
     public function updateStatus(Order $order, string $toStatus, User $user, ?string $note = null): Order
     {
-        $allowed = ['draft', 'pending', 'confirmed', 'prepared', 'shipped', 'cancelled', 'returned', 'delivered', 'other'];
+        $allowed = ['draft', 'pending', 'confirmed', 'scheduled', 'postponed', 'prepared', 'shipped', 'cancelled', 'returned', 'delivered', 'other'];
         if (! in_array($toStatus, $allowed, true)) {
             throw new RuntimeException('Invalid order status.');
         }

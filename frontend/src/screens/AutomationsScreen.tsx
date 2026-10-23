@@ -136,11 +136,13 @@ const TRIGGERS: TriggerConfig[] = [
     fields: [
       { value: 'event.from_status', label: 'Ancien statut', type: 'string', options: [
         { value: 'new', label: 'Nouvelle' }, { value: 'confirmed', label: 'Confirmée' },
+        { value: 'scheduled', label: 'Programmée' }, { value: 'postponed', label: 'Reportée' },
         { value: 'shipped', label: 'Expédiée' }, { value: 'delivered', label: 'Livrée' },
         { value: 'cancelled', label: 'Annulée' }, { value: 'returned', label: 'Retournée' },
       ]},
       { value: 'event.to_status', label: 'Nouveau statut', type: 'string', options: [
         { value: 'new', label: 'Nouvelle' }, { value: 'confirmed', label: 'Confirmée' },
+        { value: 'scheduled', label: 'Programmée' }, { value: 'postponed', label: 'Reportée' },
         { value: 'shipped', label: 'Expédiée' }, { value: 'delivered', label: 'Livrée' },
         { value: 'cancelled', label: 'Annulée' }, { value: 'returned', label: 'Retournée' },
       ]},
