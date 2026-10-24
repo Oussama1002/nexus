@@ -256,7 +256,11 @@ function AuditFieldValue({ fieldKey, value, className, lookups = {} }: { fieldKe
 function changeSummaryFr(
   oldValues: Record<string, unknown> | null | undefined,
   newValues: Record<string, unknown> | null | undefined,
+  action?: string | null,
 ): string | null {
+  // Les événements d'authentification (connexion/déconnexion) ne modifient
+  // aucun champ : leur payload (e-mail) n'est qu'un contexte, pas un diff.
+  if ((action ?? '').startsWith('auth.')) return null;
   const before = oldValues && typeof oldValues === 'object' ? oldValues : {};
   const after = newValues && typeof newValues === 'object' ? newValues : {};
 
@@ -577,7 +581,7 @@ export function TrackingScreen() {
                 ) : null}
               </p>
               {(() => {
-                const resume = changeSummaryFr(r.old_values, r.new_values);
+                const resume = changeSummaryFr(r.old_values, r.new_values, r.action);
                 return resume ? <p className="text-xs font-semibold text-zinc-500 mt-0.5">{resume}</p> : null;
               })()}
             </div>
@@ -647,11 +651,13 @@ export function TrackingScreen() {
               ) : null}
             </div>
 
-            <AuditDiffSection
-              oldValues={detail.old_values}
-              newValues={detail.new_values}
-              lookups={lookups}
-            />
+            {!(detail.action ?? '').startsWith('auth.') ? (
+              <AuditDiffSection
+                oldValues={detail.old_values}
+                newValues={detail.new_values}
+                lookups={lookups}
+              />
+            ) : null}
           </div>
         )}
       </Modal>
