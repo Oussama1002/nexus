@@ -629,7 +629,7 @@ class ConversationController extends Controller
 
     private function denyClientPortalUser(?\App\Models\User $user): void
     {
-        if ($user && $user->isClientBrandOwner()) {
+        if ($user && $user->isClientBrandOwner() && ! $user->isAdmin()) {
             throw new AccessDeniedHttpException('Client portal users cannot access conversations.');
         }
     }
