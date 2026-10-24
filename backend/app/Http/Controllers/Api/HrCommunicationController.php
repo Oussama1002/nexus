@@ -43,7 +43,7 @@ class HrCommunicationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],

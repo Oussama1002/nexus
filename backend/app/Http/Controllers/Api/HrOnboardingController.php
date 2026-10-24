@@ -114,7 +114,7 @@ class HrOnboardingController extends Controller
 
     public function addItem(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $data = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],

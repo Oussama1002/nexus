@@ -39,7 +39,7 @@ class HrEvaluationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $data = $request->validate([
             'campaign_id' => ['nullable', 'integer', 'exists:hr_evaluation_campaigns,id'],

@@ -43,7 +43,7 @@ class HrLeaveRequestController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $isHr = $request->user()->hasPermissionSlug('hr_leaves.create');
         if (! $isHr) {

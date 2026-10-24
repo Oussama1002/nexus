@@ -42,7 +42,7 @@ class HrPayrollBulletinController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $brandId = ApiBrandContext::resolveBrandId($request);
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
 
         $data = $request->validate([
             'payroll_period_id' => ['required', 'integer', 'exists:hr_payroll_periods,id'],
