@@ -97,6 +97,7 @@ class AttendanceService
             if ($wasLate) {
                 $this->messageLateEmployee($user, $minutesLate);
             }
+            $this->fireAttendanceAutomation($existing->fresh());
 
             return $existing->fresh();
         }
@@ -116,8 +117,36 @@ class AttendanceService
         if ($wasLate) {
             $this->messageLateEmployee($user, $minutesLate);
         }
+        $this->fireAttendanceAutomation($record);
 
         return $record;
+    }
+
+    /**
+     * Déclenche les règles d'automatisation « attendance.marked » (retards/absences
+     * répétés → dossier disciplinaire, messages, etc.). Résolu via le conteneur pour
+     * ne pas casser les appels « new AttendanceService() » existants.
+     */
+    private function fireAttendanceAutomation(EmployeeAttendanceRecord $record): void
+    {
+        try {
+            app(AutomationEngineService::class)->runForEvent((int) $record->brand_id, 'attendance.marked', [
+                'employee_id' => $record->employee_id,
+                'attendance_record_id' => $record->id,
+                'attendance_date' => $record->attendance_date instanceof Carbon
+                    ? $record->attendance_date->toDateString()
+                    : (string) $record->attendance_date,
+                'status' => $record->status,
+                'minutes_late' => (int) $record->minutes_late,
+                'was_late' => (bool) $record->was_late,
+                'clock_in_at' => $record->clock_in_at?->toIso8601String(),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('attendance.automation_failed', [
+                'record_id' => $record->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public static function formatLateness(int $minutes): string

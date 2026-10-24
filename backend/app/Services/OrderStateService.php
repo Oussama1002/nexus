@@ -136,6 +136,24 @@ class OrderStateService
             }
         }
 
+        // Facture : à la livraison la commande est encaissée (COD marocain) →
+        // on passe la facture en « payée » automatiquement.
+        if ($toStatus === 'delivered') {
+            try {
+                $invoice = ClientInvoice::query()->where('order_id', $result->id)->first();
+                if ($invoice && ! in_array($invoice->status, ['paid', 'cancelled'], true)) {
+                    $invoice->status = 'paid';
+                    $invoice->paid_at = $invoice->paid_at ?? now();
+                    $invoice->save();
+                }
+            } catch (\Throwable $e) {
+                Log::warning('invoice.mark_paid.failed', [
+                    'order_id' => $result->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         // Auto-template automation on business events. Silent skip when the
         // brand hasn't configured a template for the event.
         try {

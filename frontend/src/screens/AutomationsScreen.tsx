@@ -116,10 +116,15 @@ const TRIGGERS: TriggerConfig[] = [
       { value: 'event.was_late', label: 'Est en retard', type: 'boolean' },
       { value: 'metrics.late_count_week', label: 'Retards cette semaine', type: 'number' },
       { value: 'metrics.late_count_month', label: 'Retards ce mois', type: 'number' },
+      { value: 'metrics.late_count_30d', label: 'Retards (30 derniers jours)', type: 'number' },
+      { value: 'metrics.absent_count_month', label: 'Absences ce mois', type: 'number' },
+      { value: 'metrics.absent_count_30d', label: 'Absences (30 derniers jours)', type: 'number' },
+      { value: 'metrics.unjustified_absent_count_30d', label: 'Absences injustifiées (30 j)', type: 'number' },
     ],
     actionTypes: [
       { value: 'send_whatsapp', label: 'Envoyer un message WhatsApp' },
       { value: 'notify_admin', label: 'Notifier les administrateurs (WhatsApp)' },
+      { value: 'open_discipline', label: 'Ouvrir un dossier disciplinaire' },
       { value: 'log', label: 'Enregistrer un log' },
     ],
     actionTargets: [

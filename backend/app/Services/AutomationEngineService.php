@@ -6,6 +6,7 @@ use App\Models\AutomationRule;
 use App\Models\AutomationRun;
 use App\Models\Employee;
 use App\Models\EmployeeAttendanceRecord;
+use App\Models\HrDisciplineRecord;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -178,6 +179,9 @@ class AutomationEngineService
             // Un test ne doit jamais ecrire a un vrai client : on dit ce qui
             // serait parti, sinon « executed » laisse croire a un envoi.
             $sendResult = ['status' => 'simulated', 'reason' => 'Test : aucun message n’a été envoyé.'];
+        } elseif ($type === 'open_discipline') {
+            // La discipline ne dépend ni d'un numéro WhatsApp ni d'une marque active.
+            $sendResult = $this->actionOpenDiscipline($action, $rendered, $context, $brandId);
         } elseif ($brandId) {
             switch ($type) {
                 case 'send_whatsapp':
@@ -231,6 +235,62 @@ class AutomationEngineService
 
             return ['status' => 'failed', 'to' => $phone, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Ouvre un dossier disciplinaire pour l'employé de l'événement. Dédoublonne :
+     * tant qu'un dossier du même type est encore ouvert (non clôturé, non annulé)
+     * dans les 30 derniers jours, on n'en rouvre pas un nouveau — sinon chaque
+     * pointage en retard au-delà du seuil créerait un doublon.
+     *
+     * @param  array<string, mixed>  $action
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    private function actionOpenDiscipline(array $action, string $renderedMessage, array $context, ?int $brandId): array
+    {
+        $employeeId = (int) data_get($context, 'employee.id', 0);
+        if ($employeeId <= 0) {
+            return ['status' => 'skipped', 'reason' => "Aucun employé rattaché à l'événement : impossible d'ouvrir un dossier."];
+        }
+
+        $incidentType = trim((string) ($action['incident_type'] ?? ''));
+        if ($incidentType === '') {
+            // Pas de type explicite : on déduit de l'événement (absence vs retard).
+            $incidentType = (string) data_get($context, 'event.status') === 'absent'
+                ? 'absences_repetees'
+                : 'retards_repetes';
+        }
+        $incidentType = substr($incidentType, 0, 30);
+
+        $existing = HrDisciplineRecord::query()
+            ->where('employee_id', $employeeId)
+            ->where('incident_type', $incidentType)
+            ->where('is_cancelled', false)
+            ->where('status', '!=', 'accuse')
+            ->where('incident_date', '>=', Carbon::now()->subDays(30)->toDateString())
+            ->orderByDesc('id')
+            ->first();
+
+        if ($existing) {
+            return ['status' => 'skipped', 'reason' => 'Un dossier du même type est déjà ouvert pour cet employé.', 'discipline_record_id' => $existing->id];
+        }
+
+        $description = trim($renderedMessage) !== ''
+            ? $renderedMessage
+            : "Dossier ouvert automatiquement par une règle d'automatisation (présence/retards).";
+
+        $record = HrDisciplineRecord::query()->create([
+            'brand_id' => $brandId,
+            'employee_id' => $employeeId,
+            'incident_type' => $incidentType,
+            'incident_date' => Carbon::now()->toDateString(),
+            'incident_description' => $description,
+            'status' => 'signale',
+            'notes' => 'Généré automatiquement — pointage du '.(string) data_get($context, 'event.attendance_date', Carbon::now()->toDateString()),
+        ]);
+
+        return ['status' => 'created', 'discipline_record_id' => $record->id, 'incident_type' => $incidentType];
     }
 
     /**
@@ -337,12 +397,31 @@ class AutomationEngineService
                 $day = Carbon::parse($attendanceDate);
                 $startWeek = $day->copy()->startOfWeek();
                 $endWeek = $day->copy()->endOfWeek();
-                $lateCount = EmployeeAttendanceRecord::query()
-                    ->where('employee_id', $employeeId)
-                    ->whereBetween('attendance_date', [$startWeek->toDateString(), $endWeek->toDateString()])
-                    ->where('status', 'late')
-                    ->count();
-                $context['metrics']['late_count_week'] = $lateCount;
+                $startMonth = $day->copy()->startOfMonth();
+                $endMonth = $day->copy()->endOfMonth();
+                $start30 = $day->copy()->subDays(30);
+
+                $countBy = function (array $statuses, string $from, string $to, bool $unjustifiedOnly = false) use ($employeeId): int {
+                    $q = EmployeeAttendanceRecord::query()
+                        ->where('employee_id', $employeeId)
+                        ->whereBetween('attendance_date', [$from, $to])
+                        ->whereIn('status', $statuses);
+                    if ($unjustifiedOnly) {
+                        $q->where('justification_status', '!=', 'justified');
+                    }
+
+                    return $q->count();
+                };
+
+                // Retards : semaine, mois calendaire, 30 jours glissants.
+                $context['metrics']['late_count_week'] = $countBy(['late'], $startWeek->toDateString(), $endWeek->toDateString());
+                $context['metrics']['late_count_month'] = $countBy(['late'], $startMonth->toDateString(), $endMonth->toDateString());
+                $context['metrics']['late_count_30d'] = $countBy(['late'], $start30->toDateString(), $day->toDateString());
+
+                // Absences : mois calendaire + 30 jours glissants, dont celles non justifiées.
+                $context['metrics']['absent_count_month'] = $countBy(['absent'], $startMonth->toDateString(), $endMonth->toDateString());
+                $context['metrics']['absent_count_30d'] = $countBy(['absent'], $start30->toDateString(), $day->toDateString());
+                $context['metrics']['unjustified_absent_count_30d'] = $countBy(['absent'], $start30->toDateString(), $day->toDateString(), true);
             }
         }
 

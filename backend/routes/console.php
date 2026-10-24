@@ -54,3 +54,12 @@ Schedule::command('cm:run-automations')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// RH — en fin de journée, marque « absent » tout employé d'un jour travaillé
+// qui n'a pas pointé, puis déclenche les règles d'automatisation (dossier
+// disciplinaire sur absences/retards répétés, selon les règles de l'admin).
+Schedule::command('hr:mark-daily-absences')
+    ->timezone('Africa/Casablanca')
+    ->dailyAt('22:00')
+    ->withoutOverlapping()
+    ->runInBackground();
