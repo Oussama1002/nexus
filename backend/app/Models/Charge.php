@@ -9,6 +9,21 @@ class Charge extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        // Mirror Finance : toute charge génère une écriture comptable (débit).
+        static::created(function (Charge $charge) {
+            try {
+                app(\App\Services\AccountingAutoPostService::class)->postCharge($charge);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('accounting.autopost.charge_failed', [
+                    'charge_id' => $charge->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
+    }
+
     protected $fillable = [
         'brand_id',
         'order_id',

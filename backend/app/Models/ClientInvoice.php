@@ -9,6 +9,21 @@ class ClientInvoice extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        // Mirror Finance : une facture validée alimente un produit (Ventes).
+        static::saved(function (ClientInvoice $invoice) {
+            try {
+                app(\App\Services\AccountingAutoPostService::class)->postInvoice($invoice);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('accounting.autopost.invoice_failed', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
+    }
+
     protected $fillable = [
         'brand_id',
         'customer_id',
