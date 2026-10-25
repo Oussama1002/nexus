@@ -59,6 +59,11 @@ class OrderController extends Controller
         if ($status) {
             $q->where('status', $status);
         }
+        // Filtre par fenêtre temporelle (barre de filtres : Aujourd'hui / 7 / 30 / 90 jours).
+        $dateFrom = $request->query('date_from');
+        if ($dateFrom) {
+            $q->whereDate('created_at', '>=', $dateFrom);
+        }
         if ($search) {
             $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], (string) $search).'%';
             $q->where(function ($w) use ($s) {

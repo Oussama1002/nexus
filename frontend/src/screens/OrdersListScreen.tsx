@@ -357,6 +357,10 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     const params = new URLSearchParams({ per_page: '100' });
     if (assignedFilter) params.set('assigned_user_id', assignedFilter);
     if (showArchived) params.set('archived', '1');
+    const days = dateRange === 'Aujourd’hui' ? 0 : dateRange === '7 jours' ? 7 : dateRange === '30 jours' ? 30 : 90;
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    params.set('date_from', from.toISOString().slice(0, 10));
     const res = await api.get<LaravelPaginator<ApiOrderRow>>(`orders?${params.toString()}`);
     setLoading(false);
     if (!res.ok) {
@@ -369,7 +373,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     const nameById: Record<string, string> = {};
     for (const b of brands) nameById[b.id] = b.name;
     setRows(data.map((o) => mapOrder(o, nameById[String(o.brand_id)] ?? activeBrand.name)));
-  }, [activeBrandId, activeBrand.name, brands, toast, assignedFilter, showArchived]);
+  }, [activeBrandId, activeBrand.name, brands, toast, assignedFilter, showArchived, dateRange]);
 
   useEffect(() => {
     void load();
