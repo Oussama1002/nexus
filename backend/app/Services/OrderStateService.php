@@ -19,7 +19,6 @@ class OrderStateService
         protected OrderFulfillmentService $orderFulfillmentService,
         protected WhatsAppCloudService $whatsAppService,
         protected WhatsAppTemplateAutomationService $templateAutomation,
-        protected ClientInvoiceService $clientInvoices,
     ) {}
 
     public function updateStatus(Order $order, string $toStatus, User $user, ?string $note = null): Order
@@ -125,18 +124,9 @@ class OrderStateService
             return $locked->fresh(['lines', 'events']);
         });
 
-        // À la confirmation, garantir qu'une facture brouillon existe (générée
-        // automatiquement si la commande n'en a pas encore). Idempotent.
-        if ($toStatus === 'confirmed') {
-            try {
-                $this->clientInvoices->createFromOrder($result, $user->id);
-            } catch (\Throwable $e) {
-                Log::warning('invoice.autocreate.failed', [
-                    'order_id' => $result->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        // Le cycle de vie de la facture (brouillon à la confirmation, Validée à
+        // la livraison) est centralisé dans Order::saved() pour couvrir aussi la
+        // synchro transporteur et la console. Ici on ne gère que l'envoi WhatsApp.
 
         // Auto-send invoice via WhatsApp AFTER transaction commits
         if ($toStatus === 'confirmed') {
@@ -144,26 +134,6 @@ class OrderStateService
                 $this->sendInvoiceViaWhatsApp($result->fresh(['customer', 'lines']), $user);
             } catch (\Throwable $e) {
                 Log::warning('invoice.whatsapp_send.failed', [
-                    'order_id' => $result->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        // Facture : à la livraison, la facture passe automatiquement en
-        // « Validée » (approved). On ne rétrograde jamais une facture déjà
-        // envoyée, payée ou annulée.
-        if ($toStatus === 'delivered') {
-            try {
-                $invoice = ClientInvoice::query()->where('order_id', $result->id)->first();
-                if ($invoice && ! in_array($invoice->status, ['approved', 'sent', 'paid', 'cancelled'], true)) {
-                    $invoice->status = 'approved';
-                    $invoice->approval_user_id = $user->id;
-                    $invoice->approved_at = $invoice->approved_at ?? now();
-                    $invoice->save();
-                }
-            } catch (\Throwable $e) {
-                Log::warning('invoice.mark_approved.failed', [
                     'order_id' => $result->id,
                     'error' => $e->getMessage(),
                 ]);

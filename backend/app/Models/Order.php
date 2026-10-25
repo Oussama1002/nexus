@@ -25,7 +25,37 @@ class Order extends Model
         // transporteur (Ameex/Sendit) et les commandes console passent aussi par save().
         static::saved(function (Order $order) {
             self::ensureDeliveryCharge($order);
+            self::ensureInvoiceLifecycle($order);
         });
+    }
+
+    /**
+     * Cycle de vie de la facture, centralisé ici pour couvrir TOUS les chemins
+     * (contrôleur, synchro transporteur Ameex/Sendit, console) : facture en
+     * « brouillon » dès que la commande est confirmée ou au-delà, puis
+     * « Validée » (approved) à la livraison.
+     */
+    protected static function ensureInvoiceLifecycle(Order $order): void
+    {
+        $confirmedOrBeyond = in_array($order->status, [
+            'confirmed', 'scheduled', 'postponed', 'prepared', 'shipped', 'delivered',
+        ], true);
+        if (! $confirmedOrBeyond) {
+            return;
+        }
+
+        $invoice = app(\App\Services\ClientInvoiceService::class)->createFromOrder($order, auth()->id());
+        if (! $invoice) {
+            return; // pas de client rattaché → pas de facture possible
+        }
+
+        if ($order->status === 'delivered'
+            && ! in_array($invoice->status, ['approved', 'sent', 'paid', 'cancelled'], true)) {
+            $invoice->status = 'approved';
+            $invoice->approval_user_id = $invoice->approval_user_id ?? auth()->id();
+            $invoice->approved_at = $invoice->approved_at ?? now();
+            $invoice->save();
+        }
     }
 
     protected static function ensureDeliveryCharge(Order $order): void
