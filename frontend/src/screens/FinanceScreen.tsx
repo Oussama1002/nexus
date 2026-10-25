@@ -45,6 +45,15 @@ function formatChargeDate(iso: string): string {
   }
 }
 
+function formatDateTimeFr(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  } catch {
+    return String(iso);
+  }
+}
+
 type SummaryPayload = {
   period?: { from: string; to: string };
   total_charges?: number;
@@ -76,6 +85,7 @@ type ClientInvoice = {
   brand?: { id: number; name: string } | null;
   order?: { id: number; order_number: string } | null;
   meta?: { order_number?: string; source?: string } | null;
+  created_at?: string | null;
 };
 
 type ClientContract = {
@@ -319,6 +329,15 @@ export function FinanceScreen({ only }: { only?: FinanceTab } = {}) {
         cell: (i) => (
           <span className="text-sm font-medium text-zinc-700">
             {formatChargeDate(i.billing_period_start)} → {formatChargeDate(i.billing_period_end)}
+          </span>
+        ),
+      },
+      {
+        key: 'created',
+        header: 'Créée le',
+        cell: (i) => (
+          <span className="text-sm font-medium text-zinc-700 tabular-nums">
+            {formatDateTimeFr(i.created_at)}
           </span>
         ),
       },
