@@ -18,6 +18,10 @@ export type NormalizedSuccess<T> = {
   status: number;
   message: string;
   data: T;
+  // Jamais rempli en cas de succès, mais déclaré pour que `res.errors` reste
+  // accessible sur l'union sans narrowing (strictNullChecks est désactivé,
+  // ce qui empêche le rétrécissement discriminé sur `ok`).
+  errors?: undefined;
 };
 
 export type NormalizedError = {

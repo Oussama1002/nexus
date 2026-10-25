@@ -68,7 +68,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function ContentManagementScreen() {
   const { activeBrandId } = useBrand();
-  const { toast } = useToast();
+  const { showToast: toast } = useToast();
   const [rows, setRows] = useState<AcademyContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);

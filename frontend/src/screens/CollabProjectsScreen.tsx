@@ -237,7 +237,7 @@ function ProjectList({ canCreate, canUpdate, canDelete, toast, onOpenBoard }: {
           { key: 'members', header: 'Intervenants', cell: (r) => (
             <div className="flex flex-wrap gap-1">
               {(r.members ?? []).slice(0, 3).map((m) => (
-                <StatusChip key={m.id} tone={m.is_lead ? 'success' : 'neutral'}>{m.user?.name ?? `#${m.user_id}`} · {ROLE_LABELS[m.project_role] ?? m.project_role}</StatusChip>
+                <React.Fragment key={m.id}><StatusChip tone={m.is_lead ? 'success' : 'neutral'}>{m.user?.name ?? `#${m.user_id}`} · {ROLE_LABELS[m.project_role] ?? m.project_role}</StatusChip></React.Fragment>
               ))}
               {(r.members ?? []).length > 3 && <span className="text-xs text-zinc-500 font-bold">+{(r.members ?? []).length - 3}</span>}
             </div>

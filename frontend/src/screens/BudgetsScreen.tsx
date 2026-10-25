@@ -68,7 +68,7 @@ const autoPeriodLabel = (start: string, end: string): string => {
 
 export function BudgetsScreen() {
   const { activeBrandId } = useBrand();
-  const { toast } = useToast();
+  const { showToast: toast } = useToast();
   const [rows, setRows] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);

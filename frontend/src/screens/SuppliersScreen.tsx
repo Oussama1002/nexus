@@ -421,7 +421,7 @@ export function SuppliersScreen() {
       {filtered.length === 0 && !loading ? (
         <EmptyState title="Aucun fournisseur" description="Créez votre premier fournisseur pour cette marque." />
       ) : (
-        <DataTable
+        <DataTable<ApiSupplier>
           rows={filtered}
           columns={[
             {

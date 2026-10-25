@@ -311,19 +311,19 @@ export function SecretField({
   );
 }
 
-export function ToggleRow({
-  label,
-  description,
-  checked,
-  onChange,
-  disabled,
-}: {
+export const ToggleRow: React.FC<{
   label: string;
   description?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
-}) {
+}> = ({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled,
+}) => {
   const id = useId();
   return (
     <label

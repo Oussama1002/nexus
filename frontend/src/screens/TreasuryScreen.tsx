@@ -48,7 +48,7 @@ const fmtMAD = (n: number) =>
 
 export function TreasuryScreen() {
   const { activeBrandId } = useBrand();
-  const { toast } = useToast();
+  const { showToast: toast } = useToast();
   const [rows, setRows] = useState<TreasuryRow[]>([]);
   const [summary, setSummary] = useState<TreasurySummary>({ total_balance: 0, income_this_month: 0, expense_this_month: 0, variation: 0 });
   const [loading, setLoading] = useState(true);

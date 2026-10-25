@@ -88,7 +88,7 @@ const DOC_TYPES = Object.keys(DOCUMENT_TYPE_LABELS);
 const CONTENT_TYPES = ['story', 'reel', 'post', 'video', 'live', 'carousel', 'article', 'autre'];
 
 /* ─────── Helpers ─────── */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => {
   return (
     <label className="block space-y-1">
       <span className="text-[11px] font-bold uppercase text-zinc-700">{label}</span>
@@ -1683,7 +1683,7 @@ export function InfluenceWorkspaceScreen() {
           <div className="border-t pt-3 text-center">
             <span className="text-sm text-zinc-500">Score moyen : </span>
             <span className="text-lg font-black text-accent-700">
-              {(Object.values(qualScores).reduce((a, b) => a + b, 0) / Math.max(Object.values(qualScores).length, 1)).toFixed(1)}/5
+              {((Object.values(qualScores) as number[]).reduce((a, b) => a + b, 0) / Math.max(Object.values(qualScores).length, 1)).toFixed(1)}/5
             </span>
           </div>
         </div>

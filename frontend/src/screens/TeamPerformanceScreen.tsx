@@ -39,7 +39,7 @@ function initials(name: string): string {
 
 export function TeamPerformanceScreen() {
   const { activeBrandId } = useBrand();
-  const { toast } = useToast();
+  const { showToast: toast } = useToast();
   const [rows, setRows] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);

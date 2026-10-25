@@ -91,7 +91,7 @@ export function OnboardingScreen() {
         <EmptyState title="Aucune checklist" description="Initialisez la checklist d'un employé pour commencer." />
       ) : (
         <div className="space-y-6">
-          {Object.entries(grouped).map(([name, list]) => {
+          {Object.entries(grouped).map(([name, list]: [string, OnbItem[]]) => {
             const done = list.filter((i) => i.is_completed).length;
             return (
               <div key={name} className="card p-5">

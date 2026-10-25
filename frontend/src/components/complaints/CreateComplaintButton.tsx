@@ -35,7 +35,7 @@ export function CreateComplaintButton({
   onCreated?: () => void;
   title?: string;
 }) {
-  const { toast } = useToast();
+  const { showToast: toast } = useToast();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const initial = () => ({

@@ -52,7 +52,7 @@ export function OrgChartScreen() {
         <EmptyState title="Aucun employé actif" description="Ajoutez des employés pour construire l'organigramme." />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Object.entries(byDepartment).map(([dept, list]) => (
+          {Object.entries(byDepartment).map(([dept, list]: [string, EmpNode[]]) => (
             <div key={dept} className="card p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-black text-zinc-900">{dept}</h3>

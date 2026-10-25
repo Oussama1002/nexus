@@ -876,7 +876,7 @@ function ContentDetailModal({ content, onClose, onReload }: { content: R; onClos
   };
 
   const validate = async () => {
-    const r = await api.post(`smm/contents/${content.id}/validate`, {});
+    const r = await api.post<{ message?: string }>(`smm/contents/${content.id}/validate`, {});
     if (!r.ok) { toast.error(r.message); return; }
     toast.success(r.data?.message ?? 'Validé.'); onReload(); onClose();
   };

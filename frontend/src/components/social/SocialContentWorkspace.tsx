@@ -327,8 +327,9 @@ export function SocialContentWorkspace() {
     return raw ?? [];
   }, [charts]);
 
-  const cmActivity = useMemo(() => {
-    return (charts?.activite_cm as { cm_name?: string; avg_completion?: number; posts?: number }[]) ?? [];
+  type CmActivityRow = { cm_name?: string; cm_user_id?: number; avg_completion?: number; posts?: number; stories?: number; lives?: number };
+  const cmActivity = useMemo<CmActivityRow[]>(() => {
+    return (charts?.activite_cm as CmActivityRow[]) ?? [];
   }, [charts]);
 
   const onWorkflow = useCallback(
@@ -627,7 +628,7 @@ export function SocialContentWorkspace() {
                     <Users className="w-4 h-4" />
                     Activité CM
                   </h3>
-                  <DataTable
+                  <DataTable<CmActivityRow>
                     rows={cmActivity}
                     loading={loading}
                     density="compact"

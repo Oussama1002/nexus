@@ -557,7 +557,7 @@ export function PurchaseOrdersScreen() {
       {filteredLocal.length === 0 && !loading ? (
         <EmptyState title="Aucun bon de commande" description="Créez une commande ou élargissez les filtres." />
       ) : (
-        <DataTable
+        <DataTable<ApiPo>
           rows={filteredLocal}
           loading={loading}
           columns={[

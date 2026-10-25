@@ -291,7 +291,7 @@ export function MainApp() {
   );
 
   const canAccess = useCallback((v: View) => canAccessView(v, permCtx), [permCtx]);
-  const sidebarVisibility = useSidebarNavVisibility(activeBrandId);
+  const sidebarVisibility = useSidebarNavVisibility(typeof activeBrandId === 'number' ? activeBrandId : null);
 
   const actionCtx = useMemo(() => ({ userId: currentUser.id, view: activeView }), [activeView, currentUser.id]);
 

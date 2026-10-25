@@ -50,7 +50,7 @@ const CARRIER_OPTIONS = [
 
 export function DeliveryFailuresScreen() {
   const { activeBrandId } = useBrand();
-  const { toast } = useToast();
+  const { showToast: toast } = useToast();
   const [rows, setRows] = useState<DeliveryFailure[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);

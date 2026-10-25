@@ -700,7 +700,7 @@ export function AutomationsScreen() {
               <p className="text-sm font-black text-rose-700">{formError.message}</p>
               {Object.keys(formError.fields).length > 0 && (
                 <ul className="mt-2 space-y-1">
-                  {Object.entries(formError.fields).map(([field, msgs]) => (
+                  {Object.entries(formError.fields).map(([field, msgs]: [string, string[]]) => (
                     msgs.map((msg, i) => (
                       <li key={`${field}-${i}`} className="text-xs text-rose-600">• {msg}</li>
                     ))

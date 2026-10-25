@@ -46,13 +46,10 @@ const PF = [
   { v: 'x', l: 'X' },
 ];
 
-function Field({
-  label,
-  children,
-}: {
+const Field: React.FC<{
   label: string;
   children: React.ReactNode;
-}) {
+}> = ({ label, children }) => {
   return (
     <label className="block space-y-1">
       <span className="text-[10px] font-bold uppercase text-zinc-400">{label}</span>
@@ -120,7 +117,7 @@ export const SocialCrudModals = forwardRef<SocialCrudHandle, Props>(function Soc
   const accountsFor = (platform: string) =>
     platform ? accounts.filter((a) => a.platform === platform) : accounts;
 
-  const errToast = (res: { ok: false; message: string; errors?: unknown }) => {
+  const errToast = (res: { message: string; errors?: unknown }) => {
     const fe = flattenFieldErrors((res.errors ?? {}) as Record<string, unknown>);
     toast.error(fe.length ? fe.join(' ') : res.message);
   };

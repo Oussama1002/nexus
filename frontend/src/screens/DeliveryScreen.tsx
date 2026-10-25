@@ -375,7 +375,7 @@ export function DeliveryScreen() {
           {payments.length === 0 ? (
             <EmptyState title="Aucun règlement" description="Créez un règlement pour les expéditions COD." />
           ) : (
-            <DataTable
+            <DataTable<ApiDp>
               rows={payments}
               columns={[
                 { key: 'l', header: 'Libellé', cell: (p) => <span className="font-black">{p.label}</span> },

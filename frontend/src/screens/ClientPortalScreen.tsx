@@ -133,7 +133,7 @@ export function ClientPortalScreen() {
         <p className="text-xs font-black uppercase text-zinc-900 mb-2">Widgets activés pour ce client</p>
         <div className="flex flex-wrap gap-2">
           {widgets.map((w) => (
-            <StatusChip key={w} tone="info">{WIDGET_LABELS[w] ?? w}</StatusChip>
+            <React.Fragment key={w}><StatusChip tone="info">{WIDGET_LABELS[w] ?? w}</StatusChip></React.Fragment>
           ))}
         </div>
       </div>
