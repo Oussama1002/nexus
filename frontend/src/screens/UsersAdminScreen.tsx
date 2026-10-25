@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, KeyRound, MessageCircle, Pencil, RefreshCw, Trash2, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, MessageCircle, Pencil, RefreshCw, Trash2, UserPlus } from 'lucide-react';
 import { InternalChatModal } from '../components/chat/InternalChatModal';
 import { UserFicheDrawer } from '../components/users/UserFicheDrawer';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -108,6 +108,7 @@ export function UsersAdminScreen() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [showCreatePwd, setShowCreatePwd] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [newPwd, setNewPwd] = useState('');
@@ -590,13 +591,23 @@ export function UsersAdminScreen() {
             </label>
             <label className={USER_FIELD_LABEL}>
               Mot de passe
-              <input
-                type="password"
-                value={createDraft.password}
-                onChange={(e) => setCreateDraft((d) => ({ ...d, password: e.target.value }))}
-                className={USER_FIELD_INPUT}
-                placeholder="8 caractères minimum"
-              />
+              <div className="relative">
+                <input
+                  type={showCreatePwd ? 'text' : 'password'}
+                  value={createDraft.password}
+                  onChange={(e) => setCreateDraft((d) => ({ ...d, password: e.target.value }))}
+                  className={`${USER_FIELD_INPUT} pr-11`}
+                  placeholder="8 caractères minimum"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePwd((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
+                  aria-label={showCreatePwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                >
+                  {showCreatePwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </label>
             <p className="text-xs font-semibold text-zinc-900 sm:col-span-2">Rôles</p>
             <div className="flex flex-wrap gap-2 sm:col-span-2">
