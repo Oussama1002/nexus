@@ -30,6 +30,9 @@ export const PERMISSION_MODULE_LABELS_FR: Record<string, string> = {
   content_production: 'Production contenu',
   cm_daily_tracking: 'Suivi CM quotidien',
   cm_tracking: 'Suivi CM',
+  cm_complaints: 'CM — Réclamations',
+  cm_moderation: 'CM — Modération',
+  cm_notifications: 'CM — Notifications',
   social_accounts: 'Comptes sociaux',
   social_publications: 'Publications sociales',
   // SMM (Community Manager)
@@ -77,6 +80,8 @@ export const PERMISSION_MODULE_LABELS_FR: Record<string, string> = {
   team_performance: 'Performance équipe',
   // Academy
   academy_contents: 'Académie — Contenus',
+  academy_courses: 'Académie — Cours',
+  academy_lessons: 'Académie — Leçons',
   learning_paths: 'Parcours d’apprentissage',
   // AM (Pilotage de marque)
   am_alert: 'AM — Alertes',
@@ -135,6 +140,12 @@ export const PERMISSION_ACTION_LABELS_FR: Record<string, string> = {
   take: 'Prendre en charge',
   transmit: 'Transmettre',
   verdict: 'Rendre un verdict',
+  assign: 'Assigner',
+  archive: 'Archiver',
+  validate_checklist: 'Valider la checklist',
+  manage_templates: 'Gérer les modèles',
+  run_automations: 'Exécuter les automatisations',
+  view_decision_points: 'Voir les points de décision',
 };
 
 /**
@@ -154,20 +165,26 @@ export function permissionDisplayLabelFr(slug: string, module: string | null, fa
   if (fallbackName?.trim()) {
     return fallbackName.trim();
   }
-  return slug;
+  return humanize(slug);
 }
 
-function formatModuleFallback(raw: string): string {
+/** Jamais de slug/code brut dans l'UI : « . » et « _ » → espaces, mots capitalisés. */
+function humanize(raw: string): string {
   if (!raw) return '';
   return raw
-    .split('_')
+    .split(/[._]/)
+    .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
 }
 
+function formatModuleFallback(raw: string): string {
+  return humanize(raw);
+}
+
 function formatActionFallback(raw: string): string {
   if (!raw) return '';
-  return PERMISSION_ACTION_LABELS_FR[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1).replace(/_/g, ' ');
+  return PERMISSION_ACTION_LABELS_FR[raw] ?? humanize(raw);
 }
 
 export function permissionModuleTitleFr(moduleKey: string): string {
