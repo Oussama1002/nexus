@@ -19,6 +19,7 @@ class OrderStateService
         protected OrderFulfillmentService $orderFulfillmentService,
         protected WhatsAppCloudService $whatsAppService,
         protected WhatsAppTemplateAutomationService $templateAutomation,
+        protected ClientInvoiceService $clientInvoices,
     ) {}
 
     public function updateStatus(Order $order, string $toStatus, User $user, ?string $note = null): Order
@@ -124,6 +125,19 @@ class OrderStateService
             return $locked->fresh(['lines', 'events']);
         });
 
+        // À la confirmation, garantir qu'une facture brouillon existe (générée
+        // automatiquement si la commande n'en a pas encore). Idempotent.
+        if ($toStatus === 'confirmed') {
+            try {
+                $this->clientInvoices->createFromOrder($result, $user->id);
+            } catch (\Throwable $e) {
+                Log::warning('invoice.autocreate.failed', [
+                    'order_id' => $result->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         // Auto-send invoice via WhatsApp AFTER transaction commits
         if ($toStatus === 'confirmed') {
             try {
@@ -136,18 +150,20 @@ class OrderStateService
             }
         }
 
-        // Facture : à la livraison la commande est encaissée (COD marocain) →
-        // on passe la facture en « payée » automatiquement.
+        // Facture : à la livraison, la facture passe automatiquement en
+        // « Validée » (approved). On ne rétrograde jamais une facture déjà
+        // envoyée, payée ou annulée.
         if ($toStatus === 'delivered') {
             try {
                 $invoice = ClientInvoice::query()->where('order_id', $result->id)->first();
-                if ($invoice && ! in_array($invoice->status, ['paid', 'cancelled'], true)) {
-                    $invoice->status = 'paid';
-                    $invoice->paid_at = $invoice->paid_at ?? now();
+                if ($invoice && ! in_array($invoice->status, ['approved', 'sent', 'paid', 'cancelled'], true)) {
+                    $invoice->status = 'approved';
+                    $invoice->approval_user_id = $user->id;
+                    $invoice->approved_at = $invoice->approved_at ?? now();
                     $invoice->save();
                 }
             } catch (\Throwable $e) {
-                Log::warning('invoice.mark_paid.failed', [
+                Log::warning('invoice.mark_approved.failed', [
                     'order_id' => $result->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -275,11 +291,8 @@ class OrderStateService
         $conversation->last_message_at = now();
         $conversation->save();
 
-        // Update invoice status
-        if ($invoice) {
-            $invoice->status = 'sent';
-            $invoice->sent_at = now();
-            $invoice->save();
-        }
+        // La facture reste en « brouillon » à la confirmation (le message
+        // WhatsApp est un envoi de courtoisie, pas la validation comptable).
+        // Elle passera en « Validée » à la livraison de la commande.
     }
 }
