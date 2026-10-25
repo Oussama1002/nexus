@@ -30,7 +30,18 @@ class Order extends Model
 
     protected static function ensureDeliveryCharge(Order $order): void
     {
-        if ($order->payment_state !== 'paid' || (float) $order->shipping_fee <= 0) {
+        if ($order->payment_state !== 'paid') {
+            return;
+        }
+        // Coût réel facturé par le transporteur (Sendit/Ameex), remonté par la
+        // synchro API sur l'expédition. À défaut (pas de colis / coût non fourni
+        // par l'API), on retombe sur les frais de livraison de la commande.
+        $order->loadMissing('shipment');
+        $cost = (float) ($order->shipment?->delivery_fee ?? 0);
+        if ($cost <= 0) {
+            $cost = (float) $order->shipping_fee;
+        }
+        if ($cost <= 0) {
             return;
         }
         $alreadyBilled = Charge::query()
@@ -46,7 +57,7 @@ class Order extends Model
             'created_by' => auth()->id(),
             'charge_date' => $order->delivered_at ? $order->delivered_at->toDateString() : now()->toDateString(),
             'type' => 'delivery',
-            'amount' => (float) $order->shipping_fee,
+            'amount' => $cost,
             'note' => 'Frais de livraison – Commande '.$order->order_number,
         ]);
     }
