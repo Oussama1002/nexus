@@ -32,6 +32,19 @@ class CourseController extends Controller
             ->withCount(['sections', 'lessons', 'enrollments'])
             ->orderByDesc('id');
 
+        // Revue CRM point 5 — une formation ciblée n'apparaît que pour les rôles
+        // visés (audience_role_slugs NULL/vide = visible par tous). L'admin voit tout.
+        $user = $request->user();
+        if ($user && ! $user->isAdmin()) {
+            $slugs = $user->roles->pluck('slug')->all();
+            $query->where(function ($q) use ($slugs) {
+                $q->whereNull('audience_role_slugs')->orWhere('audience_role_slugs', '[]');
+                foreach ($slugs as $slug) {
+                    $q->orWhereJsonContains('audience_role_slugs', $slug);
+                }
+            });
+        }
+
         if ($status !== '') {
             $query->where('status', $status);
         }

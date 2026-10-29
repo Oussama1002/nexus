@@ -36,6 +36,8 @@ class StoreAcademyCourseRequest extends FormRequest
             'learning_objectives.*' => ['string', 'max:255'],
             'prerequisites' => ['nullable', 'array'],
             'prerequisites.*' => ['string', 'max:255'],
+            'audience_role_slugs' => ['nullable', 'array'],
+            'audience_role_slugs.*' => ['string', 'exists:roles,slug'],
             'seo_title' => ['nullable', 'string', 'max:255'],
             'seo_description' => ['nullable', 'string'],
             'seo_keywords' => ['nullable', 'array'],
