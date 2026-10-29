@@ -269,22 +269,31 @@ function mapOrder(o: ApiOrderRow, brandName: string): Order {
   };
 }
 
+/**
+ * Couleur fixe par statut de commande (spec Confirmatrice §6.2) :
+ * Livré=vert, Expédié=jaune, Retourné=rouge, Programmé=rose, Reporté=violet,
+ * Confirmé=bleu. Les statuts hors spec gardent une couleur neutre/cohérente.
+ */
 function toneForStatus(s: OrderStatus): Parameters<typeof StatusChip>[0]['tone'] {
   switch (s) {
-    case 'Confirmé':
     case 'Livré':
       return 'success';
-    case 'Préparée':
     case 'Expédiée':
-    case 'Programmé':
-      return 'info';
-    case 'En attente':
-    case 'Brouillon':
-    case 'Reporté':
       return 'warning';
-    case 'Annulé':
     case 'Retourné':
       return 'danger';
+    case 'Programmé':
+      return 'pink';
+    case 'Reporté':
+      return 'purple';
+    case 'Confirmé':
+      return 'blue';
+    case 'Préparée':
+      return 'info';
+    case 'Annulé':
+      return 'danger';
+    case 'En attente':
+    case 'Brouillon':
     default:
       return 'neutral';
   }
