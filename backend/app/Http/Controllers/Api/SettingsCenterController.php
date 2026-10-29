@@ -69,8 +69,38 @@ class SettingsCenterController extends Controller
         $brandId = $this->resolveSettingsBrand($request);
 
         return ApiResponse::success(
-            ['items' => $this->settingsCenter->getSidebarNavVisibility($brandId)],
+            ['items' => $this->settingsCenter->getSidebarNavVisibility($brandId, $request->user())],
             'OK',
+        );
+    }
+
+    /**
+     * Per-role sidebar-nav visibility matrix (admin editor). Requires settings.view.
+     */
+    public function roleNavVisibility(Request $request): JsonResponse
+    {
+        $this->requireView($request);
+
+        return ApiResponse::success(
+            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix()],
+            'OK',
+        );
+    }
+
+    public function updateRoleNavVisibility(Request $request): JsonResponse
+    {
+        $this->requireUpdate($request);
+
+        $payload = $request->validate([
+            'items' => ['present', 'array'],
+        ]);
+
+        $this->settingsCenter->saveRoleNavVisibility($payload['items'] ?? []);
+        AuditLogger::log($request, 'settings.role_nav_visibility.update', null, null, $payload['items'] ?? []);
+
+        return ApiResponse::success(
+            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix()],
+            'Enregistré.',
         );
     }
 

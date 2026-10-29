@@ -114,12 +114,126 @@ class SettingsCenterService
 
     /**
      * Public accessor for sidebar-nav visibility (used by the lightweight endpoint).
+     * When a user is provided, the per-role hides configured by the admin are merged
+     * in: an entry is hidden for the user only when EVERY one of their roles hides it,
+     * so cumulating a role widens the visible menu. Admins see everything.
      *
      * @return array<string, bool>
      */
-    public function getSidebarNavVisibility(int $brandId): array
+    public function getSidebarNavVisibility(int $brandId, ?\App\Models\User $user = null): array
     {
-        return $this->decodeSidebarNavVisibility($brandId);
+        $items = $this->decodeSidebarNavVisibility($brandId);
+
+        if ($user === null || $user->isAdmin()) {
+            return $items;
+        }
+
+        $matrix = $this->decodeRoleNavVisibility();
+        $slugs = $user->roles()->pluck('slug')->all();
+        if (empty($slugs) || empty($matrix)) {
+            return $items;
+        }
+
+        // Hidden-per-role sets for the roles this user actually holds.
+        $hiddenSets = [];
+        foreach ($slugs as $slug) {
+            $roleHides = $matrix[$slug] ?? [];
+            // A role absent from the matrix hides nothing → the intersection is empty.
+            if (! is_array($roleHides)) {
+                return $items;
+            }
+            $hiddenSets[] = array_keys(array_filter($roleHides, fn ($v) => $v === false));
+        }
+
+        // Intersection across the user's roles (hide only where all roles agree).
+        $effectiveHidden = array_shift($hiddenSets) ?: [];
+        foreach ($hiddenSets as $set) {
+            $effectiveHidden = array_intersect($effectiveHidden, $set);
+        }
+
+        foreach ($effectiveHidden as $navId) {
+            $items[$navId] = false;
+        }
+
+        return $items;
+    }
+
+    /**
+     * Full per-role nav-visibility matrix for the admin editor.
+     *
+     * @return array<string, array<string, bool>>
+     */
+    public function getRoleNavVisibilityMatrix(): array
+    {
+        return $this->decodeRoleNavVisibility();
+    }
+
+    /**
+     * Persist the per-role nav-visibility matrix. Only explicit hides (false) are
+     * stored, mirroring the global sidebar_nav_visibility convention.
+     *
+     * @param  array<string, array<string, mixed>>  $matrix
+     */
+    public function saveRoleNavVisibility(array $matrix): void
+    {
+        $normalized = [];
+        foreach ($matrix as $slug => $items) {
+            if (! is_string($slug) || ! is_array($items)) {
+                continue;
+            }
+            $roleHides = [];
+            foreach ($items as $navId => $visible) {
+                if (! is_string($navId)) {
+                    continue;
+                }
+                if (filter_var($visible, FILTER_VALIDATE_BOOL) === false) {
+                    $roleHides[$navId] = false;
+                }
+            }
+            if ($roleHides !== []) {
+                $normalized[$slug] = $roleHides;
+            }
+        }
+
+        $json = json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $this->upsertAll('general', 'role_nav_visibility', $json);
+    }
+
+    /** @return array<string, array<string, bool>> */
+    private function decodeRoleNavVisibility(): array
+    {
+        $row = SystemSetting::query()
+            ->where('setting_key', 'role_nav_visibility')
+            ->whereNotNull('setting_value')
+            ->where('setting_value', '!=', '')
+            ->first();
+        $raw = $row?->setting_value;
+        if ($raw === null || trim((string) $raw) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode((string) $raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $matrix = [];
+        foreach ($decoded as $slug => $items) {
+            if (! is_string($slug) || ! is_array($items)) {
+                continue;
+            }
+            foreach ($items as $navId => $visible) {
+                if (is_string($navId)) {
+                    $matrix[$slug][$navId] = filter_var($visible, FILTER_VALIDATE_BOOL);
+                }
+            }
+        }
+
+        return $matrix;
     }
 
     /**
