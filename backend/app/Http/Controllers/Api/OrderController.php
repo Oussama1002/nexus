@@ -65,6 +65,12 @@ class OrderController extends Controller
         if ($status) {
             $q->where('status', $status);
         }
+        // Filtre double confirmation (?double_confirmation=pending|done) — liste
+        // des doubles confirmations à faire côté superviseur (spec §6.8).
+        $doubleConfirmation = $request->query('double_confirmation');
+        if ($doubleConfirmation === 'pending' || $doubleConfirmation === 'done') {
+            $q->where('double_confirmation_status', $doubleConfirmation);
+        }
         // Filtre par fenêtre temporelle (barre de filtres : Aujourd'hui / 7 / 30 / 90 jours).
         $dateFrom = $request->query('date_from');
         if ($dateFrom) {
@@ -282,6 +288,39 @@ class OrderController extends Controller
         ]);
 
         return ApiResponse::success($order->load(['lines', 'events']), 'Order status updated.');
+    }
+
+    /**
+     * Double confirmation (spec §6.8) : le superviseur passe la commande de
+     * « À faire » à « Fait » (ou revient en arrière avec ?done=0).
+     */
+    public function doubleConfirm(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request);
+        $order = Order::query()->where('brand_id', $brandId)->findOrFail($id);
+
+        $done = $request->boolean('done', true);
+        $before = ['double_confirmation_status' => $order->double_confirmation_status];
+
+        if ($done) {
+            $order->double_confirmation_status = 'done';
+            $order->double_confirmed_at = now();
+            $order->double_confirmed_by = $request->user()?->id;
+        } else {
+            $order->double_confirmation_status = 'pending';
+            $order->double_confirmed_at = null;
+            $order->double_confirmed_by = null;
+        }
+        $order->save();
+
+        AuditLogger::log($request, 'orders.double_confirmation', $order, $before, [
+            'double_confirmation_status' => $order->double_confirmation_status,
+        ]);
+
+        return ApiResponse::success(
+            $order->load(['lines', 'events']),
+            $done ? 'Double confirmation faite.' : 'Double confirmation remise à faire.'
+        );
     }
 
     /** Archive : la commande sort des listes sans être supprimée. */

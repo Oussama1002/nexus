@@ -79,6 +79,12 @@ class OrderStateService
                 }
                 $locked->confirmed_at = now();
 
+                // Spec §6.2 : une commande confirmée entre en double confirmation
+                // « À faire » (traitée par le superviseur), sauf si déjà faite.
+                if ($locked->double_confirmation_status !== 'done') {
+                    $locked->double_confirmation_status = 'pending';
+                }
+
                 if ($shortage) {
                     // Commande fournisseur + message interne (déjà fait à la
                     // création, sans effet si la commande y est passée).

@@ -34,6 +34,8 @@ export type Order = {
   items: OrderLine[];
   notes?: string;
   cancellationReason?: string;
+  /** Double confirmation (spec §6.8) : null = non applicable, 'pending' = à faire, 'done' = faite. */
+  doubleConfirmation?: 'pending' | 'done' | null;
   shipment?: {
     tracking: string | null;
     status: string;

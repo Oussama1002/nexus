@@ -117,6 +117,9 @@ class Order extends Model
         'notes',
         'cancellation_reason',
         'confirmed_at',
+        'double_confirmation_status',
+        'double_confirmed_at',
+        'double_confirmed_by',
         'delivered_at',
         'stock_dispatched_at',
         'archived_at',
@@ -125,6 +128,7 @@ class Order extends Model
     protected $casts = [
         'archived_at' => 'datetime',
         'confirmed_at' => 'datetime',
+        'double_confirmed_at' => 'datetime',
         'delivered_at' => 'datetime',
         'stock_dispatched_at' => 'datetime',
         'bank_transfer_declared_paid' => 'boolean',

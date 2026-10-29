@@ -34,6 +34,7 @@ type ApiOrderRow = {
   total: string;
   notes?: string | null;
   cancellation_reason?: string | null;
+  double_confirmation_status?: string | null;
   created_at: string;
   customer?: { full_name: string; phone: string; city?: string | null } | null;
   lines?: { product_name: string; quantity: number; unit_price: string }[];
@@ -53,6 +54,8 @@ type OrderDetail = {
   shipping_address: string | null;
   created_at: string;
   confirmed_at: string | null;
+  double_confirmation_status?: string | null;
+  double_confirmed_at?: string | null;
   delivered_at: string | null;
   customer?: { full_name: string; phone: string; email?: string | null; city?: string | null; address?: string | null } | null;
   lines?: { id: number; product_name: string; quantity: number; unit_price: string; product?: { sku?: string | null } | null }[];
@@ -252,6 +255,7 @@ function mapOrder(o: ApiOrderRow, brandName: string): Order {
       })) ?? [],
     notes: o.notes ?? undefined,
     cancellationReason: o.cancellation_reason ?? undefined,
+    doubleConfirmation: (o.double_confirmation_status as 'pending' | 'done' | null | undefined) ?? null,
     shipment: o.shipment
       ? {
           tracking: o.shipment.tracking_number,
@@ -329,6 +333,8 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   // Vue « Archives » : commandes mises de côté (non supprimées).
   const [showArchived, setShowArchived] = useState(false);
+  // Filtre superviseur : doubles confirmations à faire (spec §6.8).
+  const [doubleToDo, setDoubleToDo] = useState(false);
   const [archiving, setArchiving] = useState(false);
   // Commande non encore expédiée : popup de choix du transporteur.
   const [dispatchTarget, setDispatchTarget] = useState<DispatchTarget | null>(null);
@@ -357,6 +363,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     const params = new URLSearchParams({ per_page: '100' });
     if (assignedFilter) params.set('assigned_user_id', assignedFilter);
     if (showArchived) params.set('archived', '1');
+    if (doubleToDo) params.set('double_confirmation', 'pending');
     const days = dateRange === 'Aujourd’hui' ? 0 : dateRange === '7 jours' ? 7 : dateRange === '30 jours' ? 30 : 90;
     const from = new Date();
     from.setDate(from.getDate() - days);
@@ -373,7 +380,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     const nameById: Record<string, string> = {};
     for (const b of brands) nameById[b.id] = b.name;
     setRows(data.map((o) => mapOrder(o, nameById[String(o.brand_id)] ?? activeBrand.name)));
-  }, [activeBrandId, activeBrand.name, brands, toast, assignedFilter, showArchived, dateRange]);
+  }, [activeBrandId, activeBrand.name, brands, toast, assignedFilter, showArchived, dateRange, doubleToDo]);
 
   useEffect(() => {
     void load();
@@ -444,6 +451,20 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
       return;
     }
     toast.success('Statut commande mis à jour.');
+    await load();
+  }
+
+  async function patchDoubleConfirmation(done: boolean) {
+    if (!selected) return;
+    setStatusSaving(true);
+    const res = await api.patch(`orders/${selected.apiId}/double-confirmation`, { done });
+    setStatusSaving(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success(res.message);
+    setDetail((d) => (d ? { ...d, double_confirmation_status: done ? 'done' : 'pending' } : d));
     await load();
   }
 
@@ -650,6 +671,18 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
         subtitle={showArchived ? 'Commandes archivées (restaurables).' : 'Liste connectée à l’API (marque active).'}
         right={
           <div className="flex flex-wrap items-center gap-2">
+            {!showArchived && (
+              <button
+                type="button"
+                onClick={() => { setSelectedId(null); setDoubleToDo((v) => !v); }}
+                className={cn(
+                  'px-4 py-2 rounded-2xl text-sm font-black inline-flex items-center gap-2 border',
+                  doubleToDo ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50',
+                )}
+              >
+                2ᵉ confirmation à faire
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { setSelectedId(null); setShowArchived((v) => !v); }}
@@ -845,6 +878,17 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                 <span className="font-semibold text-zinc-500">Confirmée le</span>
                 <span className="font-bold text-zinc-900 text-right">{fmtDateTime(detail?.confirmed_at)}</span>
 
+                {detail?.double_confirmation_status && (
+                  <>
+                    <span className="font-semibold text-zinc-500">Double confirmation</span>
+                    <span className="text-right">
+                      <StatusChip tone={detail.double_confirmation_status === 'done' ? 'success' : 'warning'}>
+                        {detail.double_confirmation_status === 'done' ? 'Faite' : 'À faire'}
+                      </StatusChip>
+                    </span>
+                  </>
+                )}
+
                 <span className="font-semibold text-zinc-500">Livrée le</span>
                 <span className="font-bold text-zinc-900 text-right">{fmtDateTime(detail?.delivered_at)}</span>
 
@@ -1021,6 +1065,21 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                       Reporter
                     </button>
                   </div>
+                )}
+                {hasPermission('orders.update') && !showArchived && detail?.double_confirmation_status && (
+                  <button
+                    type="button"
+                    disabled={statusSaving}
+                    onClick={() => void patchDoubleConfirmation(detail.double_confirmation_status !== 'done')}
+                    className={cn(
+                      'w-full py-3 rounded-xl font-black text-sm transition-colors disabled:opacity-50',
+                      detail.double_confirmation_status === 'done'
+                        ? 'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                        : 'bg-amber-500 text-white hover:bg-amber-600',
+                    )}
+                  >
+                    {detail.double_confirmation_status === 'done' ? 'Annuler la double confirmation' : 'Marquer la double confirmation faite'}
+                  </button>
                 )}
                 {showArchived ? (
                   hasPermission('orders.update') && (
