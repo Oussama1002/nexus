@@ -6,6 +6,8 @@ import { ConfirmatriceStats } from '../components/confirmations/ConfirmatriceSta
 import { ReminderList, type Reminder } from '../components/confirmations/ReminderList';
 import { UpsellRequests } from '../components/confirmations/UpsellRequests';
 import { useBrand } from '../context/BrandContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import { trackSession } from '../lib/session';
@@ -90,13 +92,16 @@ const REPORT_PERIODS = [
   { value: 'month', label: 'Ce mois' },
 ];
 
+type PerfSettings = { threshold_improve: number; threshold_good: number; alert_window_days: number };
+const DEFAULT_PERF: PerfSettings = { threshold_improve: 8, threshold_good: 12, alert_window_days: 7 };
+
 /**
- * Statut de performance (spec §6.7/6.8). Seuils GO-CENTER : < 8 % danger,
- * 8–12 % à améliorer, ≥ 12 % objectif atteint. (Seuils configurables à venir.)
+ * Statut de performance (spec §6.7/6.8). Seuils configurables par l'admin
+ * (défauts GO-CENTER : < 8 % danger, 8–12 % à améliorer, ≥ 12 % objectif).
  */
-function performanceStatus(rate: number): { label: string; cls: string } {
-  if (rate >= 12) return { label: 'Objectif atteint', cls: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-  if (rate >= 8) return { label: 'À améliorer', cls: 'bg-amber-100 text-amber-800 border-amber-300' };
+function performanceStatus(rate: number, s: PerfSettings): { label: string; cls: string } {
+  if (rate >= s.threshold_good) return { label: 'Objectif atteint', cls: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+  if (rate >= s.threshold_improve) return { label: 'À améliorer', cls: 'bg-amber-100 text-amber-800 border-amber-300' };
   return { label: 'Danger, formation requise', cls: 'bg-rose-100 text-rose-800 border-rose-300' };
 }
 
@@ -138,6 +143,10 @@ export function ConfirmatriceSpaceScreen({
     : `Supervision — ${selectedConfirmatriceName || '—'}.`;
 
   const { activeBrandId } = useBrand();
+  const { hasPermission } = useAuth();
+  const toast = useToast();
+  const canEditPerf = hasPermission('settings.update');
+  const [perfSaving, setPerfSaving] = useState(false);
   const [summary, setSummary] = useState<WorkspaceSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +162,7 @@ export function ConfirmatriceSpaceScreen({
   const [fuSaving, setFuSaving] = useState(false);
   const [report, setReport] = useState<DailyReport | null>(null);
   const [reportPeriod, setReportPeriod] = useState('today');
+  const [perf, setPerf] = useState<PerfSettings>(DEFAULT_PERF);
 
   const loadSummary = useCallback(async () => {
     if (!workspaceUserId || !activeBrandId) {
@@ -243,6 +253,13 @@ export function ConfirmatriceSpaceScreen({
     );
     setReport(res.ok && res.data ? res.data : null);
   }, [workspaceUserId, activeBrandId, reportPeriod]);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await api.get<PerfSettings>('confirmatrice-settings');
+      if (res.ok && res.data) setPerf(res.data);
+    })();
+  }, []);
 
   useEffect(() => {
     if (noConfirmatriceInDirectory && !isSelf) return;
@@ -560,8 +577,8 @@ export function ConfirmatriceSpaceScreen({
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-black text-zinc-900">Rapport quotidien</p>
               {report && (
-                <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${performanceStatus(report.confirmation_rate).cls}`}>
-                  {performanceStatus(report.confirmation_rate).label}
+                <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${performanceStatus(report.confirmation_rate, perf).cls}`}>
+                  {performanceStatus(report.confirmation_rate, perf).label}
                 </span>
               )}
             </div>
@@ -630,6 +647,48 @@ export function ConfirmatriceSpaceScreen({
           </>
         )}
       </div>
+
+      {canEditPerf && (
+        <div className="card p-6">
+          <p className="text-sm font-black text-zinc-900">Réglages performance (admin)</p>
+          <p className="mt-1 text-xs font-medium text-zinc-500">Seuils du statut et fenêtre de l’alerte de baisse (défauts GO-CENTER).</p>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="block text-xs font-black uppercase text-zinc-700">Seuil « À améliorer » (%)
+              <input type="number" min={0} max={100} value={perf.threshold_improve}
+                onChange={(e) => setPerf((p) => ({ ...p, threshold_improve: Number(e.target.value) }))}
+                className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+            <label className="block text-xs font-black uppercase text-zinc-700">Seuil « Objectif atteint » (%)
+              <input type="number" min={0} max={100} value={perf.threshold_good}
+                onChange={(e) => setPerf((p) => ({ ...p, threshold_good: Number(e.target.value) }))}
+                className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+            <label className="block text-xs font-black uppercase text-zinc-700">Fenêtre alerte (jours)
+              <input type="number" min={1} max={90} value={perf.alert_window_days}
+                onChange={(e) => setPerf((p) => ({ ...p, alert_window_days: Number(e.target.value) }))}
+                className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm" />
+            </label>
+          </div>
+          <button
+            type="button"
+            disabled={perfSaving}
+            onClick={async () => {
+              setPerfSaving(true);
+              const res = await api.put<PerfSettings>('confirmatrice-settings', {
+                threshold_improve: perf.threshold_improve,
+                threshold_good: perf.threshold_good,
+                alert_window_days: perf.alert_window_days,
+              });
+              setPerfSaving(false);
+              if (res.ok && res.data) { setPerf(res.data); toast.success('Réglages enregistrés.'); }
+              else toast.error(res.message);
+            }}
+            className="mt-4 px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700 disabled:opacity-50"
+          >
+            {perfSaving ? 'Enregistrement…' : 'Enregistrer les réglages'}
+          </button>
+        </div>
+      )}
 
       <Modal
         open={activeFollowUp !== null}

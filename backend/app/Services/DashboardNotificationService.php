@@ -66,6 +66,10 @@ class DashboardNotificationService
         $items = array_merge($items, $this->ownLatenessToday($user));
         $items = array_merge($items, $this->myTrainings($user));
 
+        if ($scopedConfirmatrice) {
+            $items = array_merge($items, $this->performanceDropAlert($user));
+        }
+
         if ($user->hasPermissionSlug('automations.view')) {
             $items = array_merge($items, $this->failedAutomations($user));
         }
@@ -684,5 +688,50 @@ class DashboardNotificationService
     private function isScopedConfirmatrice(User $user): bool
     {
         return UserRoleHelper::isConfirmatrice($user) && ! UserRoleHelper::hasGlobalScope($user);
+    }
+
+    /**
+     * Alerte de baisse de performance (spec §6.8) : taux de confirmation sous le
+     * seuil « Danger » sur la fenêtre configurée. Seuils et fenêtre réglables
+     * par l'administration (valeurs GO-CENTER par défaut).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function performanceDropAlert(User $user): array
+    {
+        $cfg = \App\Http\Controllers\Api\ConfirmatriceSettingsController::values();
+        $from = now()->subDays((int) $cfg['alert_window_days'])->startOfDay();
+
+        $base = Order::query()->where('assigned_user_id', $user->id)->where('created_at', '>=', $from);
+        $this->applyBrandScope($base, $user);
+
+        $total = (int) (clone $base)->count();
+        if ($total < 5) {
+            return []; // activité trop faible pour juger
+        }
+
+        $confirmed = (int) (clone $base)->where('status', 'confirmed')->count();
+        $rate = round(100 * $confirmed / $total, 1);
+        if ($rate >= (float) $cfg['threshold_improve']) {
+            return [];
+        }
+
+        return [
+            $this->item(
+                'confirmatrice_perf_drop',
+                'danger',
+                'P1',
+                'alerte',
+                'Performance en baisse — formation requise',
+                sprintf(
+                    'Taux de confirmation %.1f%% sur %d jour(s) (seuil minimum %s%%). Contactez votre superviseur.',
+                    $rate,
+                    (int) $cfg['alert_window_days'],
+                    rtrim(rtrim(number_format((float) $cfg['threshold_improve'], 1, '.', ''), '0'), '.'),
+                ),
+                'confirmatrice',
+                now(),
+            ),
+        ];
     }
 }
