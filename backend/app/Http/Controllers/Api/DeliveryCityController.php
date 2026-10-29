@@ -5,8 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CarrierCity;
 use App\Models\DeliveryCompany;
-use App\Services\AuditLogger;
-use App\Services\Delivery\DeliveryProviderFactory;
+use App\Services\Delivery\CarrierCitySyncService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,20 +23,32 @@ class DeliveryCityController extends Controller
                 'id' => $c->id,
                 'name' => $c->name,
                 'code' => $c->code,
-                // A-t-on déjà des villes synchronisées pour ce transporteur ?
                 'cities_count' => CarrierCity::query()->where('delivery_company_id', $c->id)->count(),
             ]);
 
         return ApiResponse::success($carriers, 'Transporteurs disponibles.');
     }
 
-    /** Villes desservies par un transporteur (spec §6.1). */
-    public function cities(Request $request, string $id): JsonResponse
+    /**
+     * Villes desservies par un transporteur (spec §6.1). Si la table est encore
+     * vide pour ce transporteur, elle est synchronisée automatiquement à la
+     * volée depuis l'API (puis rafraîchie chaque nuit par le planificateur).
+     */
+    public function cities(Request $request, string $id, CarrierCitySyncService $sync): JsonResponse
     {
-        $search = trim((string) $request->query('search', ''));
+        $companyId = (int) $id;
 
+        $hasCities = CarrierCity::query()->where('delivery_company_id', $companyId)->exists();
+        if (! $hasCities) {
+            $company = DeliveryCompany::query()->find($companyId);
+            if ($company) {
+                $sync->syncCompany($company);
+            }
+        }
+
+        $search = trim((string) $request->query('search', ''));
         $q = CarrierCity::query()
-            ->where('delivery_company_id', (int) $id)
+            ->where('delivery_company_id', $companyId)
             ->orderBy('name');
 
         if ($search !== '') {
@@ -47,48 +58,5 @@ class DeliveryCityController extends Controller
         $cities = $q->limit(2000)->get(['id', 'name', 'external_id']);
 
         return ApiResponse::success($cities, 'Villes desservies.');
-    }
-
-    /**
-     * Synchronise les villes desservies depuis les API transporteur.
-     * Réservé à l'administration (permission delivery_companies.update).
-     */
-    public function sync(Request $request, DeliveryProviderFactory $factory): JsonResponse
-    {
-        $companies = DeliveryCompany::query()->where('status', 'active')->get();
-        $result = [];
-
-        foreach ($companies as $company) {
-            $provider = $factory->forCompany($company);
-            if (! method_exists($provider, 'fetchCities')) {
-                $result[$company->name] = 'non supporté';
-                continue;
-            }
-
-            try {
-                $cities = $provider->fetchCities();
-            } catch (\Throwable $e) {
-                $result[$company->name] = 'erreur : '.$e->getMessage();
-                continue;
-            }
-
-            $count = 0;
-            foreach ($cities as $city) {
-                $name = trim((string) ($city['name'] ?? ''));
-                if ($name === '') {
-                    continue;
-                }
-                CarrierCity::query()->updateOrCreate(
-                    ['delivery_company_id' => $company->id, 'normalized_name' => CarrierCity::normalize($name)],
-                    ['name' => $name, 'external_id' => (string) ($city['id'] ?? '')],
-                );
-                $count++;
-            }
-            $result[$company->name] = $count.' ville(s)';
-        }
-
-        AuditLogger::log($request, 'delivery.cities.sync', null, null, $result);
-
-        return ApiResponse::success($result, 'Synchronisation des villes terminée.');
     }
 }

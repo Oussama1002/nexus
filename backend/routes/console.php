@@ -10,6 +10,13 @@ Artisan::command('inspire', function () {
 
 Schedule::command('orders:verify-bank-transfers')->everyTenMinutes();
 
+// Villes desservies par transporteur (spec Confirmatrice §6.1) : rafraîchies
+// chaque jour depuis les API transporteur, sans intervention manuelle.
+Schedule::command('delivery:sync-cities')
+    ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Livraison — tire les statuts/colis Sendit & Ameex vers le CRM pour rester
 // à jour sans clic « Rafraîchir ». Toutes les 15 min, quelques pages à chaque
 // fois (les plus récentes), withoutOverlapping pour ne pas empiler deux runs.
