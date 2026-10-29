@@ -197,7 +197,7 @@ export function ConfirmatriceSpaceScreen({
       )}
 
       {/* KPI cards — données API */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <div className="card p-5">
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Conversations assignées</p>
           <p className="mt-2 text-2xl font-black text-zinc-900">{summary?.conversations_total ?? '—'}</p>
@@ -218,11 +218,8 @@ export function ConfirmatriceSpaceScreen({
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Relances dues</p>
           <p className="mt-2 text-2xl font-black text-amber-600">{summary?.reminders_due ?? '—'}</p>
         </div>
-        <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Upsells ouverts</p>
-          <p className="mt-2 text-2xl font-black text-accent-700">{summary?.upsells_open ?? 0}</p>
-          <p className="mt-1 text-[10px] text-zinc-400">Non branché en base pour l’instant.</p>
-        </div>
+        {/* Carte « Upsells ouverts » masquée : indicateur non branché (spec §A.5).
+            À réafficher une fois branché sur les demandes d'upsell réelles (Partie B §6.6). */}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
