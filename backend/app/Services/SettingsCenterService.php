@@ -128,7 +128,7 @@ class SettingsCenterService
             return $items;
         }
 
-        $matrix = $this->decodeRoleNavVisibility();
+        $matrix = $this->decodeRoleNavVisibility($brandId);
         $slugs = $user->roles()->pluck('slug')->all();
         if (empty($slugs) || empty($matrix)) {
             return $items;
@@ -159,22 +159,23 @@ class SettingsCenterService
     }
 
     /**
-     * Full per-role nav-visibility matrix for the admin editor.
+     * Per-role nav-visibility matrix for the admin editor, scoped to one brand.
      *
      * @return array<string, array<string, bool>>
      */
-    public function getRoleNavVisibilityMatrix(): array
+    public function getRoleNavVisibilityMatrix(int $brandId): array
     {
-        return $this->decodeRoleNavVisibility();
+        return $this->decodeRoleNavVisibility($brandId);
     }
 
     /**
-     * Persist the per-role nav-visibility matrix. Only explicit hides (false) are
-     * stored, mirroring the global sidebar_nav_visibility convention.
+     * Persist the per-role nav-visibility matrix for a brand (or every brand when
+     * $allBrands is true). Only explicit hides (false) are stored, mirroring the
+     * global sidebar_nav_visibility convention.
      *
      * @param  array<string, array<string, mixed>>  $matrix
      */
-    public function saveRoleNavVisibility(array $matrix): void
+    public function saveRoleNavVisibility(int $brandId, array $matrix, bool $allBrands = false): void
     {
         $normalized = [];
         foreach ($matrix as $slug => $items) {
@@ -196,13 +197,18 @@ class SettingsCenterService
         }
 
         $json = json_encode($normalized, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-        $this->upsertAll('general', 'role_nav_visibility', $json);
+        if ($allBrands) {
+            $this->upsertAll('general', 'role_nav_visibility', $json);
+        } else {
+            $this->upsert($brandId, 'general', 'role_nav_visibility', $json);
+        }
     }
 
     /** @return array<string, array<string, bool>> */
-    private function decodeRoleNavVisibility(): array
+    private function decodeRoleNavVisibility(int $brandId): array
     {
         $row = SystemSetting::query()
+            ->where('brand_id', $brandId)
             ->where('setting_key', 'role_nav_visibility')
             ->whereNotNull('setting_value')
             ->where('setting_value', '!=', '')

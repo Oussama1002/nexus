@@ -80,9 +80,10 @@ class SettingsCenterController extends Controller
     public function roleNavVisibility(Request $request): JsonResponse
     {
         $this->requireView($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         return ApiResponse::success(
-            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix()],
+            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix($brandId)],
             'OK',
         );
     }
@@ -90,16 +91,22 @@ class SettingsCenterController extends Controller
     public function updateRoleNavVisibility(Request $request): JsonResponse
     {
         $this->requireUpdate($request);
+        $brandId = $this->resolveSettingsBrand($request);
 
         $payload = $request->validate([
             'items' => ['present', 'array'],
+            'all_brands' => ['sometimes', 'boolean'],
         ]);
 
-        $this->settingsCenter->saveRoleNavVisibility($payload['items'] ?? []);
-        AuditLogger::log($request, 'settings.role_nav_visibility.update', null, null, $payload['items'] ?? []);
+        $allBrands = (bool) ($payload['all_brands'] ?? false);
+        $this->settingsCenter->saveRoleNavVisibility($brandId, $payload['items'] ?? [], $allBrands);
+        AuditLogger::log($request, 'settings.role_nav_visibility.update', null, null, [
+            'brand_id' => $allBrands ? 'all' : $brandId,
+            'items' => $payload['items'] ?? [],
+        ]);
 
         return ApiResponse::success(
-            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix()],
+            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix($brandId)],
             'Enregistré.',
         );
     }
