@@ -90,6 +90,16 @@ const REPORT_PERIODS = [
   { value: 'month', label: 'Ce mois' },
 ];
 
+/**
+ * Statut de performance (spec §6.7/6.8). Seuils GO-CENTER : < 8 % danger,
+ * 8–12 % à améliorer, ≥ 12 % objectif atteint. (Seuils configurables à venir.)
+ */
+function performanceStatus(rate: number): { label: string; cls: string } {
+  if (rate >= 12) return { label: 'Objectif atteint', cls: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+  if (rate >= 8) return { label: 'À améliorer', cls: 'bg-amber-100 text-amber-800 border-amber-300' };
+  return { label: 'Danger, formation requise', cls: 'bg-rose-100 text-rose-800 border-rose-300' };
+}
+
 export function ConfirmatriceSpaceScreen({
   viewerRole,
   workspaceUserId,
@@ -547,7 +557,14 @@ export function ConfirmatriceSpaceScreen({
       <div className="card p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-black text-zinc-900">Rapport quotidien</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-black text-zinc-900">Rapport quotidien</p>
+              {report && (
+                <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${performanceStatus(report.confirmation_rate).cls}`}>
+                  {performanceStatus(report.confirmation_rate).label}
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-xs font-medium text-zinc-500">Calculé automatiquement sur les commandes de l’agente.</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
