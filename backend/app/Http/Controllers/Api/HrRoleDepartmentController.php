@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\HrRoleDepartment;
+use App\Models\Role;
 use App\Services\AuditLogger;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class HrRoleDepartmentController extends Controller
 {
@@ -44,11 +46,38 @@ class HrRoleDepartmentController extends Controller
             HrRoleDepartment::query()->delete();
             foreach ($rows as $row) {
                 HrRoleDepartment::query()->create($row);
+                $this->ensureRole($row['role_title']);
             }
         });
 
         AuditLogger::log($request, 'hr.role_departments.update', null, ['items' => $before], ['items' => $rows->all()]);
 
         return ApiResponse::success($rows->all(), 'Correspondances enregistrées.');
+    }
+
+    /**
+     * Chaque fonction RH existe aussi comme rôle dans « Rôles & permissions ».
+     * Ajout seulement : on ne supprime jamais un rôle quand une ligne RH
+     * disparaît — des comptes peuvent l'utiliser.
+     */
+    private function ensureRole(string $title): void
+    {
+        $slug = Str::slug($title);
+        if ($slug === '') {
+            return;
+        }
+
+        $exists = Role::query()
+            ->where('slug', $slug)
+            ->orWhere('name', $title)
+            ->exists();
+
+        if (! $exists) {
+            Role::query()->create([
+                'name' => $title,
+                'slug' => $slug,
+                'description' => 'Fonction RH',
+            ]);
+        }
     }
 }
