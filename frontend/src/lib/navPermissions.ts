@@ -155,12 +155,24 @@ export const ROLE_DEFAULT_VIEWS: Record<string, View[]> = {
   media_buyer: ['dashboard', 'ads', 'mediaBuying', 'collabProjects', 'reporting', 'automations'],
   stock_manager: ['dashboard', 'products', 'stock', 'stockMovements', 'delivery', 'deliveryDashboard', 'trackingParcels', 'deliveryFailures', 'returns', 'suppliers', 'purchaseOrders', 'knowledgeBase', 'academy', 'automations', 'mediaBuying', 'collabProjects'],
   community_manager: ['dashboard', 'whatsapp', 'leads', 'customers', 'brands', 'ads', 'mediaBuying', 'collabProjects', 'socialMedia', 'socialPublishing', 'socialAccounts', 'knowledgeBase', 'academy', 'automations'],
-  smm: ['dashboard', 'brands', 'ads', 'mediaBuying', 'collabProjects', 'reporting', 'leads', 'customers', 'socialMedia', 'socialPublishing', 'socialAccounts', 'influenceHub', 'knowledgeBase', 'academy', 'automations'],
-  influence_manager: ['dashboard', 'brands', 'leads', 'customers', 'influenceHub', 'reporting', 'academy', 'automations', 'mediaBuying', 'collabProjects'],
+  // Revue CRM point 5 — périmètre strictement « réseaux sociaux » (voir le plafond
+  // métier dans canAccessView). Pas de dashboard/rapports globaux, ni ads/media
+  // buying/leads/clients/finance/call center. L'influence n'apparaît que si le rôle
+  // « Responsable influence » est cumulé.
+  smm: ['socialMedia', 'socialPublishing', 'socialAccounts', 'brands', 'knowledgeBase', 'academy', 'myTrainings', 'collabProjects'],
+  influence_manager: ['influenceHub', 'brands', 'knowledgeBase', 'academy', 'myTrainings', 'collabProjects'],
   comptable: ['dashboard', 'comptabilite', 'finance', 'treasury', 'budgets', 'budgetRequests', 'expenses'],
   client_brand_owner: ['clientPortal', 'amWorkspace'],
   account_manager: ['dashboard', 'brands', 'customers', 'leads', 'mediaBuying', 'socialMedia', 'influenceHub', 'amWorkspace', 'collabProjects', 'reporting', 'academy', 'automations'],
 };
+
+/**
+ * Rôles « métier » cantonnés à leur périmètre pour la confidentialité (revue CRM
+ * point 5). Un utilisateur dont tous les rôles sont ici ne voit que l'union de
+ * leurs ROLE_DEFAULT_VIEWS. Cumuler un rôle hors de cette liste (ou admin/manager)
+ * lève le plafond.
+ */
+export const CEILINGED_ROLES: string[] = ['smm', 'influence_manager'];
 
 export function userHasPermissionSlug(userSlugs: Set<string>, required: string): boolean {
   if (userSlugs.has(required)) return true;
@@ -190,6 +202,18 @@ export function canAccessView(
   // universally accessible (e.g. internal messaging — everyone has DMs).
   const explicit = VIEW_PERMISSIONS[view];
   if (Array.isArray(explicit) && explicit.length === 0) return true;
+  // Revue CRM point 5 — plafond métier : un utilisateur dont TOUS les rôles sont
+  // des rôles « réseaux sociaux » cantonnés (SMM, Responsable influence) ne voit
+  // que l'union des périmètres de ces rôles, quelles que soient ses permissions.
+  // Cumuler un rôle élargit le périmètre ; un rôle large (admin/manager) n'est pas
+  // cantonné et lève ce plafond.
+  if (ctx.roleSlugs.length > 0 && ctx.roleSlugs.every((r) => CEILINGED_ROLES.includes(r))) {
+    const allowed = new Set<View>();
+    for (const role of ctx.roleSlugs) {
+      for (const v of ROLE_DEFAULT_VIEWS[role] ?? []) allowed.add(v);
+    }
+    if (!allowed.has(view)) return false;
+  }
   if (ctx.roleSlugs.length === 1 && ctx.roleSlugs[0] === 'client_brand_owner') {
     if (view !== 'clientPortal') return false;
   }
