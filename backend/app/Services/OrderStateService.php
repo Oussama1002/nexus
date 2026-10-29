@@ -104,6 +104,8 @@ class OrderStateService
             if ($toStatus === 'delivered' && $from !== 'delivered') {
                 $locked->delivered_at = $locked->delivered_at ?? now();
                 $this->orderFulfillmentService->dispatchStockForDeliveredOrder($locked, $user);
+                // Spec §6.6 : à la livraison, on amorce le suivi de fidélisation.
+                $this->ensureFirstFollowUp($locked, $user);
             }
 
             if ($toStatus === 'returned') {
@@ -182,6 +184,31 @@ class OrderStateService
         $order->save();
 
         return $order;
+    }
+
+    /**
+     * Amorce le suivi de fidélisation (spec §6.6) : premier rappel à J+7 après
+     * livraison, si la commande n'en a pas déjà un.
+     */
+    private function ensureFirstFollowUp(Order $order, User $user): void
+    {
+        if (! $order->customer_id) {
+            return;
+        }
+        if (\App\Models\CustomerFollowUp::query()->where('order_id', $order->id)->exists()) {
+            return;
+        }
+        \App\Models\CustomerFollowUp::query()->create([
+            'brand_id' => $order->brand_id,
+            'customer_id' => $order->customer_id,
+            'order_id' => $order->id,
+            'assigned_user_id' => $order->assigned_user_id,
+            'sequence' => 1,
+            'due_at' => now()->addDays(7)->toDateString(),
+            'status' => 'pending',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
     }
 
     /**

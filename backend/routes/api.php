@@ -194,6 +194,10 @@ Route::middleware('auth:sanctum')->group(function () {
     $registerCrud('brands', BrandController::class, 'brands');
     $registerCrud('customers', CustomerController::class, 'customers');
 
+    // Suivis de fidélisation (spec §6.6).
+    Route::get('customer-follow-ups', [\App\Http\Controllers\Api\CustomerFollowUpController::class, 'index'])->middleware('permission:customers.view');
+    Route::patch('customer-follow-ups/{id}', [\App\Http\Controllers\Api\CustomerFollowUpController::class, 'complete'])->whereNumber('id')->middleware('permission:customers.update');
+
     Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
     Route::post('leads', [LeadController::class, 'store'])->middleware('permission:leads.create');
     Route::get('leads/{id}', [LeadController::class, 'show'])->whereNumber('id')->middleware('permission:leads.view');

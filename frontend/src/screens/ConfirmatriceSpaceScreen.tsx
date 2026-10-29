@@ -38,6 +38,31 @@ type TodayReminder = {
   follow_up_note: string | null;
 };
 
+type FollowUp = {
+  id: number;
+  sequence: number;
+  due_at: string | null;
+  customer_name: string | null;
+  phone: string | null;
+  city: string | null;
+  order_number: string | null;
+};
+
+const FOLLOW_UP_RESULTS = [
+  { value: 'satisfait', label: 'Satisfait' },
+  { value: 'insatisfait', label: 'Insatisfait' },
+  { value: 'pas_de_reponse', label: 'Pas de réponse' },
+  { value: 'a_rappeler', label: 'À rappeler' },
+  { value: 'autre', label: 'Autre' },
+];
+
+const FOLLOW_UP_OPPORTUNITIES = [
+  { value: 'aucune', label: 'Aucune' },
+  { value: 'autre_produit', label: 'Intéressé par un autre produit' },
+  { value: 'offre_envoyee', label: 'Offre envoyée' },
+  { value: 'nouvelle_commande', label: 'Nouvelle commande' },
+];
+
 export function ConfirmatriceSpaceScreen({
   viewerRole,
   workspaceUserId,
@@ -81,6 +106,14 @@ export function ConfirmatriceSpaceScreen({
   const [error, setError] = useState<string | null>(null);
   const [dayReminders, setDayReminders] = useState<TodayReminder[]>([]);
   const [reminderBusy, setReminderBusy] = useState<number | null>(null);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  // Suivi en cours de saisie (modal).
+  const [activeFollowUp, setActiveFollowUp] = useState<FollowUp | null>(null);
+  const [fuResult, setFuResult] = useState('satisfait');
+  const [fuOpportunity, setFuOpportunity] = useState('aucune');
+  const [fuUpsell, setFuUpsell] = useState('');
+  const [fuNotes, setFuNotes] = useState('');
+  const [fuSaving, setFuSaving] = useState(false);
 
   const loadSummary = useCallback(async () => {
     if (!workspaceUserId || !activeBrandId) {
@@ -123,11 +156,49 @@ export function ConfirmatriceSpaceScreen({
     }
   }, [activeBrandId]);
 
+  const loadFollowUps = useCallback(async () => {
+    if (!workspaceUserId || !activeBrandId) {
+      setFollowUps([]);
+      return;
+    }
+    const res = await api.get<{ items: FollowUp[] }>(
+      `customer-follow-ups${buildQuery({ user_id: workspaceUserId })}`,
+      { brandId: activeBrandId },
+    );
+    setFollowUps(res.ok && res.data ? res.data.items : []);
+  }, [workspaceUserId, activeBrandId]);
+
+  const openFollowUp = useCallback((f: FollowUp) => {
+    setActiveFollowUp(f);
+    setFuResult('satisfait');
+    setFuOpportunity('aucune');
+    setFuUpsell('');
+    setFuNotes('');
+  }, []);
+
+  const submitFollowUp = useCallback(async () => {
+    if (!activeFollowUp) return;
+    setFuSaving(true);
+    const res = await api.patch(`customer-follow-ups/${activeFollowUp.id}`, {
+      result: fuResult,
+      opportunity: fuOpportunity,
+      upsell_amount: fuUpsell.trim() ? Number(fuUpsell) : null,
+      notes: fuNotes.trim() || null,
+    }, { brandId: activeBrandId });
+    setFuSaving(false);
+    if (res.ok) {
+      setFollowUps((prev) => prev.filter((x) => x.id !== activeFollowUp.id));
+      setActiveFollowUp(null);
+      void loadFollowUps();
+    }
+  }, [activeFollowUp, fuResult, fuOpportunity, fuUpsell, fuNotes, activeBrandId, loadFollowUps]);
+
   useEffect(() => {
     if (noConfirmatriceInDirectory && !isSelf) return;
     void loadSummary();
     void loadDayReminders();
-  }, [loadSummary, loadDayReminders, noConfirmatriceInDirectory, isSelf]);
+    void loadFollowUps();
+  }, [loadSummary, loadDayReminders, loadFollowUps, noConfirmatriceInDirectory, isSelf]);
 
   const confirmationRate = useMemo(() => {
     if (!summary) return 0;
@@ -347,6 +418,43 @@ export function ConfirmatriceSpaceScreen({
             )}
           </div>
 
+          <div className="card p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-zinc-900">Fidélisation — suivis à faire</p>
+                <p className="mt-1 text-xs font-medium text-zinc-500">Rappels post-livraison arrivant à échéance.</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black">{followUps.length}</span>
+            </div>
+            {followUps.length === 0 ? (
+              <p className="mt-4 text-sm font-medium text-zinc-500">Aucun suivi de fidélisation à faire aujourd’hui.</p>
+            ) : (
+              <div className="mt-4 space-y-2">
+                {followUps.map((f) => (
+                  <div key={f.id} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50/60 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-zinc-900 truncate">
+                        {f.customer_name ?? '—'}
+                        <span className="ml-2 text-[11px] font-black uppercase text-emerald-700">Suivi #{f.sequence}</span>
+                      </p>
+                      <p className="text-[11px] font-medium text-zinc-500 truncate">
+                        {[f.phone, f.city, f.order_number].filter(Boolean).join(' • ') || '—'}
+                        {f.due_at && <span className="ml-2 text-emerald-700 font-bold">échéance {new Date(f.due_at).toLocaleDateString('fr-FR')}</span>}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openFollowUp(f)}
+                      className="shrink-0 px-3 py-2 rounded-lg bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700"
+                    >
+                      Enregistrer
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ReminderList
               reminders={summary?.reminders ?? []}
@@ -393,6 +501,49 @@ export function ConfirmatriceSpaceScreen({
           </div>
         </div>
       </div>
+
+      <Modal
+        open={activeFollowUp !== null}
+        onClose={() => setActiveFollowUp(null)}
+        title="Enregistrer le suivi"
+        subtitle={activeFollowUp ? `${activeFollowUp.customer_name ?? ''} — suivi #${activeFollowUp.sequence}` : ''}
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button type="button" onClick={() => setActiveFollowUp(null)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50">
+              Fermer
+            </button>
+            <button
+              type="button"
+              disabled={fuSaving}
+              onClick={() => void submitFollowUp()}
+              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {fuSaving ? 'Enregistrement…' : 'Enregistrer & programmer le suivant'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block text-xs font-black uppercase text-zinc-700">Résultat
+              <select value={fuResult} onChange={(e) => setFuResult(e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-bold">
+                {FOLLOW_UP_RESULTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs font-black uppercase text-zinc-700">Opportunité
+              <select value={fuOpportunity} onChange={(e) => setFuOpportunity(e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-bold">
+                {FOLLOW_UP_OPPORTUNITIES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <label className="block text-xs font-black uppercase text-zinc-700">Vente additionnelle (MAD)
+            <input type="number" min={0} value={fuUpsell} onChange={(e) => setFuUpsell(e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm" placeholder="0.00" />
+          </label>
+          <label className="block text-xs font-black uppercase text-zinc-700">Notes
+            <textarea value={fuNotes} onChange={(e) => setFuNotes(e.target.value)} rows={3} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm resize-none" placeholder="Compte-rendu du suivi…" />
+          </label>
+        </div>
+      </Modal>
     </div>
   );
 }
