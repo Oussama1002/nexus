@@ -32,6 +32,8 @@ class UpdateAcademyCourseRequest extends FormRequest
             'cover_image_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
             'duration_minutes' => ['sometimes', 'integer', 'min:0'],
             'difficulty_level' => ['sometimes', Rule::in(['beginner', 'intermediate', 'advanced'])],
+            'target_roles' => ['sometimes', 'nullable', 'array'],
+            'target_roles.*' => ['string', 'max:191'],
             'learning_objectives' => ['sometimes', 'nullable', 'array'],
             'learning_objectives.*' => ['string', 'max:255'],
             'prerequisites' => ['sometimes', 'nullable', 'array'],

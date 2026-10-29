@@ -32,6 +32,8 @@ class StoreAcademyCourseRequest extends FormRequest
             'cover_image_url' => ['nullable', 'url', 'max:2048'],
             'duration_minutes' => ['nullable', 'integer', 'min:0'],
             'difficulty_level' => ['nullable', Rule::in(['beginner', 'intermediate', 'advanced'])],
+            'target_roles' => ['nullable', 'array'],
+            'target_roles.*' => ['string', 'max:191'],
             'learning_objectives' => ['nullable', 'array'],
             'learning_objectives.*' => ['string', 'max:255'],
             'prerequisites' => ['nullable', 'array'],

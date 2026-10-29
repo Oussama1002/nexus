@@ -40,10 +40,13 @@ class LearnController extends Controller
             ->where('student_id', $student->id)
             ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
             ->whereIn('status', ['pending', 'active', 'completed'])
-            ->with(['course:id,uuid,brand_id,title,slug,short_description,description,status,difficulty_level,duration_minutes'])
+            ->with(['course:id,uuid,brand_id,title,slug,short_description,description,status,difficulty_level,target_roles,duration_minutes'])
             ->orderByDesc('enrolled_at')
             ->orderByDesc('id')
             ->get();
+
+        $isAdmin = $user?->isAdmin() ?? false;
+        $userRoleSlugs = $this->userRoleSlugs($user);
 
         $enrollmentIds = $enrollments->pluck('id')->all();
         $certByEnrollment = Certificate::query()
@@ -51,9 +54,12 @@ class LearnController extends Controller
             ->get()
             ->keyBy('enrollment_id');
 
-        $data = $enrollments->map(function (Enrollment $e) use ($certByEnrollment) {
+        $data = $enrollments->map(function (Enrollment $e) use ($certByEnrollment, $userRoleSlugs, $isAdmin) {
             $course = $e->course;
             if (! $course) {
+                return null;
+            }
+            if (! $this->courseVisibleToRoles($course->target_roles, $userRoleSlugs, $isAdmin)) {
                 return null;
             }
 
@@ -100,7 +106,13 @@ class LearnController extends Controller
             ->when(! empty($enrolledCourseIds), fn ($q) => $q->whereNotIn('id', $enrolledCourseIds))
             ->withCount(['lessons', 'sections'])
             ->orderByDesc('id')
-            ->get(['id', 'title', 'slug', 'short_description', 'description', 'difficulty_level', 'duration_minutes']);
+            ->get(['id', 'title', 'slug', 'short_description', 'description', 'difficulty_level', 'target_roles', 'duration_minutes']);
+
+        $isAdmin = $user?->isAdmin() ?? false;
+        $userRoleSlugs = $this->userRoleSlugs($user);
+        $courses = $courses->filter(
+            fn (Course $c) => $this->courseVisibleToRoles($c->target_roles, $userRoleSlugs, $isAdmin)
+        );
 
         $data = $courses->map(fn (Course $c) => [
             'course' => [
@@ -113,7 +125,7 @@ class LearnController extends Controller
             ],
             'lessons_count' => (int) $c->lessons_count,
             'sections_count' => (int) $c->sections_count,
-        ]);
+        ])->values();
 
         return ApiResponse::success(['data' => $data], 'Catalog retrieved.');
     }
@@ -582,6 +594,35 @@ class LearnController extends Controller
         if ($justCompleted) {
             $this->ensureCertificate($enrollment);
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function userRoleSlugs($user): array
+    {
+        if (! $user) {
+            return [];
+        }
+        $user->loadMissing('roles');
+
+        return $user->roles->pluck('slug')->all();
+    }
+
+    /**
+     * Une formation sans rôles ciblés est visible par tous. Sinon, seuls les
+     * rôles listés (et les admins) la voient. Spec Confirmatrice §A.2.
+     *
+     * @param  array<int, string>|null  $targetRoles
+     * @param  array<int, string>  $userRoleSlugs
+     */
+    private function courseVisibleToRoles(?array $targetRoles, array $userRoleSlugs, bool $isAdmin): bool
+    {
+        if ($isAdmin || empty($targetRoles)) {
+            return true;
+        }
+
+        return count(array_intersect($targetRoles, $userRoleSlugs)) > 0;
     }
 
     private function resolveStudent($user, ?int $brandId): ?Student

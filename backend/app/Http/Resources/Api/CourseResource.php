@@ -28,6 +28,7 @@ class CourseResource extends JsonResource
             'cover_image_url' => $this->cover_image_url,
             'duration_minutes' => $this->duration_minutes,
             'difficulty_level' => $this->difficulty_level,
+            'target_roles' => $this->target_roles ?? [],
             'learning_objectives' => $this->learning_objectives ?? [],
             'prerequisites' => $this->prerequisites ?? [],
             'seo' => [

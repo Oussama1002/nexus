@@ -21,6 +21,7 @@ class Course extends AcademyModel
         'cover_image_url',
         'duration_minutes',
         'difficulty_level',
+        'target_roles',
         'learning_objectives',
         'prerequisites',
         'seo_title',
@@ -35,6 +36,7 @@ class Course extends AcademyModel
     protected $casts = [
         'learning_objectives' => 'array',
         'prerequisites' => 'array',
+        'target_roles' => 'array',
         'seo_keywords' => 'array',
         'published_at' => 'datetime',
         'is_featured' => 'boolean',

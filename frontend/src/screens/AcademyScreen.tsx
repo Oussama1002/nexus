@@ -59,6 +59,7 @@ type AcademyCourse = {
   currency: string;
   duration_minutes: number;
   difficulty_level: DifficultyLevel;
+  target_roles?: string[] | null;
   category?: { id: number; name: string; slug: string } | null;
   sections_count?: number;
   lessons_count?: number;
@@ -172,6 +173,7 @@ type CourseDraft = {
   currency: string;
   duration_minutes: string;
   difficulty_level: DifficultyLevel;
+  target_roles: string[];
   learning_objectives: string;
   prerequisites: string;
 };
@@ -192,7 +194,7 @@ const LESSON_TYPE_ICONS: Record<string, React.ReactNode> = {
 const defaultDraft: CourseDraft = {
   title: '', slug: '', short_description: '', description: '', status: 'draft',
   enrollment_type: 'free', price: '0', currency: 'MAD', duration_minutes: '0',
-  difficulty_level: 'beginner', learning_objectives: '', prerequisites: '',
+  difficulty_level: 'beginner', target_roles: [], learning_objectives: '', prerequisites: '',
 };
 
 /* ──────────── Helpers ──────────── */
@@ -236,6 +238,7 @@ function courseToDraft(course: AcademyCourse): CourseDraft {
     price: String(course.price ?? 0), currency: course.currency ?? 'MAD',
     duration_minutes: String(course.duration_minutes ?? 0),
     difficulty_level: course.difficulty_level ?? 'beginner',
+    target_roles: course.target_roles ?? [],
     learning_objectives: '', prerequisites: '',
   };
 }
@@ -252,6 +255,7 @@ function draftToPayload(draft: CourseDraft): Record<string, unknown> {
     currency: draft.currency.trim() || 'MAD',
     duration_minutes: Number.isFinite(Number(draft.duration_minutes)) ? Number(draft.duration_minutes) : 0,
     difficulty_level: draft.difficulty_level,
+    target_roles: draft.target_roles,
     learning_objectives: lo, prerequisites: pr,
   };
 }
@@ -525,6 +529,19 @@ function CoursesTab({
 
   const needsBrandPick = !editingCourse && brandId === 'all';
 
+  const rolesQuery = useQuery({
+    queryKey: ['academy-course-roles'],
+    queryFn: async () => {
+      const res = await api.get<unknown>(`roles${buildQuery({ per_page: 100 })}`);
+      if (!res.ok) throw new Error(res.message);
+      return res.data;
+    },
+  });
+  const roleOptions = useMemo(
+    () => parseRows<{ id: number; name: string; slug: string }>(rolesQuery.data),
+    [rolesQuery.data],
+  );
+
   const queryKey = ['academy-courses', brandId, q, status];
 
   const coursesQuery = useQuery({
@@ -684,6 +701,31 @@ function CoursesTab({
             <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
               <input type="number" min={0} value={draft.duration_minutes} onChange={(e) => setDraft((d) => ({ ...d, duration_minutes: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase text-zinc-900">Rôles ciblés</p>
+            <p className="text-[11px] font-medium text-zinc-500 mt-0.5">Laisser vide = visible par tous. Sinon, seuls les rôles cochés voient la formation.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {roleOptions.map((r) => {
+                const on = draft.target_roles.includes(r.slug);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setDraft((d) => ({
+                      ...d,
+                      target_roles: on ? d.target_roles.filter((s) => s !== r.slug) : [...d.target_roles, r.slug],
+                    }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition-colors ${
+                      on ? 'bg-primary-600 text-white border-primary-700' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    {r.name}
+                  </button>
+                );
+              })}
+              {roleOptions.length === 0 && <span className="text-sm text-zinc-400">Aucun rôle.</span>}
+            </div>
           </div>
         </div>
       </Modal>
