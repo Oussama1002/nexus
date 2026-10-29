@@ -127,6 +127,7 @@ class OrderController extends Controller
                     'total' => 0,
                     'shipping_address' => $data['shipping_address'] ?? null,
                     'notes' => $data['notes'] ?? null,
+                    'follow_up_note' => $data['follow_up_note'] ?? null,
                 ]);
 
                 $this->syncLines($order, $data['lines'], $brandId);
@@ -229,7 +230,7 @@ class OrderController extends Controller
 
         $order->fill(collect($data)->only([
             'customer_id', 'lead_id', 'assigned_user_id', 'source', 'payment_method', 'payment_state',
-            'shipping_fee', 'discount', 'shipping_address', 'notes',
+            'shipping_fee', 'discount', 'shipping_address', 'notes', 'follow_up_note',
         ])->all());
         $order->payment_state = $transfer['payment_state'] ?? $order->payment_state;
         $order->bank_transfer_declared_paid = $transfer['bank_transfer_declared_paid'];

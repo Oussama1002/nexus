@@ -36,6 +36,7 @@ class UpdateOrderRequest extends FormRequest
             'discount' => ['nullable', 'numeric', 'min:0'],
             'shipping_address' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
+            'follow_up_note' => ['nullable', 'string', 'max:255'],
             'lines' => ['sometimes', 'array', 'min:1'],
             'lines.*.id' => ['sometimes', 'integer', 'exists:order_lines,id'],
             'lines.*.product_id' => ['nullable', 'integer', 'exists:products,id'],

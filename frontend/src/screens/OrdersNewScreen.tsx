@@ -59,7 +59,8 @@ export function OrdersNewScreen({
   const [dispatchTarget, setDispatchTarget] = useState<DispatchTarget | null>(null);
   const customerBoxRef = useRef<HTMLDivElement>(null);
 
-  const [source, setSource] = useState<OrderSource>('WhatsApp');
+  const [source, setSource] = useState<OrderSource>('WhatsApp direct');
+  const [followUpNote, setFollowUpNote] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('+212 ');
   const [city, setCity] = useState('Casablanca');
@@ -214,6 +215,7 @@ export function OrdersNewScreen({
       // Mémorisé sur la fiche client pour les prochaines commandes.
       shipping_city: city.trim() || null,
       notes: notes.trim() || null,
+      follow_up_note: followUpNote.trim() || null,
       lines: lines.map((l) => ({
         product_id: l.productId ?? null,
         product_name: l.name,
@@ -528,15 +530,27 @@ export function OrdersNewScreen({
                 <p className="text-[11px] font-medium text-zinc-500">Marque active (session).</p>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Source</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Origine de la commande <span className="text-rose-500">*</span></label>
                 <select value={source} onChange={(e) => setSource(e.target.value as OrderSource)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold text-zinc-700 outline-none">
-                  <option>WhatsApp</option>
+                  <option>WhatsApp direct</option>
+                  <option>Publicité Instagram</option>
+                  <option>Instagram organique</option>
                   <option>Facebook</option>
                   <option>TikTok</option>
-                  <option>Instagram</option>
-                  <option>Google</option>
+                  <option>Influenceur / Influenceuse</option>
+                  <option>Recommandation</option>
                   <option>Autre</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Note de suivi</label>
+                <input
+                  value={followUpNote}
+                  onChange={(e) => setFollowUpNote(e.target.value)}
+                  maxLength={255}
+                  placeholder="Note courte visible dans la liste…"
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
+                />
               </div>
             </div>
           </div>

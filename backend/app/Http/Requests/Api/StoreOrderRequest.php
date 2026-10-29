@@ -39,6 +39,7 @@ class StoreOrderRequest extends FormRequest
             // Ville de livraison : sert à compléter la fiche client pour les prochaines commandes.
             'shipping_city' => ['nullable', 'string', 'max:120'],
             'notes' => ['nullable', 'string'],
+            'follow_up_note' => ['nullable', 'string', 'max:255'],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
             'lines.*.product_name' => ['required', 'string', 'max:255'],

@@ -33,6 +33,7 @@ type ApiOrderRow = {
   bank_transfer_verification_note?: string | null;
   total: string;
   notes?: string | null;
+  follow_up_note?: string | null;
   cancellation_reason?: string | null;
   double_confirmation_status?: string | null;
   created_at: string;
@@ -54,6 +55,7 @@ type OrderDetail = {
   shipping_address: string | null;
   created_at: string;
   confirmed_at: string | null;
+  follow_up_note?: string | null;
   double_confirmation_status?: string | null;
   double_confirmed_at?: string | null;
   delivered_at: string | null;
@@ -254,6 +256,7 @@ function mapOrder(o: ApiOrderRow, brandName: string): Order {
         price: Number(ln.unit_price),
       })) ?? [],
     notes: o.notes ?? undefined,
+    followUpNote: o.follow_up_note ?? undefined,
     cancellationReason: o.cancellation_reason ?? undefined,
     doubleConfirmation: (o.double_confirmation_status as 'pending' | 'done' | null | undefined) ?? null,
     shipment: o.shipment
@@ -430,6 +433,8 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   // Détail complet (frais, facture, expédition, historique) : la liste ne
   // transporte qu'un résumé.
   const [detail, setDetail] = useState<OrderDetail | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
 
   useEffect(() => {
     if (!selected) {
@@ -440,12 +445,29 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
     setDetail(null);
     void (async () => {
       const res = await api.get<OrderDetail>(`orders/${selected.apiId}`);
-      if (!cancelled && res.ok && res.data) setDetail(res.data);
+      if (!cancelled && res.ok && res.data) {
+        setDetail(res.data);
+        setNoteDraft(res.data.follow_up_note ?? '');
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [selected]);
+
+  async function saveFollowUpNote() {
+    if (!selected) return;
+    setNoteSaving(true);
+    const res = await api.patch(`orders/${selected.apiId}`, { follow_up_note: noteDraft.trim() || null });
+    setNoteSaving(false);
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success('Note de suivi enregistrée.');
+    setDetail((d) => (d ? { ...d, follow_up_note: noteDraft.trim() || null } : d));
+    await load();
+  }
 
   async function patchStatus(next: OrderStatus, extraPayload?: Record<string, unknown>) {
     if (!selected) return;
@@ -561,6 +583,11 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
             <p className="text-[11px] font-medium text-zinc-500">
               {o.phone} • {o.city}
             </p>
+            {o.followUpNote && (
+              <p className="text-[11px] font-semibold text-amber-700 italic truncate max-w-[220px]" title={o.followUpNote}>
+                📝 {o.followUpNote}
+              </p>
+            )}
           </div>
         ),
       },
@@ -922,6 +949,28 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                   </>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Note de suivi</p>
+              <input
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                maxLength={255}
+                disabled={!hasPermission('orders.update')}
+                placeholder="Note courte visible dans la liste…"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 text-sm disabled:opacity-60"
+              />
+              {hasPermission('orders.update') && (
+                <button
+                  type="button"
+                  disabled={noteSaving || noteDraft === (detail?.follow_up_note ?? '')}
+                  onClick={() => void saveFollowUpNote()}
+                  className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {noteSaving ? 'Enregistrement…' : 'Enregistrer la note'}
+                </button>
+              )}
             </div>
 
             {detail?.shipment && (

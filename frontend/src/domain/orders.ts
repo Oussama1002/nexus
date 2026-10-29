@@ -33,6 +33,8 @@ export type Order = {
   total: number;
   items: OrderLine[];
   notes?: string;
+  /** Note de suivi courte, visible dans la liste (spec §6.1). */
+  followUpNote?: string;
   cancellationReason?: string;
   /** Double confirmation (spec §6.8) : null = non applicable, 'pending' = à faire, 'done' = faite. */
   doubleConfirmation?: 'pending' | 'done' | null;

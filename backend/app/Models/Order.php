@@ -115,6 +115,7 @@ class Order extends Model
         'total',
         'shipping_address',
         'notes',
+        'follow_up_note',
         'cancellation_reason',
         'confirmed_at',
         'double_confirmation_status',
