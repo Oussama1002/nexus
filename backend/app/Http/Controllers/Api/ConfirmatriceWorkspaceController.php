@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
+use App\Models\CustomerFollowUp;
 use App\Models\Lead;
+use App\Models\Message;
 use App\Models\Order;
 use App\Models\Reminder;
 use App\Support\ApiBrandContext;
@@ -121,5 +123,120 @@ class ConfirmatriceWorkspaceController extends Controller
                 'meta' => '',
             ]),
         ], 'Workspace summary retrieved successfully.');
+    }
+
+    /**
+     * Rapport quotidien automatique (spec §6.7). Calculé sur les commandes de
+     * l'agente pour la période choisie (aujourd'hui par défaut).
+     *
+     * Note : les indicateurs d'appels (appels effectués, décrochés, personnes
+     * appelées, taux de joignabilité) nécessitent une journalisation des appels
+     * qui n'existe pas encore — ils ne sont pas calculés ici.
+     */
+    public function dailyReport(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $actor = $request->user();
+        if (! $actor) {
+            throw new AccessDeniedHttpException('Unauthenticated.');
+        }
+
+        $targetId = (int) $request->query('user_id', (int) $actor->id);
+        $actor->loadMissing('roles');
+        if ($targetId !== (int) $actor->id && ! $actor->isAdmin() && ! $actor->isManagerOperational()) {
+            throw new AccessDeniedHttpException('Forbidden.');
+        }
+
+        // Période : today | yesterday | week | month (défaut today).
+        $period = (string) $request->query('period', 'today');
+        [$from, $to] = $this->periodRange($period);
+
+        $base = Order::query()->where('assigned_user_id', $targetId);
+        ApiBrandContext::scopeBrand($base, $brandId);
+        $base->whereBetween('created_at', [$from, $to]);
+
+        $byStatus = (clone $base)
+            ->selectRaw('status, COUNT(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $byOrigin = (clone $base)
+            ->selectRaw("COALESCE(NULLIF(source, ''), 'Non précisé') as origin, COUNT(*) as c")
+            ->groupBy('origin')
+            ->orderByDesc('c')
+            ->get()
+            ->map(fn ($r) => ['origin' => $r->origin, 'count' => (int) $r->c]);
+
+        $total = (int) (clone $base)->count();
+        $confirmed = (int) ($byStatus['confirmed'] ?? 0);
+
+        // Messages reçus : messages entrants des conversations de l'agente.
+        $messagesReceived = (int) Message::query()
+            ->where('direction', 'inbound')
+            ->whereBetween('sent_at', [$from, $to])
+            ->whereHas('conversation', function ($c) use ($targetId, $brandId) {
+                $c->where('assigned_user_id', $targetId);
+                if ($brandId !== null) {
+                    $c->where('brand_id', $brandId);
+                }
+            })
+            ->count();
+
+        // Double confirmation sur les commandes de l'agente (toutes périodes).
+        $dcBase = Order::query()->where('assigned_user_id', $targetId);
+        ApiBrandContext::scopeBrand($dcBase, $brandId);
+        $dcPending = (int) (clone $dcBase)->where('double_confirmation_status', 'pending')->count();
+        $dcDone = (int) (clone $dcBase)->where('double_confirmation_status', 'done')->count();
+
+        // Fidélisation : ventes additionnelles sur la période.
+        $fuBase = CustomerFollowUp::query()->where('assigned_user_id', $targetId)->whereBetween('completed_at', [$from, $to]);
+        if ($brandId !== null) {
+            $fuBase->where('brand_id', $brandId);
+        }
+        $upsellTotal = (float) (clone $fuBase)->sum('upsell_amount');
+
+        // Taux de confirmation : confirmées / messages reçus (calcul GO-CENTER),
+        // repli sur confirmées / total commandes si aucun message.
+        $confirmationRate = $messagesReceived > 0
+            ? round(100 * $confirmed / $messagesReceived, 1)
+            : ($total > 0 ? round(100 * $confirmed / $total, 1) : 0);
+
+        return ApiResponse::success([
+            'period' => $period,
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'messages_received' => $messagesReceived,
+            'orders_total' => $total,
+            'orders_confirmed' => $confirmed,
+            'orders_pending' => (int) ($byStatus['pending'] ?? 0),
+            'orders_cancelled' => (int) ($byStatus['cancelled'] ?? 0),
+            'orders_scheduled' => (int) ($byStatus['scheduled'] ?? 0),
+            'orders_postponed' => (int) ($byStatus['postponed'] ?? 0),
+            'orders_shipped' => (int) ($byStatus['shipped'] ?? 0),
+            'orders_delivered' => (int) ($byStatus['delivered'] ?? 0),
+            'orders_returned' => (int) ($byStatus['returned'] ?? 0),
+            'double_confirmation_pending' => $dcPending,
+            'double_confirmation_done' => $dcDone,
+            'upsell_amount' => $upsellTotal,
+            'confirmation_rate' => $confirmationRate,
+            'by_origin' => $byOrigin,
+            // Indicateurs d'appels non disponibles sans journalisation des appels.
+            'calls_available' => false,
+        ], 'Rapport quotidien.');
+    }
+
+    /**
+     * @return array{0: \Illuminate\Support\Carbon, 1: \Illuminate\Support\Carbon}
+     */
+    private function periodRange(string $period): array
+    {
+        $now = now();
+
+        return match ($period) {
+            'yesterday' => [$now->copy()->subDay()->startOfDay(), $now->copy()->subDay()->endOfDay()],
+            'week' => [$now->copy()->startOfWeek(), $now->copy()->endOfDay()],
+            'month' => [$now->copy()->startOfMonth(), $now->copy()->endOfDay()],
+            default => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
+        };
     }
 }

@@ -149,6 +149,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('notifications', [DashboardController::class, 'notifications']);
 
     Route::get('confirmatrice-workspace/summary', [ConfirmatriceWorkspaceController::class, 'summary']);
+    Route::get('confirmatrice-workspace/daily-report', [ConfirmatriceWorkspaceController::class, 'dailyReport']);
 
     $registerCrud = function (string $path, string $controller, string $module): void {
         Route::get($path, [$controller, 'index'])->middleware("permission:{$module}.view");

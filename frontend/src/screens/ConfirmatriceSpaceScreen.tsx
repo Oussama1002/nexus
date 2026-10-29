@@ -63,6 +63,33 @@ const FOLLOW_UP_OPPORTUNITIES = [
   { value: 'nouvelle_commande', label: 'Nouvelle commande' },
 ];
 
+type DailyReport = {
+  period: string;
+  messages_received: number;
+  orders_total: number;
+  orders_confirmed: number;
+  orders_pending: number;
+  orders_cancelled: number;
+  orders_scheduled: number;
+  orders_postponed: number;
+  orders_shipped: number;
+  orders_delivered: number;
+  orders_returned: number;
+  double_confirmation_pending: number;
+  double_confirmation_done: number;
+  upsell_amount: number;
+  confirmation_rate: number;
+  by_origin: { origin: string; count: number }[];
+  calls_available: boolean;
+};
+
+const REPORT_PERIODS = [
+  { value: 'today', label: "Aujourd'hui" },
+  { value: 'yesterday', label: 'Hier' },
+  { value: 'week', label: 'Cette semaine' },
+  { value: 'month', label: 'Ce mois' },
+];
+
 export function ConfirmatriceSpaceScreen({
   viewerRole,
   workspaceUserId,
@@ -114,6 +141,8 @@ export function ConfirmatriceSpaceScreen({
   const [fuUpsell, setFuUpsell] = useState('');
   const [fuNotes, setFuNotes] = useState('');
   const [fuSaving, setFuSaving] = useState(false);
+  const [report, setReport] = useState<DailyReport | null>(null);
+  const [reportPeriod, setReportPeriod] = useState('today');
 
   const loadSummary = useCallback(async () => {
     if (!workspaceUserId || !activeBrandId) {
@@ -193,12 +222,25 @@ export function ConfirmatriceSpaceScreen({
     }
   }, [activeFollowUp, fuResult, fuOpportunity, fuUpsell, fuNotes, activeBrandId, loadFollowUps]);
 
+  const loadReport = useCallback(async () => {
+    if (!workspaceUserId || !activeBrandId) {
+      setReport(null);
+      return;
+    }
+    const res = await api.get<DailyReport>(
+      `confirmatrice-workspace/daily-report${buildQuery({ user_id: workspaceUserId, period: reportPeriod })}`,
+      { brandId: activeBrandId },
+    );
+    setReport(res.ok && res.data ? res.data : null);
+  }, [workspaceUserId, activeBrandId, reportPeriod]);
+
   useEffect(() => {
     if (noConfirmatriceInDirectory && !isSelf) return;
     void loadSummary();
     void loadDayReminders();
     void loadFollowUps();
-  }, [loadSummary, loadDayReminders, loadFollowUps, noConfirmatriceInDirectory, isSelf]);
+    void loadReport();
+  }, [loadSummary, loadDayReminders, loadFollowUps, loadReport, noConfirmatriceInDirectory, isSelf]);
 
   const confirmationRate = useMemo(() => {
     if (!summary) return 0;
@@ -500,6 +542,76 @@ export function ConfirmatriceSpaceScreen({
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="card p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-zinc-900">Rapport quotidien</p>
+            <p className="mt-1 text-xs font-medium text-zinc-500">Calculé automatiquement sur les commandes de l’agente.</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {REPORT_PERIODS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setReportPeriod(p.value)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-black border transition-colors ${
+                  reportPeriod === p.value ? 'bg-primary-600 text-white border-primary-700' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {!report ? (
+          <p className="mt-4 text-sm font-medium text-zinc-500">Aucune donnée pour cette période.</p>
+        ) : (
+          <>
+            <div className="mt-5 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
+              {[
+                { l: 'Messages reçus', v: report.messages_received },
+                { l: 'Confirmées', v: report.orders_confirmed },
+                { l: 'En attente', v: report.orders_pending },
+                { l: 'Refus / annulées', v: report.orders_cancelled },
+                { l: 'Programmées', v: report.orders_scheduled },
+                { l: 'Reportées', v: report.orders_postponed },
+                { l: 'Expédiées', v: report.orders_shipped },
+                { l: 'Livrées', v: report.orders_delivered },
+                { l: 'Retours', v: report.orders_returned },
+                { l: '2ᵉ conf. à faire', v: report.double_confirmation_pending },
+                { l: '2ᵉ conf. faite', v: report.double_confirmation_done },
+                { l: 'Taux de confirmation', v: `${report.confirmation_rate}%` },
+              ].map((k) => (
+                <div key={k.l} className="card-muted p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">{k.l}</p>
+                  <p className="mt-1 text-xl font-black text-zinc-900">{k.v}</p>
+                </div>
+              ))}
+            </div>
+
+            {report.by_origin.length > 0 && (
+              <div className="mt-5">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2">Répartition par origine</p>
+                <div className="flex flex-wrap gap-2">
+                  {report.by_origin.map((o) => (
+                    <span key={o.origin} className="px-3 py-1.5 rounded-lg bg-zinc-50 border border-zinc-200 text-sm font-bold text-zinc-700">
+                      {o.origin} <span className="text-primary-700">· {o.count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!report.calls_available && (
+              <p className="mt-4 text-[11px] font-medium text-zinc-400">
+                Les indicateurs d’appels (effectués, décrochés, joignabilité) nécessitent la journalisation des appels — non disponible pour l’instant.
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       <Modal
