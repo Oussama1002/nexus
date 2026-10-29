@@ -222,6 +222,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('whatsapp/templates', [ConversationController::class, 'createTemplate'])->middleware('permission:settings.update');
     Route::delete('whatsapp/templates/{name}', [ConversationController::class, 'deleteTemplate'])->where('name', '[a-z0-9_]+')->middleware('permission:settings.update');
 
+    Route::get('orders/today-reminders', [OrderController::class, 'todayReminders'])->middleware('permission:orders.view');
     Route::get('orders', [OrderController::class, 'index'])->middleware('permission:orders.view');
     Route::post('orders', [OrderController::class, 'store'])->middleware('permission:orders.create');
     Route::get('orders/{id}', [OrderController::class, 'show'])->whereNumber('id')->middleware('permission:orders.view');
@@ -230,6 +231,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('orders/{id}', [OrderController::class, 'destroy'])->whereNumber('id')->middleware('permission:orders.delete');
     Route::patch('orders/{id}/status', [OrderController::class, 'updateStatus'])->whereNumber('id')->middleware('permission:orders.update');
     Route::patch('orders/{id}/double-confirmation', [OrderController::class, 'doubleConfirm'])->whereNumber('id')->middleware('permission:orders.update');
+    Route::patch('orders/{id}/reminder-handled', [OrderController::class, 'markReminderHandled'])->whereNumber('id')->middleware('permission:orders.update');
     Route::post('orders/{id}/archive', [OrderController::class, 'archive'])->whereNumber('id')->middleware('permission:orders.delete');
     Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->whereNumber('id')->middleware('permission:orders.update');
 

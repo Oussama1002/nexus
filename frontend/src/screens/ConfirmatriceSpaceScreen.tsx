@@ -26,6 +26,18 @@ type WorkspaceSummary = {
   reminders: Reminder[];
 };
 
+type TodayReminder = {
+  id: number;
+  order_number: string;
+  status: string;
+  customer_name: string | null;
+  phone: string | null;
+  city: string | null;
+  product: string | null;
+  due_date: string | null;
+  follow_up_note: string | null;
+};
+
 export function ConfirmatriceSpaceScreen({
   viewerRole,
   workspaceUserId,
@@ -67,6 +79,8 @@ export function ConfirmatriceSpaceScreen({
   const [summary, setSummary] = useState<WorkspaceSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dayReminders, setDayReminders] = useState<TodayReminder[]>([]);
+  const [reminderBusy, setReminderBusy] = useState<number | null>(null);
 
   const loadSummary = useCallback(async () => {
     if (!workspaceUserId || !activeBrandId) {
@@ -88,10 +102,32 @@ export function ConfirmatriceSpaceScreen({
     setLoading(false);
   }, [workspaceUserId, activeBrandId]);
 
+  const loadDayReminders = useCallback(async () => {
+    if (!workspaceUserId || !activeBrandId) {
+      setDayReminders([]);
+      return;
+    }
+    const res = await api.get<{ items: TodayReminder[] }>(
+      `orders/today-reminders${buildQuery({ user_id: workspaceUserId })}`,
+      { brandId: activeBrandId },
+    );
+    setDayReminders(res.ok && res.data ? res.data.items : []);
+  }, [workspaceUserId, activeBrandId]);
+
+  const markReminderHandled = useCallback(async (orderId: number) => {
+    setReminderBusy(orderId);
+    const res = await api.patch(`orders/${orderId}/reminder-handled`, {}, { brandId: activeBrandId });
+    setReminderBusy(null);
+    if (res.ok) {
+      setDayReminders((prev) => prev.filter((r) => r.id !== orderId));
+    }
+  }, [activeBrandId]);
+
   useEffect(() => {
     if (noConfirmatriceInDirectory && !isSelf) return;
     void loadSummary();
-  }, [loadSummary, noConfirmatriceInDirectory, isSelf]);
+    void loadDayReminders();
+  }, [loadSummary, loadDayReminders, noConfirmatriceInDirectory, isSelf]);
 
   const confirmationRate = useMemo(() => {
     if (!summary) return 0;
@@ -270,6 +306,45 @@ export function ConfirmatriceSpaceScreen({
                 </button>
               </div>
             </div>
+          </div>
+
+          <div className="card p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-zinc-900">À faire aujourd’hui</p>
+                <p className="mt-1 text-xs font-medium text-zinc-500">Commandes programmées / reportées arrivant à échéance.</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-black">{dayReminders.length}</span>
+            </div>
+            {dayReminders.length === 0 ? (
+              <p className="mt-4 text-sm font-medium text-zinc-500">Aucun rappel pour aujourd’hui.</p>
+            ) : (
+              <div className="mt-4 space-y-2">
+                {dayReminders.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50/60 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-zinc-900 truncate">
+                        {r.customer_name ?? '—'}
+                        <span className="ml-2 text-[11px] font-black uppercase text-zinc-400">{r.order_number}</span>
+                      </p>
+                      <p className="text-[11px] font-medium text-zinc-500 truncate">
+                        {[r.phone, r.city, r.product].filter(Boolean).join(' • ') || '—'}
+                        {r.due_date && <span className="ml-2 text-amber-700 font-bold">échéance {new Date(r.due_date).toLocaleDateString('fr-FR')}</span>}
+                      </p>
+                      {r.follow_up_note && <p className="text-[11px] font-semibold text-amber-700 italic truncate">📝 {r.follow_up_note}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={reminderBusy === r.id}
+                      onClick={() => void markReminderHandled(r.id)}
+                      className="shrink-0 px-3 py-2 rounded-lg bg-primary-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      {reminderBusy === r.id ? '…' : 'Marquer traité'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

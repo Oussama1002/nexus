@@ -342,6 +342,9 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
   const [statusSaving, setStatusSaving] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  // Modal d'échéance pour Programmé / Reporté (spec §6.2/6.3).
+  const [scheduleModal, setScheduleModal] = useState<null | 'Programmé' | 'Reporté'>(null);
+  const [scheduleDate, setScheduleDate] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   // Vue « Archives » : commandes mises de côté (non supprimées).
   const [showArchived, setShowArchived] = useState(false);
@@ -1109,16 +1112,16 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
                     <button
                       type="button"
                       disabled={statusSaving || selected.status === 'Programmé'}
-                      onClick={() => void patchStatus('Programmé')}
-                      className="py-3 rounded-xl border border-accent-200 text-accent-700 font-black text-sm hover:bg-accent-50 transition-colors disabled:opacity-50"
+                      onClick={() => { setScheduleDate(''); setScheduleModal('Programmé'); }}
+                      className="py-3 rounded-xl border border-pink-200 text-pink-700 font-black text-sm hover:bg-pink-50 transition-colors disabled:opacity-50"
                     >
                       Programmer
                     </button>
                     <button
                       type="button"
                       disabled={statusSaving || selected.status === 'Reporté'}
-                      onClick={() => void patchStatus('Reporté')}
-                      className="py-3 rounded-xl border border-amber-200 text-amber-700 font-black text-sm hover:bg-amber-50 transition-colors disabled:opacity-50"
+                      onClick={() => { setScheduleDate(''); setScheduleModal('Reporté'); }}
+                      className="py-3 rounded-xl border border-purple-200 text-purple-700 font-black text-sm hover:bg-purple-50 transition-colors disabled:opacity-50"
                     >
                       Reporter
                     </button>
@@ -1210,6 +1213,49 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
             rows={3}
             className="w-full px-3 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium resize-none"
             placeholder="Motif d'annulation…"
+            autoFocus
+          />
+        </div>
+      </Modal>
+
+      {/* Schedule / postpone date modal (spec §6.2/6.3) */}
+      <Modal
+        open={scheduleModal !== null}
+        onClose={() => setScheduleModal(null)}
+        title={scheduleModal === 'Reporté' ? 'Reporter la commande' : 'Programmer la commande'}
+        subtitle={selected ? `Commande ${selected.id}` : ''}
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button type="button" onClick={() => setScheduleModal(null)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50">
+              Fermer
+            </button>
+            <button
+              type="button"
+              disabled={statusSaving || !scheduleDate}
+              onClick={async () => {
+                const target = scheduleModal;
+                if (!target) return;
+                await patchStatus(target, { follow_up_date: scheduleDate });
+                setScheduleModal(null);
+              }}
+              className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700 disabled:opacity-50"
+            >
+              {statusSaving ? 'Enregistrement…' : 'Valider'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-zinc-600">
+            {scheduleModal === 'Reporté'
+              ? 'Date de relance : un rappel apparaîtra dans « À faire aujourd’hui » à cette date.'
+              : 'Date de livraison prévue : un rappel apparaîtra dans « À faire aujourd’hui » à cette date.'}
+          </p>
+          <input
+            type="date"
+            value={scheduleDate}
+            onChange={(e) => setScheduleDate(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium"
             autoFocus
           />
         </div>

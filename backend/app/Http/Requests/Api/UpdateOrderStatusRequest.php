@@ -21,6 +21,8 @@ class UpdateOrderStatusRequest extends FormRequest
             'status' => ['required', Rule::in(['draft', 'pending', 'confirmed', 'scheduled', 'postponed', 'cancelled', 'returned', 'delivered', 'other'])],
             'note' => ['nullable', 'string', 'max:2000'],
             'cancellation_reason' => ['nullable', 'string', 'max:2000'],
+            // Échéance pour Programmé (livraison prévue) / Reporté (relance).
+            'follow_up_date' => ['nullable', 'date'],
         ];
     }
 }

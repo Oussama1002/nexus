@@ -277,6 +277,17 @@ class OrderController extends Controller
             return ApiResponse::error($e->getMessage(), null, 422);
         }
 
+        // Spec §6.2/6.3 : Programmé / Reporté portent une échéance de rappel.
+        // Le passage en échéance réactive le rappel (sort du « traité »).
+        if (in_array($to, ['scheduled', 'postponed'], true)) {
+            $followUpDate = $request->validated()['follow_up_date'] ?? null;
+            if ($followUpDate) {
+                $order->follow_up_date = $followUpDate;
+                $order->follow_up_handled_at = null;
+                $order->save();
+            }
+        }
+
         AuditLogger::log($request, 'orders.status', $order, null, ['status' => $to]);
         $this->automationEngine->runForEvent($brandId, 'order.status_changed', [
             'order_id' => $order->id,
@@ -322,6 +333,65 @@ class OrderController extends Controller
             $order->load(['lines', 'events']),
             $done ? 'Double confirmation faite.' : 'Double confirmation remise à faire.'
         );
+    }
+
+    /**
+     * Rappels du jour (spec §6.3) : commandes programmées/reportées dont
+     * l'échéance est atteinte et pas encore traitées. Scoped à l'agent (ou
+     * ?user_id pour admin/manager).
+     */
+    public function todayReminders(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $user = $request->user();
+
+        $targetId = (int) $user->id;
+        $requested = (int) $request->query('user_id');
+        if ($requested > 0 && $requested !== (int) $user->id && UserRoleHelper::hasGlobalScope($user)) {
+            $targetId = $requested;
+        }
+
+        $q = Order::query()
+            ->with(['customer:id,full_name,phone,city', 'lines:id,order_id,product_name'])
+            ->where('assigned_user_id', $targetId)
+            ->whereIn('status', ['scheduled', 'postponed'])
+            ->whereNotNull('follow_up_date')
+            ->whereDate('follow_up_date', '<=', now()->toDateString())
+            ->whereNull('follow_up_handled_at')
+            ->orderBy('follow_up_date');
+        ApiBrandContext::scopeBrand($q, $brandId);
+
+        $items = $q->limit(100)->get()->map(fn (Order $o) => [
+            'id' => $o->id,
+            'order_number' => $o->order_number,
+            'status' => $o->status,
+            'customer_name' => $o->customer?->full_name,
+            'phone' => $o->customer?->phone,
+            'city' => $o->customer?->city,
+            'product' => $o->lines->first()?->product_name,
+            'due_date' => optional($o->follow_up_date)->toDateString(),
+            'follow_up_note' => $o->follow_up_note,
+        ]);
+
+        return ApiResponse::success(['items' => $items, 'total' => $items->count()], 'Rappels du jour.');
+    }
+
+    /** Marque un rappel de commande comme traité (spec §6.3). */
+    public function markReminderHandled(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $order = Order::query()
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->findOrFail($id);
+
+        $order->follow_up_handled_at = now();
+        $order->save();
+
+        AuditLogger::log($request, 'orders.reminder_handled', $order, null, [
+            'follow_up_handled_at' => $order->follow_up_handled_at,
+        ]);
+
+        return ApiResponse::success(['id' => $order->id], 'Rappel marqué comme traité.');
     }
 
     /** Archive : la commande sort des listes sans être supprimée. */
