@@ -110,6 +110,7 @@ class OrderController extends Controller
                     'customer_id' => $data['customer_id'] ?? null,
                     'lead_id' => $data['lead_id'] ?? null,
                     'assigned_user_id' => $data['assigned_user_id'] ?? $request->user()->id,
+                    'delivery_company_id' => $data['delivery_company_id'] ?? null,
                     'order_number' => Order::generateUniqueOrderNumber($brandId),
                     'source' => $data['source'] ?? null,
                     'status' => $data['status'] ?? 'pending',
@@ -229,7 +230,7 @@ class OrderController extends Controller
         $transfer = $this->resolveBankTransferFields(array_merge($order->toArray(), $data));
 
         $order->fill(collect($data)->only([
-            'customer_id', 'lead_id', 'assigned_user_id', 'source', 'payment_method', 'payment_state',
+            'customer_id', 'lead_id', 'assigned_user_id', 'delivery_company_id', 'source', 'payment_method', 'payment_state',
             'shipping_fee', 'discount', 'shipping_address', 'notes', 'follow_up_note',
         ])->all());
         $order->payment_state = $transfer['payment_state'] ?? $order->payment_state;

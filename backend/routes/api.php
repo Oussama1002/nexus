@@ -293,6 +293,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     $registerCrud('delivery-companies', DeliveryCompanyController::class, 'delivery_companies');
 
+    // Transporteurs + villes desservies pour la création de commande (spec §6.1).
+    Route::get('delivery/carriers', [\App\Http\Controllers\Api\DeliveryCityController::class, 'carriers'])->middleware('permission:orders.create');
+    Route::get('delivery/carriers/{id}/cities', [\App\Http\Controllers\Api\DeliveryCityController::class, 'cities'])->whereNumber('id')->middleware('permission:orders.create');
+    Route::post('delivery/carriers/sync-cities', [\App\Http\Controllers\Api\DeliveryCityController::class, 'sync'])->middleware('permission:delivery_companies.update');
+
     Route::get('delivery/dashboard', DeliveryDashboardController::class)->middleware('permission:delivery.dashboard');
     Route::post('delivery/sendit/sync', [DeliveryDashboardController::class, 'syncSendit'])->middleware('permission:delivery.dashboard');
     Route::post('delivery/ameex/sync', [DeliveryDashboardController::class, 'syncAmeex'])->middleware('permission:delivery.dashboard');

@@ -98,6 +98,7 @@ class Order extends Model
         'customer_id',
         'lead_id',
         'assigned_user_id',
+        'delivery_company_id',
         'order_number',
         'source',
         'status',

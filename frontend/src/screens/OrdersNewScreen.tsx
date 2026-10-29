@@ -61,6 +61,11 @@ export function OrdersNewScreen({
 
   const [source, setSource] = useState<OrderSource>('WhatsApp direct');
   const [followUpNote, setFollowUpNote] = useState('');
+  // Transporteur choisi à la création + villes qu'il dessert (spec §6.1).
+  type Carrier = { id: number; name: string; code: string; cities_count: number };
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [carrierId, setCarrierId] = useState<number | undefined>(undefined);
+  const [carrierCities, setCarrierCities] = useState<{ id: number; name: string }[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('+212 ');
   const [city, setCity] = useState('Casablanca');
@@ -110,6 +115,34 @@ export function OrdersNewScreen({
       cancelled = true;
     };
   }, [activeBrandId]);
+
+  // Liste des transporteurs actifs (une fois).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await api.get<Carrier[]>('delivery/carriers');
+      if (!cancelled && res.ok && Array.isArray(res.data)) setCarriers(res.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Villes desservies par le transporteur choisi.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!carrierId) {
+        setCarrierCities([]);
+        return;
+      }
+      const res = await api.get<{ id: number; name: string }[]>(`delivery/carriers/${carrierId}/cities`);
+      if (!cancelled && res.ok && Array.isArray(res.data)) setCarrierCities(res.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [carrierId]);
 
   // Recherche des leads côté serveur : la base en compte plusieurs milliers.
   useEffect(() => {
@@ -203,6 +236,7 @@ export function OrdersNewScreen({
       customer_id: cid,
       lead_id: leadId ?? null,
       assigned_user_id: user ? Number(user.id) : null,
+      delivery_company_id: carrierId ?? null,
       source,
       status: 'pending',
       payment_method: paymentMethod,
@@ -356,7 +390,23 @@ export function OrdersNewScreen({
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Ville</label>
-                <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+                {carrierId && carrierCities.length > 0 ? (
+                  <>
+                    <select
+                      value={carrierCities.some((c) => c.name === city) ? city : ''}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold text-zinc-700 outline-none"
+                    >
+                      <option value="">— Choisir une ville desservie —</option>
+                      {carrierCities.map((c) => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-zinc-500">Villes desservies par le transporteur choisi.</p>
+                  </>
+                ) : (
+                  <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Adresse</label>
@@ -528,6 +578,22 @@ export function OrdersNewScreen({
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Marque</label>
                 <div className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-black text-zinc-800">{brand}</div>
                 <p className="text-[11px] font-medium text-zinc-500">Marque active (session).</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Société de livraison</label>
+                <select
+                  value={carrierId ?? ''}
+                  onChange={(e) => { setCarrierId(e.target.value ? Number(e.target.value) : undefined); setCity(''); }}
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 font-bold text-zinc-700 outline-none"
+                >
+                  <option value="">— Choisir un transporteur —</option>
+                  {carriers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                {carrierId && carrierCities.length === 0 && (
+                  <p className="text-[11px] text-amber-600">Villes non synchronisées pour ce transporteur — saisie libre de la ville. (Admin : Paramètres → synchroniser les villes.)</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Origine de la commande <span className="text-rose-500">*</span></label>

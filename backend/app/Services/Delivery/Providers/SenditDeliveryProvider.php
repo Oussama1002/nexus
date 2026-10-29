@@ -3,6 +3,7 @@
 namespace App\Services\Delivery\Providers;
 
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Sendit.ma API v1 — auth via public_key + secret_key, Bearer token for calls.
@@ -301,6 +302,50 @@ class SenditDeliveryProvider extends AbstractHttpDeliveryProvider
         $this->token = $token;
 
         return true;
+    }
+
+    /**
+     * Référentiel des districts/villes Sendit (toutes les pages).
+     *
+     * @param  array{public_key: string, secret_key: string}|null  $credentials
+     * @return array<int, array{id: string, name: string}>
+     */
+    public function fetchCities(?array $credentials = null): array
+    {
+        $credentials ??= $this->credentialsReady();
+        if ($credentials === null || ! $this->ensureToken($credentials)) {
+            return [];
+        }
+
+        $cacheKey = 'sendit.districts.'.md5($credentials['public_key']);
+
+        return Cache::remember($cacheKey, now()->addHours(12), function () {
+            $out = [];
+            for ($page = 1; $page <= 50; $page++) {
+                try {
+                    $response = $this->authorizedGet('districts', ['page' => $page]);
+                } catch (\Throwable) {
+                    break;
+                }
+                $data = $this->decodeJson($response);
+                $rows = is_array($data['data'] ?? null) ? $data['data'] : [];
+                if ($rows === []) {
+                    break;
+                }
+                foreach ($rows as $d) {
+                    if (! is_array($d)) {
+                        continue;
+                    }
+                    $id = (string) ($d['id'] ?? '');
+                    $name = trim((string) ($d['name'] ?? ''));
+                    if ($id !== '' && $name !== '') {
+                        $out[] = ['id' => $id, 'name' => $name];
+                    }
+                }
+            }
+
+            return $out;
+        });
     }
 
     protected function resolveDistrictId(string $cityName): ?int

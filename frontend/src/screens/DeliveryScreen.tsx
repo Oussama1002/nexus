@@ -97,6 +97,7 @@ export function DeliveryScreen() {
   const [codSummary, setCodSummary] = useState<{ total_cod_pending: number; shipments: unknown[] } | null>(null);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
+  const [syncingCities, setSyncingCities] = useState(false);
   const [dcModal, setDcModal] = useState(false);
   const [dcName, setDcName] = useState('');
   const [dcCode, setDcCode] = useState('');
@@ -274,9 +275,29 @@ export function DeliveryScreen() {
         title="Livraison"
         subtitle="Transporteurs & règlements COD (API)."
         right={
-          <button type="button" onClick={() => void refresh()} className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex gap-2 items-center">
-            <RefreshCw className="w-4 h-4" /> Actualiser
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={syncingCities}
+              onClick={async () => {
+                setSyncingCities(true);
+                const res = await api.post<Record<string, string>>('delivery/carriers/sync-cities', {});
+                setSyncingCities(false);
+                if (res.ok) {
+                  const detail = res.data ? Object.entries(res.data).map(([k, v]) => `${k} : ${v}`).join(' · ') : '';
+                  toast.success(`Villes synchronisées. ${detail}`);
+                } else {
+                  toast.error(res.message);
+                }
+              }}
+              className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex gap-2 items-center disabled:opacity-50"
+            >
+              {syncingCities ? 'Synchronisation…' : 'Synchroniser les villes'}
+            </button>
+            <button type="button" onClick={() => void refresh()} className="px-4 py-2 rounded-2xl border border-zinc-200 bg-white text-sm font-black inline-flex gap-2 items-center">
+              <RefreshCw className="w-4 h-4" /> Actualiser
+            </button>
+          </div>
         }
       />
 

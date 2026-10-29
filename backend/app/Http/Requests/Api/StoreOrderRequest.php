@@ -25,6 +25,7 @@ class StoreOrderRequest extends FormRequest
             'customer_id' => ['nullable', 'exists:customers,id'],
             'lead_id' => ['nullable', 'exists:leads,id'],
             'assigned_user_id' => ['nullable', 'exists:users,id'],
+            'delivery_company_id' => ['nullable', 'integer', 'exists:delivery_companies,id'],
             'source' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(['draft', 'pending'])],
             'payment_method' => ['nullable', Rule::in(['prepaid', 'cod', 'card', 'transfer'])],
