@@ -147,6 +147,17 @@ const ALL_VIEWS: View[] = [
   'integrations',
 ];
 
+/**
+ * Écrans de gestion RH masqués pour la confirmatrice (spec « Droits d'accès
+ * Confirmatrice » §A.1). Elle conserve Communication interne, Projets
+ * collaboratifs et Congés (self-service), qui vivent aussi sous Équipe & RH.
+ */
+const CONFIRMATRICE_HIDDEN_VIEWS: View[] = [
+  'mediaBuying', 'ads',
+  'hr', 'employees', 'hrDocuments', 'orgChart', 'attendance', 'payroll',
+  'openPositions', 'applications', 'onboarding', 'training', 'evaluations', 'discipline',
+];
+
 /** When the API returns no matching permission rows yet, fall back to role slug lists (backend RolesSeeder). */
 export const ROLE_DEFAULT_VIEWS: Record<string, View[]> = {
   admin: ALL_VIEWS,
@@ -193,8 +204,8 @@ export function canAccessView(
   if (ctx.roleSlugs.length === 1 && ctx.roleSlugs[0] === 'client_brand_owner') {
     if (view !== 'clientPortal') return false;
   }
-  /** Confirmatrices use dedicated workflows; media buying & ads modules are hidden for this role. */
-  if (ctx.roleSlugs.includes('confirmatrice') && ['mediaBuying', 'ads'].includes(view)) return false;
+  /** Confirmatrices use dedicated workflows; media buying, ads & HR-management screens are hidden for this role. */
+  if (ctx.roleSlugs.includes('confirmatrice') && CONFIRMATRICE_HIDDEN_VIEWS.includes(view)) return false;
   const allReq = VIEW_REQUIRES_ALL_PERMISSIONS[view];
   if (allReq?.length && hasAllPermissions(ctx.permissionSlugs, allReq)) return true;
   const required = VIEW_PERMISSIONS[view];
