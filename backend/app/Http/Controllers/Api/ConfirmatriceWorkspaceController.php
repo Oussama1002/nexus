@@ -147,9 +147,9 @@ class ConfirmatriceWorkspaceController extends Controller
             throw new AccessDeniedHttpException('Forbidden.');
         }
 
-        // Période : today | yesterday | week | month (défaut today).
+        // Période : today | yesterday | week | month | last_month | custom (défaut today).
         $period = (string) $request->query('period', 'today');
-        [$from, $to] = $this->periodRange($period);
+        [$from, $to] = $this->periodRange($period, $request->query('from'), $request->query('to'));
 
         $base = Order::query()->where('assigned_user_id', $targetId);
         ApiBrandContext::scopeBrand($base, $brandId);
@@ -228,14 +228,26 @@ class ConfirmatriceWorkspaceController extends Controller
     /**
      * @return array{0: \Illuminate\Support\Carbon, 1: \Illuminate\Support\Carbon}
      */
-    private function periodRange(string $period): array
+    private function periodRange(string $period, ?string $from = null, ?string $to = null): array
     {
         $now = now();
+
+        if ($period === 'custom' && $from) {
+            try {
+                $start = \Illuminate\Support\Carbon::parse($from)->startOfDay();
+                $end = $to ? \Illuminate\Support\Carbon::parse($to)->endOfDay() : $now->copy()->endOfDay();
+
+                return [$start, $end];
+            } catch (\Throwable) {
+                // Repli sur aujourd'hui si les dates sont invalides.
+            }
+        }
 
         return match ($period) {
             'yesterday' => [$now->copy()->subDay()->startOfDay(), $now->copy()->subDay()->endOfDay()],
             'week' => [$now->copy()->startOfWeek(), $now->copy()->endOfDay()],
             'month' => [$now->copy()->startOfMonth(), $now->copy()->endOfDay()],
+            'last_month' => [$now->copy()->subMonthNoOverflow()->startOfMonth(), $now->copy()->subMonthNoOverflow()->endOfMonth()],
             default => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
         };
     }

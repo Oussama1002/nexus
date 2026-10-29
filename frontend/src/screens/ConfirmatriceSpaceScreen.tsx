@@ -90,6 +90,8 @@ const REPORT_PERIODS = [
   { value: 'yesterday', label: 'Hier' },
   { value: 'week', label: 'Cette semaine' },
   { value: 'month', label: 'Ce mois' },
+  { value: 'last_month', label: 'Mois précédent' },
+  { value: 'custom', label: 'Personnalisée' },
 ];
 
 type PerfSettings = { threshold_improve: number; threshold_good: number; alert_window_days: number };
@@ -162,6 +164,8 @@ export function ConfirmatriceSpaceScreen({
   const [fuSaving, setFuSaving] = useState(false);
   const [report, setReport] = useState<DailyReport | null>(null);
   const [reportPeriod, setReportPeriod] = useState('today');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [perf, setPerf] = useState<PerfSettings>(DEFAULT_PERF);
 
   const loadSummary = useCallback(async () => {
@@ -247,12 +251,21 @@ export function ConfirmatriceSpaceScreen({
       setReport(null);
       return;
     }
+    // En mode personnalisé, on attend que la date de début soit saisie.
+    if (reportPeriod === 'custom' && !customFrom) {
+      return;
+    }
+    const params: Record<string, string> = { user_id: workspaceUserId, period: reportPeriod };
+    if (reportPeriod === 'custom') {
+      params.from = customFrom;
+      if (customTo) params.to = customTo;
+    }
     const res = await api.get<DailyReport>(
-      `confirmatrice-workspace/daily-report${buildQuery({ user_id: workspaceUserId, period: reportPeriod })}`,
+      `confirmatrice-workspace/daily-report${buildQuery(params)}`,
       { brandId: activeBrandId },
     );
     setReport(res.ok && res.data ? res.data : null);
-  }, [workspaceUserId, activeBrandId, reportPeriod]);
+  }, [workspaceUserId, activeBrandId, reportPeriod, customFrom, customTo]);
 
   useEffect(() => {
     void (async () => {
@@ -584,19 +597,28 @@ export function ConfirmatriceSpaceScreen({
             </div>
             <p className="mt-1 text-xs font-medium text-zinc-500">Calculé automatiquement sur les commandes de l’agente.</p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {REPORT_PERIODS.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => setReportPeriod(p.value)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-black border transition-colors ${
-                  reportPeriod === p.value ? 'bg-primary-600 text-white border-primary-700' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-wrap gap-1.5 justify-end">
+              {REPORT_PERIODS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setReportPeriod(p.value)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-black border transition-colors ${
+                    reportPeriod === p.value ? 'bg-primary-600 text-white border-primary-700' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            {reportPeriod === 'custom' && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-bold" />
+                <span className="text-xs text-zinc-400">→</span>
+                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-bold" />
+              </div>
+            )}
           </div>
         </div>
 
