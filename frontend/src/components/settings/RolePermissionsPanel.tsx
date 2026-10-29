@@ -5,9 +5,10 @@ import { buildQuery } from '../../lib/pagination';
 import type { Paginated } from '../../lib/pagination';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useBrand } from '../../context/BrandContext';
 import { cn } from '../../lib/utils';
 import { permissionDisplayLabelFr, permissionModuleTitleFr } from '../../lib/permissionLabelsFr';
-import { NAV_CATALOG } from '../../lib/sidebarNavCatalog';
+import { NAV_CATALOG, NAV_BLOCKS, SIDEBAR_NAV_UPDATED_EVENT } from '../../lib/sidebarNavCatalog';
 
 type PermissionRow = { id: number; slug: string; name: string; module: string | null };
 type RoleOpt = { id: number; name: string; slug: string; landing_view?: string | null };
@@ -382,6 +383,137 @@ export function RolePermissionsPanel({
       {perms.length > 0 && visiblePerms.length === 0 ? (
         <p className="text-sm font-bold text-zinc-500">Aucune permission ne correspond à « {permSearch} ».</p>
       ) : null}
+
+      {selectedRole ? (
+        <RoleNavVisibilitySection roleSlug={selectedRole.slug} roleName={selectedRole.name} canEdit={canEditRoles} />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Matrice admin : quelles entrées du menu latéral sont masquées pour un rôle.
+ * Ne stocke que les masquages (décochés). Masquer n'accorde aucun accès : les
+ * permissions et le plafond métier s'appliquent toujours. Le cumul de rôles
+ * affiche l'union des menus (voir SettingsCenterService::getSidebarNavVisibility).
+ */
+function RoleNavVisibilitySection({ roleSlug, roleName, canEdit }: { roleSlug: string; roleName: string; canEdit: boolean }) {
+  const toast = useToast();
+  const { activeBrandId, activeBrand } = useBrand();
+  const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [applyAll, setApplyAll] = useState(false);
+
+  // La matrice est propre à la marque active : on recharge à chaque changement de
+  // marque (l'en-tête X-Brand-Id est envoyé automatiquement par le client API).
+  useEffect(() => {
+    let cancelled = false;
+    setLoaded(false);
+    (async () => {
+      const res = await api.get<{ items: Record<string, Record<string, boolean>> }>('settings/role-nav-visibility');
+      if (cancelled) return;
+      setMatrix(res.ok && res.data?.items ? res.data.items : {});
+      setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [activeBrandId]);
+
+  const roleItems = matrix[roleSlug] ?? {};
+  const isVisible = (id: string) => roleItems[id] !== false;
+
+  const setVisible = (id: string, visible: boolean) => {
+    setMatrix((prev) => {
+      const role = { ...(prev[roleSlug] ?? {}) };
+      if (visible) delete role[id];
+      else role[id] = false;
+      return { ...prev, [roleSlug]: role };
+    });
+  };
+
+  const save = async () => {
+    setSaving(true);
+    const res = await api.put<{ items: Record<string, Record<string, boolean>> }>('settings/role-nav-visibility', { items: matrix, all_brands: applyAll });
+    setSaving(false);
+    if (!res.ok) { toast.error(res.message); return; }
+    if (res.data?.items) setMatrix(res.data.items);
+    toast.success(applyAll ? 'Visibilité du menu enregistrée pour toutes les marques.' : 'Visibilité du menu enregistrée.');
+    // Rafraîchit le menu de l'utilisateur courant s'il porte ce rôle.
+    window.dispatchEvent(new Event(SIDEBAR_NAV_UPDATED_EVENT));
+  };
+
+  const brandLabel = activeBrandId && activeBrandId !== 'all' ? (activeBrand?.name ?? 'marque active') : 'marque active';
+
+  if (roleSlug === 'admin') {
+    return (
+      <div className="mt-6 border-t border-zinc-100 pt-5">
+        <p className="text-xs font-bold text-zinc-600">L’administrateur voit toujours l’intégralité du menu.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 border-t border-zinc-100 pt-5 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-black text-zinc-900">
+            Visibilité du menu — {roleName} <span className="text-zinc-400 font-bold">· {brandLabel}</span>
+          </h3>
+          <p className="text-xs font-medium text-zinc-500 mt-1 max-w-2xl">
+            Décochez les entrées à masquer pour ce rôle <strong>sur cette marque</strong>. Masquer n’accorde jamais d’accès : les permissions s’appliquent toujours. Un utilisateur qui cumule plusieurs rôles voit l’union de leurs menus.
+          </p>
+        </div>
+        {canEdit ? (
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={saving || !loaded}
+              onClick={() => void save()}
+              className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-xs font-black shadow-md shadow-primary-100 hover:bg-primary-700 disabled:opacity-40 inline-flex items-center gap-2"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {saving ? '…' : 'Enregistrer le menu'}
+            </button>
+            <label className="flex items-center gap-2 text-[11px] font-bold text-zinc-600 cursor-pointer">
+              <input type="checkbox" className="rounded border-zinc-300" checked={applyAll} onChange={(e) => setApplyAll(e.target.checked)} />
+              Appliquer à toutes les marques
+            </label>
+          </div>
+        ) : null}
+      </div>
+
+      {!loaded ? (
+        <p className="text-sm font-bold text-zinc-500">Chargement…</p>
+      ) : (
+        <div className="space-y-5 max-h-[min(420px,45vh)] overflow-y-auto pr-1">
+          {NAV_BLOCKS.map((block) => {
+            const entries = NAV_CATALOG.filter((e) => e.block === block.id && e.view);
+            if (entries.length === 0) return null;
+            return (
+              <div key={block.id}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2 px-1">{block.label}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                  {entries.map((entry) => (
+                    <label
+                      key={entry.id}
+                      className={cn('flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm cursor-pointer hover:bg-zinc-50', !canEdit && 'opacity-70 cursor-default')}
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded border-zinc-300"
+                        checked={isVisible(entry.id)}
+                        disabled={!canEdit}
+                        onChange={(e) => setVisible(entry.id, e.target.checked)}
+                      />
+                      <span className="font-bold text-zinc-800">{entry.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

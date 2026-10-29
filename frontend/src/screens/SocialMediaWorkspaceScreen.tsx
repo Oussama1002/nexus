@@ -284,8 +284,10 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
 
   useEffect(() => {
     (async () => {
-      const r = await api.get<Paginated<R>>('users' + buildQuery({ per_page: 100 }));
-      if (r.ok) setUsers((r.data as any).data ?? r.data);
+      // La liste des contributeurs vient de l'annuaire social (gated social_accounts.view),
+      // et non de /users qui exige users.view : un rôle SMM ne l'a pas, la liste restait vide.
+      const r = await api.get<R[]>('directory/social-users?roles=community_manager,smm,admin');
+      if (r.ok && Array.isArray(r.data)) setUsers(r.data as R[]);
     })();
   }, []);
 
@@ -598,7 +600,15 @@ function PlansTab({ plans, strategies, onReload }: { plans: R[]; strategies: R[]
               )}
             </Field>
           </div>
-          <div className="col-span-2"><Field label="Capacité déclarée"><input type="number" className={inputCls} value={form.declared_capacity} onChange={(e) => setForm({ ...form, declared_capacity: e.target.value })} /></Field></div>
+          <div className="col-span-2">
+            <Field label="Capacité déclarée">
+              <input type="number" min="0" placeholder="ex : 20" className={inputCls} value={form.declared_capacity} onChange={(e) => setForm({ ...form, declared_capacity: e.target.value })} />
+              <span className="mt-1 block text-[11px] font-semibold text-zinc-500">
+                Nombre de contenus que vous vous engagez à produire ce mois-ci (tous réseaux confondus).
+                Sert d’alerte de surcharge : si le volume planifié dépasse cette capacité, le tableau de bord le signale.
+              </span>
+            </Field>
+          </div>
         </div>
         <div className="flex justify-end gap-2 pt-4">
           <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>

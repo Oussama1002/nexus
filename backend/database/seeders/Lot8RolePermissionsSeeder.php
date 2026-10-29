@@ -42,7 +42,11 @@ class Lot8RolePermissionsSeeder extends Seeder
 
         $influenceSlugs = [
             'influence.view', 'influence.create', 'influence.update', 'influence.delete', 'influence.manage',
-            'influencer_collaborations.view', 'influencer_collaborations.create', 'influencer_collaborations.update', 'influencer_collaborations.delete',
+            'influencer_collaborations.view', 'influencer_collaborations.create', 'influencer_collaborations.update', 'influencer_collaborations.delete', 'influencer_collaborations.validate',
+            'influencer_deliverables.view', 'influencer_deliverables.create', 'influencer_deliverables.update', 'influencer_deliverables.delete',
+            'influencer_shipments.view', 'influencer_shipments.create', 'influencer_shipments.update', 'influencer_shipments.delete',
+            'influencer_payments.view', 'influencer_payments.create', 'influencer_payments.update', 'influencer_payments.delete', 'influencer_payments.validate',
+            'influencer_documents.view', 'influencer_documents.create', 'influencer_documents.update', 'influencer_documents.delete',
             'influencer_performance.view', 'influencer_performance.create', 'influencer_performance.update', 'influencer_performance.delete',
             'influencer_messages.view', 'influencer_messages.create', 'influencer_messages.update', 'influencer_messages.delete',
             'influencer_complaints.view', 'influencer_complaints.create', 'influencer_complaints.update', 'influencer_complaints.delete',

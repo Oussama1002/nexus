@@ -96,6 +96,9 @@ export function BrandsScreen() {
   const { fetchMe, hasPermission } = useAuth();
   const toast = useToast();
   const canMutate = hasPermission('brands.create') || hasPermission('brands.update');
+  // Revue CRM point 5 — les données de vente (CA, commandes) restent masquées pour
+  // les rôles sans accès commercial (ex. Social Media Manager).
+  const canSeeSales = hasPermission('orders.view');
 
   const [loading, setLoading] = useState(true);
   const [apiBrands, setApiBrands] = useState<ApiBrandRow[]>([]);
@@ -144,14 +147,17 @@ export function BrandsScreen() {
       const next = new Map<string, { orders: number; ca: number; products: number }>();
       for (const b of apiBrands) {
         const bid = String(b.id);
+        // On n'interroge les commandes que si l'utilisateur a le droit commercial.
         const [oRes, pRes] = await Promise.all([
-          api.get<LaravelPaginator<ApiOrderRow>>('orders?per_page=100', { brandId: bid }),
+          canSeeSales
+            ? api.get<LaravelPaginator<ApiOrderRow>>('orders?per_page=100', { brandId: bid })
+            : Promise.resolve(null),
           api.get<LaravelPaginator<{ id: number }>>('products?per_page=100', { brandId: bid }),
         ]);
         if (cancelled) return;
         let orders = 0;
         let ca = 0;
-        if (oRes.ok && isPaginator<ApiOrderRow>(oRes.data)) {
+        if (oRes && oRes.ok && isPaginator<ApiOrderRow>(oRes.data)) {
           orders = oRes.data.total;
           ca = oRes.data.data.reduce((s, row) => s + Number(row.total), 0);
         }
@@ -166,7 +172,7 @@ export function BrandsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [apiBrands]);
+  }, [apiBrands, canSeeSales]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -270,7 +276,7 @@ export function BrandsScreen() {
         <Kpi label="Marques actives" value={kpis.active} tone="success" />
         <Kpi label="Numéros WhatsApp" value={kpis.wa} tone="info" />
         <Kpi label="Campagnes liées" value={kpis.campaigns} />
-        <Kpi label="CA (100 cmd max / marque)" value={formatCurrency(kpis.ca)} tone="info" />
+        {canSeeSales && <Kpi label="CA (100 cmd max / marque)" value={formatCurrency(kpis.ca)} tone="info" />}
       </div>
 
       <FilterBar
@@ -322,8 +328,12 @@ export function BrandsScreen() {
             { key: 'wa', header: 'WhatsApp', cell: (b) => <span className="font-bold text-zinc-700">{b.whatsappNumber || '—'}</span> },
             { key: 'campaigns', header: 'Campagnes', cell: (b) => <span className="font-bold text-zinc-700">{b.campaignsCount ?? 0}</span> },
             { key: 'products', header: 'Produits', cell: (b) => <span className="font-bold text-zinc-700">{statsByBrand.get(b.id)?.products ?? 0}</span> },
-            { key: 'orders', header: 'Commandes', cell: (b) => <span className="font-bold text-zinc-700">{statsByBrand.get(b.id)?.orders ?? 0}</span> },
-            { key: 'ca', header: 'CA (échantillon)', cell: (b) => <span className="font-black text-zinc-900">{formatCurrency(statsByBrand.get(b.id)?.ca ?? 0)}</span> },
+            ...(canSeeSales
+              ? [
+                  { key: 'orders', header: 'Commandes', cell: (b: BrandExt) => <span className="font-bold text-zinc-700">{statsByBrand.get(b.id)?.orders ?? 0}</span> },
+                  { key: 'ca', header: 'CA (échantillon)', cell: (b: BrandExt) => <span className="font-black text-zinc-900">{formatCurrency(statsByBrand.get(b.id)?.ca ?? 0)}</span> },
+                ]
+              : []),
             ...(canMutate
               ? [{
                   key: 'actions',
@@ -392,10 +402,12 @@ export function BrandsScreen() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Produits</p>
                 <p className="mt-2 text-2xl font-black text-zinc-900">{statsByBrand.get(selected.id)?.products ?? 0}</p>
               </div>
-              <div className="card p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes</p>
-                <p className="mt-2 text-2xl font-black text-zinc-900">{statsByBrand.get(selected.id)?.orders ?? 0}</p>
-              </div>
+              {canSeeSales && (
+                <div className="card p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Commandes</p>
+                  <p className="mt-2 text-2xl font-black text-zinc-900">{statsByBrand.get(selected.id)?.orders ?? 0}</p>
+                </div>
+              )}
             </div>
           </div>
         )}

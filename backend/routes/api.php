@@ -1049,6 +1049,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/supplier-categories', [SettingsCenterController::class, 'supplierCategories']);
     Route::post('settings/quick-add-list-item', [SettingsCenterController::class, 'quickAddListItem']);
 
+    // Per-role sidebar-nav visibility matrix (admin editor).
+    Route::get('settings/role-nav-visibility', [SettingsCenterController::class, 'roleNavVisibility'])->middleware('permission:settings.view');
+    Route::put('settings/role-nav-visibility', [SettingsCenterController::class, 'updateRoleNavVisibility'])->middleware('permission:settings.update');
+
     Route::get('settings/center/audit-history', [SettingsCenterController::class, 'auditHistory'])->middleware('permission:settings.view');
     Route::post('settings/center/test/smtp', [SettingsCenterController::class, 'testSmtp'])->middleware('permission:settings.update');
     Route::post('settings/center/test/whatsapp', [SettingsCenterController::class, 'testWhatsapp'])->middleware('permission:settings.update');

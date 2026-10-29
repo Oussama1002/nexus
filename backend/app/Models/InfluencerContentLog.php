@@ -16,6 +16,7 @@ class InfluencerContentLog extends Model
         'cm_user_id',
         'influencer_id',
         'collaboration_id',
+        'published_content_id',
         'content_type',
         'platform',
         'content_url',
@@ -57,5 +58,10 @@ class InfluencerContentLog extends Model
     public function collaboration()
     {
         return $this->belongsTo(InfluencerCollaboration::class);
+    }
+
+    public function publishedContent()
+    {
+        return $this->belongsTo(InfluencerPublishedContent::class, 'published_content_id');
     }
 }

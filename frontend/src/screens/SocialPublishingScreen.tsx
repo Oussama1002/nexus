@@ -1845,10 +1845,12 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
   const [showNewLog, setShowNewLog] = useState(false);
   const [showNewSignal, setShowNewSignal] = useState(false);
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [deliverables, setDeliverables] = useState<{ id: number; title: string; content_type?: string; platform?: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [logForm, setLogForm] = useState({
     influencer_id: '', content_type: '', platform: '', content_url: '', published_at: '', notes: '',
     live_duration_minutes: '', live_viewers_count: '', no_publication: false, quantity: '', archive_url: '',
+    deliverable_id: '',
   });
   const [sigForm, setSigForm] = useState({ influencer_id: '', signal_type: '', severity: '', description: '' });
 
@@ -1875,7 +1877,15 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
   const loadInfluencers = async () => {
     try { const res = await api.get<Paginated<Influencer>>('influencers' + buildQuery({ per_page: 100 })); if (res.ok) setInfluencers(res.data.data); } catch {}
   };
-  const openNewLog = () => { loadInfluencers(); setShowNewLog(true); };
+  const loadDeliverables = async () => {
+    // Livrables de la marque active, pour rattacher le log à Studio Influence.
+    // Nécessite influencer_deliverables.view ; sinon la liste reste vide (champ facultatif).
+    try {
+      const res = await api.get<Paginated<{ id: number; title: string; content_type?: string; platform?: string }>>('influencer-deliverables' + buildQuery({ per_page: 200 }));
+      if (res.ok) setDeliverables(res.data.data);
+    } catch {}
+  };
+  const openNewLog = () => { loadInfluencers(); loadDeliverables(); setShowNewLog(true); };
   const openNewSignal = () => { loadInfluencers(); setShowNewSignal(true); };
 
   const submitLog = async () => {
@@ -1895,12 +1905,13 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
       if (logForm.live_viewers_count) payload.live_viewers_count = Number(logForm.live_viewers_count);
       if (logForm.quantity) payload.quantity = Number(logForm.quantity);
       if (logForm.archive_url) payload.archive_url = logForm.archive_url;
+      if (logForm.deliverable_id) payload.deliverable_id = Number(logForm.deliverable_id);
 
       const res = await api.post('cm/influencer-content', payload);
       if (res.ok) {
         toast('Log créé avec succès', 'success');
         setShowNewLog(false);
-        setLogForm({ influencer_id: '', content_type: '', platform: '', content_url: '', published_at: '', notes: '', live_duration_minutes: '', live_viewers_count: '', no_publication: false, quantity: '', archive_url: '' });
+        setLogForm({ influencer_id: '', content_type: '', platform: '', content_url: '', published_at: '', notes: '', live_duration_minutes: '', live_viewers_count: '', no_publication: false, quantity: '', archive_url: '', deliverable_id: '' });
         loadLogs();
       } else toast('Erreur lors de la création', 'error');
     } catch { toast('Erreur lors de la création', 'error'); } finally { setSaving(false); }
@@ -2041,6 +2052,18 @@ function TabInfluenceurs({ toast, onNewComplaint }: { toast: (m: string, t: stri
           <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Influenceur *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.influencer_id} onChange={e => setLogForm(f => ({ ...f, influencer_id: e.target.value }))}><option value="">Sélectionner...</option>{influencers.map(i => <option key={i.id} value={i.id}>{i.full_name}</option>)}</select></div>
           <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Type de contenu *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.content_type} onChange={e => setLogForm(f => ({ ...f, content_type: e.target.value }))}><option value="">Sélectionner...</option><option value="post">Post</option><option value="story">Story</option><option value="reel">Reel</option><option value="video">Vidéo</option><option value="live">Live</option></select></div>
           <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Plateforme *</label><select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.platform} onChange={e => setLogForm(f => ({ ...f, platform: e.target.value }))}><option value="">Sélectionner...</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="twitter">Twitter</option><option value="youtube">YouTube</option></select></div>
+          <div>
+            <label className="block text-xs font-semibold text-zinc-900 mb-1">Livrable rattaché (Studio Influence)</label>
+            <select className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.deliverable_id} onChange={e => setLogForm(f => ({ ...f, deliverable_id: e.target.value }))} disabled={logForm.no_publication}>
+              <option value="">Aucun — log de suivi uniquement</option>
+              {deliverables.map(d => <option key={d.id} value={d.id}>{d.title}{d.content_type ? ` · ${d.content_type}` : ''}</option>)}
+            </select>
+            <span className="mt-1 block text-[11px] font-medium text-zinc-500">
+              {deliverables.length === 0
+                ? 'Aucun livrable accessible (droit « livrables influenceurs » requis).'
+                : 'En choisissant un livrable, la publication apparaît aussi dans « Livrables & Contenus » (Studio Influence).'}
+            </span>
+          </div>
           <div><label className="block text-xs font-semibold text-zinc-900 mb-1">URL du contenu</label><input className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" placeholder="https://..." value={logForm.content_url} onChange={e => setLogForm(f => ({ ...f, content_url: e.target.value }))} /></div>
           <div><label className="block text-xs font-semibold text-zinc-900 mb-1">Date de publication</label><input type="date" className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-medium" value={logForm.published_at} onChange={e => setLogForm(f => ({ ...f, published_at: e.target.value }))} /></div>
           <div className="grid grid-cols-2 gap-3">

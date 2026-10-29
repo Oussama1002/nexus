@@ -36,6 +36,8 @@ class UpdateAcademyCourseRequest extends FormRequest
             'learning_objectives.*' => ['string', 'max:255'],
             'prerequisites' => ['sometimes', 'nullable', 'array'],
             'prerequisites.*' => ['string', 'max:255'],
+            'audience_role_slugs' => ['sometimes', 'nullable', 'array'],
+            'audience_role_slugs.*' => ['string', 'exists:roles,slug'],
             'seo_title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'seo_description' => ['sometimes', 'nullable', 'string'],
             'seo_keywords' => ['sometimes', 'nullable', 'array'],

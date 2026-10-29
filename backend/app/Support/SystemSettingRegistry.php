@@ -64,6 +64,7 @@ class SystemSettingRegistry
             'workflow_default_shipping_fee' => ['sensitive' => false, 'description' => 'Frais livraison par défaut'],
             'workflow_lead_sla_hours' => ['sensitive' => false, 'description' => 'Durée SLA lead (heures)'],
             'sidebar_nav_visibility' => ['sensitive' => false, 'description' => 'Visibilité des entrées du menu latéral (JSON)'],
+            'role_nav_visibility' => ['sensitive' => false, 'description' => 'Visibilité du menu latéral par rôle (JSON)'],
         ];
     }
 

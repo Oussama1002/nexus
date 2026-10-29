@@ -59,6 +59,7 @@ type AcademyCourse = {
   currency: string;
   duration_minutes: number;
   difficulty_level: DifficultyLevel;
+  audience_role_slugs?: string[] | null;
   category?: { id: number; name: string; slug: string } | null;
   sections_count?: number;
   lessons_count?: number;
@@ -174,6 +175,7 @@ type CourseDraft = {
   difficulty_level: DifficultyLevel;
   learning_objectives: string;
   prerequisites: string;
+  audience_role_slugs: string[];
 };
 
 /* ──────────── Constants ──────────── */
@@ -193,6 +195,7 @@ const defaultDraft: CourseDraft = {
   title: '', slug: '', short_description: '', description: '', status: 'draft',
   enrollment_type: 'free', price: '0', currency: 'MAD', duration_minutes: '0',
   difficulty_level: 'beginner', learning_objectives: '', prerequisites: '',
+  audience_role_slugs: [],
 };
 
 /* ──────────── Helpers ──────────── */
@@ -237,6 +240,7 @@ function courseToDraft(course: AcademyCourse): CourseDraft {
     duration_minutes: String(course.duration_minutes ?? 0),
     difficulty_level: course.difficulty_level ?? 'beginner',
     learning_objectives: '', prerequisites: '',
+    audience_role_slugs: course.audience_role_slugs ?? [],
   };
 }
 
@@ -253,6 +257,7 @@ function draftToPayload(draft: CourseDraft): Record<string, unknown> {
     duration_minutes: Number.isFinite(Number(draft.duration_minutes)) ? Number(draft.duration_minutes) : 0,
     difficulty_level: draft.difficulty_level,
     learning_objectives: lo, prerequisites: pr,
+    audience_role_slugs: draft.audience_role_slugs,
   };
 }
 
@@ -538,6 +543,20 @@ function CoursesTab({
 
   const rows = useMemo(() => parseRows<AcademyCourse>(coursesQuery.data), [coursesQuery.data]);
 
+  // Rôles proposés pour cibler une formation (point 5 : formations liées au rôle).
+  const rolesQuery = useQuery({
+    queryKey: ['roles-audience'],
+    queryFn: async () => {
+      const res = await api.get<unknown>('roles?per_page=100');
+      if (!res.ok) throw new Error(res.message);
+      return res.data;
+    },
+  });
+  const roleOptions = useMemo(
+    () => parseRows<{ id: number; name: string; slug: string }>(rolesQuery.data).filter((r) => r.slug !== 'admin'),
+    [rolesQuery.data],
+  );
+
   const saveMutation = useMutation({
     mutationFn: async (p: { id?: number; payload: Record<string, unknown>; brandId?: string }) => {
       const res = p.id
@@ -684,6 +703,31 @@ function CoursesTab({
             <label className="block text-xs font-black uppercase text-zinc-900">Durée (min)
               <input type="number" min={0} value={draft.duration_minutes} onChange={(e) => setDraft((d) => ({ ...d, duration_minutes: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm" />
             </label>
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase text-zinc-900">Visible par les rôles</p>
+            <p className="text-[11px] font-medium text-zinc-500 mt-0.5">Laisser vide = visible par tous. Sinon, seuls les rôles cochés voient la formation.</p>
+            <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-1.5">
+              {roleOptions.map((r) => {
+                const checked = draft.audience_role_slugs.includes(r.slug);
+                return (
+                  <label key={r.id} className="flex items-center gap-2 text-sm font-bold text-zinc-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="rounded border-zinc-300"
+                      checked={checked}
+                      onChange={(e) => setDraft((d) => ({
+                        ...d,
+                        audience_role_slugs: e.target.checked
+                          ? [...d.audience_role_slugs, r.slug]
+                          : d.audience_role_slugs.filter((s) => s !== r.slug),
+                      }))}
+                    />
+                    {r.name}
+                  </label>
+                );
+              })}
+            </div>
           </div>
         </div>
       </Modal>

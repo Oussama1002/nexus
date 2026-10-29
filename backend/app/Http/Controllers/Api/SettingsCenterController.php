@@ -69,8 +69,45 @@ class SettingsCenterController extends Controller
         $brandId = $this->resolveSettingsBrand($request);
 
         return ApiResponse::success(
-            ['items' => $this->settingsCenter->getSidebarNavVisibility($brandId)],
+            ['items' => $this->settingsCenter->getSidebarNavVisibility($brandId, $request->user())],
             'OK',
+        );
+    }
+
+    /**
+     * Per-role sidebar-nav visibility matrix (admin editor). Requires settings.view.
+     */
+    public function roleNavVisibility(Request $request): JsonResponse
+    {
+        $this->requireView($request);
+        $brandId = $this->resolveSettingsBrand($request);
+
+        return ApiResponse::success(
+            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix($brandId)],
+            'OK',
+        );
+    }
+
+    public function updateRoleNavVisibility(Request $request): JsonResponse
+    {
+        $this->requireUpdate($request);
+        $brandId = $this->resolveSettingsBrand($request);
+
+        $payload = $request->validate([
+            'items' => ['present', 'array'],
+            'all_brands' => ['sometimes', 'boolean'],
+        ]);
+
+        $allBrands = (bool) ($payload['all_brands'] ?? false);
+        $this->settingsCenter->saveRoleNavVisibility($brandId, $payload['items'] ?? [], $allBrands);
+        AuditLogger::log($request, 'settings.role_nav_visibility.update', null, null, [
+            'brand_id' => $allBrands ? 'all' : $brandId,
+            'items' => $payload['items'] ?? [],
+        ]);
+
+        return ApiResponse::success(
+            ['items' => $this->settingsCenter->getRoleNavVisibilityMatrix($brandId)],
+            'Enregistré.',
         );
     }
 

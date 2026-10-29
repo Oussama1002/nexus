@@ -23,6 +23,7 @@ class Course extends AcademyModel
         'difficulty_level',
         'learning_objectives',
         'prerequisites',
+        'audience_role_slugs',
         'seo_title',
         'seo_description',
         'seo_keywords',
@@ -35,6 +36,7 @@ class Course extends AcademyModel
     protected $casts = [
         'learning_objectives' => 'array',
         'prerequisites' => 'array',
+        'audience_role_slugs' => 'array',
         'seo_keywords' => 'array',
         'published_at' => 'datetime',
         'is_featured' => 'boolean',

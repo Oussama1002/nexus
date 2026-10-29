@@ -439,7 +439,11 @@ export function MainApp() {
 
   const renderContent = () => {
     if (!canAccess(activeView)) {
-      const fallback = currentUser.role === 'confirmatrice' ? 'whatsapp' : 'dashboard';
+      // Première vue accessible plutôt qu'un 'dashboard' en dur : un rôle cantonné
+      // (SMM, influence) n'a pas accès au tableau de bord global, et 'notifications'
+      // (accessible à tous) garantit l'absence de boucle de redirection.
+      const candidates: View[] = ['dashboard', 'confirmatrice', 'socialMedia', 'influenceHub', 'whatsapp', 'orders', 'notifications'];
+      const fallback = candidates.find((v) => canAccess(v)) ?? 'notifications';
       navigate(pathForView(fallback), { replace: true });
       return null;
     }

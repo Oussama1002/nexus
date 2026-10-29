@@ -9,6 +9,8 @@ use App\Models\CmNotification;
 use App\Models\DailyChecklist;
 use App\Models\DailyChecklistItem;
 use App\Models\InfluencerContentLog;
+use App\Models\InfluencerDeliverable;
+use App\Models\InfluencerPublishedContent;
 use App\Models\InfluencerSignal;
 use App\Models\ModerationAction;
 use App\Services\AuditLogger;
@@ -366,6 +368,7 @@ class CommunityManagerController extends Controller
         $data = $request->validate([
             'influencer_id' => 'required|integer|exists:influencers,id',
             'collaboration_id' => 'nullable|integer|exists:influencer_collaborations,id',
+            'deliverable_id' => 'nullable|integer|exists:influencer_deliverables,id',
             'content_type' => 'required|string|in:story,post,reel,video,vidéo,live',
             'platform' => 'required|string|max:50',
             'content_url' => 'nullable|string|max:500',
@@ -414,10 +417,54 @@ class CommunityManagerController extends Controller
             }
         }
 
+        // Vraie liaison « Suivi influenceurs » ↔ Studio Influence : si un livrable
+        // est choisi, le log alimente aussi « Livrables & Contenus ». La
+        // collaboration est dérivée du livrable (FK NOT NULL côté contenu publié).
+        $deliverableId = $data['deliverable_id'] ?? null;
+        unset($data['deliverable_id']);
+
+        $deliverable = null;
+        if ($deliverableId) {
+            $deliverable = InfluencerDeliverable::query()
+                ->where('brand_id', $brandId)
+                ->find($deliverableId);
+            if (! $deliverable) {
+                return ApiResponse::error(
+                    'Le livrable sélectionné est introuvable pour la marque active.',
+                    ['deliverable_id' => ['Livrable introuvable.']], 422,
+                );
+            }
+            $data['collaboration_id'] = $deliverable->collaboration_id;
+        }
+
         $data['brand_id'] = $brandId;
         $data['cm_user_id'] = $user->id;
 
         $row = InfluencerContentLog::create($data);
+
+        // Miroir côté Studio Influence (uniquement pour une vraie publication).
+        if ($deliverable && empty($data['no_publication'])) {
+            $published = InfluencerPublishedContent::create([
+                'deliverable_id' => $deliverable->id,
+                'collaboration_id' => $deliverable->collaboration_id,
+                'influencer_id' => $row->influencer_id,
+                'brand_id' => $brandId,
+                'recorded_by' => $user->id,
+                'content_type' => $row->content_type,
+                'platform' => $row->platform,
+                'content_url' => $row->content_url,
+                'screenshot_url' => $row->screenshot_url,
+                'published_at' => $row->published_at,
+                'quantity' => $row->quantity ?? 1,
+                'no_publication' => false,
+                'archive_url' => $row->archive_url,
+                'live_duration_minutes' => $row->live_duration_minutes,
+                'live_viewers_count' => $row->live_viewers_count,
+                'notes' => $row->notes,
+            ]);
+            $row->published_content_id = $published->id;
+            $row->save();
+        }
 
         AuditLogger::log($request, 'influencer_content_log.create', $row, null, $row->toArray());
 
@@ -432,6 +479,13 @@ class CommunityManagerController extends Controller
 
         $row->is_archived = true;
         $row->save();
+
+        // On archive aussi le contenu publié miroir pour garder les deux vues alignées.
+        if ($row->published_content_id) {
+            InfluencerPublishedContent::query()
+                ->whereKey($row->published_content_id)
+                ->update(['is_archived' => true]);
+        }
 
         AuditLogger::log($request, 'influencer_content_log.archive', $row, $before, $row->fresh()->toArray());
 
