@@ -18,6 +18,7 @@ use App\Services\ClientInvoiceService;
 use App\Services\OrderStateService;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
+use App\Support\UserRoleHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,8 +52,13 @@ class OrderController extends Controller
             $q->whereNull('archived_at');
         }
 
-        // Accès géré par les rôles & permissions : pas de filtre caché par assignation.
-        if ($assigned !== null && $assigned !== '') {
+        // Cloisonnement : la confirmatrice ne voit que ses propres commandes
+        // (spec §A.4 / §6.1). Les autres rôles gardent la vue gérée par les
+        // permissions. Admin et manager op conservent la vue globale.
+        $user = $request->user();
+        if ($user && UserRoleHelper::isConfirmatrice($user) && ! UserRoleHelper::hasGlobalScope($user)) {
+            $q->where('assigned_user_id', (int) $user->id);
+        } elseif ($assigned !== null && $assigned !== '') {
             $q->where('assigned_user_id', (int) $assigned);
         }
 

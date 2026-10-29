@@ -13,6 +13,7 @@ use App\Services\AuditLogger;
 use App\Services\PhoneNormalizer;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
+use App\Support\UserRoleHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -30,6 +31,12 @@ class CustomerController extends Controller
             ->with(['assignedUser:id,name', 'latestConversation.assignedUser:id,name']);
         ApiBrandContext::scopeBrand($q, $brandId);
         $q->orderByDesc('id');
+
+        // Cloisonnement : la confirmatrice ne voit que ses propres clients (spec §A.4).
+        $user = $request->user();
+        if ($user && UserRoleHelper::isConfirmatrice($user) && ! UserRoleHelper::hasGlobalScope($user)) {
+            $q->where('assigned_user_id', (int) $user->id);
+        }
 
         // Filter by status: 'archived' shows only inactive, 'all' shows everything, default hides archived
         if ($statusFilter === 'archived') {

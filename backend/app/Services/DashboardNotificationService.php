@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Shipment;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\UserRoleHelper;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -26,21 +27,25 @@ class DashboardNotificationService
     {
         $items = [];
 
+        // La confirmatrice ne gère ni la logistique, ni le stock, ni l'affectation
+        // des leads : ses notifications se limitent à ses commandes (spec §A.4).
+        $scopedConfirmatrice = $this->isScopedConfirmatrice($user);
+
         if ($user->hasPermissionSlug('orders.view')) {
             $items = array_merge($items, $this->pendingOrders($user));
             $items = array_merge($items, $this->bankTransfersToVerify($user));
         }
 
-        if ($user->hasPermissionSlug('leads.view')) {
+        if (! $scopedConfirmatrice && $user->hasPermissionSlug('leads.view')) {
             $items = array_merge($items, $this->unassignedLeads($user));
         }
 
-        if ($user->hasPermissionSlug('shipments.view') || $user->hasPermissionSlug('delivery.dashboard')) {
+        if (! $scopedConfirmatrice && ($user->hasPermissionSlug('shipments.view') || $user->hasPermissionSlug('delivery.dashboard'))) {
             $items = array_merge($items, $this->problemShipments($user));
             $items = array_merge($items, $this->deliveryIncidents($user));
         }
 
-        if ($user->hasPermissionSlug('products.view') || $user->hasPermissionSlug('stock.view')) {
+        if (! $scopedConfirmatrice && ($user->hasPermissionSlug('products.view') || $user->hasPermissionSlug('stock.view'))) {
             $items = array_merge($items, $this->lowStockProducts($user));
             $items = array_merge($items, $this->outOfStockProducts($user));
         }
@@ -65,7 +70,7 @@ class DashboardNotificationService
             $items = array_merge($items, $this->failedAutomations($user));
         }
 
-        if ($user->hasPermissionSlug('orders.view') || $user->hasPermissionSlug('shipments.view')) {
+        if (! $scopedConfirmatrice && ($user->hasPermissionSlug('orders.view') || $user->hasPermissionSlug('shipments.view'))) {
             $items = array_merge($items, $this->returnedShipments($user));
         }
 
@@ -353,6 +358,7 @@ class DashboardNotificationService
             ->orderByDesc('updated_at');
 
         $this->applyBrandScope($q, $user);
+        $this->applyAssignmentScope($q, $user);
 
         $count = (clone $q)->count();
         if ($count === 0) {
@@ -385,6 +391,7 @@ class DashboardNotificationService
             ->orderByDesc('bank_transfer_declared_at');
 
         $this->applyBrandScope($q, $user);
+        $this->applyAssignmentScope($q, $user);
 
         $count = (clone $q)->count();
         if ($count === 0) {
@@ -661,5 +668,21 @@ class DashboardNotificationService
         if ($ids !== []) {
             $query->whereIn($column, $ids);
         }
+    }
+
+    /**
+     * Cloisonnement confirmatrice : ses notifications de commandes ne portent
+     * que sur les commandes qui lui sont assignées (spec §A.4).
+     */
+    private function applyAssignmentScope(Builder $query, User $user, string $column = 'assigned_user_id'): void
+    {
+        if ($this->isScopedConfirmatrice($user)) {
+            $query->where($column, (int) $user->id);
+        }
+    }
+
+    private function isScopedConfirmatrice(User $user): bool
+    {
+        return UserRoleHelper::isConfirmatrice($user) && ! UserRoleHelper::hasGlobalScope($user);
     }
 }

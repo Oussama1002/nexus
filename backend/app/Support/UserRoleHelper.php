@@ -44,6 +44,17 @@ class UserRoleHelper
         return self::hasRoleSlug($user, 'manager_operationnel');
     }
 
+    public static function isConfirmatrice(User $user): bool
+    {
+        return self::hasRoleSlug($user, 'confirmatrice');
+    }
+
+    /** Vue globale (sans cloisonnement par assignation) : admin ou manager op. */
+    public static function hasGlobalScope(User $user): bool
+    {
+        return self::isAdmin($user) || self::isManagerOperationnel($user);
+    }
+
     public static function canApproveStrategies(User $user): bool
     {
         return self::isAdmin($user) || self::isSmm($user);
