@@ -72,6 +72,11 @@ function readSettingsSection(): SettingsCenterSection {
   return SETTINGS_SECTIONS.includes(raw as SettingsCenterSection) ? (raw as SettingsCenterSection) : 'general';
 }
 
+/** L'onglet RH vit aussi dans l'URL (?section=rh) pour être partageable. */
+function readHrTab(): boolean {
+  return new URLSearchParams(window.location.search).get('section') === 'rh';
+}
+
 export function SettingsScreen() {
   const toast = useToast();
   const { activeBrandId, activeBrand } = useBrand();
@@ -80,14 +85,15 @@ export function SettingsScreen() {
   const canUpdate = hasPermission('settings.update');
 
   const [section, setSection] = useState<SettingsCenterSection>(readSettingsSection);
-  const [hrTab, setHrTab] = useState(false);
+  const [hrTab, setHrTab] = useState(readHrTab);
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.get('section') === section) return;
-    url.searchParams.set('section', section);
+    const target = hrTab ? 'rh' : section;
+    if (url.searchParams.get('section') === target) return;
+    url.searchParams.set('section', target);
     window.history.replaceState({}, '', url.toString());
-  }, [section]);
+  }, [section, hrTab]);
   const [model, setModel] = useState<SectionModel | null>(null);
   const [baseline, setBaseline] = useState('');
   const [loading, setLoading] = useState(true);
