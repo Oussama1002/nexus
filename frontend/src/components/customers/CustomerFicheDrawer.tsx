@@ -6,9 +6,6 @@ import { formatCurrency } from '../../lib/utils';
 import * as api from '../../lib/api';
 import {
   CLIENT_SOURCE_OPTIONS,
-  CLIENT_TYPE_OPTIONS,
-  INTEREST_LEVEL_OPTIONS,
-  LANGUAGE_OPTIONS,
   LIFECYCLE_OPTIONS,
   PAYMENT_PREF_OPTIONS,
   labelFromOptions,
@@ -50,6 +47,18 @@ function fmtDate(iso: string | null | undefined) {
   } catch {
     return iso;
   }
+}
+
+/** Date de naissance + âge calculé (spec §6.4). */
+function frBirthDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return `${d.toLocaleDateString('fr-FR')} (${age} ans)`;
 }
 
 type DetailPayload = {
@@ -170,8 +179,8 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
             <Row label="Téléphone secondaire" value={cust.phone_secondary as string} />
             <Row label="Email" value={cust.email as string} />
             <Row label="Ville" value={cust.city as string} />
-            <Row label="Quartier" value={cust.neighborhood as string} />
-            <Row label="Adresse complète" value={cust.address as string} />
+            <Row label="Adresse" value={cust.address as string} />
+            <Row label="Date de naissance" value={frBirthDate(cust.birth_date as string | null | undefined)} />
           </Section>
 
           <Section title="Informations commerciales">
@@ -183,29 +192,6 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
             <Row
               label="Statut client"
               value={labelFromOptions(LIFECYCLE_OPTIONS as unknown as { value: string; label: string }[], (cust.lifecycle_status as string) || (cust.status as string))}
-            />
-            <Row
-              label="Type client"
-              value={labelFromOptions(CLIENT_TYPE_OPTIONS as unknown as { value: string; label: string }[], cust.client_type as string)}
-            />
-            <Row
-              label="Niveau d’intérêt"
-              value={labelFromOptions(INTEREST_LEVEL_OPTIONS as unknown as { value: string; label: string }[], cust.interest_level as string)}
-            />
-          </Section>
-
-          <Section title="Livraison">
-            <Row label="Ville livraison" value={cust.delivery_city as string} />
-            <Row label="Adresse livraison par défaut" value={cust.delivery_address as string} />
-            <Row label="Point de repère" value={cust.delivery_landmark as string} />
-            <Row label="Zone / région" value={cust.delivery_zone as string} />
-            <Row
-              label="Frais livraison par défaut"
-              value={
-                cust.default_shipping_fee != null && cust.default_shipping_fee !== ''
-                  ? formatCurrency(parseFloat(String(cust.default_shipping_fee)))
-                  : '—'
-              }
             />
           </Section>
 
@@ -232,10 +218,6 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
           <Section title="Préférences">
             <Row label="Produits préférés" value={<span className="whitespace-pre-wrap">{cust.preferred_products as string}</span>} />
             <Row label="Taille / couleur préférée" value={cust.preferred_variant as string} />
-            <Row
-              label="Langue préférée"
-              value={labelFromOptions(LANGUAGE_OPTIONS as unknown as { value: string; label: string }[], cust.preferred_language as string)}
-            />
             <Row
               label="Préférence de paiement"
               value={labelFromOptions(PAYMENT_PREF_OPTIONS as unknown as { value: string; label: string }[], cust.preferred_payment as string)}
