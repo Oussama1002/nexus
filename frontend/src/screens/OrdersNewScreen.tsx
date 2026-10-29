@@ -68,6 +68,7 @@ export function OrdersNewScreen({
   const [carrierCities, setCarrierCities] = useState<{ id: number; name: string }[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('+212 ');
+  const [whatsappPhone, setWhatsappPhone] = useState('');
   const [city, setCity] = useState('Casablanca');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
@@ -217,6 +218,7 @@ export function OrdersNewScreen({
       const cRes = await api.post<{ id: number }>('customers', {
         full_name: customerName.trim(),
         phone: phone.trim(),
+        whatsapp_phone: whatsappPhone.trim() || null,
         city: city.trim() || null,
         address: address.trim() || null,
         status: 'active',
@@ -385,8 +387,17 @@ export function OrdersNewScreen({
                 )}
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Téléphone</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Numéro d'appel</label>
                 <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Numéro WhatsApp</label>
+                <input
+                  value={whatsappPhone}
+                  onChange={(e) => setWhatsappPhone(e.target.value)}
+                  placeholder="Même que l'appel si vide"
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">Ville</label>

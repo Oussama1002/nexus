@@ -23,6 +23,7 @@ class StoreCustomerRequest extends FormRequest
             'full_name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
             'phone_secondary' => ['nullable', 'string', 'max:30'],
+            'whatsapp_phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'city' => ['nullable', 'string', 'max:120'],
             'neighborhood' => ['nullable', 'string', 'max:120'],

@@ -17,6 +17,7 @@ class Customer extends Model
         'full_name',
         'phone',
         'phone_secondary',
+        'whatsapp_phone',
         'email',
         'city',
         'neighborhood',
@@ -62,6 +63,14 @@ class Customer extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /** Numéro WhatsApp effectif : le numéro dédié s'il existe, sinon le numéro d'appel (spec §6.1). */
+    public function whatsappNumber(): ?string
+    {
+        $wa = trim((string) ($this->whatsapp_phone ?? ''));
+
+        return $wa !== '' ? $wa : $this->phone;
     }
 
     public function originLead()

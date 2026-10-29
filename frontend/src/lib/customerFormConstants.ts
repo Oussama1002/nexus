@@ -46,6 +46,7 @@ export type CustomerFormState = {
   full_name: string;
   phone: string;
   phone_secondary: string;
+  whatsapp_phone: string;
   email: string;
   city: string;
   neighborhood: string;
@@ -75,6 +76,7 @@ export const emptyCustomerForm = (): CustomerFormState => ({
   full_name: '',
   phone: '',
   phone_secondary: '',
+  whatsapp_phone: '',
   email: '',
   city: '',
   neighborhood: '',
@@ -106,6 +108,7 @@ export function customerToForm(c: Record<string, unknown>): CustomerFormState {
     full_name: g('full_name'),
     phone: g('phone'),
     phone_secondary: g('phone_secondary'),
+    whatsapp_phone: g('whatsapp_phone'),
     email: g('email'),
     city: g('city'),
     neighborhood: g('neighborhood'),
@@ -155,6 +158,7 @@ export function formToApiPayload(form: CustomerFormState, options?: { includeOri
     full_name: form.full_name.trim(),
     phone: form.phone.trim(),
     phone_secondary: form.phone_secondary.trim() || null,
+    whatsapp_phone: form.whatsapp_phone.trim() || null,
     email: form.email.trim() || null,
     city: form.city.trim(),
     neighborhood: form.neighborhood.trim() || null,

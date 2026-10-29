@@ -316,7 +316,7 @@ class ConversationController extends Controller
             $recipient = $conversation->external_thread_id;
             if (! $recipient) {
                 $conversation->loadMissing('customer');
-                $phone = $conversation->customer?->phone;
+                $phone = $conversation->customer?->whatsappNumber();
                 if ($phone) {
                     $recipient = \App\Services\PhoneNormalizer::toWhatsAppId($phone);
                 }
@@ -470,7 +470,7 @@ class ConversationController extends Controller
         $recipient = $conversation->external_thread_id;
         if (! $recipient && $conversation->channel === WhatsAppCloudService::CHANNEL) {
             $conversation->loadMissing('customer');
-            $phone = $conversation->customer?->phone;
+            $phone = $conversation->customer?->whatsappNumber();
             if ($phone) {
                 $recipient = \App\Services\PhoneNormalizer::toWhatsAppId($phone);
             }

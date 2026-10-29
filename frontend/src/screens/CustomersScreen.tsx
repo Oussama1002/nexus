@@ -462,7 +462,8 @@ export function CustomersScreen() {
           <p className="text-[11px] font-black uppercase text-primary-700">Identité</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Nom complet *" value={form.full_name} onChange={(v) => setForm((f) => ({ ...f, full_name: v }))} />
-            <Field label="Téléphone principal *" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+            <Field label="Numéro d'appel *" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+            <Field label="Numéro WhatsApp" value={form.whatsapp_phone} onChange={(v) => setForm((f) => ({ ...f, whatsapp_phone: v }))} />
             <Field label="Téléphone secondaire" value={form.phone_secondary} onChange={(v) => setForm((f) => ({ ...f, phone_secondary: v }))} />
             <Field label="Email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} />
             <Field label="Ville *" value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} />

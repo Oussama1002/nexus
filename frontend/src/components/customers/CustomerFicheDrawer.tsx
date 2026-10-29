@@ -175,7 +175,8 @@ export function CustomerFicheDrawer({ customerId, open, onClose, onEdit, canUpda
 
           <Section title="Identité">
             <Row label="Nom complet" value={cust.full_name as string} />
-            <Row label="Téléphone principal" value={cust.phone as string} />
+            <Row label="Numéro d'appel" value={cust.phone as string} />
+            <Row label="Numéro WhatsApp" value={(cust.whatsapp_phone as string) || (cust.phone as string)} />
             <Row label="Téléphone secondaire" value={cust.phone_secondary as string} />
             <Row label="Email" value={cust.email as string} />
             <Row label="Ville" value={cust.city as string} />
