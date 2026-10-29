@@ -156,6 +156,8 @@ const CONFIRMATRICE_HIDDEN_VIEWS: View[] = [
   'mediaBuying', 'ads',
   'hr', 'employees', 'hrDocuments', 'orgChart', 'attendance', 'payroll',
   'openPositions', 'applications', 'onboarding', 'training', 'evaluations', 'discipline',
+  // §A.3 — Transporteurs & COD : hors périmètre de la confirmatrice.
+  'delivery',
 ];
 
 /** When the API returns no matching permission rows yet, fall back to role slug lists (backend RolesSeeder). */

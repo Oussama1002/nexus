@@ -128,8 +128,11 @@ function FicheRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock' }) {
   const { activeBrandId, activeBrand, brands } = useBrand();
-  const { hasPermission } = useAuth();
+  const { hasPermission, isAdmin, roleSlugs } = useAuth();
   const toast = useToast();
+
+  /** La confirmatrice voit prix et disponibilité, mais pas les coûts ni la valeur du stock (spec §A.3). */
+  const canSeeCost = isAdmin || !roleSlugs.includes('confirmatrice');
 
   const [subTab, setSubTab] = useState<'products' | 'packs'>('products');
   const [loading, setLoading] = useState(true);
@@ -337,9 +340,12 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           </div>
         ),
       },
-      { key: 'cost', header: 'Coût', className: 'text-right', cell: (p) => <span className="text-sm font-black text-zinc-900">{formatCurrency(p.cost)}</span> },
       { key: 'price', header: 'Prix', className: 'text-right', cell: (p) => <span className="text-sm font-black text-zinc-900">{formatCurrency(p.price)}</span> },
     ];
+
+    if (canSeeCost) {
+      cols.splice(cols.length - 1, 0, { key: 'cost', header: 'Coût', className: 'text-right', cell: (p) => <span className="text-sm font-black text-zinc-900">{formatCurrency(p.cost)}</span> });
+    }
 
     if (canEdit) {
       cols.push({
@@ -370,7 +376,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
     });
 
     return cols;
-  }, [canEdit]);
+  }, [canEdit, canSeeCost]);
 
   async function saveProduct() {
     setFormErr([]);
@@ -542,10 +548,12 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Alertes stock</p>
           <p className="mt-2 text-2xl font-black text-rose-600">{kpis.low}</p>
         </div>
-        <div className="card p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Valeur (coût)</p>
-          <p className="mt-2 text-2xl font-black text-zinc-900">{formatCurrency(kpis.stockValue)}</p>
-        </div>
+        {canSeeCost && (
+          <div className="card p-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700">Valeur (coût)</p>
+            <p className="mt-2 text-2xl font-black text-zinc-900">{formatCurrency(kpis.stockValue)}</p>
+          </div>
+        )}
       </div>
 
       <FilterBar
@@ -658,23 +666,27 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
 
               {/* Prix & Marges */}
               <section className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 space-y-2">
-                <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">Prix & Marges</h3>
-                <div className="grid grid-cols-3 gap-3 text-center">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-primary-700">{canSeeCost ? 'Prix & Marges' : 'Prix'}</h3>
+                <div className={`grid ${canSeeCost ? 'grid-cols-3' : 'grid-cols-1'} gap-3 text-center`}>
                   <div>
                     <p className="text-[10px] font-black uppercase text-zinc-400">Prix vente</p>
                     <p className="text-lg font-black text-zinc-900">{formatCurrency(price)}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-zinc-400">Coût achat</p>
-                    <p className="text-lg font-black text-zinc-900">{formatCurrency(cost)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-zinc-400">Marge</p>
-                    <p className={`text-lg font-black ${margin >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      {formatCurrency(margin)}
-                    </p>
-                    <p className="text-[10px] font-bold text-zinc-400">{marginPct}%</p>
-                  </div>
+                  {canSeeCost && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-zinc-400">Coût achat</p>
+                      <p className="text-lg font-black text-zinc-900">{formatCurrency(cost)}</p>
+                    </div>
+                  )}
+                  {canSeeCost && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-zinc-400">Marge</p>
+                      <p className={`text-lg font-black ${margin >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {formatCurrency(margin)}
+                      </p>
+                      <p className="text-[10px] font-bold text-zinc-400">{marginPct}%</p>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -701,7 +713,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
                     {isLow && <span className="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 text-[10px] font-black uppercase">Stock bas</span>}
                   </span>
                 } />
-                <FicheRow label="Valeur stock" value={formatCurrency(stock * cost)} />
+                {canSeeCost && <FicheRow label="Valeur stock" value={formatCurrency(stock * cost)} />}
               </section>
 
               {/* Pack items */}

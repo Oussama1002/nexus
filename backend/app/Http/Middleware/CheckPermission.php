@@ -59,6 +59,6 @@ class CheckPermission
             }
         }
 
-        return ApiResponse::error('You do not have permission to perform this action.', null, 403);
+        return ApiResponse::error('Vous n’avez pas la permission d’effectuer cette action.', null, 403);
     }
 }
