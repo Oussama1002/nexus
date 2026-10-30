@@ -53,6 +53,11 @@ class BrandKnowledgeItemController extends Controller
             ->orderByDesc('sort_order')
             ->orderByDesc('id');
 
+        // Le SMM ne voit que les infos marque autorisées (spec Revue SMM §5).
+        if ($request->user() && \App\Support\UserRoleHelper::isScopedSocialOnly($request->user())) {
+            $q->where('visible_to_smm', true);
+        }
+
         if ($category !== '') {
             $q->where('category', $category);
         }

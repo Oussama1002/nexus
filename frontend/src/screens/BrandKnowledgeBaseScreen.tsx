@@ -24,6 +24,7 @@ type BrandKnowledgeItem = {
   product_name: string | null;
   tags: string[] | null;
   is_active: boolean;
+  visible_to_smm: boolean;
   sort_order: number;
   created_by?: { id: number; name: string } | null;
   updated_by?: { id: number; name: string } | null;
@@ -38,6 +39,7 @@ type Draft = {
   product_name: string;
   tags: string;
   is_active: boolean;
+  visible_to_smm: boolean;
   sort_order: string;
 };
 
@@ -61,6 +63,7 @@ function emptyDraft(): Draft {
     product_name: '',
     tags: '',
     is_active: true,
+    visible_to_smm: true,
     sort_order: '0',
   };
 }
@@ -78,6 +81,7 @@ function toPayload(draft: Draft): Record<string, unknown> {
     product_name: draft.product_name.trim() || null,
     tags,
     is_active: draft.is_active,
+    visible_to_smm: draft.visible_to_smm,
     sort_order: Number.isFinite(Number(draft.sort_order)) ? Number(draft.sort_order) : 0,
   };
 }
@@ -91,6 +95,7 @@ function fromItem(item: BrandKnowledgeItem): Draft {
     product_name: item.product_name ?? '',
     tags: (item.tags ?? []).join(', '),
     is_active: item.is_active,
+    visible_to_smm: item.visible_to_smm ?? true,
     sort_order: String(item.sort_order ?? 0),
   };
 }
@@ -429,6 +434,15 @@ export function BrandKnowledgeBaseScreen() {
                 className="h-4 w-4"
               />
               Active
+            </label>
+            <label className="flex items-end gap-2 text-sm font-bold text-zinc-700 pb-1" title="Décochez pour masquer cette info au rôle Social Media Manager (spec Revue SMM §5).">
+              <input
+                type="checkbox"
+                checked={draft.visible_to_smm}
+                onChange={(e) => setDraft((d) => ({ ...d, visible_to_smm: e.target.checked }))}
+                className="h-4 w-4"
+              />
+              Visible au SMM
             </label>
           </div>
         </div>

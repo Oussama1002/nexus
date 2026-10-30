@@ -26,6 +26,7 @@ class UpdateBrandKnowledgeItemRequest extends FormRequest
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
             'is_active' => ['nullable', 'boolean'],
+            'visible_to_smm' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }

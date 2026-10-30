@@ -20,12 +20,14 @@ class BrandKnowledgeItem extends Model
         'product_name',
         'tags',
         'is_active',
+        'visible_to_smm',
         'sort_order',
     ];
 
     protected $casts = [
         'tags' => 'array',
         'is_active' => 'boolean',
+        'visible_to_smm' => 'boolean',
     ];
 
     public function brand()
