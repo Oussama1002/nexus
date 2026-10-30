@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, MessageSquare } from 'lucide-react';
+import { ArrowUpRight, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmatriceStats } from '../components/confirmations/ConfirmatriceStats';
@@ -27,7 +27,10 @@ type WorkspaceSummary = {
   satisfaction_rate: number;
   follow_up_rate: number;
   reminders: Reminder[];
+  level?: Level | null;
 };
+
+type Level = { name: string; badge: string; color: string; min_confirmed: number };
 
 type TodayReminder = {
   id: number;
@@ -168,6 +171,8 @@ export function ConfirmatriceSpaceScreen({
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [perf, setPerf] = useState<PerfSettings>(DEFAULT_PERF);
+  const [levelsCfg, setLevelsCfg] = useState<Level[]>([]);
+  const [levelsSaving, setLevelsSaving] = useState(false);
 
   const loadSummary = useCallback(async () => {
     if (!workspaceUserId || !activeBrandId) {
@@ -273,8 +278,11 @@ export function ConfirmatriceSpaceScreen({
 
   useEffect(() => {
     void (async () => {
-      const res = await api.get<PerfSettings>('confirmatrice-settings');
-      if (res.ok && res.data) setPerf(res.data);
+      const res = await api.get<PerfSettings & { levels?: Level[] }>('confirmatrice-settings');
+      if (res.ok && res.data) {
+        setPerf({ threshold_improve: res.data.threshold_improve, threshold_good: res.data.threshold_good, alert_window_days: res.data.alert_window_days });
+        if (Array.isArray(res.data.levels)) setLevelsCfg(res.data.levels);
+      }
     })();
   }, []);
 
@@ -593,6 +601,14 @@ export function ConfirmatriceSpaceScreen({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-black text-zinc-900">Rapport quotidien</p>
+              {summary?.level && (
+                <span
+                  className="px-2.5 py-1 rounded-full border text-[11px] font-black"
+                  style={{ color: summary.level.color, borderColor: summary.level.color + '55', backgroundColor: summary.level.color + '14' }}
+                >
+                  {summary.level.badge} {summary.level.name}
+                </span>
+              )}
               {report && (
                 <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${performanceStatus(report.confirmation_rate, perf).cls}`}>
                   {performanceStatus(report.confirmation_rate, perf).label}
@@ -713,6 +729,46 @@ export function ConfirmatriceSpaceScreen({
           >
             {perfSaving ? 'Enregistrement…' : 'Enregistrer les réglages'}
           </button>
+        </div>
+      )}
+
+      {canEditPerf && (
+        <div className="card p-6 space-y-4">
+          <div>
+            <p className="text-sm font-black text-zinc-900">Niveaux & badges (admin)</p>
+            <p className="mt-1 text-xs font-medium text-zinc-500">Progression par nombre de commandes confirmées. Le badge du plus haut niveau atteint s’affiche dans l’espace de l’agente.</p>
+          </div>
+          <div className="space-y-2">
+            {levelsCfg.map((lv, i) => (
+              <div key={i} className="grid grid-cols-[2.5rem_1fr_6rem_5rem_2.5rem] gap-2 items-center">
+                <input value={lv.badge} onChange={(e) => setLevelsCfg((p) => p.map((x, j) => j === i ? { ...x, badge: e.target.value } : x))} maxLength={4} placeholder="🥉" className="px-2 py-2 rounded-lg border border-zinc-200 text-center" />
+                <input value={lv.name} onChange={(e) => setLevelsCfg((p) => p.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder="Nom du niveau" className="px-3 py-2 rounded-lg border border-zinc-200 text-sm font-bold" />
+                <input type="number" min={0} value={lv.min_confirmed} onChange={(e) => setLevelsCfg((p) => p.map((x, j) => j === i ? { ...x, min_confirmed: Number(e.target.value) } : x))} className="px-2 py-2 rounded-lg border border-zinc-200 text-sm" title="Commandes confirmées minimum" />
+                <input type="color" value={lv.color} onChange={(e) => setLevelsCfg((p) => p.map((x, j) => j === i ? { ...x, color: e.target.value } : x))} className="h-9 w-full rounded-lg border border-zinc-200" />
+                <button type="button" onClick={() => setLevelsCfg((p) => p.filter((_, j) => j !== i))} className="text-zinc-400 hover:text-rose-600"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+            <p className="text-[10px] font-bold text-zinc-400">Badge · Nom · Confirmées min · Couleur</p>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setLevelsCfg((p) => [...p, { name: 'Nouveau niveau', badge: '⭐', color: '#64748b', min_confirmed: 0 }])} className="px-3 py-2 rounded-xl border border-zinc-200 text-sm font-black text-zinc-700 hover:bg-zinc-50 inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Ajouter un niveau
+            </button>
+            <button
+              type="button"
+              disabled={levelsSaving || levelsCfg.length === 0}
+              onClick={async () => {
+                setLevelsSaving(true);
+                const res = await api.put<PerfSettings & { levels?: Level[] }>('confirmatrice-settings/levels', { levels: levelsCfg });
+                setLevelsSaving(false);
+                if (res.ok && res.data?.levels) { setLevelsCfg(res.data.levels); toast.success('Niveaux enregistrés.'); void loadSummary(); }
+                else toast.error(res.message);
+              }}
+              className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700 disabled:opacity-50"
+            >
+              {levelsSaving ? 'Enregistrement…' : 'Enregistrer les niveaux'}
+            </button>
+          </div>
         </div>
       )}
 

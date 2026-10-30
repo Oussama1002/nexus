@@ -153,6 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Réglages de performance confirmatrice (spec §6.8).
     Route::get('confirmatrice-settings', [\App\Http\Controllers\Api\ConfirmatriceSettingsController::class, 'show']);
     Route::put('confirmatrice-settings', [\App\Http\Controllers\Api\ConfirmatriceSettingsController::class, 'update'])->middleware('permission:settings.update');
+    Route::put('confirmatrice-settings/levels', [\App\Http\Controllers\Api\ConfirmatriceSettingsController::class, 'updateLevels'])->middleware('permission:settings.update');
 
     $registerCrud = function (string $path, string $controller, string $module): void {
         Route::get($path, [$controller, 'index'])->middleware("permission:{$module}.view");

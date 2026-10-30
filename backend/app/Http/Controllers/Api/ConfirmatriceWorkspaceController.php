@@ -104,11 +104,16 @@ class ConfirmatriceWorkspaceController extends Controller
             ? round(100 * $remindersDone / $remindersTotal, 1)
             : 0;
 
+        // Niveau/badge de l'agente selon ses commandes confirmées (spec §6.8).
+        $levels = ConfirmatriceSettingsController::values()['levels'] ?? [];
+        $level = ConfirmatriceSettingsController::resolveLevel($ordersConfirmed, $levels);
+
         return ApiResponse::success([
             'conversations_total' => $conversationsTotal,
             'leads_open' => $leadsOpen,
             'leads_new' => $leadsNew,
             'orders_confirmed' => $ordersConfirmed,
+            'level' => $level,
             'orders_cancelled' => $ordersCancelled,
             'orders_pending' => $ordersPending,
             'orders_total' => $ordersTotal,
