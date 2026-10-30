@@ -7,6 +7,7 @@ import {
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
 import { buildQuery, type Paginated } from '../lib/pagination';
 
@@ -117,8 +118,20 @@ function quarterRange(year: string, quarter: string): { start: string; end: stri
   return { start: iso(start), end: iso(end) };
 }
 
+/** Onglets visibles par le Community Manager (spec Droits CM §5). */
+const CM_VISIBLE_TABS: Space[] = ['dashboard', 'plans', 'calendar'];
+
 export function SocialMediaWorkspaceScreen() {
   const toast = useToast();
+  const { roleSlugs, isAdmin } = useAuth();
+  // Le CM (sans rôle plus large) ne voit que Tableau de bord, Plan mensuel et
+  // Calendrier ; stratégie, validation, supervision… sont masqués.
+  const cmRestricted = roleSlugs.includes('community_manager') && !isAdmin
+    && !roleSlugs.includes('smm') && !roleSlugs.includes('manager_operationnel');
+  const visibleSpaces = useMemo(
+    () => (cmRestricted ? SPACES.filter((s) => CM_VISIBLE_TABS.includes(s.key)) : SPACES),
+    [cmRestricted],
+  );
   const [space, setSpace] = useState<Space>('dashboard');
 
   // Shared data
@@ -184,7 +197,7 @@ export function SocialMediaWorkspaceScreen() {
       />
 
       <div className="flex flex-wrap gap-2 border-b border-zinc-200 pb-1">
-        {SPACES.map(({ key, label, Icon }) => {
+        {visibleSpaces.map(({ key, label, Icon }) => {
           const active = space === key;
           const count = (counts as any)[key];
           return (
