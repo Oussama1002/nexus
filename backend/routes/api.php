@@ -810,6 +810,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Strategy
     Route::get('smm/contributor-options', [SmmStrategyController::class, 'contributorOptions'])->middleware('permission:smm_strategy.view');
+
+    // Réclamations réseaux sociaux (spec Droits CM §3).
+    Route::get('social-complaints/stats', [\App\Http\Controllers\Api\SocialComplaintController::class, 'stats'])->middleware('permission:social_complaints.view');
+    Route::get('social-complaints', [\App\Http\Controllers\Api\SocialComplaintController::class, 'index'])->middleware('permission:social_complaints.view');
+    Route::post('social-complaints', [\App\Http\Controllers\Api\SocialComplaintController::class, 'store'])->middleware('permission:social_complaints.create');
+    Route::get('social-complaints/{id}', [\App\Http\Controllers\Api\SocialComplaintController::class, 'show'])->whereNumber('id')->middleware('permission:social_complaints.view');
+    Route::put('social-complaints/{id}', [\App\Http\Controllers\Api\SocialComplaintController::class, 'update'])->whereNumber('id')->middleware('permission:social_complaints.update');
+    Route::patch('social-complaints/{id}', [\App\Http\Controllers\Api\SocialComplaintController::class, 'update'])->whereNumber('id')->middleware('permission:social_complaints.update');
+    Route::post('social-complaints/{id}/updates', [\App\Http\Controllers\Api\SocialComplaintController::class, 'addUpdate'])->whereNumber('id')->middleware('permission:social_complaints.update');
+    Route::delete('social-complaints/{id}', [\App\Http\Controllers\Api\SocialComplaintController::class, 'destroy'])->whereNumber('id')->middleware('permission:social_complaints.delete');
     Route::get('smm/strategies', [SmmStrategyController::class, 'index'])->middleware('permission:smm_strategy.view');
     Route::post('smm/strategies', [SmmStrategyController::class, 'store'])->middleware('permission:smm_strategy.create');
     Route::get('smm/strategies/{id}', [SmmStrategyController::class, 'show'])->whereNumber('id')->middleware('permission:smm_strategy.view');

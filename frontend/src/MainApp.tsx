@@ -78,6 +78,7 @@ import { OnboardingScreen } from './screens/OnboardingScreen';
 import { TrainingScreen } from './screens/TrainingScreen';
 import { EvaluationsScreen } from './screens/EvaluationsScreen';
 import { SocialPublishingScreen } from './screens/SocialPublishingScreen';
+import { SocialComplaintsScreen } from './screens/SocialComplaintsScreen';
 import { SocialAccountsScreen } from './screens/SocialAccountsScreen';
 import { TreasuryScreen } from './screens/TreasuryScreen';
 import { BudgetsScreen } from './screens/BudgetsScreen';
@@ -132,6 +133,7 @@ const VIEW_LABELS_FR: Record<string, string> = {
   teamPerformance: "Pilotage d'équipe",
   socialPublishing: 'Publication & modération',
   socialAccounts: 'Comptes sociaux',
+  socialComplaints: 'Réclamations sociales',
   deliveryFailures: 'Échecs de livraison',
   returns: 'Retours',
   stockMovements: 'Mouvements de stock',
@@ -613,6 +615,8 @@ export function MainApp() {
         return <SocialPublishingScreen />;
       case 'socialAccounts':
         return <SocialAccountsScreen />;
+      case 'socialComplaints':
+        return <SocialComplaintsScreen />;
       case 'treasury':
         return <TreasuryScreen />;
       case 'budgets':

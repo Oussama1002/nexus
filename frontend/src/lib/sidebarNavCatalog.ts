@@ -125,6 +125,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'strategie-contenu', label: 'Stratégie & contenu', level: 3, block: 'operations', parentId: 'reseaux-sociaux', order: 1, icon: BookMarked, view: 'socialMedia' },
   { id: 'publication-moderation', label: 'Publication & modération', level: 3, block: 'operations', parentId: 'reseaux-sociaux', order: 2, icon: Send, view: 'socialPublishing' },
   { id: 'comptes-sociaux', label: 'Comptes sociaux', level: 3, block: 'operations', parentId: 'reseaux-sociaux', order: 3, icon: Globe, view: 'socialAccounts' },
+  { id: 'reclamations-sociales', label: 'Réclamations', level: 3, block: 'operations', parentId: 'reseaux-sociaux', order: 4, icon: ShieldAlert, view: 'socialComplaints' },
   { id: 'media-buying', label: 'Media Buying', level: 2, block: 'operations', parentId: 'marketing', order: 2, icon: Target, view: 'mediaBuying' },
   { id: 'campagnes-ads', label: 'Campagnes & Ads', level: 3, block: 'operations', parentId: 'media-buying', order: 1, icon: Megaphone, view: 'ads' },
   { id: 'gestion-influenceurs', label: 'Gestion des influenceurs', level: 2, block: 'operations', parentId: 'marketing', order: 3, icon: Sparkles, view: 'influenceHub' },

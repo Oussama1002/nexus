@@ -39,6 +39,7 @@ export type View =
   | 'teamPerformance'
   | 'socialPublishing'
   | 'socialAccounts'
+  | 'socialComplaints'
   | 'deliveryFailures'
   | 'returns'
   | 'stockMovements'

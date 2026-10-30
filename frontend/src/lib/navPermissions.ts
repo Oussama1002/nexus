@@ -43,6 +43,7 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   teamPerformance: ['team_performance.view'],
   socialPublishing: ['social_accounts.view'],
   socialAccounts: ['social_accounts.view'],
+  socialComplaints: ['social_complaints.view'],
   deliveryFailures: ['shipments.view'],
   returns: ['shipments.view'],
   stockMovements: ['stock.view'],
@@ -117,6 +118,7 @@ const ALL_VIEWS: View[] = [
   'teamPerformance',
   'socialPublishing',
   'socialAccounts',
+  'socialComplaints',
   'deliveryFailures',
   'returns',
   'stockMovements',
@@ -180,7 +182,7 @@ const SCOPED_ROLE_VIEWS: Partial<Record<string, View[]>> = {
   // Community Manager (spec Droits CM) : répondre, publier, suivre les
   // réclamations. Ni stratégie, ni media buying, ni call center, ni RH.
   community_manager: [
-    'dashboard', 'socialMedia', 'socialPublishing', 'socialAccounts',
+    'dashboard', 'socialMedia', 'socialPublishing', 'socialAccounts', 'socialComplaints',
     'brands', 'knowledgeBase', 'academy', 'myTrainings', 'collabProjects',
   ],
 };
