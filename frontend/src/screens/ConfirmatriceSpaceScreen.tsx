@@ -241,11 +241,14 @@ export function ConfirmatriceSpaceScreen({
     }, { brandId: activeBrandId });
     setFuSaving(false);
     if (res.ok) {
+      toast.success(res.message);
       setFollowUps((prev) => prev.filter((x) => x.id !== activeFollowUp.id));
       setActiveFollowUp(null);
       void loadFollowUps();
+    } else {
+      toast.error(res.message);
     }
-  }, [activeFollowUp, fuResult, fuOpportunity, fuUpsell, fuNotes, activeBrandId, loadFollowUps]);
+  }, [activeFollowUp, fuResult, fuOpportunity, fuUpsell, fuNotes, activeBrandId, loadFollowUps, toast]);
 
   const loadReport = useCallback(async () => {
     if (!workspaceUserId || !activeBrandId) {

@@ -106,15 +106,41 @@ class CustomerFollowUpController extends Controller
             }
         }
 
+        // Opportunité « nouvelle commande » : on crée automatiquement une
+        // commande brouillon pour le client, assignée à l'agente (spec §6.6).
+        $createdOrder = null;
+        if (($data['opportunity'] ?? null) === 'nouvelle_commande' && $followUp->customer_id && $followUp->brand_id) {
+            $createdOrder = \App\Models\Order::query()->create([
+                'brand_id' => $followUp->brand_id,
+                'customer_id' => $followUp->customer_id,
+                'assigned_user_id' => $followUp->assigned_user_id,
+                'order_number' => \App\Models\Order::generateUniqueOrderNumber($followUp->brand_id),
+                'source' => 'Fidélisation',
+                'status' => 'draft',
+                'payment_method' => 'cod',
+                'payment_state' => 'unpaid',
+                'subtotal' => 0,
+                'shipping_fee' => 0,
+                'discount' => 0,
+                'total' => 0,
+                'notes' => 'Commande créée automatiquement depuis un suivi de fidélisation (opportunité upsell).',
+            ]);
+        }
+
         AuditLogger::log($request, 'customer.follow_up.complete', $followUp, null, [
             'result' => $followUp->result,
             'opportunity' => $followUp->opportunity,
             'upsell_amount' => $followUp->upsell_amount,
+            'created_order_id' => $createdOrder?->id,
         ]);
 
         return ApiResponse::success([
             'id' => $followUp->id,
             'next_id' => $next?->id,
-        ], 'Suivi enregistré.');
+            'created_order_id' => $createdOrder?->id,
+            'created_order_number' => $createdOrder?->order_number,
+        ], $createdOrder
+            ? 'Suivi enregistré. Commande brouillon créée — complétez-la dans Commandes.'
+            : 'Suivi enregistré.');
     }
 }
