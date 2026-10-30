@@ -284,8 +284,9 @@ function StrategyTab({ strategies, onReload }: { strategies: R[]; onReload: () =
 
   useEffect(() => {
     (async () => {
-      const r = await api.get<Paginated<R>>('users' + buildQuery({ per_page: 100 }));
-      if (r.ok) setUsers((r.data as any).data ?? r.data);
+      // Endpoint dédié accessible au SMM (le rôle n'a pas users.view).
+      const r = await api.get<R[]>('smm/contributor-options');
+      if (r.ok) setUsers(Array.isArray(r.data) ? r.data : ((r.data as any)?.data ?? []));
     })();
   }, []);
 
@@ -598,7 +599,14 @@ function PlansTab({ plans, strategies, onReload }: { plans: R[]; strategies: R[]
               )}
             </Field>
           </div>
-          <div className="col-span-2"><Field label="Capacité déclarée"><input type="number" className={inputCls} value={form.declared_capacity} onChange={(e) => setForm({ ...form, declared_capacity: e.target.value })} /></Field></div>
+          <div className="col-span-2">
+            <Field label="Capacité déclarée (publications/mois)">
+              <input type="number" min={0} className={inputCls} value={form.declared_capacity} onChange={(e) => setForm({ ...form, declared_capacity: e.target.value })} placeholder="ex. 20" />
+            </Field>
+            <p className="mt-1 text-[11px] font-medium text-zinc-500">
+              Nombre de publications/contenus que l’équipe s’engage à produire ce mois-ci. Sert à dimensionner le plan et à suivre la charge.
+            </p>
+          </div>
         </div>
         <div className="flex justify-end gap-2 pt-4">
           <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>

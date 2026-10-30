@@ -15,6 +15,22 @@ use Illuminate\Http\Request;
 
 class SmmStrategyController extends Controller
 {
+    /**
+     * Liste des contributeurs possibles (spec Revue SMM §1). Endpoint léger
+     * accessible avec smm_strategy.view, car le SMM n'a pas users.view.
+     */
+    public function contributorOptions(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('search', ''));
+
+        $q = \App\Models\User::query()->orderBy('name');
+        if ($search !== '') {
+            $q->where('name', 'like', '%'.str_replace(['%', '_'], ['\\%', '\\_'], $search).'%');
+        }
+
+        return ApiResponse::success($q->limit(100)->get(['id', 'name']), 'Contributeurs disponibles.');
+    }
+
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);

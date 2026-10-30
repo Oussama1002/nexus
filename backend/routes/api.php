@@ -809,6 +809,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('smm/search', [SmmSearchController::class, 'index'])->middleware('permission:smm_contents.view');
 
     // Strategy
+    Route::get('smm/contributor-options', [SmmStrategyController::class, 'contributorOptions'])->middleware('permission:smm_strategy.view');
     Route::get('smm/strategies', [SmmStrategyController::class, 'index'])->middleware('permission:smm_strategy.view');
     Route::post('smm/strategies', [SmmStrategyController::class, 'store'])->middleware('permission:smm_strategy.create');
     Route::get('smm/strategies/{id}', [SmmStrategyController::class, 'show'])->whereNumber('id')->middleware('permission:smm_strategy.view');

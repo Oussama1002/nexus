@@ -419,6 +419,36 @@ class CommunityManagerController extends Controller
 
         $row = InfluencerContentLog::create($data);
 
+        // Spec Revue SMM §4 : un contenu enregistré dans « Suivi influenceurs »
+        // apparaît aussi dans « Livrables & Contenus » (Contenus publiés).
+        if (empty($row->no_publication)) {
+            try {
+                \App\Models\InfluencerPublishedContent::create([
+                    'collaboration_id' => $row->collaboration_id,
+                    'influencer_id' => $row->influencer_id,
+                    'brand_id' => $row->brand_id,
+                    'recorded_by' => $user->id,
+                    'content_type' => $row->content_type,
+                    'platform' => $row->platform,
+                    'content_url' => $row->content_url,
+                    'screenshot_url' => $row->screenshot_url,
+                    'published_at' => $row->published_at,
+                    'quantity' => $row->quantity,
+                    'is_archived' => $row->is_archived,
+                    'archive_url' => $row->archive_url,
+                    'no_publication' => $row->no_publication,
+                    'live_duration_minutes' => $row->live_duration_minutes,
+                    'live_viewers_count' => $row->live_viewers_count,
+                    'notes' => $row->notes,
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('influencer_published_content.sync_failed', [
+                    'content_log_id' => $row->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         AuditLogger::log($request, 'influencer_content_log.create', $row, null, $row->toArray());
 
         return ApiResponse::success($row->fresh()->load(['influencer', 'cmUser']), 'Contenu influenceur enregistré.', 201);
