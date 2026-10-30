@@ -177,6 +177,12 @@ const SCOPED_ROLE_VIEWS: Partial<Record<string, View[]>> = {
     'dashboard', 'influenceHub', 'brands', 'knowledgeBase', 'academy',
     'myTrainings', 'collabProjects',
   ],
+  // Community Manager (spec Droits CM) : répondre, publier, suivre les
+  // réclamations. Ni stratégie, ni media buying, ni call center, ni RH.
+  community_manager: [
+    'dashboard', 'socialMedia', 'socialPublishing', 'socialAccounts',
+    'brands', 'knowledgeBase', 'academy', 'myTrainings', 'collabProjects',
+  ],
 };
 
 /** When the API returns no matching permission rows yet, fall back to role slug lists (backend RolesSeeder). */

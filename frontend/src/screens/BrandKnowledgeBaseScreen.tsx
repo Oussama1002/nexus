@@ -435,14 +435,14 @@ export function BrandKnowledgeBaseScreen() {
               />
               Active
             </label>
-            <label className="flex items-end gap-2 text-sm font-bold text-zinc-700 pb-1" title="Décochez pour masquer cette info au rôle Social Media Manager (spec Revue SMM §5).">
+            <label className="flex items-end gap-2 text-sm font-bold text-zinc-700 pb-1" title="Décochez pour masquer cette info aux rôles réseaux sociaux (SMM, Community Manager).">
               <input
                 type="checkbox"
                 checked={draft.visible_to_smm}
                 onChange={(e) => setDraft((d) => ({ ...d, visible_to_smm: e.target.checked }))}
                 className="h-4 w-4"
               />
-              Visible au SMM
+              Visible aux rôles sociaux
             </label>
           </div>
         </div>
