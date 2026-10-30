@@ -30,31 +30,34 @@ class DashboardNotificationService
         // La confirmatrice ne gère ni la logistique, ni le stock, ni l'affectation
         // des leads : ses notifications se limitent à ses commandes (spec §A.4).
         $scopedConfirmatrice = $this->isScopedConfirmatrice($user);
+        // Rôle social fermé (SMM/influence) : pas de notifications commerciales,
+        // logistiques, stock, finance ou RH (spec Revue SMM §5).
+        $scopedSocial = UserRoleHelper::isScopedSocialOnly($user);
 
-        if ($user->hasPermissionSlug('orders.view')) {
+        if (! $scopedSocial && $user->hasPermissionSlug('orders.view')) {
             $items = array_merge($items, $this->pendingOrders($user));
             $items = array_merge($items, $this->bankTransfersToVerify($user));
         }
 
-        if (! $scopedConfirmatrice && $user->hasPermissionSlug('leads.view')) {
+        if (! $scopedConfirmatrice && ! $scopedSocial && $user->hasPermissionSlug('leads.view')) {
             $items = array_merge($items, $this->unassignedLeads($user));
         }
 
-        if (! $scopedConfirmatrice && ($user->hasPermissionSlug('shipments.view') || $user->hasPermissionSlug('delivery.dashboard'))) {
+        if (! $scopedConfirmatrice && ! $scopedSocial && ($user->hasPermissionSlug('shipments.view') || $user->hasPermissionSlug('delivery.dashboard'))) {
             $items = array_merge($items, $this->problemShipments($user));
             $items = array_merge($items, $this->deliveryIncidents($user));
         }
 
-        if (! $scopedConfirmatrice && ($user->hasPermissionSlug('products.view') || $user->hasPermissionSlug('stock.view'))) {
+        if (! $scopedConfirmatrice && ! $scopedSocial && ($user->hasPermissionSlug('products.view') || $user->hasPermissionSlug('stock.view'))) {
             $items = array_merge($items, $this->lowStockProducts($user));
             $items = array_merge($items, $this->outOfStockProducts($user));
         }
 
-        if ($user->hasPermissionSlug('finance.view')) {
+        if (! $scopedSocial && $user->hasPermissionSlug('finance.view')) {
             $items = array_merge($items, $this->overdueInvoices($user));
         }
 
-        if ($user->hasPermissionSlug('hr.view')) {
+        if (! $scopedSocial && $user->hasPermissionSlug('hr.view')) {
             $items = array_merge($items, $this->pendingHrJustifications($user));
         }
 
@@ -74,7 +77,7 @@ class DashboardNotificationService
             $items = array_merge($items, $this->failedAutomations($user));
         }
 
-        if (! $scopedConfirmatrice && ($user->hasPermissionSlug('orders.view') || $user->hasPermissionSlug('shipments.view'))) {
+        if (! $scopedConfirmatrice && ! $scopedSocial && ($user->hasPermissionSlug('orders.view') || $user->hasPermissionSlug('shipments.view'))) {
             $items = array_merge($items, $this->returnedShipments($user));
         }
 

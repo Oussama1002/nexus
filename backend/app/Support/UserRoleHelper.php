@@ -55,6 +55,19 @@ class UserRoleHelper
         return self::isAdmin($user) || self::isManagerOperationnel($user);
     }
 
+    /**
+     * Rôle à périmètre fermé réseaux sociaux / influence (spec Revue SMM §5) :
+     * l'utilisateur n'a QUE des rôles sociaux (smm et/ou influence_manager).
+     * Sert à masquer les données commerciales/financières hors de leur métier.
+     */
+    public static function isScopedSocialOnly(User $user): bool
+    {
+        self::loadRoles($user);
+        $slugs = $user->roles->pluck('slug')->all();
+
+        return $slugs !== [] && empty(array_diff($slugs, ['smm', 'influence_manager']));
+    }
+
     public static function canApproveStrategies(User $user): bool
     {
         return self::isAdmin($user) || self::isSmm($user);

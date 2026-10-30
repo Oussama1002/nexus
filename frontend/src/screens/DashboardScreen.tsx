@@ -10,6 +10,8 @@ import { buildQuery } from '../lib/pagination';
 import { useNavigate } from 'react-router-dom';
 import { pathForView } from '../lib/appPaths';
 import { useBrand } from '../context/BrandContext';
+import { useAuth } from '../context/AuthContext';
+import { hasOnlyScopedRoles } from '../lib/navPermissions';
 
 type Range = 'Tout' | "Aujourd'hui" | 'Semaine' | 'Mois' | 'Année';
 
@@ -139,6 +141,9 @@ function KpiCard({
 export function DashboardScreen() {
   const navigate = useNavigate();
   const { activeBrandId } = useBrand();
+  const { roleSlugs } = useAuth();
+  // Rôles à périmètre fermé (SMM, influence) : pas de KPIs commerciaux/financiers.
+  const scopedSocial = hasOnlyScopedRoles(roleSlugs);
   const [range, setRange] = useState<Range>('Tout');
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -207,7 +212,22 @@ export function DashboardScreen() {
 
       <DashboardNotificationsSection data={payload?.notifications ?? null} loading={loading} />
 
-      {loading && !c ? (
+      {scopedSocial ? (
+        <div className="card p-8 text-center">
+          <Share2 className="w-10 h-10 mx-auto text-primary-600" />
+          <p className="mt-4 text-base font-black text-zinc-900">Vos indicateurs réseaux sociaux</p>
+          <p className="mt-1 text-sm font-medium text-zinc-500">
+            Vues, portée, abonnés, engagement, messages et publications sont dans l’espace Réseaux sociaux.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate(pathForView('socialMedia'))}
+            className="mt-5 px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2 hover:bg-primary-700"
+          >
+            Ouvrir Réseaux sociaux <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      ) : loading && !c ? (
         <p className="text-sm font-bold text-zinc-500">Chargement des indicateurs…</p>
       ) : (
         <>

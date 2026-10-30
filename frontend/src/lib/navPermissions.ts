@@ -160,6 +160,25 @@ const CONFIRMATRICE_HIDDEN_VIEWS: View[] = [
   'delivery',
 ];
 
+/**
+ * Rôles « à périmètre fermé » (spec Revue SMM §5) : ces rôles ne voient QUE les
+ * modules de leur métier, même si des permissions plus larges leur sont
+ * accordées. Un utilisateur qui cumule plusieurs de ces rôles voit l'UNION de
+ * leurs périmètres (ex. SMM + influence = les deux). Les vues universelles
+ * (notifications, messagerie interne, congés, profil) restent toujours
+ * accessibles via les règles qui précèdent ce test.
+ */
+const SCOPED_ROLE_VIEWS: Partial<Record<string, View[]>> = {
+  smm: [
+    'dashboard', 'socialMedia', 'socialPublishing', 'socialAccounts',
+    'brands', 'knowledgeBase', 'academy', 'myTrainings', 'collabProjects',
+  ],
+  influence_manager: [
+    'dashboard', 'influenceHub', 'brands', 'knowledgeBase', 'academy',
+    'myTrainings', 'collabProjects',
+  ],
+};
+
 /** When the API returns no matching permission rows yet, fall back to role slug lists (backend RolesSeeder). */
 export const ROLE_DEFAULT_VIEWS: Record<string, View[]> = {
   admin: ALL_VIEWS,
@@ -174,6 +193,16 @@ export const ROLE_DEFAULT_VIEWS: Record<string, View[]> = {
   client_brand_owner: ['clientPortal', 'amWorkspace'],
   account_manager: ['dashboard', 'brands', 'customers', 'leads', 'mediaBuying', 'socialMedia', 'influenceHub', 'amWorkspace', 'collabProjects', 'reporting', 'academy', 'automations'],
 };
+
+/**
+ * True quand l'utilisateur n'a QUE des rôles à périmètre fermé (SMM, influence).
+ * Sert à masquer les données commerciales/financières hors de leur métier
+ * (tableau de bord, rapports, notifications — spec Revue SMM §5). Un rôle non
+ * fermé (admin, manager…) renvoie false et rétablit la vue complète.
+ */
+export function hasOnlyScopedRoles(roleSlugs: string[]): boolean {
+  return roleSlugs.length > 0 && roleSlugs.every((r) => !!SCOPED_ROLE_VIEWS[r]);
+}
 
 export function userHasPermissionSlug(userSlugs: Set<string>, required: string): boolean {
   if (userSlugs.has(required)) return true;
@@ -203,6 +232,17 @@ export function canAccessView(
   // universally accessible (e.g. internal messaging — everyone has DMs).
   const explicit = VIEW_PERMISSIONS[view];
   if (Array.isArray(explicit) && explicit.length === 0) return true;
+  // Rôles à périmètre fermé (spec Revue SMM §5) : si TOUS les rôles de
+  // l'utilisateur sont des rôles fermés, il ne voit que l'union de leurs
+  // périmètres — peu importe les permissions accordées. Un rôle non fermé
+  // (admin, manager…) fait retomber dans la logique normale, plus large.
+  if (ctx.roleSlugs.length > 0 && ctx.roleSlugs.every((r) => SCOPED_ROLE_VIEWS[r])) {
+    const allowed = new Set<View>();
+    for (const r of ctx.roleSlugs) {
+      for (const v of SCOPED_ROLE_VIEWS[r] ?? []) allowed.add(v);
+    }
+    return allowed.has(view);
+  }
   if (ctx.roleSlugs.length === 1 && ctx.roleSlugs[0] === 'client_brand_owner') {
     if (view !== 'clientPortal') return false;
   }
