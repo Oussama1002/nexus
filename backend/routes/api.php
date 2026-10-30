@@ -202,6 +202,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('customer-follow-ups', [\App\Http\Controllers\Api\CustomerFollowUpController::class, 'index'])->middleware('permission:customers.view');
     Route::patch('customer-follow-ups/{id}', [\App\Http\Controllers\Api\CustomerFollowUpController::class, 'complete'])->whereNumber('id')->middleware('permission:customers.update');
 
+    // Calendrier de fidélisation configurable par marque/produit (spec §6.6).
+    Route::get('follow-up-schedules', [\App\Http\Controllers\Api\FollowUpScheduleController::class, 'index'])->middleware('permission:settings.view');
+    Route::put('follow-up-schedules', [\App\Http\Controllers\Api\FollowUpScheduleController::class, 'upsert'])->middleware('permission:settings.update');
+    Route::delete('follow-up-schedules/{id}', [\App\Http\Controllers\Api\FollowUpScheduleController::class, 'destroy'])->whereNumber('id')->middleware('permission:settings.update');
+
     Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
     Route::post('leads', [LeadController::class, 'store'])->middleware('permission:leads.create');
     Route::get('leads/{id}', [LeadController::class, 'show'])->whereNumber('id')->middleware('permission:leads.view');

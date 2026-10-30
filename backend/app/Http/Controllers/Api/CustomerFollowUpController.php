@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CustomerFollowUp;
 use App\Services\AuditLogger;
+use App\Services\FollowUpScheduleResolver;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use App\Support\UserRoleHelper;
@@ -81,22 +82,28 @@ class CustomerFollowUpController extends Controller
         ]);
         $followUp->save();
 
-        // Chaque suivi validé programme le suivant (spec §6.6). Cadence
-        // simplifiée : hebdo jusqu'au 6e, puis quinzaine, puis mensuel.
+        // Chaque suivi validé programme le suivant selon le calendrier de la
+        // marque/produit (spec §6.6), via FollowUpScheduleResolver.
         $next = null;
-        if (($data['schedule_next'] ?? true) && $followUp->sequence < 12) {
-            $increment = $followUp->sequence < 6 ? 7 : ($followUp->sequence < 8 ? 15 : 30);
-            $next = CustomerFollowUp::query()->create([
-                'brand_id' => $followUp->brand_id,
-                'customer_id' => $followUp->customer_id,
-                'order_id' => $followUp->order_id,
-                'assigned_user_id' => $followUp->assigned_user_id,
-                'sequence' => $followUp->sequence + 1,
-                'due_at' => now()->addDays($increment)->toDateString(),
-                'status' => 'pending',
-                'created_by' => $request->user()?->id,
-                'updated_by' => $request->user()?->id,
-            ]);
+        if ($data['schedule_next'] ?? true) {
+            $followUp->loadMissing('order.lines');
+            $nextSequence = $followUp->sequence + 1;
+            $due = $followUp->order
+                ? app(FollowUpScheduleResolver::class)->dueDateForSequence($followUp->order, $nextSequence)
+                : null;
+            if ($due) {
+                $next = CustomerFollowUp::query()->create([
+                    'brand_id' => $followUp->brand_id,
+                    'customer_id' => $followUp->customer_id,
+                    'order_id' => $followUp->order_id,
+                    'assigned_user_id' => $followUp->assigned_user_id,
+                    'sequence' => $nextSequence,
+                    'due_at' => $due->toDateString(),
+                    'status' => 'pending',
+                    'created_by' => $request->user()?->id,
+                    'updated_by' => $request->user()?->id,
+                ]);
+            }
         }
 
         AuditLogger::log($request, 'customer.follow_up.complete', $followUp, null, [

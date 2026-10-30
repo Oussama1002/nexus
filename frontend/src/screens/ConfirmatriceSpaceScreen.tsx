@@ -5,6 +5,7 @@ import { Modal } from '../components/ui/Modal';
 import { ConfirmatriceStats } from '../components/confirmations/ConfirmatriceStats';
 import { ReminderList, type Reminder } from '../components/confirmations/ReminderList';
 import { UpsellRequests } from '../components/confirmations/UpsellRequests';
+import { FollowUpScheduleManager } from '../components/confirmations/FollowUpScheduleManager';
 import { useBrand } from '../context/BrandContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -711,6 +712,8 @@ export function ConfirmatriceSpaceScreen({
           </button>
         </div>
       )}
+
+      {canEditPerf && <FollowUpScheduleManager />}
 
       <Modal
         open={activeFollowUp !== null}

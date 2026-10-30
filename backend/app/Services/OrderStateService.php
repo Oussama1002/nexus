@@ -198,13 +198,17 @@ class OrderStateService
         if (\App\Models\CustomerFollowUp::query()->where('order_id', $order->id)->exists()) {
             return;
         }
+        $due = app(\App\Services\FollowUpScheduleResolver::class)->dueDateForSequence($order, 1);
+        if (! $due) {
+            return; // calendrier vide : aucun suivi à programmer
+        }
         \App\Models\CustomerFollowUp::query()->create([
             'brand_id' => $order->brand_id,
             'customer_id' => $order->customer_id,
             'order_id' => $order->id,
             'assigned_user_id' => $order->assigned_user_id,
             'sequence' => 1,
-            'due_at' => now()->addDays(7)->toDateString(),
+            'due_at' => $due->toDateString(),
             'status' => 'pending',
             'created_by' => $user->id,
             'updated_by' => $user->id,
