@@ -59,6 +59,7 @@ export type AuthPayload = {
   brands: ApiBrand[];
   landing_view?: string | null;
   attendance?: AttendanceInfo | null;
+  manages_team?: boolean;
 };
 
 type AuthContextValue = {
@@ -76,6 +77,8 @@ type AuthContextValue = {
   permissionSlugs: Set<string>;
   roleSlugs: string[];
   landingView: string;
+  /** L'utilisateur encadre-t-il une équipe (a des subordonnés) ? */
+  managesTeam: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -86,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<ApiPermission[]>([]);
   const [accessibleBrands, setAccessibleBrands] = useState<ApiBrand[]>([]);
   const [landingView, setLandingView] = useState<string>('dashboard');
+  const [managesTeam, setManagesTeam] = useState(false);
   const [loading, setLoading] = useState(() => !!api.getStoredToken());
 
   const permissionSlugs = useMemo(
@@ -113,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessibleBrands(data.brands ?? []);
     // Spec §7.3 — landing view from server (first role with one set), else 'dashboard'
     setLandingView(data.landing_view ?? 'dashboard');
+    setManagesTeam(!!data.manages_team);
   }, []);
 
   const fetchMe = useCallback(async () => {
@@ -171,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRoles([]);
     setPermissions([]);
     setAccessibleBrands([]);
+    setManagesTeam(false);
     setLoading(false);
   }, []);
 
@@ -192,6 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       permissionSlugs,
       roleSlugs,
       landingView,
+      managesTeam,
     }),
     [
       user,
@@ -208,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       permissionSlugs,
       roleSlugs,
       landingView,
+      managesTeam,
     ],
   );
 

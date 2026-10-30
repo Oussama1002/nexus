@@ -222,7 +222,7 @@ export function hasAllPermissions(userSlugs: Set<string>, required: string[]): b
 
 export function canAccessView(
   view: View,
-  ctx: { isAdmin: boolean; permissionSlugs: Set<string>; roleSlugs: string[] },
+  ctx: { isAdmin: boolean; permissionSlugs: Set<string>; roleSlugs: string[]; managesTeam?: boolean },
 ): boolean {
   if (view === 'profile') return true;
   if (ctx.isAdmin) return true;
@@ -241,6 +241,8 @@ export function canAccessView(
     for (const r of ctx.roleSlugs) {
       for (const v of SCOPED_ROLE_VIEWS[r] ?? []) allowed.add(v);
     }
+    // Présence RH visible seulement si le rôle encadre une équipe (spec §5).
+    if (ctx.managesTeam) allowed.add('attendance');
     return allowed.has(view);
   }
   if (ctx.roleSlugs.length === 1 && ctx.roleSlugs[0] === 'client_brand_owner') {

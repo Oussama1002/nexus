@@ -187,7 +187,7 @@ function mapApiUserToLegacy(u: ApiUserRow): User {
 export function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user: authUser, roleSlugs, logout: authLogout, isAdmin, permissionSlugs } = useAuth();
+  const { user: authUser, roleSlugs, logout: authLogout, isAdmin, permissionSlugs, managesTeam } = useAuth();
 
   // Déconnexion automatique après 10 min sans activité (ferme aussi le pointage).
   useIdleLogout(async () => {
@@ -286,8 +286,8 @@ export function MainApp() {
   }, [users]);
 
   const permCtx = useMemo(
-    () => ({ isAdmin, permissionSlugs, roleSlugs }),
-    [isAdmin, permissionSlugs, roleSlugs],
+    () => ({ isAdmin, permissionSlugs, roleSlugs, managesTeam }),
+    [isAdmin, permissionSlugs, roleSlugs, managesTeam],
   );
 
   const canAccess = useCallback((v: View) => canAccessView(v, permCtx), [permCtx]);

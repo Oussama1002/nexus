@@ -303,6 +303,13 @@ HTML;
             'whatsapp_number' => $brand->whatsapp_number,
         ])->values();
 
+        // Encadre-t-il une équipe ? (spec Revue SMM §5 : le module présence RH
+        // n'apparaît que si l'utilisateur a des subordonnés.)
+        $employee = \App\Models\Employee::query()->where('user_id', $user->id)->first(['id']);
+        $managesTeam = $employee
+            ? \App\Models\Employee::query()->where('manager_employee_id', $employee->id)->exists()
+            : false;
+
         return [
             'user' => [
                 'id' => $user->id,
@@ -316,6 +323,7 @@ HTML;
             'permissions' => $permissions,
             'brands' => $brands,
             'landing_view' => $landingView,
+            'manages_team' => $managesTeam,
         ];
     }
 }
