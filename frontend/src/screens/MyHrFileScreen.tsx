@@ -53,6 +53,15 @@ function attendanceStatusFr(s: string | null): string {
   return ATTENDANCE_STATUS_FR[s] ?? s;
 }
 
+/** Retard lisible : minutes jusqu'à 59, sinon heures + minutes (ex. 3h50). */
+function fmtLate(minutes: number | null): string {
+  const m = Math.max(0, Math.round(minutes ?? 0));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  return `${h}h${String(rest).padStart(2, '0')}`;
+}
+
 const LEAVE_STATUS_FR: Record<string, string> = {
   approved: 'Approuvé', approuve: 'Approuvé', refused: 'Refusé', refuse: 'Refusé',
   pending: 'En attente', en_attente: 'En attente', cancelled: 'Annulé', annule: 'Annulé',
@@ -148,7 +157,7 @@ export function MyHrFileScreen() {
                   <span className="font-bold text-zinc-800">{fmtDate(r.attendance_date)}</span>
                   <span className="text-zinc-500">{fmtTime(r.clock_in_at)} → {fmtTime(r.clock_out_at)}</span>
                   <span className="flex items-center gap-2">
-                    {r.was_late && <StatusChip tone="warning">Retard{r.minutes_late ? ` ${r.minutes_late}′` : ''}</StatusChip>}
+                    {r.was_late && <StatusChip tone="warning">Retard{r.minutes_late ? ` ${fmtLate(r.minutes_late)}` : ''}</StatusChip>}
                     <StatusChip tone={r.status === 'present' ? 'success' : r.status === 'absent' ? 'danger' : r.status === 'late' ? 'warning' : 'neutral'}>{attendanceStatusFr(r.status)}</StatusChip>
                   </span>
                 </div>
