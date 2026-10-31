@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Bug, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Modal } from '../components/ui/Modal';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
@@ -21,6 +22,24 @@ type BugIncident = {
   occurrences?: number;
   last_seen_at?: string | null;
 };
+
+type BugDetail = {
+  id: number; title: string; description: string | null; trace: string | null;
+  context: Record<string, unknown> | null; severity: string; module: string;
+  source: string; fingerprint: string | null; occurrences: number; last_seen_at: string | null;
+  status: string; resolution: string | null; resolved_at: string | null;
+  reporter: string; assignee: string | null; created_at: string | null; updated_at: string | null;
+};
+
+const MODULE_LABELS: Record<string, string> = {
+  crm: 'CRM', orders: 'Commandes', delivery: 'Livraison', finance: 'Finance', hr: 'RH', academy: 'Academy', other: 'Autre',
+};
+
+function fmtDT(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+}
 
 const SEVERITY_OPTIONS = [
   { value: '', label: 'Tous' },
@@ -89,6 +108,9 @@ export function BugsIncidentsScreen() {
   };
   const [rows, setRows] = useState<BugIncident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<BugDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [lastPage, setLastPage] = useState(1);
@@ -161,6 +183,19 @@ export function BugsIncidentsScreen() {
     fetchData();
     return () => { cancelled = true; };
   }, [page, search, severityFilter, statusFilter, moduleFilter, activeBrandId, reloadTick]);
+
+  useEffect(() => {
+    if (detailId === null) { setDetail(null); return; }
+    let cancelled = false;
+    setDetailLoading(true);
+    void (async () => {
+      const res = await api.get<BugDetail>(`bugs-incidents/${detailId}`);
+      if (cancelled) return;
+      setDetailLoading(false);
+      if (res.ok && res.data) setDetail(res.data);
+    })();
+    return () => { cancelled = true; };
+  }, [detailId]);
 
   const openCount = rows.filter(r => r.status === 'open').length;
   const criticalCount = rows.filter(r => r.severity === 'critical').length;
@@ -289,7 +324,7 @@ export function BugsIncidentsScreen() {
               {loading ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-zinc-400">Chargement…</td></tr>
               ) : rows.map(row => (
-                <tr key={row.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                <tr key={row.id} onClick={() => setDetailId(row.id)} className="border-b border-zinc-50 hover:bg-zinc-50/50 cursor-pointer">
                   <td className="px-4 py-3 text-sm font-medium">#{row.id}</td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
@@ -340,6 +375,72 @@ export function BugsIncidentsScreen() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={detailId !== null}
+        onClose={() => setDetailId(null)}
+        title={detail ? `#${detail.id} · ${detail.title}` : 'Détail du bug'}
+        subtitle={detail ? `${MODULE_LABELS[detail.module] ?? detail.module} · ${detail.source === 'runtime' ? 'Détecté automatiquement' : 'Signalé par un utilisateur'}` : ''}
+      >
+        {detailLoading && <p className="text-sm font-bold text-zinc-500">Chargement…</p>}
+        {!detailLoading && detail && (
+          <div className="space-y-4">
+            {/* Résumé */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${SEVERITY_COLORS[detail.severity] ?? 'bg-zinc-100 text-zinc-600'}`}>{SEVERITY_LABELS[detail.severity] ?? detail.severity}</span>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${STATUS_COLORS[detail.status] ?? 'bg-zinc-100 text-zinc-600'}`}>{STATUS_LABELS[detail.status] ?? detail.status}</span>
+              {detail.occurrences > 1 && <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold bg-amber-50 text-amber-800">×{detail.occurrences} occurrences</span>}
+            </div>
+
+            {/* Infos clés */}
+            <div className="card-muted p-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <span className="font-semibold text-zinc-500">Module</span><span className="font-bold text-zinc-900 text-right">{MODULE_LABELS[detail.module] ?? detail.module}</span>
+              <span className="font-semibold text-zinc-500">Signalé par</span><span className="font-bold text-zinc-900 text-right">{detail.reporter}</span>
+              <span className="font-semibold text-zinc-500">Assigné à</span><span className="font-bold text-zinc-900 text-right">{detail.assignee ?? '—'}</span>
+              <span className="font-semibold text-zinc-500">Créé le</span><span className="font-bold text-zinc-900 text-right">{fmtDT(detail.created_at)}</span>
+              <span className="font-semibold text-zinc-500">Dernière occurrence</span><span className="font-bold text-zinc-900 text-right">{fmtDT(detail.last_seen_at)}</span>
+              {detail.resolved_at && (<><span className="font-semibold text-zinc-500">Résolu le</span><span className="font-bold text-emerald-700 text-right">{fmtDT(detail.resolved_at)}</span></>)}
+            </div>
+
+            {/* Description */}
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-1">Description & étapes</p>
+              <p className="text-sm text-zinc-800 whitespace-pre-wrap">{detail.description?.trim() || 'Aucune description fournie.'}</p>
+            </div>
+
+            {/* Résolution */}
+            {detail.resolution && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-1">Résolution</p>
+                <p className="text-sm text-emerald-950 whitespace-pre-wrap">{detail.resolution}</p>
+              </div>
+            )}
+
+            {/* Contexte technique */}
+            {detail.context && Object.keys(detail.context).length > 0 && (
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-zinc-400 mb-1">Contexte technique</p>
+                <div className="card-muted p-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                  {Object.entries(detail.context).map(([k, v]) => (
+                    <React.Fragment key={k}>
+                      <span className="font-semibold text-zinc-500">{k}</span>
+                      <span className="font-mono text-zinc-800 break-all text-right">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trace technique */}
+            {detail.trace && (
+              <details className="rounded-xl border border-zinc-200">
+                <summary className="cursor-pointer px-3 py-2 text-[11px] font-black uppercase tracking-widest text-zinc-500">Trace technique</summary>
+                <pre className="px-3 py-2 text-[11px] text-zinc-700 whitespace-pre-wrap break-all max-h-80 overflow-y-auto bg-zinc-50">{detail.trace}</pre>
+              </details>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -48,6 +48,37 @@ class BugIncidentController extends Controller
         return ApiResponse::success($paginator);
     }
 
+    /** Détail complet d'un bug/incident (description, trace, contexte, résolution…). */
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $row = BugIncident::query()
+            ->with(['reporter:id,name,email', 'assignee:id,name,email'])
+            ->when($brandId !== null, fn ($q) => $q->where('brand_id', $brandId))
+            ->findOrFail($id);
+
+        return ApiResponse::success([
+            'id' => $row->id,
+            'title' => $row->title,
+            'description' => $row->description,
+            'trace' => $row->trace,
+            'context' => $row->context,
+            'severity' => $row->severity,
+            'module' => $row->module,
+            'source' => $row->source ?? 'user',
+            'fingerprint' => $row->fingerprint,
+            'occurrences' => (int) ($row->occurrences ?? 1),
+            'last_seen_at' => $row->last_seen_at?->toIso8601String(),
+            'status' => $row->status,
+            'resolution' => $row->resolution,
+            'resolved_at' => $row->resolved_at?->toIso8601String(),
+            'reporter' => $row->source === 'runtime' ? 'Système' : ($row->reporter?->name ?? '—'),
+            'assignee' => $row->assignee?->name,
+            'created_at' => $row->created_at?->toIso8601String(),
+            'updated_at' => $row->updated_at?->toIso8601String(),
+        ], 'Détail du bug.');
+    }
+
     /**
      * Frontend error-boundary endpoint. Accepts anonymously so JS crashes
      * that happen mid-logout or with an expired token still get captured.
