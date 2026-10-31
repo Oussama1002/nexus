@@ -423,15 +423,12 @@ export function SuppliersScreen() {
       ) : (
         <DataTable<ApiSupplier>
           rows={filtered}
+          onRowClick={(s) => setOpenId(s.id)}
           columns={[
             {
               key: 'name',
               header: 'Nom',
-              cell: (s) => (
-                <button type="button" onClick={() => setOpenId(s.id)} className="font-black text-primary-600 hover:underline text-left">
-                  {s.name}
-                </button>
-              ),
+              cell: (s) => <span className="font-black text-primary-600">{s.name}</span>,
             },
             {
               key: 'type',
@@ -450,7 +447,7 @@ export function SuppliersScreen() {
               key: 'edit',
               header: '',
               cell: (s) => (
-                <button type="button" onClick={() => startEdit(s)} className="text-sm font-black text-zinc-600 hover:text-primary-600">
+                <button type="button" onClick={(e) => { e.stopPropagation(); startEdit(s); }} className="text-sm font-black text-zinc-600 hover:text-primary-600">
                   Modifier
                 </button>
               ),

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileText, Plus, RefreshCw, UserPlus } from 'lucide-react';
+import { ChevronRight, Plus, RefreshCw, UserPlus } from 'lucide-react';
 import { EmployeeFicheDrawer, type EmployeeDetail } from '../components/hr/EmployeeFicheDrawer';
 import { EmployeeFormModal } from '../components/hr/EmployeeFormModal';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -219,12 +219,12 @@ export function EmployeesManagementScreen() {
         key: 'name',
         header: 'Nom',
         cell: (e) => (
-          <button type="button" onClick={() => setFicheId(e.id)} className="text-left hover:text-primary-700">
+          <div>
             <span className="font-black text-zinc-900">{e.full_name}</span>
             {e.employee_code ? (
               <span className="block text-[10px] font-bold text-zinc-400">{e.employee_code}</span>
             ) : null}
-          </button>
+          </div>
         ),
       },
       {
@@ -260,15 +260,8 @@ export function EmployeesManagementScreen() {
       {
         key: 'actions',
         header: '',
-        cell: (e) => (
-          <button
-            type="button"
-            onClick={() => setFicheId(e.id)}
-            className="px-3 py-1.5 rounded-xl border border-zinc-200 text-xs font-black text-zinc-700 hover:bg-zinc-50 inline-flex items-center gap-1.5"
-          >
-            <FileText className="w-3.5 h-3.5" /> Fiche
-          </button>
-        ),
+        className: 'text-right',
+        cell: () => <ChevronRight className="w-4 h-4 text-zinc-400 inline" />,
       },
     ],
     [],
@@ -516,7 +509,7 @@ export function EmployeesManagementScreen() {
               </select>
             }
           />
-          <DataTable rows={rows} columns={columns} emptyTitle="Aucun employé" emptyDescription="Créez un employé ou modifiez les filtres." />
+          <DataTable<EmployeeRow> rows={rows} columns={columns} onRowClick={(e) => setFicheId(e.id)} emptyTitle="Aucun employé" emptyDescription="Créez un employé ou modifiez les filtres." />
 
           <EmployeeFicheDrawer
             employeeId={ficheId}

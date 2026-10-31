@@ -544,15 +544,16 @@ export function LeadsScreen({
       ) : (
         <DataTable<Lead>
           rows={filtered}
+          onRowClick={(l) => setOpenId(l.id)}
           columns={[
             {
               key: 'who',
               header: 'Nom / téléphone',
               cell: (l) => (
-                <button type="button" onClick={() => setOpenId(l.id)} className="text-left">
+                <div>
                   <p className="font-black text-zinc-900">{l.name}</p>
                   <p className="text-xs font-bold text-zinc-500">{l.phone}</p>
-                </button>
+                </div>
               ),
             },
             { key: 'brand', header: 'Marque', cell: (l) => <span className="font-bold text-zinc-700">{l.brand}</span> },

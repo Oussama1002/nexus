@@ -300,18 +300,19 @@ export function BrandsScreen() {
       ) : (
         <DataTable<BrandExt>
           rows={filtered}
+          onRowClick={(b) => setOpenId(b.id)}
           columns={[
             {
               key: 'brand',
               header: 'Marque',
               cell: (b) => (
-                <button type="button" onClick={() => setOpenId(b.id)} className="flex items-center gap-3 font-black text-zinc-900 hover:underline">
+                <div className="flex items-center gap-3 font-black text-zinc-900">
                   <span className="w-8 h-8 rounded-xl flex items-center justify-center text-[11px] text-white" style={{ backgroundColor: b.color }}>
                     {b.logo}
                   </span>
                   <span className="truncate">{b.name}</span>
                   {b.id === activeBrandId && <StatusChip tone="info">Active</StatusChip>}
-                </button>
+                </div>
               ),
             },
             {
@@ -331,7 +332,7 @@ export function BrandsScreen() {
                   cell: (b: BrandExt) => (
                     <button
                       type="button"
-                      onClick={() => startEdit(b)}
+                      onClick={(e) => { e.stopPropagation(); startEdit(b); }}
                       className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
                       title="Modifier"
                     >
