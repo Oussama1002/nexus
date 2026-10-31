@@ -18,6 +18,25 @@ class SocialComplaintController extends Controller
 
     private const REASONS = ['retard', 'defectueux', 'remboursement', 'service', 'autre'];
 
+    /**
+     * Clients de la marque active pour la liste déroulante du formulaire
+     * (le CM n'a pas customers.view ; accessible via social_complaints.view).
+     */
+    public function customerOptions(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $search = trim((string) $request->query('search', ''));
+
+        $q = \App\Models\Customer::query()->orderBy('full_name');
+        ApiBrandContext::scopeBrand($q, $brandId);
+        if ($search !== '') {
+            $s = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $search).'%';
+            $q->where(fn ($w) => $w->where('full_name', 'like', $s)->orWhere('phone', 'like', $s));
+        }
+
+        return ApiResponse::success($q->limit(50)->get(['id', 'full_name', 'phone']), 'Clients.');
+    }
+
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);

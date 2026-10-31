@@ -815,6 +815,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Réclamations réseaux sociaux (spec Droits CM §3).
     Route::get('social-complaints/stats', [\App\Http\Controllers\Api\SocialComplaintController::class, 'stats'])->middleware('permission:social_complaints.view');
+    Route::get('social-complaints/customer-options', [\App\Http\Controllers\Api\SocialComplaintController::class, 'customerOptions'])->middleware('permission:social_complaints.view');
     Route::get('social-complaints', [\App\Http\Controllers\Api\SocialComplaintController::class, 'index'])->middleware('permission:social_complaints.view');
     Route::post('social-complaints', [\App\Http\Controllers\Api\SocialComplaintController::class, 'store'])->middleware('permission:social_complaints.create');
     Route::get('social-complaints/{id}', [\App\Http\Controllers\Api\SocialComplaintController::class, 'show'])->whereNumber('id')->middleware('permission:social_complaints.view');

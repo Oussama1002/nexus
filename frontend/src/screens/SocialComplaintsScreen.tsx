@@ -85,6 +85,9 @@ export function SocialComplaintsScreen() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
+  // Liste déroulante des clients (avec saisie libre si le client n'existe pas).
+  const [custOptions, setCustOptions] = useState<{ id: number; full_name: string; phone: string | null }[]>([]);
+  const [showCust, setShowCust] = useState(false);
 
   const [detail, setDetail] = useState<Complaint | null>(null);
   const [updates, setUpdates] = useState<Update[]>([]);
@@ -103,6 +106,16 @@ export function SocialComplaintsScreen() {
   }, [activeBrandId, statusFilter, reasonFilter, search]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Charge les clients correspondant à la saisie quand le formulaire est ouvert.
+  useEffect(() => {
+    if (!modalOpen) return;
+    const t = window.setTimeout(async () => {
+      const res = await api.get<{ id: number; full_name: string; phone: string | null }[]>('social-complaints/customer-options' + buildQuery({ search: draft.customer_name.trim() || undefined }));
+      if (res.ok && Array.isArray(res.data)) setCustOptions(res.data);
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [modalOpen, draft.customer_name]);
 
   function openCreate() { setEditingId(null); setDraft(emptyDraft()); setModalOpen(true); }
   function openEdit(c: Complaint) {
@@ -224,7 +237,35 @@ export function SocialComplaintsScreen() {
             <L label="Plateforme"><select value={draft.platform} onChange={(e) => setDraft({ ...draft, platform: e.target.value })} className={inp}>{PLATFORMS.map((p) => <option key={p}>{p}</option>)}</select></L>
             <L label="Canal"><select value={draft.channel} onChange={(e) => setDraft({ ...draft, channel: e.target.value })} className={inp}>{CHANNELS.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}</select></L>
           </div>
-          <L label="Client (nom ou pseudo) *"><input value={draft.customer_name} onChange={(e) => setDraft({ ...draft, customer_name: e.target.value })} className={inp} /></L>
+          <L label="Client (nom ou pseudo) *">
+            <div className="relative">
+              <input
+                value={draft.customer_name}
+                onChange={(e) => { setDraft({ ...draft, customer_name: e.target.value }); setShowCust(true); }}
+                onFocus={() => setShowCust(true)}
+                onBlur={() => window.setTimeout(() => setShowCust(false), 150)}
+                placeholder="Choisir un client ou saisir un nom…"
+                className={inp}
+                autoComplete="off"
+              />
+              {showCust && custOptions.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg">
+                  {custOptions.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); setDraft((d) => ({ ...d, customer_name: c.full_name })); setShowCust(false); }}
+                      className="w-full text-left px-3 py-2 hover:bg-primary-50 border-b border-zinc-100 last:border-0"
+                    >
+                      <span className="text-sm font-bold text-zinc-800">{c.full_name}</span>
+                      {c.phone && <span className="ml-2 text-xs text-zinc-500">{c.phone}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="mt-1 text-[11px] text-zinc-500">Si le client n'existe pas, saisissez simplement son nom/pseudo.</p>
+          </L>
           <L label="Lien vers le message / commentaire"><input value={draft.customer_link} onChange={(e) => setDraft({ ...draft, customer_link: e.target.value })} className={inp} placeholder="https://…" /></L>
           <div className="grid grid-cols-2 gap-3">
             <L label="Date de réception"><input type="datetime-local" value={draft.received_at} onChange={(e) => setDraft({ ...draft, received_at: e.target.value })} className={inp} /></L>
