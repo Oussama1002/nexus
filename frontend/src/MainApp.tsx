@@ -79,6 +79,7 @@ import { TrainingScreen } from './screens/TrainingScreen';
 import { EvaluationsScreen } from './screens/EvaluationsScreen';
 import { SocialPublishingScreen } from './screens/SocialPublishingScreen';
 import { SocialComplaintsScreen } from './screens/SocialComplaintsScreen';
+import { MyHrFileScreen } from './screens/MyHrFileScreen';
 import { SocialAccountsScreen } from './screens/SocialAccountsScreen';
 import { TreasuryScreen } from './screens/TreasuryScreen';
 import { BudgetsScreen } from './screens/BudgetsScreen';
@@ -134,6 +135,7 @@ const VIEW_LABELS_FR: Record<string, string> = {
   socialPublishing: 'Publication & modération',
   socialAccounts: 'Comptes sociaux',
   socialComplaints: 'Réclamations sociales',
+  myHrFile: 'Mon dossier',
   deliveryFailures: 'Échecs de livraison',
   returns: 'Retours',
   stockMovements: 'Mouvements de stock',
@@ -617,6 +619,8 @@ export function MainApp() {
         return <SocialAccountsScreen />;
       case 'socialComplaints':
         return <SocialComplaintsScreen />;
+      case 'myHrFile':
+        return <MyHrFileScreen />;
       case 'treasury':
         return <TreasuryScreen />;
       case 'budgets':

@@ -53,6 +53,8 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   attendance: ['hr.view'],
   // Everyone can request their own leave; HR sees all requests.
   leaves: [],
+  // Dossier personnel : chacun a le sien (self-service).
+  myHrFile: [],
   payroll: ['hr.view'],
   openPositions: ['hr.view'],
   applications: ['hr.view'],
@@ -119,6 +121,7 @@ const ALL_VIEWS: View[] = [
   'socialPublishing',
   'socialAccounts',
   'socialComplaints',
+  'myHrFile',
   'deliveryFailures',
   'returns',
   'stockMovements',

@@ -675,6 +675,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('enrollments/{id}', [AcademyEnrollmentController::class, 'destroy'])->whereNumber('id');
     });
 
+    // Dossier personnel de l'employé connecté (self-service, sans permission RH).
+    Route::get('hr/my-file', [\App\Http\Controllers\Api\MyHrFileController::class, 'show']);
     Route::get('hr/attendance', [HrAttendanceController::class, 'index'])->middleware('permission:hr.view');
     Route::post('hr/attendance/clock-in', [HrAttendanceController::class, 'clockIn']);
     Route::post('hr/attendance/manager-mark', [HrAttendanceController::class, 'managerMark'])->middleware('permission:hr.update');

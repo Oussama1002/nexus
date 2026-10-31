@@ -152,6 +152,9 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // BLOC RESSOURCES
   // ═══════════════════════════════════════════
 
+  // ── Mon dossier ── (self-service employé : fiche, présence, congés)
+  { id: 'mon-dossier', label: 'Mon dossier', level: 1, block: 'ressources', parentId: null, order: 0, icon: Contact, view: 'myHrFile', brandScoped: false },
+
   // ── Équipe & RH ── (spec §7.4 — not filtered by brand selector)
   { id: 'equipe-rh', label: 'Équipe & RH', level: 1, block: 'ressources', parentId: null, order: 1, icon: Briefcase, brandScoped: false },
   { id: 'tableau-bord-rh', label: 'Tableau de bord RH', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 1, icon: Layout, view: 'hr' },

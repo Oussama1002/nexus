@@ -40,6 +40,7 @@ export type View =
   | 'socialPublishing'
   | 'socialAccounts'
   | 'socialComplaints'
+  | 'myHrFile'
   | 'deliveryFailures'
   | 'returns'
   | 'stockMovements'

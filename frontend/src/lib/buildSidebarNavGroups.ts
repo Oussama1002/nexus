@@ -22,8 +22,23 @@ export function buildSidebarNav(opts: {
     ? roleSlugs.includes('confirmatrice')
     : userRole === 'confirmatrice';
 
+  // La confirmatrice n'a pas le bloc « Équipe & RH » dans le menu : la
+  // communication interne est dans la barre du haut, et ses infos RH
+  // (présence, congés, fiche) sont regroupées dans « Mon dossier ».
+  const CONFIRMATRICE_HIDDEN_NAV_IDS = new Set([
+    'equipe-rh', 'tableau-bord-rh', 'dossiers-salaries', 'fiches-employes',
+    'documents-rh', 'organigramme', 'temps-absences', 'presence-pointage',
+    'conges-absences', 'paie', 'recrutement-integration', 'postes-ouverts',
+    'candidatures', 'integration', 'developpement', 'formation',
+    'evaluation-carriere', 'discipline', 'communication-interne',
+    'projets-collaboratifs',
+  ]);
+
   const canShowEntry = (id: string, view?: View): boolean => {
     if (!isSidebarNavVisible(id, visibility)) return false;
+    // « Mon dossier » est réservé à la confirmatrice pour l'instant.
+    if (id === 'mon-dossier' && !isConfirmatrice) return false;
+    if (isConfirmatrice && CONFIRMATRICE_HIDDEN_NAV_IDS.has(id)) return false;
     if (view) return canAccess(view);
     return true;
   };

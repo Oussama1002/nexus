@@ -40,6 +40,7 @@ export const VIEW_PATH: Record<Exclude<View, 'login' | 'settings'>, string> = {
   socialPublishing: '/social/publication',
   socialAccounts: '/social/comptes',
   socialComplaints: '/social/reclamations',
+  myHrFile: '/mon-dossier',
   deliveryFailures: '/livraison/echecs',
   returns: '/retours',
   stockMovements: '/mouvements-stock',
