@@ -1021,12 +1021,12 @@ export function WhatsappPanel({
         </div>
         <TextField label="Message d’accueil par défaut" value={value.automation.defaultWelcomeMessage} onChange={(v) => p({ automation: { ...value.automation, defaultWelcomeMessage: v } })} disabled={disabled} multiline />
       </SectionCard>
-      <SectionCard title="Modèles de messages">
+      <SectionCard title="Modèles de messages automatiques" description="Chaque modèle part automatiquement quand la commande change de statut. Laissez vide pour désactiver l'envoi.">
         <div className="grid grid-cols-1 gap-5">
-          <TextField label="Confirmation commande" value={value.templates.orderConfirmation} onChange={(v) => p({ templates: { ...value.templates, orderConfirmation: v } })} disabled={disabled} multiline />
-          <TextField label="Livraison" value={value.templates.delivery} onChange={(v) => p({ templates: { ...value.templates, delivery: v } })} disabled={disabled} multiline />
-          <TextField label="Relance" value={value.templates.followUp} onChange={(v) => p({ templates: { ...value.templates, followUp: v } })} disabled={disabled} multiline />
-          <TextField label="Upsell" value={value.templates.upsell} onChange={(v) => p({ templates: { ...value.templates, upsell: v } })} disabled={disabled} multiline />
+          <TextField label="Confirmation commande — envoyé quand la commande passe « Confirmée »" value={value.templates.orderConfirmation} onChange={(v) => p({ templates: { ...value.templates, orderConfirmation: v } })} disabled={disabled} multiline />
+          <TextField label="Expédition — envoyé quand la commande passe « Expédiée »" value={value.templates.delivery} onChange={(v) => p({ templates: { ...value.templates, delivery: v } })} disabled={disabled} multiline />
+          <TextField label="Offre / upsell — envoyé quand la commande passe « Livrée »" value={value.templates.upsell} onChange={(v) => p({ templates: { ...value.templates, upsell: v } })} disabled={disabled} multiline />
+          <TextField label="Relance (manuel)" value={value.templates.followUp} onChange={(v) => p({ templates: { ...value.templates, followUp: v } })} disabled={disabled} multiline />
         </div>
       </SectionCard>
     </div>

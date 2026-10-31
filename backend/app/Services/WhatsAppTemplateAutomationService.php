@@ -71,6 +71,20 @@ class WhatsAppTemplateAutomationService
         $this->fire($conversation, $name, $params, 'order_shipped');
     }
 
+    /** Commande livrée → message de fidélisation / offre (spec Conversations). */
+    public function sendOrderDelivered(Order $order): void
+    {
+        $name = $this->templateName($order->brand_id, 'order_delivered');
+        if (! $name) return;
+        $conversation = $this->resolveConversationForOrder($order);
+        if (! $conversation) return;
+        $params = [
+            (string) ($order->customer?->full_name ?? 'client'),
+            (string) ($order->reference ?? '#' . $order->id),
+        ];
+        $this->fire($conversation, $name, $params, 'order_delivered');
+    }
+
     /**
      * Send the template through Meta, persist the rendered body as an
      * outbound Message so the UI reads the actual text (not
@@ -140,6 +154,8 @@ class WhatsAppTemplateAutomationService
             'welcome' => 'wa_tpl_welcome',
             'order_confirmed' => 'wa_tpl_order_confirmation',
             'order_shipped' => 'wa_tpl_delivery',
+            // Commande livrée → modèle « offre / upsell » (déjà configurable).
+            'order_delivered' => 'wa_tpl_upsell',
             default => null,
         };
         if (! $key) return null;

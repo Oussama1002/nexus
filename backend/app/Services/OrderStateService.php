@@ -155,6 +155,8 @@ class OrderStateService
                 $this->templateAutomation->sendOrderConfirmed($result->fresh(['customer']));
             } elseif ($toStatus === 'shipped') {
                 $this->templateAutomation->sendOrderShipped($result->fresh(['customer']));
+            } elseif ($toStatus === 'delivered') {
+                $this->templateAutomation->sendOrderDelivered($result->fresh(['customer']));
             }
         } catch (\Throwable $e) {
             Log::warning('wa.auto_template.dispatch_failed', [
