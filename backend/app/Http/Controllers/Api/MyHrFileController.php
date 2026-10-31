@@ -60,7 +60,8 @@ class MyHrFileController extends Controller
                 'role_title' => $employee->role_title,
                 'department' => $employee->department,
                 'phone' => $employee->phone,
-                'email' => $employee->email,
+                // Repli sur l'e-mail du compte si la fiche employé n'en a pas.
+                'email' => $employee->email ?: $user->email,
                 'status' => $employee->status,
             ] : null,
             'attendance' => $records,

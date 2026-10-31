@@ -25,13 +25,16 @@ const LEAVE_TYPES = [
   { v: 'autre', l: 'Autre' },
 ];
 function leaveTypeLabel(v: string) { return LEAVE_TYPES.find((x) => x.v === v)?.l ?? v; }
+// Les pointages sont gérés en heure du Maroc (Africa/Casablanca) alors que la
+// base stocke en UTC : on affiche donc explicitement dans ce fuseau.
+const TZ = 'Africa/Casablanca';
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return '—';
-  const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR');
+  const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR', { timeZone: TZ });
 }
 function fmtTime(iso: string | null | undefined) {
   if (!iso) return '—';
-  const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
 }
 function leaveStatusTone(s: string): 'warning' | 'success' | 'danger' | 'neutral' {
   if (s === 'approved' || s === 'approuve') return 'success';
