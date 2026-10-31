@@ -287,6 +287,21 @@ class OrderController extends Controller
                 $order->follow_up_handled_at = null;
                 $order->save();
             }
+
+            // Message WhatsApp automatique une fois la date connue (spec Conversations).
+            try {
+                $automation = app(\App\Services\WhatsAppTemplateAutomationService::class);
+                $fresh = $order->fresh(['customer']);
+                if ($to === 'scheduled') {
+                    $automation->sendOrderScheduled($fresh);
+                } else {
+                    $automation->sendOrderPostponed($fresh);
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('wa.auto_template.dispatch_failed', [
+                    'order_id' => $order->id, 'to' => $to, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         AuditLogger::log($request, 'orders.status', $order, null, ['status' => $to]);

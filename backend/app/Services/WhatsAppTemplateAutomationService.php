@@ -85,6 +85,34 @@ class WhatsAppTemplateAutomationService
         $this->fire($conversation, $name, $params, 'order_delivered');
     }
 
+    /** Commande programmée → rappel de la date de livraison prévue. */
+    public function sendOrderScheduled(Order $order): void
+    {
+        $this->fireOrderDated($order, 'order_scheduled');
+    }
+
+    /** Commande reportée → relance à la date prévue. */
+    public function sendOrderPostponed(Order $order): void
+    {
+        $this->fireOrderDated($order, 'order_postponed');
+    }
+
+    /** Facteur commun : commande + date d'échéance (follow_up_date) en paramètre. */
+    private function fireOrderDated(Order $order, string $event): void
+    {
+        $name = $this->templateName($order->brand_id, $event);
+        if (! $name) return;
+        $conversation = $this->resolveConversationForOrder($order);
+        if (! $conversation) return;
+        $date = $order->follow_up_date ? $order->follow_up_date->format('d/m/Y') : '';
+        $params = [
+            (string) ($order->customer?->full_name ?? 'client'),
+            (string) ($order->reference ?? '#' . $order->id),
+            $date,
+        ];
+        $this->fire($conversation, $name, $params, $event);
+    }
+
     /**
      * Send the template through Meta, persist the rendered body as an
      * outbound Message so the UI reads the actual text (not
@@ -156,6 +184,8 @@ class WhatsAppTemplateAutomationService
             'order_shipped' => 'wa_tpl_delivery',
             // Commande livrée → modèle « offre / upsell » (déjà configurable).
             'order_delivered' => 'wa_tpl_upsell',
+            'order_scheduled' => 'wa_tpl_order_scheduled',
+            'order_postponed' => 'wa_tpl_order_postponed',
             default => null,
         };
         if (! $key) return null;

@@ -521,6 +521,8 @@ class SettingsCenterService
                 'welcome' => $this->getRaw($brandId, 'wa_tpl_welcome') ?? '',
                 'orderConfirmation' => $this->getRaw($brandId, 'wa_tpl_order_confirmation') ?? '',
                 'delivery' => $this->getRaw($brandId, 'wa_tpl_delivery') ?? '',
+                'scheduled' => $this->getRaw($brandId, 'wa_tpl_order_scheduled') ?? '',
+                'postponed' => $this->getRaw($brandId, 'wa_tpl_order_postponed') ?? '',
                 'followUp' => $this->getRaw($brandId, 'wa_tpl_relance') ?? '',
                 'upsell' => $this->getRaw($brandId, 'wa_tpl_upsell') ?? '',
             ],
@@ -556,6 +558,8 @@ class SettingsCenterService
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_welcome', $t['welcome'] ?? '');
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_order_confirmation', $t['orderConfirmation'] ?? '');
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_delivery', $t['delivery'] ?? '');
+            $this->upsert($brandId, 'whatsapp', 'wa_tpl_order_scheduled', $t['scheduled'] ?? '');
+            $this->upsert($brandId, 'whatsapp', 'wa_tpl_order_postponed', $t['postponed'] ?? '');
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_relance', $t['followUp'] ?? '');
             $this->upsert($brandId, 'whatsapp', 'wa_tpl_upsell', $t['upsell'] ?? '');
         });

@@ -133,6 +133,8 @@ export type WhatsappModel = {
   templates: {
     orderConfirmation: string;
     delivery: string;
+    scheduled: string;
+    postponed: string;
     followUp: string;
     upsell: string;
   };

@@ -1025,6 +1025,8 @@ export function WhatsappPanel({
         <div className="grid grid-cols-1 gap-5">
           <TextField label="Confirmation commande — envoyé quand la commande passe « Confirmée »" value={value.templates.orderConfirmation} onChange={(v) => p({ templates: { ...value.templates, orderConfirmation: v } })} disabled={disabled} multiline />
           <TextField label="Expédition — envoyé quand la commande passe « Expédiée »" value={value.templates.delivery} onChange={(v) => p({ templates: { ...value.templates, delivery: v } })} disabled={disabled} multiline />
+          <TextField label="Programmée — envoyé quand la commande passe « Programmée » (rappel de la date)" value={value.templates.scheduled} onChange={(v) => p({ templates: { ...value.templates, scheduled: v } })} disabled={disabled} multiline />
+          <TextField label="Reportée — envoyé quand la commande passe « Reportée » (relance)" value={value.templates.postponed} onChange={(v) => p({ templates: { ...value.templates, postponed: v } })} disabled={disabled} multiline />
           <TextField label="Offre / upsell — envoyé quand la commande passe « Livrée »" value={value.templates.upsell} onChange={(v) => p({ templates: { ...value.templates, upsell: v } })} disabled={disabled} multiline />
           <TextField label="Relance (manuel)" value={value.templates.followUp} onChange={(v) => p({ templates: { ...value.templates, followUp: v } })} disabled={disabled} multiline />
         </div>

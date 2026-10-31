@@ -140,6 +140,8 @@ class SystemSettingRegistry
             'wa_tpl_welcome' => ['sensitive' => false, 'description' => 'Modèle accueil (premier message client)'],
             'wa_tpl_order_confirmation' => ['sensitive' => false, 'description' => 'Modèle confirmation commande'],
             'wa_tpl_delivery' => ['sensitive' => false, 'description' => 'Modèle livraison (rappel paiement)'],
+            'wa_tpl_order_scheduled' => ['sensitive' => false, 'description' => 'Modèle commande programmée (rappel date)'],
+            'wa_tpl_order_postponed' => ['sensitive' => false, 'description' => 'Modèle commande reportée (relance)'],
             'wa_tpl_relance' => ['sensitive' => false, 'description' => 'Modèle relance'],
             'wa_tpl_upsell' => ['sensitive' => false, 'description' => 'Modèle upsell'],
         ];
