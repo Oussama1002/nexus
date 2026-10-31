@@ -208,7 +208,11 @@ export function ReturnsScreen() {
               {loading ? (
                 <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-zinc-400">Chargement…</td></tr>
               ) : rows.map(row => (
-                <tr key={String(row.id)} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                <tr
+                  key={String(row.id)}
+                  onClick={() => row.order_id && void openOrder(row.order_id)}
+                  className={`border-b border-zinc-50 hover:bg-zinc-50/50 ${row.order_id ? 'cursor-pointer' : ''}`}
+                >
                   <td className="px-4 py-3 text-sm font-medium">
                     <div className="flex items-center gap-1.5">
                       <span>#{row.id}</span>
@@ -220,16 +224,7 @@ export function ReturnsScreen() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {row.order_ref ? (
-                      <button
-                        type="button"
-                        onClick={() => row.order_id && void openOrder(row.order_id)}
-                        disabled={!row.order_id}
-                        className="font-black text-primary-600 hover:underline"
-                      >
-                        {row.order_ref}
-                      </button>
-                    ) : '—'}
+                    {row.order_ref ? <span className="font-black text-primary-600">{row.order_ref}</span> : '—'}
                   </td>
                   <td className="px-4 py-3 text-sm">{row.customer_name}</td>
                   <td className="px-4 py-3 text-sm">{row.product_name}</td>

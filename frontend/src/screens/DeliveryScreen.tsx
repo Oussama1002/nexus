@@ -306,15 +306,16 @@ export function DeliveryScreen() {
           ) : (
             <DataTable<ApiDc>
               rows={filteredDc}
+              onRowClick={(c) => setDcDetail(c)}
               columns={[
                 {
                   key: 'n',
                   header: 'Nom',
                   cell: (c) => (
-                    <button type="button" onClick={() => setDcDetail(c)} className="font-black text-primary-600 hover:underline text-left">
+                    <div className="font-black text-primary-600">
                       {c.name}
                       <span className="block text-[11px] font-bold text-zinc-500">{c.code ?? '—'}</span>
-                    </button>
+                    </div>
                   ),
                 },
                 {
@@ -341,7 +342,7 @@ export function DeliveryScreen() {
                 {
                   key: 'support',
                   header: 'Support',
-                  cell: (c) => <CarrierContactLinks carrier={c} />,
+                  cell: (c) => <span onClick={(e) => e.stopPropagation()}><CarrierContactLinks carrier={c} /></span>,
                 },
                 {
                   key: 'st',

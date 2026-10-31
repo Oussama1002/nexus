@@ -413,15 +413,7 @@ export function UsersAdminScreen() {
         header: '',
         className: '!align-top text-right',
         cell: (u) => (
-          <div className="flex gap-1 justify-end">
-            <button
-              type="button"
-              onClick={() => { setFicheUserId(u.id); setFicheOpen(true); }}
-              className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-600"
-              title="Voir la fiche"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
+          <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => { setChatPeer(u); setChatOpen(true); }}
@@ -511,7 +503,7 @@ export function UsersAdminScreen() {
         </div>
       )}
 
-      <DataTable rows={users} columns={columns} emptyTitle="Aucun utilisateur" emptyDescription="—" />
+      <DataTable<UserRow> rows={users} columns={columns} onRowClick={(u) => { setFicheUserId(u.id); setFicheOpen(true); }} emptyTitle="Aucun utilisateur" emptyDescription="—" />
 
       {canCreate && (
         <Modal
