@@ -560,15 +560,12 @@ export function PurchaseOrdersScreen() {
         <DataTable<ApiPo>
           rows={filteredLocal}
           loading={loading}
+          onRowClick={(r) => setSelectedId(r.id)}
           columns={[
             {
               key: 'ref',
               header: 'Référence',
-              cell: (r) => (
-                <button type="button" onClick={() => setSelectedId(r.id)} className="font-black text-primary-600 hover:underline">
-                  {r.reference}
-                </button>
-              ),
+              cell: (r) => <span className="font-black text-primary-600">{r.reference}</span>,
             },
             {
               key: 'supplier',
@@ -657,14 +654,7 @@ export function PurchaseOrdersScreen() {
                 <div className="inline-flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setSelectedId(r.id)}
-                    className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-700 hover:bg-zinc-50"
-                  >
-                    Détail
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void openEdit(r)}
+                    onClick={(e) => { e.stopPropagation(); void openEdit(r); }}
                     className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-700 hover:bg-zinc-50"
                   >
                     Modifier
@@ -672,7 +662,7 @@ export function PurchaseOrdersScreen() {
                   <button
                     type="button"
                     disabled={rowBusy === r.id}
-                    onClick={() => void archivePo(r)}
+                    onClick={(e) => { e.stopPropagation(); void archivePo(r); }}
                     className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-black text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
                   >
                     Archiver
@@ -680,7 +670,7 @@ export function PurchaseOrdersScreen() {
                   <button
                     type="button"
                     disabled={rowBusy === r.id}
-                    onClick={() => void deletePo(r)}
+                    onClick={(e) => { e.stopPropagation(); void deletePo(r); }}
                     className="rounded-lg border border-red-200 px-2.5 py-1 text-[11px] font-black text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
                     Supprimer

@@ -283,19 +283,16 @@ export function CustomersScreen() {
       ) : (
         <DataTable<ApiCustomer>
           rows={filtered}
+          onRowClick={(c) => setFicheId(c.id)}
           columns={[
             {
               key: 'name',
               header: 'Client',
               cell: (c) => (
-                <button
-                  type="button"
-                  onClick={() => setFicheId(c.id)}
-                  className="text-left w-full"
-                >
+                <div>
                   <p className="font-black text-zinc-900">{c.full_name}</p>
                   <p className="text-xs font-bold text-zinc-500">{c.phone}</p>
-                </button>
+                </div>
               ),
             },
             { key: 'brand', header: 'Marque', cell: (c) => <span className="font-bold text-zinc-700">{brandNameById[String(c.brand_id)] ?? '—'}</span> },
@@ -325,15 +322,7 @@ export function CustomersScreen() {
               key: 'actions',
               header: '',
               cell: (c) => (
-                <div className="flex items-center gap-1 justify-end">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setFicheId(c.id); }}
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-                    title="Voir détail"
-                  >
-                    <Eye size={15} />
-                  </button>
+                <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
                   <CreateComplaintButton
                     preset={{
                       customer_name: c.full_name,

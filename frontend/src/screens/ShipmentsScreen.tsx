@@ -450,9 +450,7 @@ export function ShipmentsScreen() {
         header: 'Suivi',
         cell: (s) => (
           <div className="space-y-1">
-            <button type="button" onClick={() => setSelectedId(s.id)} className="text-sm font-black text-primary-600 hover:underline">
-              {s.tracking_number ?? '—'}
-            </button>
+            <span className="text-sm font-black text-primary-600">{s.tracking_number ?? '—'}</span>
             <p className="text-[11px] text-zinc-500">{s.order ? `Commande ${s.order.order_number}` : '—'}</p>
           </div>
         ),
@@ -534,11 +532,7 @@ export function ShipmentsScreen() {
         key: 'go',
         header: '',
         className: 'text-right',
-        cell: (s) => (
-          <button type="button" onClick={() => setSelectedId(s.id)} className="text-sm font-bold text-primary-600 inline-flex items-center gap-1">
-            Détail <ChevronRight className="w-4 h-4" />
-          </button>
-        ),
+        cell: () => <ChevronRight className="w-4 h-4 text-zinc-400 inline" />,
       },
     ];
   }, []);
@@ -640,7 +634,7 @@ export function ShipmentsScreen() {
         <EmptyState title="Aucune expédition" description="Créez une expédition depuis une commande confirmée ou préparée." />
       ) : (
         <>
-          <DataTable rows={rows} columns={columns} />
+          <DataTable<ApiShipment> rows={rows} columns={columns} onRowClick={(s) => setSelectedId(s.id)} />
           {lastPage > 1 && (
             <div className="flex items-center justify-between pt-2">
               <span className="text-sm text-zinc-500">

@@ -25,6 +25,7 @@ export function DataTable<T>({
   emptyDescription = "Il n'y a pas encore de données à afficher.",
   emptyAction,
   className,
+  onRowClick,
 }: {
   rows?: T[];
   /** Legacy alias for `rows`. */
@@ -36,6 +37,8 @@ export function DataTable<T>({
   emptyDescription?: React.ReactNode;
   emptyAction?: React.ReactNode;
   className?: string;
+  /** Rend chaque ligne cliquable (ouvre le détail). */
+  onRowClick?: (row: T) => void;
 }) {
   const pad = density === 'compact' ? 'px-5 py-2.5' : 'px-6 py-4';
   // Accept both `rows` (canonical) and `data` (legacy alias) so a caller
@@ -79,7 +82,11 @@ export function DataTable<T>({
             </thead>
             <tbody className="divide-y divide-[color:var(--color-border-subtle)]">
               {list.map((row, idx) => (
-                <tr key={idx} className="hover:bg-[color:var(--color-surface-2)] transition-colors">
+                <tr
+                  key={idx}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={cn('hover:bg-[color:var(--color-surface-2)] transition-colors', onRowClick && 'cursor-pointer')}
+                >
                   {columns.map((c, ci) => {
                     const render = c.cell ?? c.accessor;
                     return (

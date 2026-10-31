@@ -671,24 +671,18 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
         header: '',
         className: 'text-right',
         cell: (o) => (
-          <div className="inline-flex items-center gap-3">
+          <div className="inline-flex items-center gap-3 justify-end">
             {needsDispatch(o) && hasPermission('shipments.create') && (
               <button
                 type="button"
-                onClick={() => openDispatch(o)}
+                onClick={(e) => { e.stopPropagation(); openDispatch(o); }}
                 title="Envoyer au transporteur"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-black hover:bg-primary-700 transition-colors"
               >
                 <Truck className="w-3.5 h-3.5" /> Envoyer
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setSelectedId(o.id)}
-              className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700"
-            >
-              Ouvrir <ChevronRight className="w-4 h-4" />
-            </button>
+            <ChevronRight className="w-4 h-4 text-zinc-400" />
           </div>
         ),
       },
@@ -827,6 +821,7 @@ export function OrdersListScreen({ onNewOrder }: { onNewOrder: () => void }) {
           rows={filtered}
           columns={columns}
           density="comfortable"
+          onRowClick={(o) => setSelectedId(o.id)}
           emptyTitle="Aucune commande"
           emptyDescription="Créez une commande ou vérifiez la marque active."
         />

@@ -354,7 +354,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
         cell: (p) => (
           <button
             type="button"
-            onClick={() => openEditModal(p)}
+            onClick={(e) => { e.stopPropagation(); openEditModal(p); }}
             className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500"
             title="Modifier"
           >
@@ -368,11 +368,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
       key: 'open',
       header: '',
       className: 'text-right',
-      cell: (p) => (
-        <button type="button" onClick={() => setSelectedId(p.id)} className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700">
-          Ouvrir <ChevronRight className="w-4 h-4" />
-        </button>
-      ),
+      cell: () => <ChevronRight className="w-4 h-4 text-zinc-400 inline" />,
     });
 
     return cols;
@@ -595,6 +591,7 @@ export function ProductsStockScreen({ variant }: { variant: 'products' | 'stock'
         <DataTable<Product>
           rows={filtered}
           columns={columns}
+          onRowClick={(p) => setSelectedId(p.id)}
           emptyTitle={subTab === 'packs' ? 'Aucun pack' : 'Aucun produit'}
           emptyDescription={subTab === 'packs' ? 'Créez un pack en cliquant sur « Créer un pack ».' : 'Ajoutez des produits pour démarrer le suivi stock.'}
         />
