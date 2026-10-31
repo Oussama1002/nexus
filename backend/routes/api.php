@@ -150,6 +150,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('confirmatrice-workspace/summary', [ConfirmatriceWorkspaceController::class, 'summary']);
     Route::get('confirmatrice-workspace/daily-report', [ConfirmatriceWorkspaceController::class, 'dailyReport']);
+    // Journalisation des appels (spec §6.7) : l'agente enregistre ses propres appels.
+    Route::post('confirmatrice-workspace/calls', [ConfirmatriceWorkspaceController::class, 'logCall']);
     // Réglages de performance confirmatrice (spec §6.8).
     Route::get('confirmatrice-settings', [\App\Http\Controllers\Api\ConfirmatriceSettingsController::class, 'show']);
     Route::put('confirmatrice-settings', [\App\Http\Controllers\Api\ConfirmatriceSettingsController::class, 'update'])->middleware('permission:settings.update');

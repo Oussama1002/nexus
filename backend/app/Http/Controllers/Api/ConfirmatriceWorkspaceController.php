@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CallLog;
 use App\Models\Conversation;
 use App\Models\CustomerFollowUp;
 use App\Models\Lead;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\Reminder;
+use App\Services\AuditLogger;
 use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -132,11 +134,8 @@ class ConfirmatriceWorkspaceController extends Controller
 
     /**
      * Rapport quotidien automatique (spec §6.7). Calculé sur les commandes de
-     * l'agente pour la période choisie (aujourd'hui par défaut).
-     *
-     * Note : les indicateurs d'appels (appels effectués, décrochés, personnes
-     * appelées, taux de joignabilité) nécessitent une journalisation des appels
-     * qui n'existe pas encore — ils ne sont pas calculés ici.
+     * l'agente pour la période choisie (aujourd'hui par défaut). Les indicateurs
+     * d'appels proviennent de la journalisation des appels (voir logCall).
      */
     public function dailyReport(Request $request): JsonResponse
     {
@@ -206,6 +205,27 @@ class ConfirmatriceWorkspaceController extends Controller
             ? round(100 * $confirmed / $messagesReceived, 1)
             : ($total > 0 ? round(100 * $confirmed / $total, 1) : 0);
 
+        // Indicateurs d'appels (spec §6.7), calculés depuis la journalisation.
+        $callsBase = CallLog::query()
+            ->where('user_id', $targetId)
+            ->whereBetween('called_at', [$from, $to]);
+        if ($brandId !== null) {
+            $callsBase->where('brand_id', $brandId);
+        }
+        // Appels effectués : chaque appel lancé compte.
+        $callsMade = (int) (clone $callsBase)->count();
+        // Appels décrochés : outcome = answered.
+        $callsAnswered = (int) (clone $callsBase)->where('outcome', 'answered')->count();
+        // Personnes appelées : une personne appelée plusieurs fois compte une
+        // fois (dédup sur le client, à défaut sur le numéro).
+        $peopleCalled = (int) (clone $callsBase)
+            ->selectRaw("COUNT(DISTINCT COALESCE(CAST(customer_id AS CHAR), phone, CAST(id AS CHAR))) as c")
+            ->value('c');
+        // Taux de joignabilité : décrochés ÷ personnes appelées × 100.
+        $reachabilityRate = $peopleCalled > 0
+            ? round(100 * $callsAnswered / $peopleCalled, 1)
+            : 0;
+
         return ApiResponse::success([
             'period' => $period,
             'from' => $from->toDateString(),
@@ -225,9 +245,58 @@ class ConfirmatriceWorkspaceController extends Controller
             'upsell_amount' => $upsellTotal,
             'confirmation_rate' => $confirmationRate,
             'by_origin' => $byOrigin,
-            // Indicateurs d'appels non disponibles sans journalisation des appels.
-            'calls_available' => false,
+            'calls_made' => $callsMade,
+            'calls_answered' => $callsAnswered,
+            'people_called' => $peopleCalled,
+            'reachability_rate' => $reachabilityRate,
+            'calls_available' => true,
         ], 'Rapport quotidien.');
+    }
+
+    /**
+     * Journalisation d'un appel (spec §6.7). L'agente enregistre chaque appel
+     * lancé avec son résultat ; ces lignes alimentent le rapport quotidien.
+     */
+    public function logCall(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: false);
+        $actor = $request->user();
+        if (! $actor) {
+            throw new AccessDeniedHttpException('Unauthenticated.');
+        }
+
+        $data = $request->validate([
+            'outcome' => 'required|in:answered,no_answer,busy,invalid',
+            'phone' => 'nullable|string|max:40',
+            'customer_id' => 'nullable|integer',
+            'order_id' => 'nullable|integer',
+            'lead_id' => 'nullable|integer',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        if (empty($data['phone']) && empty($data['customer_id'])) {
+            return ApiResponse::error('Numéro ou client requis.', ['phone' => ['Numéro ou client requis.']], 422);
+        }
+
+        $call = CallLog::query()->create([
+            'brand_id' => $brandId,
+            'user_id' => (int) $actor->id,
+            'customer_id' => $data['customer_id'] ?? null,
+            'order_id' => $data['order_id'] ?? null,
+            'lead_id' => $data['lead_id'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'outcome' => $data['outcome'],
+            'notes' => $data['notes'] ?? null,
+            'called_at' => now(),
+        ]);
+
+        AuditLogger::log($request, 'call_log.create', $call, null, [
+            'outcome' => $call->outcome,
+            'phone' => $call->phone,
+            'order_id' => $call->order_id,
+        ]);
+
+        return ApiResponse::success(['id' => $call->id], 'Appel journalisé.', 201);
     }
 
     /**

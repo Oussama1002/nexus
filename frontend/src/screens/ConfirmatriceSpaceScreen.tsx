@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, MessageSquare, Plus, Trash2 } from 'lucide-react';
+import { ArrowUpRight, MessageSquare, Phone, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmatriceStats } from '../components/confirmations/ConfirmatriceStats';
@@ -86,8 +86,19 @@ type DailyReport = {
   upsell_amount: number;
   confirmation_rate: number;
   by_origin: { origin: string; count: number }[];
+  calls_made: number;
+  calls_answered: number;
+  people_called: number;
+  reachability_rate: number;
   calls_available: boolean;
 };
+
+const CALL_OUTCOMES = [
+  { value: 'answered', label: 'Décroché' },
+  { value: 'no_answer', label: 'Pas de réponse' },
+  { value: 'busy', label: 'Occupé' },
+  { value: 'invalid', label: 'Numéro invalide' },
+];
 
 const REPORT_PERIODS = [
   { value: 'today', label: "Aujourd'hui" },
@@ -167,6 +178,13 @@ export function ConfirmatriceSpaceScreen({
   const [fuNotes, setFuNotes] = useState('');
   const [fuSaving, setFuSaving] = useState(false);
   const [report, setReport] = useState<DailyReport | null>(null);
+  // Journalisation d'un appel (spec §6.7).
+  const [callModalOpen, setCallModalOpen] = useState(false);
+  const [callPhone, setCallPhone] = useState('');
+  const [callOrderId, setCallOrderId] = useState<number | null>(null);
+  const [callOutcome, setCallOutcome] = useState('answered');
+  const [callNotes, setCallNotes] = useState('');
+  const [callSaving, setCallSaving] = useState(false);
   const [reportPeriod, setReportPeriod] = useState('today');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
@@ -275,6 +293,32 @@ export function ConfirmatriceSpaceScreen({
     );
     setReport(res.ok && res.data ? res.data : null);
   }, [workspaceUserId, activeBrandId, reportPeriod, customFrom, customTo]);
+
+  const openCallModal = useCallback((prefill?: { phone?: string | null; orderId?: number | null }) => {
+    setCallPhone(prefill?.phone ?? '');
+    setCallOrderId(prefill?.orderId ?? null);
+    setCallOutcome('answered');
+    setCallNotes('');
+    setCallModalOpen(true);
+  }, []);
+
+  const submitCall = useCallback(async () => {
+    setCallSaving(true);
+    const res = await api.post('confirmatrice-workspace/calls', {
+      outcome: callOutcome,
+      phone: callPhone.trim() || null,
+      order_id: callOrderId,
+      notes: callNotes.trim() || null,
+    }, { brandId: activeBrandId });
+    setCallSaving(false);
+    if (res.ok) {
+      toast.success(res.message);
+      setCallModalOpen(false);
+      void loadReport();
+    } else {
+      toast.error(res.message);
+    }
+  }, [callOutcome, callPhone, callOrderId, callNotes, activeBrandId, loadReport, toast]);
 
   useEffect(() => {
     void (async () => {
@@ -498,14 +542,26 @@ export function ConfirmatriceSpaceScreen({
                       </p>
                       {r.follow_up_note && <p className="text-[11px] font-semibold text-amber-700 italic truncate">📝 {r.follow_up_note}</p>}
                     </div>
-                    <button
-                      type="button"
-                      disabled={reminderBusy === r.id}
-                      onClick={() => void markReminderHandled(r.id)}
-                      className="shrink-0 px-3 py-2 rounded-lg bg-primary-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-primary-700 disabled:opacity-50"
-                    >
-                      {reminderBusy === r.id ? '…' : 'Marquer traité'}
-                    </button>
+                    <div className="shrink-0 flex items-center gap-2">
+                      {isSelf && (
+                        <button
+                          type="button"
+                          title="Journaliser un appel"
+                          onClick={() => openCallModal({ phone: r.phone, orderId: r.id })}
+                          className="p-2 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                        >
+                          <Phone className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={reminderBusy === r.id}
+                        onClick={() => void markReminderHandled(r.id)}
+                        className="px-3 py-2 rounded-lg bg-primary-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-primary-700 disabled:opacity-50"
+                      >
+                        {reminderBusy === r.id ? '…' : 'Marquer traité'}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -616,6 +672,15 @@ export function ConfirmatriceSpaceScreen({
               )}
             </div>
             <p className="mt-1 text-xs font-medium text-zinc-500">Calculé automatiquement sur les commandes de l’agente.</p>
+            {isSelf && (
+              <button
+                type="button"
+                onClick={() => openCallModal()}
+                className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50"
+              >
+                <Phone className="w-4 h-4" /> Journaliser un appel
+              </button>
+            )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap gap-1.5 justify-end">
@@ -660,6 +725,10 @@ export function ConfirmatriceSpaceScreen({
                 { l: '2ᵉ conf. à faire', v: report.double_confirmation_pending },
                 { l: '2ᵉ conf. faite', v: report.double_confirmation_done },
                 { l: 'Taux de confirmation', v: `${report.confirmation_rate}%` },
+                { l: 'Appels effectués', v: report.calls_made },
+                { l: 'Personnes appelées', v: report.people_called },
+                { l: 'Appels décrochés', v: report.calls_answered },
+                { l: 'Taux de joignabilité', v: `${report.reachability_rate}%` },
               ].map((k) => (
                 <div key={k.l} className="card-muted p-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">{k.l}</p>
@@ -681,9 +750,9 @@ export function ConfirmatriceSpaceScreen({
               </div>
             )}
 
-            {!report.calls_available && (
+            {isSelf && (
               <p className="mt-4 text-[11px] font-medium text-zinc-400">
-                Les indicateurs d’appels (effectués, décrochés, joignabilité) nécessitent la journalisation des appels — non disponible pour l’instant.
+                Les indicateurs d’appels proviennent de vos appels journalisés. Utilisez « Journaliser un appel » après chaque appel.
               </p>
             )}
           </>
@@ -773,6 +842,42 @@ export function ConfirmatriceSpaceScreen({
       )}
 
       {canEditPerf && <FollowUpScheduleManager />}
+
+      <Modal
+        open={callModalOpen}
+        onClose={() => setCallModalOpen(false)}
+        title="Journaliser un appel"
+        subtitle="Enregistre l’appel et son résultat pour le rapport quotidien."
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button type="button" onClick={() => setCallModalOpen(false)} className="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50">
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={callSaving || (!callPhone.trim())}
+              onClick={() => void submitCall()}
+              className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black hover:bg-primary-700 disabled:opacity-50"
+            >
+              {callSaving ? 'Enregistrement…' : 'Journaliser'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <label className="block text-xs font-black uppercase text-zinc-700">Numéro appelé
+            <input type="tel" value={callPhone} onChange={(e) => setCallPhone(e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm" placeholder="06 12 34 56 78" />
+          </label>
+          <label className="block text-xs font-black uppercase text-zinc-700">Résultat
+            <select value={callOutcome} onChange={(e) => setCallOutcome(e.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm font-bold">
+              {CALL_OUTCOMES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label className="block text-xs font-black uppercase text-zinc-700">Notes
+            <textarea value={callNotes} onChange={(e) => setCallNotes(e.target.value)} rows={3} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm resize-none" placeholder="Compte-rendu de l’appel…" />
+          </label>
+        </div>
+      </Modal>
 
       <Modal
         open={activeFollowUp !== null}
