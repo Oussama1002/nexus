@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock, Plus } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Modal } from '../components/ui/Modal';
 import { StatusChip } from '../components/ui/StatusChip';
@@ -44,7 +44,6 @@ export function MyHrFileScreen() {
   const toast = useToast();
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [clocking, setClocking] = useState(false);
 
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [lt, setLt] = useState('conge_paye');
@@ -61,15 +60,6 @@ export function MyHrFileScreen() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-
-  async function clockIn() {
-    setClocking(true);
-    const res = await api.post('hr/attendance/clock-in', {});
-    setClocking(false);
-    if (!res.ok) { toast.error(res.message); return; }
-    toast.success('Pointage enregistré.');
-    await load();
-  }
 
   const daysCount = useMemo(() => {
     if (!startDate || !endDate) return 0;
@@ -96,12 +86,7 @@ export function MyHrFileScreen() {
     <div className="space-y-6">
       <PageHeader
         title="Mon dossier"
-        subtitle="Votre fiche, votre présence et vos congés."
-        right={
-          <button type="button" disabled={clocking} onClick={() => void clockIn()} className="px-4 py-2 rounded-2xl bg-primary-600 text-white text-sm font-black inline-flex items-center gap-2 hover:bg-primary-700 disabled:opacity-50">
-            <Clock className="w-4 h-4" /> {clocking ? 'Pointage…' : 'Pointer mon arrivée'}
-          </button>
-        }
+        subtitle="Votre fiche, votre présence et vos congés. Le pointage est automatique à la connexion."
       />
 
       {loading ? (
