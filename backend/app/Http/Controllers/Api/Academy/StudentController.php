@@ -11,6 +11,32 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
+    /**
+     * Liste des postes proposés dans « Nouvel apprenant » (spec Academy).
+     * Source : rôles définis + intitulés de poste des employés. Accessible aux
+     * gestionnaires Academy (pas besoin de hr.view, contrairement au lookup RH).
+     */
+    public function positions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isAdmin() && ! $user->hasPermissionSlug('academy_courses.view')) {
+            abort(403);
+        }
+
+        $roleNames = \App\Models\Role::query()->orderBy('name')->pluck('name')->all();
+        $employeeTitles = \App\Models\Employee::query()->whereNotNull('role_title')->distinct()->pluck('role_title')->all();
+
+        $values = collect([...$roleNames, ...$employeeTitles])
+            ->map(fn ($v) => trim((string) $v))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return ApiResponse::success(['values' => $values], 'Postes disponibles.');
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();

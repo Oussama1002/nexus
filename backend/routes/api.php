@@ -641,6 +641,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('courses/{courseId}/quizzes/{id}', [AcademyQuizController::class, 'destroy'])->whereNumber('courseId')->whereNumber('id');
 
         // Students
+        Route::get('students/positions', [AcademyStudentController::class, 'positions']);
         Route::get('students', [AcademyStudentController::class, 'index']);
         Route::post('students', [AcademyStudentController::class, 'store']);
         Route::get('students/{id}', [AcademyStudentController::class, 'show'])->whereNumber('id');

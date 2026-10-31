@@ -1209,12 +1209,12 @@ function StudentsTab({
 
   const rows = useMemo(() => parseRows<StudentRow>(studentsQuery.data), [studentsQuery.data]);
 
-  // Postes = intitulés de poste RH (Paramètres → Rôles & départements).
-  // Repli sur une saisie libre si l'utilisateur n'a pas accès aux lookups RH.
+  // Postes = rôles définis + intitulés de poste des employés (endpoint Academy,
+  // accessible sans hr.view). Repli sur une saisie libre si la liste est vide.
   const postesQuery = useQuery({
-    queryKey: ['hr-lookup-role-title'],
+    queryKey: ['academy-positions'],
     queryFn: async () => {
-      const res = await api.get<{ values: string[] }>('hr/lookups/role_title');
+      const res = await api.get<{ values: string[] }>('academy/students/positions');
       return res.ok && res.data ? (res.data.values ?? []) : [];
     },
   });
