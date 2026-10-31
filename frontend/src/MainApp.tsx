@@ -29,6 +29,7 @@ import { ConfirmatriceSpaceScreen } from './screens/ConfirmatriceSpaceScreen';
 import { ReportingScreen } from './screens/ReportingScreen';
 import { TrackingScreen } from './screens/TrackingScreen';
 import { BrandsScreen } from './screens/BrandsScreen';
+import { BrandCmReferenceScreen } from './screens/BrandCmReferenceScreen';
 import { LeadsScreen } from './screens/LeadsScreen';
 import { SuppliersScreen } from './screens/SuppliersScreen';
 import { PurchaseOrdersScreen } from './screens/PurchaseOrdersScreen';
@@ -505,8 +506,13 @@ export function MainApp() {
         return <UsersAdminScreen />;
       case 'tracking':
         return <TrackingScreen />;
-      case 'brands':
-        return <BrandsScreen />;
+      case 'brands': {
+        // Le CM (périmètre fermé) consulte une fiche de référence en lecture
+        // seule au lieu de la gestion des marques (spec Droits CM §6).
+        const scopedCm = roleSlugs.includes('community_manager') && !isAdmin
+          && !roleSlugs.includes('smm') && !roleSlugs.includes('manager_operationnel');
+        return scopedCm ? <BrandCmReferenceScreen /> : <BrandsScreen />;
+      }
       case 'customers':
         return <CustomersScreen />;
       case 'knowledgeBase':

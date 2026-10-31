@@ -8,6 +8,7 @@ use App\Http\Requests\Api\UpdateBrandRequest;
 use App\Models\Brand;
 use App\Models\Order;
 use App\Services\AuditLogger;
+use App\Support\ApiBrandContext;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -120,6 +121,47 @@ class BrandController extends Controller
         AuditLogger::log($request, 'brands.delete', null, $before, null);
 
         return ApiResponse::success(null, 'Brand deleted successfully.');
+    }
+
+    /**
+     * Fiche de référence marque pour le Community Manager (spec Droits CM §6).
+     * Lecture seule, limitée à la marque active (qui doit être attribuée au CM),
+     * et seulement si l'admin a rendu la fiche visible. Aucune donnée de vente
+     * ni financière n'est renvoyée.
+     */
+    public function cmReference(Request $request): JsonResponse
+    {
+        $brandId = ApiBrandContext::resolveBrandId($request, required: true);
+        $this->authorizeBrandAccess($request, (int) $brandId);
+
+        $brand = Brand::query()->findOrFail($brandId);
+
+        // L'admin voit toujours la fiche (prévisualisation) ; les autres rôles
+        // seulement quand elle est marquée visible.
+        $visible = $request->user()->isAdmin() || (bool) $brand->cm_reference_visible;
+        if (! $visible) {
+            return ApiResponse::success([
+                'visible' => false,
+                'brand' => ['id' => $brand->id, 'name' => $brand->name, 'color' => $brand->color],
+            ], 'Fiche non disponible.');
+        }
+
+        $products = $brand->products()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->pluck('name')
+            ->values();
+
+        return ApiResponse::success([
+            'visible' => true,
+            'brand' => ['id' => $brand->id, 'name' => $brand->name, 'color' => $brand->color],
+            'presentation' => $brand->cm_presentation,
+            'tone_rules' => $brand->cm_tone_rules,
+            'canned_replies' => $brand->cm_canned_replies,
+            'faq' => $brand->cm_faq,
+            'escalation_contacts' => $brand->cm_escalation_contacts,
+            'products' => $products,
+        ], 'Fiche de référence marque.');
     }
 
     protected function authorizeBrandAccess(Request $request, int $brandId): void

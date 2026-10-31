@@ -25,6 +25,13 @@ class StoreBrandRequest extends FormRequest
             'whatsapp_number' => ['nullable', 'array'],
             'whatsapp_number.*' => ['required', 'string', 'max:30'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            // Fiche de référence Community Manager (spec Droits CM §6).
+            'cm_presentation' => ['nullable', 'string', 'max:5000'],
+            'cm_tone_rules' => ['nullable', 'string', 'max:5000'],
+            'cm_canned_replies' => ['nullable', 'string', 'max:10000'],
+            'cm_faq' => ['nullable', 'string', 'max:10000'],
+            'cm_escalation_contacts' => ['nullable', 'string', 'max:5000'],
+            'cm_reference_visible' => ['nullable', 'boolean'],
         ];
     }
 }

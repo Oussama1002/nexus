@@ -198,6 +198,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('permissions', [PermissionController::class, 'index'])->middleware('permission:permissions.view');
     Route::get('permissions/{id}', [PermissionController::class, 'show'])->whereNumber('id')->middleware('permission:permissions.view');
 
+    // Fiche de référence marque pour le CM (spec Droits CM §6) — avant le CRUD
+    // pour ne pas être capturée par brands/{id}.
+    Route::get('brands/cm-reference', [BrandController::class, 'cmReference'])->middleware('permission:brand_reference.view');
     $registerCrud('brands', BrandController::class, 'brands');
     $registerCrud('customers', CustomerController::class, 'customers');
 

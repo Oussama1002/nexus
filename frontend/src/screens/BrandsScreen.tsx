@@ -22,6 +22,13 @@ type BrandExt = Brand & {
   contact?: string;
   note?: string;
   campaignsCount?: number;
+  // Fiche de référence Community Manager (spec Droits CM §6).
+  cmPresentation?: string;
+  cmToneRules?: string;
+  cmCannedReplies?: string;
+  cmFaq?: string;
+  cmEscalation?: string;
+  cmVisible?: boolean;
 };
 
 type ApiBrandRow = {
@@ -34,6 +41,12 @@ type ApiBrandRow = {
   whatsapp_configured_number?: string | null;
   campaigns_count?: number;
   color?: string | null;
+  cm_presentation?: string | null;
+  cm_tone_rules?: string | null;
+  cm_canned_replies?: string | null;
+  cm_faq?: string | null;
+  cm_escalation_contacts?: string | null;
+  cm_reference_visible?: boolean;
 };
 
 type ApiOrderRow = { id: number; total: string };
@@ -59,6 +72,12 @@ function toUiBrand(b: ApiBrandRow): BrandExt {
     code: b.code,
     contact: '',
     note: '',
+    cmPresentation: b.cm_presentation ?? '',
+    cmToneRules: b.cm_tone_rules ?? '',
+    cmCannedReplies: b.cm_canned_replies ?? '',
+    cmFaq: b.cm_faq ?? '',
+    cmEscalation: b.cm_escalation_contacts ?? '',
+    cmVisible: Boolean(b.cm_reference_visible),
   };
 }
 
@@ -223,6 +242,13 @@ export function BrandsScreen() {
       whatsapp_number: cleanNums.length ? cleanNums : null,
       color: draft.color || null,
       status: draft.status === 'Actif' ? 'active' : 'inactive',
+      // Fiche de référence Community Manager (spec Droits CM §6).
+      cm_presentation: (draft.cmPresentation ?? '').trim() || null,
+      cm_tone_rules: (draft.cmToneRules ?? '').trim() || null,
+      cm_canned_replies: (draft.cmCannedReplies ?? '').trim() || null,
+      cm_faq: (draft.cmFaq ?? '').trim() || null,
+      cm_escalation_contacts: (draft.cmEscalation ?? '').trim() || null,
+      cm_reference_visible: Boolean(draft.cmVisible),
     };
     const res = draft.id
       ? await api.put<ApiBrandRow>(`brands/${draft.id}`, payload)
@@ -509,6 +535,42 @@ export function BrandsScreen() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Fiche de référence Community Manager (spec Droits CM §6). */}
+          <div className="mt-6 border-t border-zinc-100 pt-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black text-zinc-900">Fiche Community Manager</p>
+                <p className="text-xs font-medium text-zinc-500">Informations consultées en lecture seule par le CM (aucune donnée de vente).</p>
+              </div>
+              <label className="inline-flex items-center gap-2 text-xs font-bold text-zinc-700 shrink-0">
+                <input
+                  type="checkbox"
+                  checked={Boolean(draft.cmVisible)}
+                  onChange={(e) => setDraft({ ...draft, cmVisible: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500"
+                />
+                Visible par le CM
+              </label>
+            </div>
+            {[
+              { key: 'cmPresentation' as const, label: 'Présentation', rows: 3 },
+              { key: 'cmToneRules' as const, label: 'Ton & règles de réponse', rows: 3 },
+              { key: 'cmCannedReplies' as const, label: 'Réponses types', rows: 4 },
+              { key: 'cmFaq' as const, label: 'FAQ', rows: 4 },
+              { key: 'cmEscalation' as const, label: "Contacts d'escalade", rows: 2 },
+            ].map((f) => (
+              <div key={f.key} className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-700">{f.label}</label>
+                <textarea
+                  value={draft[f.key] ?? ''}
+                  onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
+                  rows={f.rows}
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 outline-none focus:ring-2 focus:ring-primary-500 resize-none text-sm"
+                />
+              </div>
+            ))}
           </div>
         </div>
       </Modal>

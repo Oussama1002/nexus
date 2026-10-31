@@ -16,10 +16,18 @@ class Brand extends Model
         'color',
         'whatsapp_number',
         'status',
+        // Fiche de référence Community Manager (spec Droits CM §6).
+        'cm_presentation',
+        'cm_tone_rules',
+        'cm_canned_replies',
+        'cm_faq',
+        'cm_escalation_contacts',
+        'cm_reference_visible',
     ];
 
     protected $casts = [
         'whatsapp_number' => 'array',
+        'cm_reference_visible' => 'boolean',
     ];
 
     public function users()
