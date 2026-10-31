@@ -43,6 +43,24 @@ function leaveStatusTone(s: string): 'warning' | 'success' | 'danger' | 'neutral
   return 'neutral';
 }
 
+const ATTENDANCE_STATUS_FR: Record<string, string> = {
+  present: 'Présent', late: 'En retard', absent: 'Absent',
+  on_leave: 'En congé', leave: 'En congé', half_day: 'Demi-journée',
+  holiday: 'Férié', weekend: 'Week-end', remote: 'Télétravail',
+};
+function attendanceStatusFr(s: string | null): string {
+  if (!s) return '—';
+  return ATTENDANCE_STATUS_FR[s] ?? s;
+}
+
+const LEAVE_STATUS_FR: Record<string, string> = {
+  approved: 'Approuvé', approuve: 'Approuvé', refused: 'Refusé', refuse: 'Refusé',
+  pending: 'En attente', en_attente: 'En attente', cancelled: 'Annulé', annule: 'Annulé',
+};
+function leaveStatusFr(s: string): string {
+  return LEAVE_STATUS_FR[s] ?? s;
+}
+
 export function MyHrFileScreen() {
   const toast = useToast();
   const [data, setData] = useState<Payload | null>(null);
@@ -131,7 +149,7 @@ export function MyHrFileScreen() {
                   <span className="text-zinc-500">{fmtTime(r.clock_in_at)} → {fmtTime(r.clock_out_at)}</span>
                   <span className="flex items-center gap-2">
                     {r.was_late && <StatusChip tone="warning">Retard{r.minutes_late ? ` ${r.minutes_late}′` : ''}</StatusChip>}
-                    <StatusChip tone={r.status === 'present' ? 'success' : r.status === 'absent' ? 'danger' : 'neutral'}>{r.status ?? '—'}</StatusChip>
+                    <StatusChip tone={r.status === 'present' ? 'success' : r.status === 'absent' ? 'danger' : r.status === 'late' ? 'warning' : 'neutral'}>{attendanceStatusFr(r.status)}</StatusChip>
                   </span>
                 </div>
               ))}
@@ -152,7 +170,7 @@ export function MyHrFileScreen() {
                 <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50/60 px-3 py-2 text-sm">
                   <span className="font-bold text-zinc-800">{leaveTypeLabel(l.leave_type)}</span>
                   <span className="text-zinc-500 inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" /> {fmtDate(l.start_date)} → {fmtDate(l.end_date)} · {l.days_count} j</span>
-                  <StatusChip tone={leaveStatusTone(l.status)}>{l.status}</StatusChip>
+                  <StatusChip tone={leaveStatusTone(l.status)}>{leaveStatusFr(l.status)}</StatusChip>
                 </div>
               ))}
               {(data?.leaves ?? []).length === 0 && <p className="text-sm text-zinc-500">Aucune demande de congé.</p>}
