@@ -46,6 +46,13 @@ class ShipmentController extends Controller
         $q = Shipment::query()
             ->with(['order.customer', 'deliveryCompany']);
         ApiBrandContext::scopeBrand($q, $brandId);
+
+        // Cloisonnement : la confirmatrice ne suit que les colis de ses propres
+        // commandes (spec Confirmatrice §A.3/§A.4), pas les 7300 du système.
+        $user = $request->user();
+        if ($user && \App\Support\UserRoleHelper::isConfirmatrice($user) && ! \App\Support\UserRoleHelper::hasGlobalScope($user)) {
+            $q->whereHas('order', fn ($o) => $o->where('assigned_user_id', (int) $user->id));
+        }
         $q
             ->orderByDesc(DB::raw('GREATEST(COALESCE(delivered_at, created_at), COALESCE(shipped_at, created_at), COALESCE(returned_at, created_at), created_at)'));
 
