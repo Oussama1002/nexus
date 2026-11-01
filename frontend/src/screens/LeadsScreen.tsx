@@ -563,10 +563,14 @@ export function LeadsScreen({
               header: 'Assigné',
               cell: (l) => {
                 const al = apiLeads.find((a) => String(a.id) === l.id);
-                // Assignation effective : celle du lead, sinon celle de la conversation.
-                const effective = al?.assigned_user ?? al?.conversation?.assigned_user ?? null;
-                const effectiveId = al?.assigned_user_id ?? effective?.id ?? null;
+                // Assignation effective : id du lead, sinon de la conversation.
+                const effectiveId = al?.assigned_user_id ?? al?.assigned_user?.id ?? al?.conversation?.assigned_user?.id ?? null;
                 const currentVal = effectiveId ? String(effectiveId) : '';
+                // Nom résolu depuis la relation renvoyée, sinon depuis la liste des utilisateurs.
+                const effectiveName = al?.assigned_user?.name
+                  ?? al?.conversation?.assigned_user?.name
+                  ?? users.find((u) => u.id === effectiveId)?.name
+                  ?? null;
                 // Garantir que l'assigné courant est toujours une option, même hors liste.
                 const inList = assignableUsers.some((u) => String(u.id) === currentVal);
                 return (
@@ -584,8 +588,8 @@ export function LeadsScreen({
                     className="px-2 py-1 rounded-lg border border-zinc-200 text-sm font-bold text-zinc-800 bg-white cursor-pointer"
                   >
                     <option value="">— Non assigné —</option>
-                    {!inList && currentVal && effective?.name && (
-                      <option value={currentVal}>{effective.name}</option>
+                    {!inList && currentVal && (
+                      <option value={currentVal}>{effectiveName ?? `Utilisateur #${currentVal}`}</option>
                     )}
                     {assignableUsers.map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
