@@ -184,9 +184,13 @@ const SCOPED_ROLE_VIEWS: Partial<Record<string, View[]>> = {
   ],
   // Community Manager (spec Droits CM) : répondre, publier, suivre les
   // réclamations. Ni stratégie, ni media buying, ni call center, ni RH.
+  // §6 : « Marques » = fiche de référence en lecture seule (BrandCmReferenceScreen).
+  // §7 : Academy = « Mes formations » (consultation, filtrée par rôle) uniquement —
+  // pas le Catalogue/gestion (écrans d'édition) ni la Base de connaissances (édition),
+  // dont le CM n'a pas les permissions.
   community_manager: [
     'dashboard', 'socialMedia', 'socialPublishing', 'socialAccounts', 'socialComplaints',
-    'brands', 'knowledgeBase', 'academy', 'myTrainings', 'collabProjects',
+    'brands', 'myTrainings', 'collabProjects',
   ],
 };
 
