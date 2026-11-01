@@ -234,6 +234,8 @@ export function MainApp() {
   const [notifLoading, setNotifLoading] = useState(false);
   const [brandLogoUrl, setBrandLogoUrl] = useState('');
   const [brandPickerOpen, setBrandPickerOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [directoryUsers, setDirectoryUsers] = useState<User[]>([]);
   const [directoryLoaded, setDirectoryLoaded] = useState(false);
@@ -665,10 +667,7 @@ export function MainApp() {
         sidebarFooter={
           <button
             data-action="auth.logout"
-            onClick={async () => {
-              await authLogout();
-              navigate('/login', { replace: true });
-            }}
+            onClick={() => setLogoutConfirmOpen(true)}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-50 text-rose-600 font-bold text-xs uppercase tracking-wide transition-colors group"
           >
             <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -781,6 +780,40 @@ export function MainApp() {
             </button>
           ))}
         </div>
+      </Modal>
+      <Modal
+        open={logoutConfirmOpen}
+        title="Déconnexion"
+        subtitle="Voulez-vous vraiment vous déconnecter ?"
+        onClose={() => { if (!loggingOut) setLogoutConfirmOpen(false); }}
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={loggingOut}
+              onClick={() => setLogoutConfirmOpen(false)}
+              className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={loggingOut}
+              onClick={async () => {
+                setLoggingOut(true);
+                await authLogout();
+                navigate('/login', { replace: true });
+              }}
+              className="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-black hover:bg-rose-700 disabled:opacity-60"
+            >
+              {loggingOut ? 'Déconnexion…' : 'Se déconnecter'}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-[color:var(--color-text-1)]">
+          Votre session sera fermée et votre pointage de sortie enregistré.
+        </p>
       </Modal>
       <LateJustificationModal />
     </>
