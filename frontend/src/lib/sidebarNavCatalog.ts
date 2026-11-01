@@ -153,8 +153,8 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // ═══════════════════════════════════════════
 
   // ── Mon dossier ── (self-service employé : fiche, présence, congés — pour tous)
-  // Communication interne est dans la barre du haut ; Congés est dans Mon dossier :
-  // ni l'un ni l'autre n'a d'entrée dédiée dans la barre latérale.
+  // Les employés demandent/suivent leurs congés ici ; Communication interne est
+  // dans la barre du haut. La gestion des congés (admin/RH) est sous Équipe & RH.
   { id: 'mon-dossier', label: 'Mon dossier', level: 1, block: 'ressources', parentId: null, order: 0, icon: Contact, view: 'myHrFile', brandScoped: false },
 
   // ── Équipe & RH ── (gestion RH : visible seulement avec une permission RH)
@@ -166,6 +166,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'organigramme', label: 'Organigramme', level: 3, block: 'ressources', parentId: 'dossiers-salaries', order: 3, icon: Network, view: 'orgChart' },
   { id: 'temps-absences', label: 'Temps & Absences', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 3, icon: Clock },
   { id: 'presence-pointage', label: 'Présence & Pointage', level: 3, block: 'ressources', parentId: 'temps-absences', order: 1, icon: CalendarCheck, view: 'attendance' },
+  { id: 'conges-absences', label: 'Congés & Absences', level: 3, block: 'ressources', parentId: 'temps-absences', order: 2, icon: CalendarDays, view: 'leaves' },
   { id: 'paie', label: 'Paie', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 4, icon: Receipt, view: 'payroll' },
   { id: 'recrutement-integration', label: 'Recrutement & Intégration', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 5, icon: UserPlus },
   { id: 'postes-ouverts', label: 'Postes ouverts', level: 3, block: 'ressources', parentId: 'recrutement-integration', order: 1, icon: Briefcase, view: 'openPositions' },

@@ -51,8 +51,9 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   hrDocuments: ['hr.view'],
   orgChart: ['hr.view'],
   attendance: ['hr.view'],
-  // Everyone can request their own leave; HR sees all requests.
-  leaves: [],
+  // Écran de gestion des congés (côté admin/RH). Les employés demandent et
+  // suivent leurs propres congés depuis « Mon dossier ».
+  leaves: ['hr_leaves.view'],
   // Dossier personnel : chacun a le sien (self-service).
   myHrFile: [],
   payroll: ['hr.view'],
