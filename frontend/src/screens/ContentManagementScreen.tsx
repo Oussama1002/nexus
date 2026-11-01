@@ -3,6 +3,7 @@ import { BookOpen, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { PageHeader } from '../components/ui/PageHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FileUploadField } from '../components/ui/FileUploadField';
+import { Modal } from '../components/ui/Modal';
 import * as api from '../lib/api';
 import { buildQuery } from '../lib/pagination';
 import type { Paginated } from '../lib/pagination';
@@ -160,50 +161,51 @@ export function ContentManagementScreen() {
         </button>
       </PageHeader>
 
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-black text-zinc-900">Nouveau contenu Academy</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Titre *
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-              </label>
-              <label className="text-sm font-bold text-zinc-700">Type
-                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-                  {TYPE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </label>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Parcours de rattachement
-                <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.learning_path_id} onChange={(e) => setForm({ ...form, learning_path_id: e.target.value })}>
-                  <option value="">— aucun —</option>
-                  {paths.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-                </select>
-              </label>
-              <label className="text-sm font-bold text-zinc-700">Durée (minutes)
-                <input type="number" min="0" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
-              </label>
-              <div className="col-span-2">
-                <FileUploadField
-                  label="Média"
-                  value={form.media_url}
-                  onChange={(v) => setForm({ ...form, media_url: v })}
-                  uploadEndpoint="academy-contents/upload-media"
-                  formFieldName="media"
-                  accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx"
-                  hint="Image, vidéo, PDF ou document — 20 Mo max."
-                />
-              </div>
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Description
-                <textarea rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
-              <button onClick={submitCreate} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">{saving ? 'Envoi…' : 'Créer'}</button>
-            </div>
+      <Modal
+        open={showCreate}
+        title="Nouveau contenu Academy"
+        onClose={() => setShowCreate(false)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold">Annuler</button>
+            <button onClick={submitCreate} disabled={saving} className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-black disabled:opacity-60">{saving ? 'Envoi…' : 'Créer'}</button>
           </div>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <label className="col-span-2 text-sm font-bold text-zinc-700">Titre *
+            <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </label>
+          <label className="text-sm font-bold text-zinc-700">Type
+            <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              {TYPE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label className="col-span-2 text-sm font-bold text-zinc-700">Parcours de rattachement
+            <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.learning_path_id} onChange={(e) => setForm({ ...form, learning_path_id: e.target.value })}>
+              <option value="">— aucun —</option>
+              {paths.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-bold text-zinc-700">Durée (minutes)
+            <input type="number" min="0" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
+          </label>
+          <div className="col-span-2">
+            <FileUploadField
+              label="Média"
+              value={form.media_url}
+              onChange={(v) => setForm({ ...form, media_url: v })}
+              uploadEndpoint="academy-contents/upload-media"
+              formFieldName="media"
+              accept="image/*,video/*,.pdf,.doc,.docx,.ppt,.pptx"
+              hint="Image, vidéo, PDF ou document — 20 Mo max."
+            />
+          </div>
+          <label className="col-span-2 text-sm font-bold text-zinc-700">Description
+            <textarea rows={3} className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </label>
         </div>
-      )}
+      </Modal>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
