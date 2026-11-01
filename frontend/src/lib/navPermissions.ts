@@ -174,12 +174,17 @@ const CONFIRMATRICE_HIDDEN_VIEWS: View[] = [
  * accessibles via les règles qui précèdent ce test.
  */
 const SCOPED_ROLE_VIEWS: Partial<Record<string, View[]>> = {
+  // « Marques » = fiche de référence en lecture seule (BrandCmReferenceScreen).
+  // Academy = « Mes formations » (consultation filtrée par rôle) uniquement : pas
+  // le Catalogue/gestion ni la Base de connaissances (écrans d'édition hors rôle).
+  // Specs Revue SMM §5 / Droits CM §6-§7. Ces rôles s'unissent en cumul (ex.
+  // SMM + influence) : garder la même liste pour ne pas réintroduire un menu.
   smm: [
     'dashboard', 'socialMedia', 'socialPublishing', 'socialAccounts',
-    'brands', 'knowledgeBase', 'academy', 'myTrainings', 'collabProjects',
+    'brands', 'myTrainings', 'collabProjects',
   ],
   influence_manager: [
-    'dashboard', 'influenceHub', 'brands', 'knowledgeBase', 'academy',
+    'dashboard', 'influenceHub', 'brands',
     'myTrainings', 'collabProjects',
   ],
   // Community Manager (spec Droits CM) : répondre, publier, suivre les

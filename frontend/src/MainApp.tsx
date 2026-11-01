@@ -15,7 +15,7 @@ import type { User, View } from './types';
 import { useAuth } from './context/AuthContext';
 import { useBrand } from './context/BrandContext';
 import { buildSidebarNav } from './lib/buildSidebarNavGroups';
-import { canAccessView } from './lib/navPermissions';
+import { canAccessView, hasOnlyScopedRoles } from './lib/navPermissions';
 import { useSidebarNavVisibility } from './hooks/useSidebarNavVisibility';
 import { initGlobalActions, registerAction } from './lib/actions';
 import { trackSession } from './lib/session';
@@ -506,13 +506,11 @@ export function MainApp() {
         return <UsersAdminScreen />;
       case 'tracking':
         return <TrackingScreen />;
-      case 'brands': {
-        // Le CM (périmètre fermé) consulte une fiche de référence en lecture
-        // seule au lieu de la gestion des marques (spec Droits CM §6).
-        const scopedCm = roleSlugs.includes('community_manager') && !isAdmin
-          && !roleSlugs.includes('smm') && !roleSlugs.includes('manager_operationnel');
-        return scopedCm ? <BrandCmReferenceScreen /> : <BrandsScreen />;
-      }
+      case 'brands':
+        // Rôles à périmètre fermé (CM, SMM, influence, et leurs cumuls) : fiche
+        // de référence en lecture seule au lieu de la gestion des marques
+        // (specs Droits CM §6 / Revue SMM §5).
+        return hasOnlyScopedRoles(roleSlugs) ? <BrandCmReferenceScreen /> : <BrandsScreen />;
       case 'customers':
         return <CustomersScreen />;
       case 'knowledgeBase':
