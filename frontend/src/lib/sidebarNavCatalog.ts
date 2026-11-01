@@ -152,10 +152,12 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // BLOC RESSOURCES
   // ═══════════════════════════════════════════
 
-  // ── Mon dossier ── (self-service employé : fiche, présence, congés)
+  // ── Espace personnel ── (self-service accessible à tous, hors gestion RH)
   { id: 'mon-dossier', label: 'Mon dossier', level: 1, block: 'ressources', parentId: null, order: 0, icon: Contact, view: 'myHrFile', brandScoped: false },
+  { id: 'conges-absences', label: 'Congés & Absences', level: 1, block: 'ressources', parentId: null, order: 1, icon: CalendarDays, view: 'leaves', brandScoped: false },
+  { id: 'communication-interne', label: 'Communication interne', level: 1, block: 'ressources', parentId: null, order: 2, icon: MessageCircle, view: 'internalComms', brandScoped: false },
 
-  // ── Équipe & RH ── (spec §7.4 — not filtered by brand selector)
+  // ── Équipe & RH ── (gestion RH : visible seulement avec une permission RH)
   { id: 'equipe-rh', label: 'Équipe & RH', level: 1, block: 'ressources', parentId: null, order: 1, icon: Briefcase, brandScoped: false },
   { id: 'tableau-bord-rh', label: 'Tableau de bord RH', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 1, icon: Layout, view: 'hr' },
   { id: 'dossiers-salaries', label: 'Dossiers salariés', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 2, icon: FolderOpen },
@@ -164,7 +166,6 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'organigramme', label: 'Organigramme', level: 3, block: 'ressources', parentId: 'dossiers-salaries', order: 3, icon: Network, view: 'orgChart' },
   { id: 'temps-absences', label: 'Temps & Absences', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 3, icon: Clock },
   { id: 'presence-pointage', label: 'Présence & Pointage', level: 3, block: 'ressources', parentId: 'temps-absences', order: 1, icon: CalendarCheck, view: 'attendance' },
-  { id: 'conges-absences', label: 'Congés & Absences', level: 3, block: 'ressources', parentId: 'temps-absences', order: 2, icon: CalendarDays, view: 'leaves' },
   { id: 'paie', label: 'Paie', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 4, icon: Receipt, view: 'payroll' },
   { id: 'recrutement-integration', label: 'Recrutement & Intégration', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 5, icon: UserPlus },
   { id: 'postes-ouverts', label: 'Postes ouverts', level: 3, block: 'ressources', parentId: 'recrutement-integration', order: 1, icon: Briefcase, view: 'openPositions' },
@@ -174,7 +175,6 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   { id: 'formation', label: 'Formation', level: 3, block: 'ressources', parentId: 'developpement', order: 1, icon: GraduationCap, view: 'training' },
   { id: 'evaluation-carriere', label: 'Évaluation & Carrière', level: 3, block: 'ressources', parentId: 'developpement', order: 2, icon: Award, view: 'evaluations' },
   { id: 'discipline', label: 'Discipline', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 7, icon: Scale, view: 'discipline' },
-  { id: 'communication-interne', label: 'Communication interne', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 8, icon: MessageCircle, view: 'internalComms' },
   { id: 'projets-collaboratifs', label: 'Projets collaboratifs', level: 2, block: 'ressources', parentId: 'equipe-rh', order: 9, icon: Briefcase, view: 'collabProjects' },
 
   // ── Finance & Comptabilité ──

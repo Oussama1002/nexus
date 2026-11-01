@@ -36,8 +36,8 @@ export function buildSidebarNav(opts: {
 
   const canShowEntry = (id: string, view?: View): boolean => {
     if (!isSidebarNavVisible(id, visibility)) return false;
-    // « Mon dossier » est réservé à la confirmatrice pour l'instant.
-    if (id === 'mon-dossier' && !isConfirmatrice) return false;
+    // « Mon dossier » (fiche, présence, congés) est accessible à tous : chaque
+    // utilisateur a son dossier RH, comme la confirmatrice.
     if (isConfirmatrice && CONFIRMATRICE_HIDDEN_NAV_IDS.has(id)) return false;
     if (view) return canAccess(view);
     return true;
