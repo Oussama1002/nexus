@@ -99,6 +99,12 @@ class PermissionsSeeder extends Seeder
             'delivery_failures' => ['view', 'create', 'update'],
             'bugs_incidents' => ['view', 'create', 'update', 'delete'],
             'team_performance' => ['view'],
+            // Réclamations call center.
+            'complaints' => ['view', 'create', 'update', 'delete'],
+            // Réclamations réseaux sociaux (créées sur prod via migration).
+            'social_complaints' => ['view', 'create', 'update', 'delete'],
+            // Fiche de référence marque en lecture seule (spec Droits CM §6).
+            'brand_reference' => ['view'],
             // Academy extensions
             'learning_paths' => ['view', 'create', 'update', 'delete'],
             'academy_contents' => ['view', 'create', 'update', 'delete'],

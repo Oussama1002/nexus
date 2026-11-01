@@ -1077,12 +1077,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Call Center Complaints ──
     Route::prefix('complaints')->group(function () {
-        Route::get('/', [ComplaintController::class, 'index'])->middleware('permission:cm_tracking.view');
-        Route::post('/', [ComplaintController::class, 'store'])->middleware('permission:cm_tracking.create');
-        Route::get('{id}', [ComplaintController::class, 'show'])->whereNumber('id')->middleware('permission:cm_tracking.view');
-        Route::put('{id}', [ComplaintController::class, 'update'])->whereNumber('id')->middleware('permission:cm_tracking.update');
-        Route::get('{id}/thread', [ComplaintController::class, 'threadEntries'])->whereNumber('id')->middleware('permission:cm_tracking.view');
-        Route::post('{id}/thread', [ComplaintController::class, 'addThreadEntry'])->whereNumber('id')->middleware('permission:cm_tracking.create');
+        Route::get('/', [ComplaintController::class, 'index'])->middleware('permission:complaints.view');
+        Route::post('/', [ComplaintController::class, 'store'])->middleware('permission:complaints.create');
+        Route::get('{id}', [ComplaintController::class, 'show'])->whereNumber('id')->middleware('permission:complaints.view');
+        Route::put('{id}', [ComplaintController::class, 'update'])->whereNumber('id')->middleware('permission:complaints.update');
+        Route::get('{id}/thread', [ComplaintController::class, 'threadEntries'])->whereNumber('id')->middleware('permission:complaints.view');
+        Route::post('{id}/thread', [ComplaintController::class, 'addThreadEntry'])->whereNumber('id')->middleware('permission:complaints.create');
     });
 
     // Lightweight endpoint: sidebar-nav visibility for ALL authenticated users (no settings.view required).
