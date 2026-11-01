@@ -92,6 +92,19 @@ function fmtDate(iso: string | null | undefined) {
   }
 }
 
+/** "2026-10-30" → "Ven 30 octobre 2026" pour l'historique de présence. */
+function fmtDateLong(iso: string | null | undefined) {
+  if (!iso) return '—';
+  try {
+    const s = new Date(iso).toLocaleDateString('fr-FR', {
+      weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
+    }).replace('.', '');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  } catch {
+    return iso;
+  }
+}
+
 function brandLabel(emp: EmployeeDetail): string {
   if (emp.all_brands) return 'Toutes les marques';
   if (emp.brands?.length) return emp.brands.map((b) => b.name).join(', ');
@@ -263,7 +276,7 @@ export function EmployeeFicheDrawer({
                       const st = ATTENDANCE_STATUS[a.status] ?? { label: a.status, color: 'text-zinc-700 bg-zinc-50' };
                       return (
                         <tr key={a.id}>
-                          <td className="py-1.5 font-medium">{fmtDate(a.attendance_date)}</td>
+                          <td className="py-1.5 font-medium">{fmtDateLong(a.attendance_date)}</td>
                           <td className="py-1.5">{fmtDateTime(a.clock_in_at)}</td>
                           <td className="py-1.5">{fmtDateTime(a.clock_out_at)}</td>
                           <td className="py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${st.color}`}>{st.label}</span></td>
