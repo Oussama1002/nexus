@@ -563,7 +563,12 @@ export function LeadsScreen({
               header: 'Assigné',
               cell: (l) => {
                 const al = apiLeads.find((a) => String(a.id) === l.id);
-                const currentVal = al?.assigned_user_id ? String(al.assigned_user_id) : '';
+                // Assignation effective : celle du lead, sinon celle de la conversation.
+                const effective = al?.assigned_user ?? al?.conversation?.assigned_user ?? null;
+                const effectiveId = al?.assigned_user_id ?? effective?.id ?? null;
+                const currentVal = effectiveId ? String(effectiveId) : '';
+                // Garantir que l'assigné courant est toujours une option, même hors liste.
+                const inList = assignableUsers.some((u) => String(u.id) === currentVal);
                 return (
                   <select
                     value={currentVal}
@@ -579,6 +584,9 @@ export function LeadsScreen({
                     className="px-2 py-1 rounded-lg border border-zinc-200 text-sm font-bold text-zinc-800 bg-white cursor-pointer"
                   >
                     <option value="">— Non assigné —</option>
+                    {!inList && currentVal && effective?.name && (
+                      <option value={currentVal}>{effective.name}</option>
+                    )}
                     {assignableUsers.map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
