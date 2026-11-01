@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import * as api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
+import type { LaravelPaginator } from '../../lib/apiTypes';
+
+type CustomerOpt = { id: number; full_name: string; phone?: string | null };
 
 /**
  * Small icon button that opens a "Nouvelle réclamation" form pre-filled
@@ -48,10 +51,18 @@ export function CreateComplaintButton({
     description: preset?.description ?? (preset?.source_label ? `${preset.source_label} — ` : ''),
   });
   const [form, setForm] = useState(initial);
+  const [customers, setCustomers] = useState<CustomerOpt[]>([]);
+
+  const loadCustomers = async () => {
+    if (customers.length) return;
+    const res = await api.get<LaravelPaginator<CustomerOpt>>('customers?per_page=200');
+    if (res.ok && res.data?.data) setCustomers(res.data.data);
+  };
 
   const openModal = () => {
     setForm(initial());
     setOpen(true);
+    void loadCustomers();
   };
 
   const submit = async () => {
@@ -110,7 +121,26 @@ export function CreateComplaintButton({
             <h2 className="text-xl font-black text-zinc-900">Nouvelle réclamation</h2>
             <div className="grid grid-cols-2 gap-3">
               <label className="col-span-2 text-sm font-bold text-zinc-700">Nom du client *
-                <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} />
+                <input
+                  list="complaint-customers"
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
+                  value={form.customer_name}
+                  placeholder="Choisir un client ou saisir un nouveau nom"
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const match = customers.find((c) => c.full_name === name);
+                    setForm((f) => ({
+                      ...f,
+                      customer_name: name,
+                      customer_phone: match?.phone && !f.customer_phone ? match.phone : f.customer_phone,
+                    }));
+                  }}
+                />
+                <datalist id="complaint-customers">
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.full_name}>{c.phone ?? ''}</option>
+                  ))}
+                </datalist>
               </label>
               <label className="text-sm font-bold text-zinc-700">Téléphone
                 <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} />
