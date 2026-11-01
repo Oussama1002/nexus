@@ -152,10 +152,10 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   // BLOC RESSOURCES
   // ═══════════════════════════════════════════
 
-  // ── Espace personnel ── (self-service accessible à tous, hors gestion RH)
+  // ── Mon dossier ── (self-service employé : fiche, présence, congés — pour tous)
+  // Communication interne est dans la barre du haut ; Congés est dans Mon dossier :
+  // ni l'un ni l'autre n'a d'entrée dédiée dans la barre latérale.
   { id: 'mon-dossier', label: 'Mon dossier', level: 1, block: 'ressources', parentId: null, order: 0, icon: Contact, view: 'myHrFile', brandScoped: false },
-  { id: 'conges-absences', label: 'Congés & Absences', level: 1, block: 'ressources', parentId: null, order: 1, icon: CalendarDays, view: 'leaves', brandScoped: false },
-  { id: 'communication-interne', label: 'Communication interne', level: 1, block: 'ressources', parentId: null, order: 2, icon: MessageCircle, view: 'internalComms', brandScoped: false },
 
   // ── Équipe & RH ── (gestion RH : visible seulement avec une permission RH)
   { id: 'equipe-rh', label: 'Équipe & RH', level: 1, block: 'ressources', parentId: null, order: 1, icon: Briefcase, brandScoped: false },
