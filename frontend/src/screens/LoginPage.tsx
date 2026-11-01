@@ -57,6 +57,8 @@ export function LoginPage() {
       }
     } else if (res.attendance) {
       toast.success(`Pointage enregistre a ${res.attendance.clock_in_at}`);
+      // Pas de retard : on efface un éventuel prompt périmé.
+      try { sessionStorage.removeItem('nexus:late_justify_prompt'); } catch { /* ignore */ }
     }
     const dest = res.roleSlugs?.includes('confirmatrice')
       ? '/whatsapp'

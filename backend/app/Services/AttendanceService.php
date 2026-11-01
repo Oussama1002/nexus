@@ -50,7 +50,13 @@ class AttendanceService
                 $existing->update(['clock_out_at' => null]);
             }
 
-            return $existing;
+            // Auto-correction : un retard marqué un jour non travaillé (ex. pointage
+            // enregistré avant le correctif) est annulé à la connexion suivante.
+            if (! $isWorkingDay && ($existing->was_late || $existing->status === 'late')) {
+                $existing->update(['status' => 'present', 'was_late' => false, 'minutes_late' => 0]);
+            }
+
+            return $existing->fresh();
         }
 
         $minutesLate = 0;
