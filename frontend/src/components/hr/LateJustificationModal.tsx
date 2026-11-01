@@ -77,7 +77,7 @@ export function LateJustificationModal() {
           <div className="flex-1">
             <p className="text-lg font-black text-zinc-900">Retard détecté</p>
             <p className="text-sm text-zinc-600 mt-1 leading-snug">
-              {fmtDayLong(pending.attendance_date) ? <>Le <span className="font-black capitalize">{fmtDayLong(pending.attendance_date)}</span>, vous</> : 'Vous'} avez pointé en retard de <span className="font-black text-rose-700">{formatLateness(pending.minutes_late)}</span>
+              Le <span className="font-black capitalize">{fmtDayLong(pending.attendance_date ?? todayLocal())}</span>, vous avez pointé en retard de <span className="font-black text-rose-700">{formatLateness(pending.minutes_late)}</span>
               {pending.clock_in_at ? <> à <span className="font-black">{pending.clock_in_at}</span></> : null}.
               Merci de justifier votre retard — la justification sera transmise à votre manager pour validation.
             </p>
