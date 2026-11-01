@@ -30,13 +30,14 @@ class AttendanceService
         $today = $now->copy()->startOfDay();
 
         // Présence hors planning (jour non travaillé) : on l'enregistre quand
-        // même, mais sans retard — l'employé était bien là.
-        $isWorkingDay = true;
-        if ($employee->work_days && is_array($employee->work_days)) {
-            $normalizedDays = array_map('strtolower', $employee->work_days);
-            $dayEn = strtolower($today->locale('en')->dayName);
-            $isWorkingDay = in_array($dayEn, $normalizedDays, true) || in_array(self::DAYS_FR[$dayEn], $normalizedDays, true);
-        }
+        // même, mais sans retard — l'employé était bien là. Sans planning
+        // configuré, on retombe sur lundi→vendredi (défaut d'une fiche employé)
+        // pour ne pas compter le dimanche comme un jour travaillé.
+        $workDays = (is_array($employee->work_days) && $employee->work_days)
+            ? array_map('strtolower', $employee->work_days)
+            : ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'];
+        $dayEn = strtolower($today->locale('en')->dayName);
+        $isWorkingDay = in_array($dayEn, $workDays, true) || in_array(self::DAYS_FR[$dayEn], $workDays, true);
 
         $existing = EmployeeAttendanceRecord::query()
             ->where('employee_id', $employee->id)

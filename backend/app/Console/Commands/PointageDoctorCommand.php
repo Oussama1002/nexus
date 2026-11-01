@@ -11,9 +11,12 @@ use Illuminate\Console\Command;
 
 class PointageDoctorCommand extends Command
 {
-    protected $signature = 'hr:pointage-doctor {--test= : E-mail d’un utilisateur — simule une arrivée en retard (notif + message interne)}';
+    protected $signature = 'hr:pointage-doctor {--test= : E-mail d’un utilisateur — simule une arrivée en retard (notif + message interne)} {--repair : Corrige les retards du jour marqués sur un jour non travaillé (dimanche, etc.)}';
 
     protected $description = 'Explique pourquoi le pointage n’enregistre rien, et permet de tester un retard.';
+
+    // Planning par défaut quand la fiche n’a aucun jour configuré (cf. AttendanceService).
+    private const DEFAULT_WORK_DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'];
 
     public function handle(): int
     {
@@ -24,6 +27,10 @@ class PointageDoctorCommand extends Command
 
         if ($email = $this->option('test')) {
             return $this->simulateLate($email);
+        }
+
+        if ($this->option('repair')) {
+            return $this->repairToday($now);
         }
 
         $employees = Employee::query()->with('user')->get();
@@ -40,7 +47,7 @@ class PointageDoctorCommand extends Command
                 $e->full_name,
                 $e->user?->email ?? '— AUCUN COMPTE —',
                 $e->work_start_time ?: '— AUCUNE HEURE —',
-                $e->work_days ? implode(',', array_map(fn ($d) => mb_substr($d, 0, 3), (array) $e->work_days)) : 'tous',
+                $e->work_days ? implode(',', array_map(fn ($d) => mb_substr($d, 0, 3), (array) $e->work_days)) : 'lun-ven (défaut)',
                 $record ? ($record->status.' ('.AttendanceService::formatLateness((int) $record->minutes_late).')') : 'aucun pointage',
                 $this->reason($e, $record, $now),
             ];
@@ -64,16 +71,50 @@ class PointageDoctorCommand extends Command
             return 'Présent — retard non calculé (pas d’heure de début)';
         }
 
-        $dayEn = strtolower($now->locale('en')->dayName);
-        $daysFr = ['monday' => 'lundi', 'tuesday' => 'mardi', 'wednesday' => 'mercredi', 'thursday' => 'jeudi', 'friday' => 'vendredi', 'saturday' => 'samedi', 'sunday' => 'dimanche'];
-        if ($e->work_days && is_array($e->work_days)) {
-            $days = array_map('strtolower', $e->work_days);
-            if (! in_array($dayEn, $days, true) && ! in_array($daysFr[$dayEn], $days, true)) {
-                return 'Présent hors planning (jour non travaillé)';
-            }
+        if (! $this->isWorkingDay($e, $now)) {
+            return 'Présent hors planning (jour non travaillé)';
         }
 
         return $record->was_late ? 'Retard notifié' : 'À l’heure — rien à notifier';
+    }
+
+    /** Même logique que AttendanceService : planning de la fiche, sinon lundi→vendredi. */
+    private function isWorkingDay(Employee $e, Carbon $now): bool
+    {
+        $daysFr = ['monday' => 'lundi', 'tuesday' => 'mardi', 'wednesday' => 'mercredi', 'thursday' => 'jeudi', 'friday' => 'vendredi', 'saturday' => 'samedi', 'sunday' => 'dimanche'];
+        $days = (is_array($e->work_days) && $e->work_days)
+            ? array_map('strtolower', $e->work_days)
+            : self::DEFAULT_WORK_DAYS;
+        $dayEn = strtolower($now->locale('en')->dayName);
+
+        return in_array($dayEn, $days, true) || in_array($daysFr[$dayEn], $days, true);
+    }
+
+    /** Efface le retard des pointages du jour tombant sur un jour non travaillé. */
+    private function repairToday(Carbon $now): int
+    {
+        $today = $now->toDateString();
+        $fixed = 0;
+
+        $records = EmployeeAttendanceRecord::query()
+            ->with('employee')
+            ->where('attendance_date', $today)
+            ->where('was_late', true)
+            ->get();
+
+        foreach ($records as $record) {
+            $employee = $record->employee;
+            if (! $employee || $this->isWorkingDay($employee, $now)) {
+                continue;
+            }
+            $record->update(['status' => 'present', 'was_late' => false, 'minutes_late' => 0]);
+            $this->line("Corrigé : {$employee->full_name} — retard annulé (jour non travaillé).");
+            $fixed++;
+        }
+
+        $this->info($fixed > 0 ? "{$fixed} pointage(s) corrigé(s)." : 'Aucun pointage à corriger aujourd’hui.');
+
+        return self::SUCCESS;
     }
 
     private function simulateLate(string $email): int
