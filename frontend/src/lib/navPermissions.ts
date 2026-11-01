@@ -76,7 +76,7 @@ export const VIEW_PERMISSIONS: Partial<Record<View, string[]>> = {
   myTrainings: ['academy_courses.view'],
   learningPaths: ['academy_courses.view'],
   contentManagement: ['academy_courses.view'],
-  rolesPermissions: ['users.view'],
+  rolesPermissions: ['roles.view'],
   bugsIncidents: ['settings.view'],
   integrations: ['settings.view'],
 };
