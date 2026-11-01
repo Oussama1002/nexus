@@ -91,6 +91,14 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
       setActiveBrandIdState('');
       return;
     }
+    // Un seul accès : pas de « Toutes les marques », on force sa marque.
+    if (brands.length === 1) {
+      if (activeBrandId !== brands[0].id) {
+        writeStoredBrandId(brands[0].id);
+        setActiveBrandIdState(brands[0].id);
+      }
+      return;
+    }
     const ids = new Set(brands.map((b) => b.id));
     if (!activeBrandId || (activeBrandId !== 'all' && !ids.has(activeBrandId))) {
       writeStoredBrandId('all');       // sync localStorage BEFORE child effects
@@ -140,7 +148,7 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<BrandContextValue>(() => {
     const list = brands.length ? brands : [];
-    const isAll = activeBrandId === 'all';
+    const isAll = activeBrandId === 'all' && list.length > 1;
     const id = isAll ? 'all' : (activeBrandId && list.some((b) => b.id === activeBrandId) ? activeBrandId : list[0]?.id ?? '');
     const active = isAll ? ALL_BRAND : (list.find((b) => b.id === id) ?? FALLBACK_BRAND);
     return {
