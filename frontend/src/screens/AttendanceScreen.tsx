@@ -46,6 +46,16 @@ const fmtTime = (iso: string | null) => {
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 };
 
+/** "2026-11-01" → "Dim 1 novembre 2026" (parse local pour éviter un décalage UTC). */
+const fmtDateLong = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d) return ymd;
+  const s = new Date(y, m - 1, d).toLocaleDateString('fr-FR', {
+    weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
+  }).replace('.', '');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
 const durationHm = (a: string | null, b: string | null) => {
   if (!a || !b) return '—';
   const secs = Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 1000));
@@ -232,7 +242,7 @@ export function AttendanceScreen() {
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-4 py-3 text-sm font-bold text-zinc-900">{r.employee?.full_name ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">{new Date(r.attendance_date).toLocaleDateString('fr-FR')}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700">{fmtDateLong(r.attendance_date)}</td>
                     <td className="px-4 py-3 text-sm text-zinc-700">{fmtTime(r.clock_in_at)}</td>
                     <td className="px-4 py-3 text-sm text-zinc-700">{fmtTime(r.clock_out_at)}</td>
                     <td className="px-4 py-3 text-sm text-zinc-700">{durationHm(r.clock_in_at, r.clock_out_at)}</td>

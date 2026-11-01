@@ -32,6 +32,16 @@ function fmtDate(iso: string | null | undefined) {
   if (!iso) return '—';
   const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR', { timeZone: TZ });
 }
+/** "2026-11-01" → "Dim 1 novembre 2026" pour la liste de présence. */
+function fmtDateLong(iso: string | null | undefined) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const s = d.toLocaleDateString('fr-FR', {
+    weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: TZ,
+  }).replace('.', '');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 function fmtTime(iso: string | null | undefined) {
   if (!iso) return '—';
   const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
@@ -154,7 +164,7 @@ export function MyHrFileScreen() {
             <div className="space-y-1.5">
               {(data?.attendance ?? []).slice(0, 15).map((r) => (
                 <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50/60 px-3 py-2 text-sm">
-                  <span className="font-bold text-zinc-800">{fmtDate(r.attendance_date)}</span>
+                  <span className="font-bold text-zinc-800">{fmtDateLong(r.attendance_date)}</span>
                   <span className="text-zinc-500">{fmtTime(r.clock_in_at)} → {fmtTime(r.clock_out_at)}</span>
                   <span className="flex items-center gap-2">
                     {r.was_late && <StatusChip tone="warning">Retard{r.minutes_late ? ` ${fmtLate(r.minutes_late)}` : ''}</StatusChip>}
