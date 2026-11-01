@@ -50,7 +50,7 @@ const SEVERITY_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'Tous' },
+  { value: '', label: 'Actifs' },
   { value: 'open', label: 'Ouvert' },
   { value: 'in_progress', label: 'En cours' },
   { value: 'resolved', label: 'Résolu' },

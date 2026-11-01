@@ -21,7 +21,13 @@ class BugIncidentController extends Controller
             ->with(['reporter:id,name', 'assignee:id,name'])
             ->orderByDesc('id');
         if ($brandId !== null) $q->where('brand_id', $brandId);
-        if ($status = $request->query('status')) $q->where('status', $status);
+        if ($status = $request->query('status')) {
+            $q->where('status', $status);
+        } else {
+            // Par défaut, on masque les bugs déjà corrigés : un bug résolu/fermé
+            // sort de la liste active (toujours consultable via le filtre statut).
+            $q->whereNotIn('status', ['resolved', 'closed']);
+        }
         if ($severity = $request->query('severity')) $q->where('severity', $severity);
         if ($module = $request->query('module')) $q->where('module', $module);
         if ($search = $request->query('search')) {
