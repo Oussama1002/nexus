@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, ChevronDown, Check } from 'lucide-react';
 import * as api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import type { LaravelPaginator } from '../../lib/apiTypes';
@@ -52,6 +52,8 @@ export function CreateComplaintButton({
   });
   const [form, setForm] = useState(initial);
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
+  const [custOpen, setCustOpen] = useState(false);
+  const custRef = useRef<HTMLDivElement>(null);
 
   const loadCustomers = async () => {
     if (customers.length) return;
@@ -64,6 +66,31 @@ export function CreateComplaintButton({
     setOpen(true);
     void loadCustomers();
   };
+
+  // Ferme la liste client au clic en dehors.
+  useEffect(() => {
+    if (!custOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (custRef.current && !custRef.current.contains(e.target as Node)) setCustOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [custOpen]);
+
+  const pickCustomer = (c: CustomerOpt) => {
+    setForm((f) => ({
+      ...f,
+      customer_name: c.full_name,
+      customer_phone: c.phone ?? f.customer_phone,
+    }));
+    setCustOpen(false);
+  };
+
+  const custQuery = form.customer_name.trim().toLowerCase();
+  const filteredCustomers = custQuery
+    ? customers.filter((c) => c.full_name.toLowerCase().includes(custQuery))
+    : customers;
+  const exactMatch = customers.some((c) => c.full_name.toLowerCase() === custQuery);
 
   const submit = async () => {
     if (!form.customer_name.trim() || !form.description.trim()) {
@@ -120,28 +147,49 @@ export function CreateComplaintButton({
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-black text-zinc-900">Nouvelle réclamation</h2>
             <div className="grid grid-cols-2 gap-3">
-              <label className="col-span-2 text-sm font-bold text-zinc-700">Nom du client *
-                <input
-                  list="complaint-customers"
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200"
-                  value={form.customer_name}
-                  placeholder="Choisir un client ou saisir un nouveau nom"
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    const match = customers.find((c) => c.full_name === name);
-                    setForm((f) => ({
-                      ...f,
-                      customer_name: name,
-                      customer_phone: match?.phone && !f.customer_phone ? match.phone : f.customer_phone,
-                    }));
-                  }}
-                />
-                <datalist id="complaint-customers">
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.full_name}>{c.phone ?? ''}</option>
-                  ))}
-                </datalist>
-              </label>
+              <div className="col-span-2 text-sm font-bold text-zinc-700">Nom du client *
+                <div ref={custRef} className="relative mt-1">
+                  <input
+                    className="w-full px-3 py-2 pr-9 rounded-xl border border-zinc-200 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500"
+                    value={form.customer_name}
+                    placeholder="Choisir un client ou saisir un nouveau nom"
+                    onFocus={() => setCustOpen(true)}
+                    onChange={(e) => { setForm((f) => ({ ...f, customer_name: e.target.value })); setCustOpen(true); }}
+                  />
+                  <ChevronDown
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+                  />
+                  {custOpen && (
+                    <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg py-1">
+                      {custQuery && !exactMatch && (
+                        <div className="px-3 py-2 text-xs font-bold text-primary-700 bg-primary-50/60">
+                          Nouveau client : « {form.customer_name.trim()} »
+                        </div>
+                      )}
+                      {filteredCustomers.map((c) => {
+                        const selected = c.full_name.toLowerCase() === custQuery;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => pickCustomer(c)}
+                            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-zinc-50"
+                          >
+                            <span className="min-w-0">
+                              <span className="block text-sm font-bold text-zinc-900 truncate">{c.full_name}</span>
+                              {c.phone && <span className="block text-xs font-medium text-zinc-500">{c.phone}</span>}
+                            </span>
+                            {selected && <Check className="w-4 h-4 text-primary-600 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                      {filteredCustomers.length === 0 && !custQuery && (
+                        <p className="px-3 py-2 text-xs font-medium text-zinc-500">Aucun client enregistré.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
               <label className="text-sm font-bold text-zinc-700">Téléphone
                 <input className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} />
               </label>
