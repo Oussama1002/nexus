@@ -181,14 +181,14 @@ export function ContentManagementScreen() {
               {TYPE_OPTIONS.filter(o => o.value).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </label>
+          <label className="text-sm font-bold text-zinc-700">Durée (minutes)
+            <input type="number" min="0" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
+          </label>
           <label className="col-span-2 text-sm font-bold text-zinc-700">Parcours de rattachement
             <select className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.learning_path_id} onChange={(e) => setForm({ ...form, learning_path_id: e.target.value })}>
               <option value="">— aucun —</option>
               {paths.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
-          </label>
-          <label className="text-sm font-bold text-zinc-700">Durée (minutes)
-            <input type="number" min="0" className="mt-1 w-full px-3 py-2 rounded-xl border border-zinc-200" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
           </label>
           <div className="col-span-2">
             <FileUploadField
