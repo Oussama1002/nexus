@@ -40,14 +40,18 @@ export function LoginPage() {
     }
     if (res.attendance?.was_late) {
       toast.error(`Retard de ${formatLateness(res.attendance.minutes_late)} — pointage à ${res.attendance.clock_in_at}`);
-      // If they haven't already given a reason, stash the attendance id so
-      // the shell can pop up a justification modal once the app is loaded.
-      if (res.attendance.id && !res.attendance.justification_reason) {
+      // On ne demande de justifier QUE le retard du jour : un retard d'un jour
+      // ouvré précédent n'est plus affiché ni à justifier.
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const isToday = !res.attendance.attendance_date || res.attendance.attendance_date === todayStr;
+      if (res.attendance.id && !res.attendance.justification_reason && isToday) {
         try {
           sessionStorage.setItem('nexus:late_justify_prompt', JSON.stringify({
             id: res.attendance.id,
             minutes_late: res.attendance.minutes_late,
             clock_in_at: res.attendance.clock_in_at,
+            attendance_date: res.attendance.attendance_date ?? todayStr,
           }));
         } catch { /* private mode */ }
       }

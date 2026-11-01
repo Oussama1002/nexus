@@ -4,7 +4,22 @@ import { AlertTriangle, Clock } from 'lucide-react';
 import * as api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 
-type Pending = { id: number; minutes_late: number; clock_in_at: string | null };
+type Pending = { id: number; minutes_late: number; clock_in_at: string | null; attendance_date?: string };
+
+/** "2026-11-01" → "dimanche 1 novembre 2026" (parse local pour éviter un décalage UTC). */
+function fmtDayLong(ymd?: string): string {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  return new Date(y, m - 1, d).toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+}
+
+function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 /**
  * Pops up once when the user logs in late (LoginPage set the
@@ -25,6 +40,12 @@ export function LateJustificationModal() {
       const raw = sessionStorage.getItem('nexus:late_justify_prompt');
       if (!raw) return;
       const parsed = JSON.parse(raw) as Pending;
+      // On ne justifie que le retard du jour : un retard d'un jour ouvré
+      // précédent n'est plus affiché et aucun motif n'est demandé.
+      if (parsed?.attendance_date && parsed.attendance_date !== todayLocal()) {
+        sessionStorage.removeItem('nexus:late_justify_prompt');
+        return;
+      }
       if (parsed && typeof parsed.id === 'number') setPending(parsed);
     } catch { /* ignore */ }
   }, []);
@@ -56,7 +77,7 @@ export function LateJustificationModal() {
           <div className="flex-1">
             <p className="text-lg font-black text-zinc-900">Retard détecté</p>
             <p className="text-sm text-zinc-600 mt-1 leading-snug">
-              Vous avez pointé en retard de <span className="font-black text-rose-700">{formatLateness(pending.minutes_late)}</span>
+              {fmtDayLong(pending.attendance_date) ? <>Le <span className="font-black capitalize">{fmtDayLong(pending.attendance_date)}</span>, vous</> : 'Vous'} avez pointé en retard de <span className="font-black text-rose-700">{formatLateness(pending.minutes_late)}</span>
               {pending.clock_in_at ? <> à <span className="font-black">{pending.clock_in_at}</span></> : null}.
               Merci de justifier votre retard — la justification sera transmise à votre manager pour validation.
             </p>

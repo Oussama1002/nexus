@@ -43,6 +43,7 @@ export type ApiBrand = {
 export type AttendanceInfo = {
   id?: number;
   status: 'present' | 'late' | 'absent';
+  attendance_date?: string | null;
   clock_in_at: string | null;
   was_late: boolean;
   minutes_late: number;

@@ -163,6 +163,9 @@ HTML;
             $payload['attendance'] = [
                 'id' => $attendance->id,
                 'status' => $attendance->status,
+                'attendance_date' => $attendance->attendance_date instanceof \Carbon\Carbon
+                    ? $attendance->attendance_date->toDateString()
+                    : (string) $attendance->attendance_date,
                 'clock_in_at' => $attendance->clock_in_at?->copy()->setTimezone(AttendanceService::TIMEZONE)->format('H:i'),
                 'was_late' => $attendance->was_late,
                 'minutes_late' => $attendance->minutes_late,
