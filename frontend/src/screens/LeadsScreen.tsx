@@ -567,7 +567,9 @@ export function LeadsScreen({
                 return (
                   <select
                     value={currentVal}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={async (e) => {
+                      e.stopPropagation();
                       const uid = e.target.value ? Number(e.target.value) : null;
                       const res = await api.post(`leads/${l.id}/assign`, { assigned_user_id: uid });
                       if (!res.ok) { toast.error(res.message); return; }
@@ -590,7 +592,9 @@ export function LeadsScreen({
               cell: (l) => (
                 <select
                   value={l.status}
+                  onClick={(e) => e.stopPropagation()}
                   onChange={async (e) => {
+                    e.stopPropagation();
                     const res = await api.patch(`leads/${l.id}/status`, { status: e.target.value });
                     if (!res.ok) { toast.error(res.message); return; }
                     toast.success('Statut mis à jour.');
