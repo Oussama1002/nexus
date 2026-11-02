@@ -25,6 +25,9 @@ class InstagramOAuthController extends Controller
 {
     private const SCOPES = [
         'instagram_business_basic',
+        // Requis pour publier depuis le CRM (POST /me/media + /me/media_publish).
+        // Sans elle, Meta répond « Application does not have permission for this action ».
+        'instagram_business_content_publish',
     ];
 
     public function redirectUrl(Request $request): JsonResponse
