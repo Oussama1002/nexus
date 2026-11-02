@@ -243,7 +243,7 @@ export function PurchaseOrdersScreen() {
       if (!activeBrandId) return;
       const [sRes, pRes] = await Promise.all([
         api.get<LaravelPaginator<ApiSupplier>>('suppliers?per_page=200'),
-        api.get<LaravelPaginator<ApiProduct>>('products?per_page=200'),
+        api.get<LaravelPaginator<ApiProduct>>('products?per_page=500'),
       ]);
       if (c) return;
       if (sRes.ok && isPaginator<ApiSupplier>(sRes.data)) setSuppliers(sRes.data.data);

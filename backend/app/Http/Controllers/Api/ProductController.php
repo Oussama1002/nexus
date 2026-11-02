@@ -25,7 +25,7 @@ class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         $brandId = ApiBrandContext::resolveBrandId($request, required: false);
-        $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+        $perPage = min(max((int) $request->query('per_page', 15), 1), 500);
         $search = $request->query('search');
 
         $q = Product::query();
