@@ -90,25 +90,56 @@ class PointageDoctorCommand extends Command
         return in_array($dayEn, $days, true) || in_array($daysFr[$dayEn], $days, true);
     }
 
-    /** Efface le retard des pointages du jour tombant sur un jour non travaillé. */
+    /**
+     * Recalcule le retard des pointages du jour à partir de l'heure d'arrivée
+     * stockée (clock_in_at, en UTC) et du fuseau courant. Corrige les retards
+     * mal calculés (ex. décalage de fuseau au moment du pointage) et ceux
+     * marqués un jour non travaillé.
+     */
     private function repairToday(Carbon $now): int
     {
+        $tz = AttendanceService::TIMEZONE;
         $today = $now->toDateString();
         $fixed = 0;
 
         $records = EmployeeAttendanceRecord::query()
             ->with('employee')
             ->where('attendance_date', $today)
-            ->where('was_late', true)
+            ->whereNotNull('clock_in_at')
             ->get();
 
         foreach ($records as $record) {
             $employee = $record->employee;
-            if (! $employee || $this->isWorkingDay($employee, $now)) {
+            if (! $employee) {
                 continue;
             }
-            $record->update(['status' => 'present', 'was_late' => false, 'minutes_late' => 0]);
-            $this->line("Corrigé : {$employee->full_name} — retard annulé (jour non travaillé).");
+
+            $date = $record->attendance_date instanceof Carbon
+                ? $record->attendance_date->copy()
+                : Carbon::parse((string) $record->attendance_date, $tz);
+
+            $minutesLate = 0;
+            $wasLate = false;
+            $status = 'present';
+
+            if ($employee->work_start_time && $this->isWorkingDay($employee, $date)) {
+                $scheduledStart = Carbon::parse($date->toDateString().' '.$employee->work_start_time, $tz);
+                $clockIn = $record->clock_in_at->copy()->setTimezone($tz);
+                if ($clockIn->greaterThan($scheduledStart)) {
+                    $minutesLate = (int) $scheduledStart->diffInMinutes($clockIn);
+                    if ($minutesLate >= 1) {
+                        $wasLate = true;
+                        $status = 'late';
+                    }
+                }
+            }
+
+            if ((int) $record->minutes_late === $minutesLate && (bool) $record->was_late === $wasLate && $record->status === $status) {
+                continue;
+            }
+
+            $record->update(['status' => $status, 'was_late' => $wasLate, 'minutes_late' => $minutesLate]);
+            $this->line("Corrigé : {$employee->full_name} — retard recalculé : ".AttendanceService::formatLateness($minutesLate).'.');
             $fixed++;
         }
 
